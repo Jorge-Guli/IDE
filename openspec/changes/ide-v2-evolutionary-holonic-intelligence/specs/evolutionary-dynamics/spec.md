@@ -1,0 +1,58 @@
+# Spec Delta: Evolutionary Dynamics
+
+## Purpose
+
+Proveer la dinámica darwiniana y lamarckiana acotada del sistema: metabolismo energético individual con costo cerebral cuadrático ($C_{\max}^2$), muerte por inanición, reproducción diferencial con partición conservativa de energía ($R_{12}$), genoma mutable `AgentGenome` ($R_{13}$) y transferencia cultural vertical de creencias madre-hijo con descuento intergeneracional $\gamma_{\text{gen}}$ ($R_{14}$).
+
+## ADDED Requirements
+
+### Requirement: Metabolismo Energético con Penalización Cuadrática de Capacidad y Radios
+Cuando `enable_evolution=True`, cada `MicroAgent` SHALL iniciar con energía `initial_energy` ($E_0$) y descontar en cada tick el costo metabólico basal $c_{\text{base}}(i) = c_{\text{fijo}} + c_{\text{mem}} \cdot C_{\max, i}^2 + c_{\text{sens}} \cdot (r_{\text{perc}, i}^2 + r_{\text{com}, i}^2)$, más $c_{\text{move}}$ si ejecutó `MOVE` efectivo y $c_{\text{msg}} \cdot m_i$ por los $m_i$ mensajes emitidos en el tick; al consumir un recurso con valor real $v$, su energía SHALL incrementarse en $\eta_E \cdot v$.
+
+#### Scenario: Penalización cuadrática del cerebro individual
+- **WHEN** dos agentes en reposo y sin emitir mensajes tienen capacidades $C_{\max} = 3$ y $C_{\max} = 6$ respectivamente, con `metabolic_base_cost = 0.02`, `memory_capacity_cost = 0.005` y `sensory_radius_cost = 0.0`
+- **THEN** tras un tick el primero pierde `0.02 + 0.005 * 9 = 0.065` de energía y el segundo pierde `0.02 + 0.005 * 36 = 0.200` de energía (con tolerancia `1e-9`).
+
+#### Scenario: Ganancia y pérdida por interacción con recursos
+- **WHEN** un agente con energía `1.0` consume un recurso benéfico de valor `+1.0` con `energy_gain_scale = 0.5`
+- **THEN** antes del descuento basal su energía aumenta a `1.5`, y si consume uno dañino de valor `-1.0` disminuye a `0.5`.
+
+### Requirement: Muerte por Agotamiento Energético
+En la Fase 5 de cada tick con `enable_evolution=True`, todo `MicroAgent` cuya energía resultante cumpla $E_i(t) \le 0$ SHALL ser eliminado del motor, del entorno espacial y podado de cualquier árbol holónico antes de la fase de reproducción, incrementando el contador `deaths_this_tick`.
+
+#### Scenario: Eliminación por inanición
+- **WHEN** la energía de un agente cae a `0.0` o a un valor negativo al finalizar el cobro metabólico de la Fase 5
+- **THEN** el agente deja de figurar en `engine.agents` y en `env.get_active_agent_ids()` en ese mismo tick.
+
+### Requirement: Reproducción Diferencial con Partición Conservativa y Límite de Un Evento por Tick (R12)
+En la Fase 5 de cada tick con `enable_evolution=True`, todo `MicroAgent` sobreviviente que no se haya reproducido ya en ese mismo tick (por ejemplo, vía reproducción holónica $R_{17}$) y cuya energía cumpla $E_i(t) \ge E_{\text{reprod}}$ (`reproduction_threshold`), procesado en orden ascendente de `agent_id`, SHALL engendrar a lo sumo un descendiente en el tick siempre que el número total de `MicroAgent` activos sea estrictamente menor que `max_population` ($N_{\max}$), reteniendo $(1 - \kappa_{\text{part}}) \cdot E_i(t)$ para sí y transfiriendo $\kappa_{\text{part}} \cdot E_i(t)$ al hijo.
+
+#### Scenario: Partición exacta de energía y linaje
+- **WHEN** el agente 4 con generación `g = 2` alcanza energía `2.4` con `reproduction_threshold = 2.0`, `offspring_energy_share = 0.5` y hay cupo bajo `max_population`
+- **THEN** nace un nuevo agente con `parent_id == 4`, `generation == 3`, `energy == 1.2`, y el agente 4 queda con `energy == 1.2` (con tolerancia `1e-9`), conservando la suma total `2.4`.
+
+#### Scenario: Respeto estricto de la capacidad de carga
+- **WHEN** la población activa ya tiene `len(engine.agents) == max_population` y un agente supera `reproduction_threshold`
+- **THEN** no nace ningún descendiente y el agente conserva su energía íntegra.
+
+### Requirement: Herencia Genética con Mutación Acotada (R13)
+Al reproducirse un agente con `mutation_rate > 0`, el genoma del hijo (`AgentGenome`) SHALL derivarse del genoma parental aplicando a cada rasgo continuo ($\alpha, \gamma, \epsilon, \omega_{\text{bond}}$) ruido normal $\mathcal{N}(0, \sigma_{\text{mut}}^2)$ recortado a su dominio válido y a cada rasgo discreto ($C_{\max}, r_{\text{perc}}, r_{\text{com}}$) un salto en $\{-1, 0, +1\}$ con probabilidad `discrete_mutation_prob` recortado a sus cotas válidas; con `mutation_rate == 0.0` (ablación de $R_{13}$), el hijo SHALL recibir un `AgentGenome` idéntico al parental sin consumir extracciones de mutación.
+
+#### Scenario: Clonación exacta bajo ablación de mutación
+- **WHEN** un agente se reproduce con `mutation_rate = 0.0` y `discrete_mutation_prob = 0.0`
+- **THEN** `child.genome == parent.genome`.
+
+#### Scenario: Mutación acotada dentro de invariantes de dominio
+- **WHEN** se muta repetidamente un `AgentGenome` durante 500 eventos reproductivos con `mutation_rate = 0.2` y `discrete_mutation_prob = 0.5`
+- **THEN** todos los coeficientes continuos permanecen en `[0.0, 1.0]` (`alpha_learning` en `[0.01, 1.0]`), `memory_capacity` permanece en `[1, num_world_patterns - 1]` (cuando `enforce_memory_constraint=True`) y los radios permanecen dentro de la cota toroidal.
+
+### Requirement: Herencia Cultural Vertical con Descuento Intergeneracional (R14)
+Cuando `enable_cultural_inheritance=True` y `inheritance_discount > 0`, el hijo SHALL recibir al nacer hasta $\min(C_{\max, \text{hijo}}, |\mathcal{M}_{\text{padre}}|)$ creencias de la `BoundedMemory` parental ordenadas por utilidad descendente $U(k, t)$ (desempate por `pattern`), cada una transformada con `confidence = gamma_gen * k.confidence`, `evidence_count = 0`, `last_updated_tick = tick` y `from_direct_experience = False`, omitiendo aquellas cuya confianza descontada sea menor que `min_confidence`.
+
+#### Scenario: Transferencia epigénica con invariante no empírico
+- **WHEN** un padre con creencia directa $k(\rho_1, \hat{v}=+1.0, c=0.80, d=5, \text{direct}=True)$ se reproduce en `tick = 50` con `enable_cultural_inheritance=True` e `inheritance_discount = 0.5`
+- **THEN** el hijo nace con $k_{\text{hijo}}(\rho_1)$ en su memoria con `predicted_value == 1.0`, `confidence == 0.40`, `evidence_count == 0`, `last_updated_tick == 50` y `from_direct_experience == False`.
+
+#### Scenario: Ablación de herencia cultural (Tabula Rasa)
+- **WHEN** `enable_cultural_inheritance=False` o `inheritance_discount == 0.0`
+- **THEN** la `BoundedMemory` del recién nacido está vacía (`len(child.memory) == 0`).
