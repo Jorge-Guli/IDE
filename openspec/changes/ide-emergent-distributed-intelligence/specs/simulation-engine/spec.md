@@ -38,11 +38,15 @@ En cada tick el motor SHALL procesar a los agentes en el orden `rng.permutation(
 - **THEN** el orden de procesamiento es idéntico.
 
 ### Requirement: Intercambio Social en Dos Pasadas
-Con `comm_enabled`, el motor SHALL entregar cada mensaje emitido a los vecinos de comunicación del emisor (o sólo a `recipient_id` si es vecino), recolectar los `QUERY_RESPONSE` de la primera pasada y entregarlos en una segunda pasada antes de la fase de decisión.
+Con `comm_enabled`, el motor SHALL entregar cada mensaje emitido a los `neighbor_ids` de la observación de la fase 1 del emisor (o sólo a `recipient_id` si figura entre ellos), recolectar los `QUERY_RESPONSE` de la primera pasada y entregarlos en una segunda pasada antes de la fase de decisión.
 
 #### Scenario: Consulta resuelta en el mismo tick
 - **WHEN** el agente 1 consulta por $\rho_5$ y su vecino 2 lo conoce como dañino con `c = 0.85`
 - **THEN** en la fase de decisión del mismo tick el agente 1 ya tiene una creencia efectiva sobre $\rho_5$.
+
+#### Scenario: Ruteo con los vecinos de la observación
+- **WHEN** un entorno de prueba devuelve en cada observación `neighbor_ids == (0,)`, salvo para el agente 0, que recibe `(1,)`, distintos de los vecinos reales
+- **THEN** en la primera pasada sólo los agentes 0 y 1 reciben mensajes, y el agente 0 recibe los de los demás emisores.
 
 ### Requirement: Control Nulo de Contenido en el Ruteo
 Con `comm_content_null=True`, el motor SHALL aplicar `nullify_belief` a cada entrega (mensaje × receptor, en orden de emisión y de receptor ascendente, en ambas pasadas) usando `null_rng`, un generador `PCG64(SeedSequence(seed, spawn_key=(1,)))` distinto del principal.

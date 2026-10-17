@@ -24,6 +24,7 @@ from ide.domain.types import (
     AgentAction,
     KnowledgeUnit,
     Message,
+    Observation,
     Pattern,
     Resource,
 )
@@ -452,6 +453,33 @@ def test_ablate_discoverers_preserva_al_portador_social() -> None:
     assert engine.agents[2].memory.get(pat(1)) == carried
     engine.run(5)  # el estímulo retirado no se repone
     assert all(r.pattern != pat(1) for _, r in resources_of(grid))
+
+
+def test_ruteo_con_los_vecinos_de_la_observacion(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(small_config())
+    engine.run(20)  # creencias que difundir
+    target, other = 0, 1
+    original = engine.env.get_observation
+
+    def redirect(agent_id: int, tick: int) -> Observation:
+        obs = original(agent_id, tick)
+        return replace(obs, neighbor_ids=(other,) if agent_id == target else (target,))
+
+    monkeypatch.setattr(engine.env, "get_observation", redirect)
+    inbox_sizes: dict[int, int] = {}
+    for aid, agent in engine.agents.items():
+        process = agent.process_incoming_messages
+
+        def spy(messages: list[Message], tick: int, _aid: int = aid, _p: Any = process) -> Any:
+            inbox_sizes.setdefault(_aid, len(messages))  # sólo la primera pasada
+            return _p(messages, tick)
+
+        monkeypatch.setattr(agent, "process_incoming_messages", spy)
+    metrics = engine.step()
+    assert metrics.messages_sent > 0
+    receivers = sorted(aid for aid, size in inbox_sizes.items() if size)
+    assert set(receivers) <= {target, other}
+    assert target in receivers  # recibe los mensajes de los demás emisores
 
 
 def test_ablate_discoverers_sin_retirar_el_estimulo() -> None:

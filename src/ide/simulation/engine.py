@@ -1,6 +1,7 @@
 """Motor de simulación: pipeline determinista de 5 fases sin coordinador cognitivo."""
 
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import cast
 
@@ -78,7 +79,9 @@ class SimulationEngine:
         # 2. Intercambio social en dos pasadas.
         messages_sent = 0
         if self.config.comm_enabled:
-            neighbors = {aid: env.get_communication_neighbors(aid) for aid in order}
+            # Nadie se mueve entre las fases 1 y 2: los vecinos de la observación son los del
+            # ruteo, sin volver a recorrer la vecindad (Decisión 18).
+            neighbors = {aid: observations[aid].neighbor_ids for aid in order}
             responses: list[Message] = []
             for aid, inbox in self._route(emitted, neighbors, order).items():
                 responses += self.agents[aid].process_incoming_messages(inbox, tick)
@@ -128,13 +131,13 @@ class SimulationEngine:
         return [self.step() for _ in range(ticks)]
 
     def _route(
-        self, messages: list[Message], neighbors: dict[int, list[int]], order: list[int]
+        self, messages: list[Message], neighbors: Mapping[int, Sequence[int]], order: list[int]
     ) -> dict[int, list[Message]]:
         """Bandejas por agente, en `order`; cada entrega del control nulo es una extracción."""
         inboxes: dict[int, list[Message]] = {aid: [] for aid in order}
         null = self.config.comm_content_null
         for msg in messages:
-            reach = neighbors[msg.sender_id]
+            reach: Sequence[int] = neighbors[msg.sender_id]
             if msg.recipient_id is not None:
                 reach = [msg.recipient_id] if msg.recipient_id in reach else []
             for receiver in reach:

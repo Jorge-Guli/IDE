@@ -15,7 +15,12 @@ class EnvironmentPort(Protocol):
         """Identificadores de los agentes activos, ascendentes."""
         ...
 
-    def get_observation(self, agent_id: int, tick: int) -> Observation: ...
+    def get_observation(self, agent_id: int, tick: int) -> Observation:
+        """Sin acciones de por medio, `neighbor_ids == tuple(get_communication_neighbors(id))`.
+
+        El motor rutea la fase 2 con esos vecinos (Decisión 18).
+        """
+        ...
 
     def get_communication_neighbors(self, agent_id: int) -> list[int]:
         """Vecinos de comunicación, ascendentes y sin `agent_id`."""

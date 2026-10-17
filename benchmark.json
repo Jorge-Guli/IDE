@@ -33,14 +33,14 @@
     "tau_policy": "validation",
     "update_scheme": "synchronous"
   },
-  "median_ticks_per_second": 128.83205526709506,
+  "median_ticks_per_second": 193.54620127339567,
   "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
   "python_version": "3.13.16",
   "repetitions": 3,
   "ticks": 300,
   "ticks_per_second": [
-    124.9566893346279,
-    128.83205526709506,
-    142.43667413602145
+    233.60881309990208,
+    193.54620127339567,
+    179.98033466470025
   ]
 }
