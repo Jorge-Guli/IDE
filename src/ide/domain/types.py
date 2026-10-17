@@ -74,6 +74,8 @@ class Message:
 
     def __post_init__(self) -> None:
         if self.msg_type is MessageType.QUERY_PATTERN:
+            if self.belief is not None:
+                raise ValueError("QUERY_PATTERN no puede transportar una creencia (belief)")
             return
         if self.belief is None:
             raise ValueError(f"{self.msg_type.value} exige una creencia (belief)")

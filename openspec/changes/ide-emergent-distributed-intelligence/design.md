@@ -306,7 +306,7 @@ class ActionResult:
     experienced_value: float | None = None
 ```
 
-`KnowledgeUnit` **no** valida rangos en construcción (las funciones de `epistemology.py` garantizan los rangos con `clip`); `Message.__post_init__` sí valida que `belief is not None` en `QUERY_RESPONSE` y `BROADCAST_BELIEF` y que `belief.pattern == pattern`.
+`KnowledgeUnit` **no** valida rangos en construcción (las funciones de `epistemology.py` garantizan los rangos con `clip`); `Message.__post_init__` sí valida que `belief is not None` en `QUERY_RESPONSE` y `BROADCAST_BELIEF`, que `belief.pattern == pattern` y que `QUERY_PATTERN` no lleve `belief` (una consulta no puede introducir conocimiento por fuera de `assimilate_testimony`).
 
 ```python
 # src/ide/domain/ports.py

@@ -270,3 +270,8 @@ def test_to_dict_ida_y_vuelta_por_json() -> None:
     cfg = SimulationConfig(seed=7, comm_content_null=True, tau_policy="evidence_age")
     assert SimulationConfig(**json.loads(json.dumps(cfg.to_dict()))) == cfg
     assert set(cfg.to_dict()) == {f.name for f in fields(SimulationConfig)}
+
+
+def test_consulta_con_creencia_es_invalida() -> None:
+    with pytest.raises(ValueError, match="QUERY_PATTERN"):
+        Message(MessageType.QUERY_PATTERN, 1, 2, pat("p_0"), belief=unit(pat("p_0")))
