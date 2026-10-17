@@ -36,7 +36,7 @@ python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --j
 python -m ide.experiments.benchmark
 ```
 
-El paralelismo (`--jobs`) es sólo entre corridas independientes: el diseño exige salida idéntica para cualquier número de procesos y para cualquier `PYTHONHASHSEED`. La suite lo comprueba con `--jobs 1` frente a `--jobs 2` y con `PYTHONHASHSEED` 0 frente a 1 (perfil `quick`).
+El paralelismo (`--jobs`) es sólo entre corridas independientes: el diseño exige salida idéntica para cualquier número de procesos y para cualquier `PYTHONHASHSEED`. La suite lo comprueba con `--jobs 1` frente a `--jobs 2` y con `PYTHONHASHSEED` 0 frente a 1 (perfil `quick`). No se comparan historiales entre versiones distintas de Python o de NumPy: el determinismo vale dentro de un mismo entorno.
 
 ## Estructura
 

@@ -554,10 +554,17 @@ def test_oraculo_de_verdad_nadie_fuera_del_motor_lo_referencia() -> None:
     """
     nombre = "get_reachable_true_values"
     src = Path(__file__).resolve().parents[1] / "src" / "ide"
-    referencian = {
-        path.relative_to(src).as_posix()
+    nodos = [
+        (path.relative_to(src).as_posix(), node)
         for path in src.rglob("*.py")
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+    ]
+    # Control del recorrido: si el AST no se leyera, el conjunto vacío pasaría sin detectar nada.
+    definen = {ruta for ruta, n in nodos if isinstance(n, ast.FunctionDef) and n.name == nombre}
+    assert "domain/ports.py" in definen
+    referencian = {
+        ruta
+        for ruta, node in nodos
         if (isinstance(node, ast.Attribute) and node.attr == nombre)
         or (isinstance(node, ast.Name) and node.id == nombre)
         or (isinstance(node, ast.Constant) and node.value == nombre)
