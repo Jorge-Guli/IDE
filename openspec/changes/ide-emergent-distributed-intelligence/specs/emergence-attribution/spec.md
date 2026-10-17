@@ -39,7 +39,7 @@ El módulo SHALL definir `ATTRIBUTION_PROFILE = "quick"` y `EXP001_CLAIMS` con l
 
 #### Scenario: El control no desplaza el generador principal
 - **WHEN** se ejecuta el primer tick de dos motores con la misma semilla, uno con `comm_content_null=True` y otro sin él (en el tick 0 ninguna memoria tiene creencias para transmitir)
-- **THEN** ambos `TickMetrics` y ambos estados del generador principal son idénticos.
+- **THEN** ambos estados del generador principal son idénticos, y ambos `TickMetrics` coinciden en todos los campos salvo `accessible_coverage_mean`, que bajo el control nulo es por definición la cobertura individual.
 
 ### Requirement: Detección de Afirmaciones Programadas por Construcción
 `disables_communication(config)` SHALL ser verdadero si `comm_enabled` es falso o si `max_queries_per_tick` y `max_broadcast_per_tick` son ambos 0; cuando `disables_communication(ablate(config, R_c))` sea verdadero, la afirmación SHALL evaluarse con `by_construction=True` y sin prueba de E3.
