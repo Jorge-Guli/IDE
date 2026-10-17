@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Tipos Inmutables de Fase II (Genoma, Reglas Compuestas, Estigmergia y Holones)
-`src/ide/domain/types.py` SHALL definir como `@dataclass(frozen=True)` los tipos `AgentGenome`, `StigmergicTrace` y `HolonSnapshot` con los campos exactos de `design.md`, preservando intactos los campos de `Pattern`, `KnowledgeUnit`, `Resource`, `VisibleResource`, `Observation`, `Message`, `AgentAction` y `ActionResult`.
+`src/ide/domain/types.py` SHALL definir como `@dataclass(frozen=True)` los tipos `AgentGenome`, `StigmergicTrace` y `HolonSnapshot` con los campos exactos de `design.md`, preservando intactos los tipos inmutables de Fase I.
 
 #### Scenario: Inmutabilidad de los nuevos tipos y preservación de VisibleResource
 - **WHEN** se inspeccionan `AgentGenome`, `StigmergicTrace` y `HolonSnapshot` y los campos de `VisibleResource`
@@ -17,7 +17,7 @@
 - **THEN** `EnvironmentPort` declara exactamente los diez métodos canónicos de Fase I y `ToroidalGrid2D` cumple tanto `EnvironmentPort` como `EvolutionaryEnvironmentPort`.
 
 ### Requirement: Banderas e Hiperparámetros de Fase II con Retrocompatibilidad por Defecto
-`SimulationConfig` SHALL incluir las banderas booleanas `enable_evolution: bool = False`, `enable_cultural_inheritance: bool = False`, `enable_holonic_hierarchy: bool = False`, `enable_holon_splitting: bool = True`, `enable_holon_reproduction: bool = False`, `enable_downward_causation: bool = False` y `enable_stigmergy: bool = False`, junto con los hiperparámetros metabólicos, genéticos, holónicos y de recursos compuestos de `design.md`, validando sus rangos en `__post_init__` (incluyendo `composite_order <= num_world_patterns // 2` cuando `num_composite_patterns > 0`) y serializándolos en `to_dict()`.
+`SimulationConfig` SHALL incluir las banderas de Fase II (`enable_evolution`, `enable_cultural_inheritance`, `enable_holonic_hierarchy`, `enable_holon_splitting`, `enable_holon_reproduction`, `enable_downward_causation`, `enable_stigmergy`) y sus hiperparámetros metabólicos, genéticos, holónicos y compuestos de `design.md`, validando rangos en `__post_init__` y serializándolos en `to_dict()`.
 
 #### Scenario: Configuración por defecto inalterada para Fase I
 - **WHEN** se instancia `SimulationConfig()` sin argumentos
@@ -25,4 +25,4 @@
 
 #### Scenario: Validación de hiperparámetros evolutivos y compuestos fuera de rango
 - **WHEN** se instancia `SimulationConfig(initial_energy=0.0)` o `SimulationConfig(offspring_energy_share=1.0)` o `SimulationConfig(inheritance_discount=1.5)` o `SimulationConfig(redundancy_penalty=0.0)` o `SimulationConfig(num_world_patterns=6, num_composite_patterns=1, composite_order=4)`
-- **THEN** se lanza `ValueError` cuyo mensaje nombra el campo inválido.
+- **THEN** se lanza `ValueError` cuyo mensaje nombra el campo inválido (incluyendo `composite_order <= num_world_patterns // 2` cuando `num_composite_patterns > 0`).

@@ -7,7 +7,7 @@ Proveer la dinámica darwiniana y lamarckiana acotada del sistema: metabolismo e
 ## ADDED Requirements
 
 ### Requirement: Metabolismo Energético con Penalización Cuadrática de Capacidad y Radios
-Cuando `enable_evolution=True`, cada `MicroAgent` SHALL iniciar con energía `initial_energy` ($E_0$) y descontar en cada tick el costo metabólico basal $c_{\text{base}}(i) = c_{\text{fijo}} + c_{\text{mem}} \cdot C_{\max, i}^2 + c_{\text{sens}} \cdot (r_{\text{perc}, i}^2 + r_{\text{com}, i}^2)$, más $c_{\text{move}}$ si ejecutó `MOVE` efectivo y $c_{\text{msg}} \cdot m_i$ por los $m_i$ mensajes emitidos en el tick; al consumir un recurso con valor real $v$, su energía SHALL incrementarse en $\eta_E \cdot v$.
+Cuando `enable_evolution=True`, cada `MicroAgent` SHALL iniciar con energía `initial_energy` ($E_0$), descontar por tick el costo basal $c_{\text{fijo}} + c_{\text{mem}} C_{\max, i}^2 + c_{\text{sens}}(r_{\text{perc}, i}^2 + r_{\text{com}, i}^2)$ más $c_{\text{move}}$ (si se movió) y $c_{\text{msg}} m_i$, y sumar $\eta_E \cdot v$ al consumir un recurso de valor $v$.
 
 #### Scenario: Penalización cuadrática del cerebro individual
 - **WHEN** dos agentes en reposo y sin emitir mensajes tienen capacidades $C_{\max} = 3$ y $C_{\max} = 6$ respectivamente, con `metabolic_base_cost = 0.02`, `memory_capacity_cost = 0.005` y `sensory_radius_cost = 0.0`
@@ -25,7 +25,7 @@ En la Fase 5 de cada tick con `enable_evolution=True`, todo `MicroAgent` cuya en
 - **THEN** el agente deja de figurar en `engine.agents` y en `env.get_active_agent_ids()` en ese mismo tick.
 
 ### Requirement: Reproducción Diferencial con Partición Conservativa y Límite de Un Evento por Tick (R12)
-En la Fase 5 de cada tick con `enable_evolution=True`, todo `MicroAgent` sobreviviente que no se haya reproducido ya en ese mismo tick (por ejemplo, vía reproducción holónica $R_{17}$) y cuya energía cumpla $E_i(t) \ge E_{\text{reprod}}$ (`reproduction_threshold`), procesado en orden ascendente de `agent_id`, SHALL engendrar a lo sumo un descendiente en el tick siempre que el número total de `MicroAgent` activos sea estrictamente menor que `max_population` ($N_{\max}$), reteniendo $(1 - \kappa_{\text{part}}) \cdot E_i(t)$ para sí y transfiriendo $\kappa_{\text{part}} \cdot E_i(t)$ al hijo.
+En la Fase 5 con `enable_evolution=True`, todo `MicroAgent` sobreviviente no reproducido aún en ese tick cuya energía cumpla $E_i(t) \ge E_{\text{reprod}}$ SHALL engendrar a lo sumo un hijo (en orden ascendente de `agent_id`) si `len(agents) < max_population`, reteniendo $(1 - \kappa_{\text{part}}) E_i(t)$ y transfiriendo $\kappa_{\text{part}} E_i(t)$ al hijo.
 
 #### Scenario: Partición exacta de energía y linaje
 - **WHEN** el agente 4 con generación `g = 2` alcanza energía `2.4` con `reproduction_threshold = 2.0`, `offspring_energy_share = 0.5` y hay cupo bajo `max_population`
@@ -36,7 +36,7 @@ En la Fase 5 de cada tick con `enable_evolution=True`, todo `MicroAgent` sobrevi
 - **THEN** no nace ningún descendiente y el agente conserva su energía íntegra.
 
 ### Requirement: Herencia Genética con Mutación Acotada (R13)
-Al reproducirse un agente con `mutation_rate > 0`, el genoma del hijo (`AgentGenome`) SHALL derivarse del genoma parental aplicando a cada rasgo continuo ($\alpha, \gamma, \epsilon, \omega_{\text{bond}}$) ruido normal $\mathcal{N}(0, \sigma_{\text{mut}}^2)$ recortado a su dominio válido y a cada rasgo discreto ($C_{\max}, r_{\text{perc}}, r_{\text{com}}$) un salto en $\{-1, 0, +1\}$ con probabilidad `discrete_mutation_prob` recortado a sus cotas válidas; con `mutation_rate == 0.0` (ablación de $R_{13}$), el hijo SHALL recibir un `AgentGenome` idéntico al parental sin consumir extracciones de mutación.
+Al reproducirse un agente con `mutation_rate > 0` o `discrete_mutation_prob > 0`, el `AgentGenome` del hijo SHALL derivarse del parental aplicando ruido normal $\mathcal{N}(0, \sigma_{\text{mut}}^2)$ a los rasgos continuos y saltos en $\{-1, 0, +1\}$ a los discretos dentro de sus cotas válidas; si ambos son `0.0`, SHALL clonarse sin consumir extracciones del RNG.
 
 #### Scenario: Clonación exacta bajo ablación de mutación
 - **WHEN** un agente se reproduce con `mutation_rate = 0.0` y `discrete_mutation_prob = 0.0`
@@ -47,7 +47,7 @@ Al reproducirse un agente con `mutation_rate > 0`, el genoma del hijo (`AgentGen
 - **THEN** todos los coeficientes continuos permanecen en `[0.0, 1.0]` (`alpha_learning` en `[0.01, 1.0]`), `memory_capacity` permanece en `[1, num_world_patterns - 1]` (cuando `enforce_memory_constraint=True`) y los radios permanecen dentro de la cota toroidal.
 
 ### Requirement: Herencia Cultural Vertical con Descuento Intergeneracional (R14)
-Cuando `enable_cultural_inheritance=True` y `inheritance_discount > 0`, el hijo SHALL recibir al nacer hasta $\min(C_{\max, \text{hijo}}, |\mathcal{M}_{\text{padre}}|)$ creencias de la `BoundedMemory` parental ordenadas por utilidad descendente $U(k, t)$ (desempate por `pattern`), cada una transformada con `confidence = gamma_gen * k.confidence`, `evidence_count = 0`, `last_updated_tick = tick` y `from_direct_experience = False`, omitiendo aquellas cuya confianza descontada sea menor que `min_confidence`.
+Cuando `enable_cultural_inheritance=True` y `inheritance_discount > 0`, el hijo SHALL heredar al nacer hasta $\min(C_{\max, \text{hijo}}, |\mathcal{M}_{\text{padre}}|)$ creencias parentales por orden descendente de utilidad $U(k, t)$, descontadas por `gamma_gen * k.confidence` ($\ge c_{\min}$) con `evidence_count = 0` y `from_direct_experience = False`.
 
 #### Scenario: Transferencia epigénica con invariante no empírico
 - **WHEN** un padre con creencia directa $k(\rho_1, \hat{v}=+1.0, c=0.80, d=5, \text{direct}=True)$ se reproduce en `tick = 50` con `enable_cultural_inheritance=True` e `inheritance_discount = 0.5`
