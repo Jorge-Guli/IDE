@@ -751,19 +751,19 @@ def nullify_belief(belief: KnowledgeUnit, rng: np.random.Generator) -> Knowledge
 
 ## Checklist de Criterios de Aceptación (Definition of Done)
 
-- [ ] **Aislamiento de capas:** ningún archivo en `src/ide/agent/` importa `environments`, `simulation` ni `experiments` (test sobre el AST).
-- [ ] **Protocolo aislado:** dentro de `src/ide/agent/`, sólo `protocol.py` construye `Message` o referencia `MessageType` (test sobre el AST).
-- [ ] **Atribución pre-registrada:** `DESIGN_RULES` y `EXP001_CLAIMS` versionados antes de la primera corrida de 001-D, y `--attribution` ejecutado con las semillas 42..46, con su tabla de estados registrada tal cual.
-- [ ] **Cero fuga de información:** `VisibleResource` no tiene `true_value`; `get_reachable_true_values` sólo es invocado por `SimulationEngine`.
-- [ ] **Invariante de memoria:** para todo agente y todo tick, `len(agent.memory) <= config.memory_capacity`.
-- [ ] **Anti-cámara de eco:** con factor de confianza $\le 1$, el intercambio repetido de rumores indirectos nunca supera $\max(c_A, \gamma c_B)$.
-- [ ] **Persistencia social válida:** `ablate_discoverers(..., retire_stimulus=True)` elimina descubridores y recursos físicos.
-- [ ] **Determinismo intra-proceso:** dos motores con la misma `seed` producen historiales, posiciones y memorias idénticas.
-- [ ] **Determinismo inter-proceso:** la CLI con `--profile quick` genera JSON idéntico bajo `PYTHONHASHSEED=0` y `PYTHONHASHSEED=1`.
-- [ ] **Suite de software verde:** `python -m pytest --cov=ide` (sin los marcadores `empirical` ni `slow`), `ruff check`, `ruff format --check` y `pyright`.
-- [ ] **Paralelismo inocuo:** la CLI produce archivos idénticos con `--jobs 1` y `--jobs N` (el test usa `--jobs 2`, como el escenario de la spec).
-- [ ] **Línea base de rendimiento registrada:** `benchmark.json` generado al cerrar el bloque 8 (128.8 ticks/s, commit `e061beb`) y su historial en `RESULTADOS.md`; el archivo guarda la última medición.
-- [ ] **Hipótesis ejecutadas y reportadas:** `python -m pytest -m empirical` corrido sobre las semillas 42..46 y su resultado (positivo o negativo) registrado.
+- [x] **Aislamiento de capas:** ningún archivo en `src/ide/agent/` importa `environments`, `simulation` ni `experiments` (test sobre el AST).
+- [x] **Protocolo aislado:** dentro de `src/ide/agent/`, sólo `protocol.py` construye `Message` o referencia `MessageType` (test sobre el AST).
+- [x] **Atribución pre-registrada:** `DESIGN_RULES` y `EXP001_CLAIMS` versionados antes de la primera corrida de 001-D, y `--attribution` ejecutado con las semillas 42..46, con su tabla de estados registrada tal cual.
+- [x] **Cero fuga de información:** `VisibleResource` no tiene `true_value`; `get_reachable_true_values` sólo es invocado por `SimulationEngine`.
+- [x] **Invariante de memoria:** para todo agente y todo tick, `len(agent.memory) <= config.memory_capacity`.
+- [x] **Anti-cámara de eco:** con factor de confianza $\le 1$, el intercambio repetido de rumores indirectos nunca supera $\max(c_A, \gamma c_B)$.
+- [x] **Persistencia social válida:** `ablate_discoverers(..., retire_stimulus=True)` elimina descubridores y recursos físicos.
+- [x] **Determinismo intra-proceso:** dos motores con la misma `seed` producen historiales, posiciones y memorias idénticas.
+- [x] **Determinismo inter-proceso:** la CLI con `--profile quick` genera JSON idéntico bajo `PYTHONHASHSEED=0` y `PYTHONHASHSEED=1`.
+- [x] **Suite de software verde:** `python -m pytest --cov=ide` (sin los marcadores `empirical` ni `slow`), `ruff check`, `ruff format --check` y `pyright`.
+- [x] **Paralelismo inocuo:** la CLI produce archivos idénticos con `--jobs 1` y `--jobs N` (el test usa `--jobs 2`, como el escenario de la spec).
+- [x] **Línea base de rendimiento registrada:** `benchmark.json` generado al cerrar el bloque 8 (128.8 ticks/s, commit `e061beb`) y su historial en `RESULTADOS.md`; el archivo guarda la última medición.
+- [x] **Hipótesis ejecutadas y reportadas:** `python -m pytest -m empirical` corrido sobre las semillas 42..46 y su resultado (positivo o negativo) registrado.
 
 ## Setup, Ejecución y Validación Local
 

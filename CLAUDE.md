@@ -4,7 +4,7 @@
 
 Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
 
-**Estado:** la especificación está completa y validada; la implementación avanza según los bloques marcados en `tasks.md`. El plan de trabajo es `openspec/changes/ide-emergent-distributed-intelligence/tasks.md`.
+**Estado:** la especificación está completa y validada, y los bloques 1 a 11 de `tasks.md` están implementados y verificados. El trabajo nuevo parte de cambios de diseño (primero los artefactos OpenSpec). El plan de trabajo es `openspec/changes/ide-emergent-distributed-intelligence/tasks.md`.
 
 ## Idioma
 
@@ -72,14 +72,14 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 
 ## Entorno automático
 
-Cada sesión de Claude Code en la nube arranca con un contenedor limpio. El hook `.claude/hooks/session-start.sh`, registrado en `.claude/settings.json`, se ejecuta solo al iniciar cada sesión. Instala `pip install -e ".[dev]"` si existe `pyproject.toml` y, antes del bloque 1, las mismas herramientas del extra `dev`; además precarga Pyright y la CLI de OpenSpec. En una máquina local no hace nada.
+Cada sesión de Claude Code en la nube arranca con un contenedor limpio. El hook `.claude/hooks/session-start.sh`, registrado en `.claude/settings.json`, se ejecuta solo al iniciar cada sesión. Instala `pip install -e ".[dev]"` si existe `pyproject.toml` y, si no existe (lista de respaldo), las mismas herramientas del extra `dev`; además precarga Pyright y la CLI de OpenSpec. En una máquina local no hace nada.
 
 - Si cambian las dependencias de desarrollo en `pyproject.toml`, actualiza también la lista de respaldo del hook.
 - No hace falta instalar nada a mano al empezar una sesión.
 
 ## Comandos
 
-Disponibles a partir del bloque 1 de `tasks.md`:
+Todos disponibles (el proyecto completó los bloques de `tasks.md`):
 
 ```bash
 pip install -e ".[dev]"                     # instalación manual (en la nube la hace el hook de inicio)
@@ -94,7 +94,7 @@ python -m ide.experiments.benchmark          # línea base de rendimiento (ticks
 
 ## Integración continua
 
-`.github/workflows/ci.yml` corre en cada PR y en cada push a `main`: `ruff check`, `ruff format --check`, `pyright`, `python -m pytest --cov=ide` (también con otro `PYTHONHASHSEED`) y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`. Si cambian los pasos de verificación de este documento, actualiza también el workflow. `/code-review` sigue siendo un paso manual.
+`.github/workflows/ci.yml` corre en cada PR y en cada push a `main`: en Python 3.13 (job requerido `Calidad y tests`) `ruff check`, `ruff format --check`, `pyright`, `python -m pytest --cov=ide` (también con otro `PYTHONHASHSEED`) y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`. Un segundo job, `Compatibilidad` (Python 3.11 y 3.12), corre sólo la suite para respaldar el mínimo declarado. Si cambian los pasos de verificación de este documento, actualiza también el workflow. `/code-review` sigue siendo un paso manual.
 
 ## Git
 

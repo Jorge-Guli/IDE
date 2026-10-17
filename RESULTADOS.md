@@ -64,6 +64,18 @@ Valores por semilla (42..46):
 - **La difusión espontánea (R9) reduce levemente la cobertura accesible (C1: −0.036).** Es compatible con el *thrashing* de memoria previsto en la Decisión 4.
 - **C4 tiene efectos grandes y de signo variable** con sólo 2 de 5 semillas distintas de cero. No conviene interpretarlos sin más semillas o un perfil más largo.
 
+## Cierre del proyecto (bloque 11)
+
+Verificación con `src/` idéntico al del commit `360c771`; `tests/` también, salvo el test del oráculo agregado en la revisión del cierre (es una auditoría sobre el AST de `src/` que no altera lo que ejercitan los demás tests: `slow`, `empirical`, la corrida de la CLI y `openspec validate` se ejecutaron antes de agregarlo y no dependen de él; la suite con cobertura en 3.13 y las pasadas en 3.11 y 3.12 se repitieron con la versión final del test, y dieron 379 pasados en las tres), sin ajustar parámetros:
+
+- `ruff check`, `ruff format --check` y `pyright`: sin errores ni advertencias.
+- `python -m pytest --cov=ide`: 378 pasan, 18 deseleccionados; cobertura total 98 %. Tras agregar el test del oráculo: 379 pasan con cobertura total 98 %, y también en Python 3.11 y 3.12 (en la verificación de 360c771 el CI sólo probaba 3.13; un job `Compatibilidad` con 3.11 y 3.12 se agregó después en `ci.yml`, y la suite pasó en las tres versiones tanto en local como en el CI del PR 9).
+- `python -m pytest -m slow`: 2 pasan (001-D completo con 5 semillas).
+- `python -m pytest -m empirical`: 16 de 16 pasan, repetido sobre el código final (tras la optimización de vecindades y la revisión cruzada).
+- `openspec validate --all --strict`: pasa.
+- `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --jobs 2` (perfil `full`): superávit positivo en las 5 semillas (+0.145 a +0.177), prueba de signo `p = 0.03125`, rumor final 0.000 en las 5 (inicial 0.250). La persistencia social final de este protocolo (001-C del perfil `full`) es 0.000 en las 5 semillas. Es otra medición que la de 001-D (perfil `quick`, ablación de descubridores con retiro del estímulo, donde 2 de 5 semillas conservan conocimiento social); no se comparan ni se usan como confirmación mutua.
+- Invariantes del checklist cubiertos por la suite de software: aislamiento de capas y protocolo aislado (`test_auditoria_de_importaciones` y `test_auditoria_del_protocolo` en `tests/test_micro_agent.py`), ausencia de `true_value` en lo visible (`test_campos_exactos_de_visible_resource` en `tests/test_domain_contracts.py`; que sólo `SimulationEngine` invoque `get_reachable_true_values` lo cubre `test_oraculo_de_verdad_nadie_fuera_del_motor_lo_referencia` en `tests/test_simulation_engine.py`, agregado en la revisión del cierre), invariante de memoria y determinismo intra e inter-proceso (`tests/test_simulation_engine.py`), anti-eco (`tests/test_epistemology.py`), y paralelismo inocuo y determinismo de la CLI con `PYTHONHASHSEED` 0 y 1 y `--jobs 1` frente a `--jobs 2` (`tests/test_exp001_suite.py`). Todos pasan en la corrida de arriba.
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.
