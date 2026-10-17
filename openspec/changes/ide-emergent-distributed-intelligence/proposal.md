@@ -1,0 +1,44 @@
+# Proposal: Plataforma de Inteligencia Distribuida Emergente (IDE)
+
+## Why
+
+Los sistemas actuales de inteligencia artificial concentran la cognición en modelos monolíticos de alto costo computacional, mientras que este proyecto busca demostrar experimentalmente que capacidades cognitivas complejas, memoria colectiva y validación epistémica pueden emerger de una población de micro-agentes con memoria individual deliberadamente insuficiente ($C_{\max} \ll N$) operando sin servidor central ni memoria global. Se requiere construir la arquitectura fundacional desacoplada en Python y la suite experimental reproducible (empezando por el Experimento 001 y dejando los puntos de extensión listos para los Experimentos 002 a 006).
+
+## What Changes
+
+- Creación de la estructura de paquete Python (`pyproject.toml`, `src/ide/`, `tests/`) bajo arquitectura hexagonal estricta (separación total entre cognición del agente y topología del entorno).
+- Implementación de contratos de dominio inmutables (`Pattern`, `KnowledgeUnit`, `Resource`, `VisibleResource`, `Observation`, `Message`, `AgentAction`, `ActionResult`) y el puerto abstracto `EnvironmentPort`.
+- Implementación del módulo de memoria acotada (`BoundedMemory`) con límite estricto $C_{\max}$, índice de utilidad epistémica $U(k, t)$ y decaimiento temporal pasivo.
+- Implementación del motor epistemológico (`EpistemicEngine`) con reglas formales para aprendizaje por experiencia directa y revalidación social en tres escenarios (Desconocido con descuento $\gamma$, Consenso y Conflicto Epistémico).
+- Implementación del agente autónomo (`MicroAgent`) agnóstico de coordenadas, con soporte para consultas colectivas en tiempo real (`QUERY_PATTERN` / `QUERY_RESPONSE`), difusión espontánea (`BROADCAST_BELIEF`) y toma de decisiones basada en umbral de confianza y exploración $\epsilon$.
+- Implementación del entorno inicial `ToroidalGrid2D` con aritmética modular sin bordes, indexación espacial $O(1)$ por celda y ocultamiento estricto del valor real $v(r)$ antes de la interacción.
+- Implementación del motor de simulación por pasos discretos (`SimulationEngine`) con pipeline determinista de 5 fases por tick y barajado de turnos mediante semilla (`np.random.Generator`).
+- Implementación del colector de métricas matemáticas M1–M7 (`MetricsCollector`) y el ejecutor automatizado de los protocolos experimentales:
+  - **001-A:** Emergencia Colectiva vs. Agentes Aislados.
+  - **001-B:** Falsificación y Extinción de Creencias Falsas Inyectadas.
+  - **001-C:** Resiliencia ante Daño Poblacional ($10\%, 30\%, 50\%, 70\%$) y Persistencia Extra-Individual.
+  - **Hooks de Extensión (002–006):** Puntos de extensión para estrategias de confianza social, especialización emergente, shock ambiental, inteligencia composicional y evolución.
+
+## Capabilities
+
+### New Capabilities
+- `domain-contracts`: Modelos de datos inmutables, configuración determinista (`SimulationConfig`) e interfaz abstracta `EnvironmentPort` que desacopla el cerebro del agente de la geometría del mundo.
+- `bounded-memory`: Almacenamiento local limitado a $C_{\max}$ creencias con cálculo de utilidad epistémica $U(k, t)$, reemplazo determinista y decaimiento pasivo.
+- `epistemic-engine`: Reglas matemáticas de actualización por experiencia directa y asimilación/revalidación social frente a acuerdo, rumor desconocido o contradicción.
+- `micro-agent`: Ciclo cognitivo local de percepción, consulta a vecinos (`QUERY_PATTERN`), respuesta social, difusión y selección de acciones sin acceso a estado global.
+- `spatial-environments`: Implementación de `ToroidalGrid2D` con índice espacial $O(1)$, vecindades configurables y contrato preparado para futuros entornos (`SpatialGraph`, `ContinuousSpace2D`).
+- `simulation-engine`: Orquestador de ticks en 5 fases síncronas con aleatorización reproducible de orden de agentes e inyección controlada de perturbaciones.
+- `experimental-suite`: Cálculo de métricas M1–M7, ejecución reproducible de los protocolos 001-A, 001-B y 001-C, exportación de resultados en JSON/CSV y CLI de ejecución.
+- `roadmap-extensions`: Contratos e interfaces de extensión para los Experimentos 002 (Revalidación Social y Reputación), 003 (Especialización Emergente), 004 (Reorganización ante Shock Ambiental), 005 (Inteligencia Composicional) y 006 (Evolución y Selección).
+
+### Modified Capabilities
+<!-- No hay capacidades previas modificadas; proyecto greenfield -->
+
+## Impact
+
+- **Código nuevo:** Creación completa de `src/ide/` y `tests/` (7 módulos de producción y suite de pruebas unitarias/integración con `pytest`).
+- **Dependencias:** Python $\ge 3.11$, `numpy` (para RNG reproducible y agregaciones estadísticas) y `pytest` (desarrollo/testing).
+- **Reglas Arquitectónicas Aplicadas:**
+  - Prohibición estricta de importar `environments` dentro de `src/ide/agent/`.
+  - Prohibición de exponer `Resource.true_value` en `Observation` antes de ejecutar `INTERACT`.
+  - Determinismo bit a bit garantizado mediante instancia explícita de `np.random.Generator(np.random.PCG64(seed))`.
