@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Implementación del Protocolo AgentNode de Nivel Cero y Estado de Linaje
-`MicroAgent` SHALL preservar las firmas exactas de sus 8 métodos y 4 propiedades de Fase I, y exponer además `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level` (`0`), `leaf_agents` (`(self,)`), `effective_capacity`, `collective_memory()`, `own_belief(pattern)`, `apply_energy_delta(delta)`, `clear_holon_beliefs()`, `inject_ephemeral_belief(unit)` y `MicroAgent.from_lineage(...)`.
+`MicroAgent` SHALL preservar las firmas exactas de sus 8 métodos y 4 propiedades de Fase I, y exponer además `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level` (`0`), `leaf_agents` (`(self,)`), `effective_capacity`, `collective_memory()`, `own_belief(pattern)`, `apply_energy_delta(delta)`, `clear_holon_beliefs()`, `inject_ephemeral_belief(unit)` y `MicroAgent.from_lineage(...)`. Los tres métodos de la vista del holón dependen de la decisión abierta P1.
 
 #### Scenario: Compatibilidad de firmas canónicas e implementación de AgentNode
 - **WHEN** se instancia `a = MicroAgent(7, SimulationConfig())`
@@ -19,7 +19,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Creencia Efectiva y Caché Efímero
-`own_belief(p)` SHALL devolver la creencia de `BoundedMemory` si existe y, si no, la del caché efímero del tick; `get_effective_belief(p)` SHALL devolver `own_belief(p)` o, si es `None`, la vista del holón del tick. `learn_from_experience` y `assimilate_testimony` SHALL partir de `own_belief`. El caché propio SHALL vaciarse al inicio de `perceive_and_emit_messages`, y la vista con `clear_holon_beliefs`.
+`own_belief(p)` SHALL devolver la creencia de `BoundedMemory` si existe y, si no, la del caché efímero del tick; `get_effective_belief(p)` SHALL devolver `own_belief(p)` o, si es `None`, la vista del holón del tick. `assimilate_testimony` SHALL partir de `own_belief`. El caché propio SHALL vaciarse al inicio de `perceive_and_emit_messages`, y la vista con `clear_holon_beliefs` (vista: variante (a) de P1).
 
 #### Scenario: Creencia sólo en caché
 - **WHEN** una respuesta asimilada en el tick fue rechazada por la memoria llena
@@ -28,3 +28,10 @@
 #### Scenario: La vista del holón no contamina el aprendizaje propio
 - **WHEN** un agente sin creencia propia sobre $\rho_0$ recibe por `inject_ephemeral_belief` una creencia de un compañero con $\hat{v} = -1.0$ y luego aprende por experiencia directa que $\rho_0$ vale `+1.0`
 - **THEN** la creencia resultante en memoria es la de Fase I para un agente sin creencia previa (`update_from_direct_experience(None, ...)`), y `own_belief` no devuelve nunca la creencia inyectada.
+
+### Requirement: Prioridad de la Experiencia Directa en Memoria
+`learn_from_experience` SHALL actualizar la creencia con `update_from_direct_experience`, partiendo de `own_belief` (sin la vista del holón), y almacenarla con `upsert(..., force=True)`.
+
+#### Scenario: Memoria llena de creencias fuertes
+- **WHEN** la memoria está llena de creencias con utilidad mayor a la de una nueva experiencia directa
+- **THEN** tras `learn_from_experience` el patrón experimentado está en la memoria con `from_direct_experience = True`.

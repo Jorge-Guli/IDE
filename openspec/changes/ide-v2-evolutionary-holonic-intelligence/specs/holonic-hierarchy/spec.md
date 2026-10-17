@@ -36,10 +36,10 @@ Con `enable_holonic_hierarchy=True`, el operador `BOND` SHALL evaluar pares de n
 - **THEN** no se fusionan.
 
 ### Requirement: Costo de Coordinación y Operador de Fisión SPLIT (R16)
-En cada tick con `enable_holonic_hierarchy=True`, cada `CompositeAgent` raíz $U$ SHALL descontar, si `enable_evolution=True`, $c_{\text{enlace}} \cdot |U| \cdot L(U)$ repartido entre sus hojas y, si `enable_holon_splitting=True` y acumula `holon_split_patience` ticks sin superávit (definido en design D24) o su energía cae bajo $|U| \cdot E_{\text{min\_holon}}$, SHALL disolverse liberando a sus `children` directos como nodos raíz.
+En cada tick con `enable_holonic_hierarchy=True`, cada `CompositeAgent` raíz $U$ SHALL descontar, si `enable_evolution=True`, $c_{\text{enlace}} \cdot |U| \cdot L(U)$ repartido entre sus hojas y, si `enable_holon_splitting=True` y acumula al menos `holon_split_patience` ticks consecutivos sin superávit (definido en design D24) o su energía cae bajo $|U| \cdot E_{\text{min\_holon}}$, SHALL disolverse liberando a sus `children` directos como nodos raíz.
 
 #### Scenario: Fisión de holón deficitario
-- **WHEN** un `CompositeAgent` de nivel 1 supera `holon_split_patience` ticks consecutivos sin obtener superávit cooperativo con `enable_holon_splitting=True`
+- **WHEN** un `CompositeAgent` de nivel 1 acumula `holon_split_patience` ticks consecutivos sin superávit con `enable_holon_splitting=True`
 - **THEN** el holón se disuelve y sus nodos hijos vuelven a operar como nodos raíz autónomos sin pérdida de sus memorias individuales.
 
 ### Requirement: Causalidad Descendente y Particionamiento Epigenético Intra-Holón (R18)
@@ -54,7 +54,7 @@ Cuando `enable_holon_reproduction=True` y `enable_evolution=True`, un nodo raíz
 
 #### Scenario: Reproducción de un holón preservando su topología y especialización
 - **WHEN** un `CompositeAgent` $U$ de nivel 2 formado por 3 hojas especialistas alcanza energía total `>= 3 * reproduction_threshold` con `enable_holon_reproduction=True` y hay cupo para 3 nuevos agentes
-- **THEN** nacen 3 nuevos `MicroAgent` hijos ensamblados en un nuevo `CompositeAgent` $U_{\text{hijo}}$ de nivel 2 con idéntica estructura de árbol y memorias heredadas complementarias.
+- **THEN** nacen 3 nuevos `MicroAgent` hijos ensamblados en un nuevo `CompositeAgent` $U_{\text{hijo}}$ de nivel 2 con idéntica estructura de árbol, y cada hoja hija tiene `parent_id` igual al `agent_id` de su hoja madre.
 
 ### Requirement: Poda Recursiva de Hojas Muertas en Árboles Holónicos
 `prune_dead_leaves(node, alive_ids)` SHALL actualizar recursivamente cualquier `CompositeAgent` tras la muerte de uno o más `MicroAgent`: si un sub-holón queda con una única hoja sobreviviente, SHALL colapsar directamente a ese nodo sobreviviente; si queda con cero hojas sobrevivientes, SHALL devolver `None`.

@@ -10,7 +10,7 @@
 - **THEN** el estado final y el hash SHA-256 del historial, posiciones y memorias coinciden bit a bit con el oráculo de Fase I.
 
 ### Requirement: Sincronización Efímera en Dos Tiempos, M2 Elemental y Resolución Cooperativa Local en Fase 4
-Con `enable_holonic_hierarchy=True` o `num_composite_patterns > 0`, el motor SHALL sincronizar en `_holon_tick_beliefs`, en Fase 1 y Fase 2, las creencias del holón local y los compuestos desbloqueados, excluir los recursos compuestos de M2, y resolver en Fase 4 la interacción cooperativa local o aplicar `-composite_failure_penalty`.
+Con `enable_holonic_hierarchy=True` o `num_composite_patterns > 0`, el motor SHALL sincronizar en `_holon_tick_beliefs`, en Fase 1 y Fase 2, las creencias del holón local y los compuestos desbloqueados, excluir los recursos compuestos de M2, y resolver en Fase 4 la interacción cooperativa local o aplicar `-composite_failure_penalty`. La vista del holón y la inyección de compuestos son las variantes (a) de P1 y P2.
 
 #### Scenario: Holón localmente conectado con memorias complementarias resuelve recurso compuesto
 - **WHEN** un recurso compuesto exige $(\rho_0, \rho_1)$, el agente 1 conoce válidamente $\rho_0$, el agente 2 conoce válidamente $\rho_1$, ambos pertenecen al mismo `CompositeAgent` $U$ en celdas vecinas y el agente 1 ejecuta `INTERACT` sobre el recurso compuesto

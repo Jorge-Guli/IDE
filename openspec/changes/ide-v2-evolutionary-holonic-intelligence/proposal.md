@@ -5,7 +5,7 @@
 La Fase I (v1.0) construyó y verificó una población de micro-agentes con memoria estrictamente acotada ($C_{\max} < |\mathcal{P}|$) y un marco de atribución (001-D) que separa lo programado de lo emergente. Sus resultados, registrados en `RESULTADOS.md` (perfil `quick`, semillas 42–46), son honestos y mayormente negativos para la emergencia:
 - **C1 (acceso) y C2 (superávit de decisión):** `PROGRAMMED`, por construcción. La comunicación da acceso y mejores decisiones (p = 0.03125 frente a la población aislada), pero ése es el propósito de las reglas que la producen.
 - **C3 (inmunidad a la falsedad):** `PROGRAMMED`. La población completa extingue el rumor en las 5 semillas, pero sin los filtros epistémicos diseñados (R3, R4, R6, R7) la contención no supera a la población aislada (E3: p = 0.5).
-- **C4 (persistencia extra-individual):** `NOT_OBSERVED`. Tras eliminar a los descubridores, el conocimiento social sobrevive sólo en 2 de 5 semillas en `quick`, y en ninguna en `full`.
+- **C4 (persistencia extra-individual):** `NOT_OBSERVED`. Tras eliminar a los descubridores, el conocimiento social sobrevive sólo en 2 de 5 semillas (001-D, perfil `quick`).
 
 Estos resultados muestran un **techo estructural**: en una población estática de agentes inmortales ($g=0$), con reglas comunicativas fijas y sin unidades funcionales de orden superior, toda capacidad colectiva observada se explica por las reglas diseñadas y el conocimiento no sobrevive a sus portadores. La Fase II pregunta si mecanismos de otro tipo (selección, herencia y composición) cambian ese cuadro, y somete cada uno al mismo marco de atribución.
 

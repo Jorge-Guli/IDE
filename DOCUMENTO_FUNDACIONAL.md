@@ -116,7 +116,7 @@ flowchart TD
 ### Lo que dejó el Experimento 001 y motiva la Versión 2.0
 El Experimento 001 (población inmortal, sin reproducción ni construcción de nicho) dejó resultados mayormente negativos para la emergencia ([RESULTADOS.md](RESULTADOS.md)):
 - Las capacidades colectivas observadas (acceso al conocimiento, superávit de decisión, extinción del rumor) desaparecen o dejan de superar a la población aislada cuando se apagan las reglas diseñadas para producirlas. C1, C2 y C3 resultaron `PROGRAMMED`.
-- El conocimiento social no sobrevive de forma fiable a sus descubridores. C4 resultó `NOT_OBSERVED`: tras eliminar a los descubridores y retirar el estímulo, sobrevive en 2 de 5 semillas en el perfil `quick` y en ninguna en `full`. Varias reglas pesan en esa extinción en magnitudes parecidas, entre ellas la regla anti-eco $R_6$, que impide que un testimonio se revalide sólo con otros testimonios. Con 5 semillas no se puede aislar una causa.
+- El conocimiento social no sobrevive de forma fiable a sus descubridores. C4 resultó `NOT_OBSERVED`: tras eliminar a los descubridores y retirar el estímulo, sobrevive sólo en 2 de 5 semillas (001-D, perfil `quick`). Varias reglas pesan en esa extinción en magnitudes parecidas, entre ellas la regla anti-eco $R_6$, que impide que un testimonio se revalide sólo con otros testimonios. Con 5 semillas no se puede aislar una causa.
 - **Hipótesis de trabajo de la v2.0** (no un resultado): la herencia cultural vertical, la integración holónica y la construcción de nicho podrían sostener el conocimiento más allá de los individuos sin abrir la puerta a la histeria colectiva. La Fase II lo pone a prueba con el mismo marco de atribución.
 
 ---
@@ -127,8 +127,8 @@ Se elimina cualquier restricción artificial que limite la organización a 2 o 3
 
 $$\mathbf{Nivel\ 0\ (Agente)} \Longleftrightarrow \mathbf{Nivel\ 1\ (Grupo)} \Longleftrightarrow \mathbf{Nivel\ 2\ (Meta\text{-}Grupo)} \Longleftrightarrow \dots \Longleftrightarrow \mathbf{Nivel\ K\ (Organismo\ de\ Orden\ K)}$$
 
-1. **Mismo contrato en todas las escalas:** Un nodo de nivel $L$ expone hacia arriba la misma interfaz cognitiva (percibir, recordar, decidir, comunicarse, asociarse, reproducirse) que un agente de nivel $0$.
-2. **Causalidad Ascendente y Descendente:** Hacia arriba ($\uparrow$), los sub-nodos aportan sus percepciones y creencias para formar la mente compuesta del Holón. Hacia abajo ($\downarrow$), el Holón modula la retención de memoria de sus partes (impidiendo que dos sub-nodos desperdicien su escasa capacidad $C_{\max}$ recordando exactamente los mismos patrones) y ajusta su propensión exploratoria.
+1. **Contrato común en todas las escalas:** Todo nodo, de cualquier nivel $L$, expone el mismo contrato estructural (`AgentNode`: identidad, nivel, hojas, capacidad efectiva y memoria colectiva) y puede asociarse y reproducirse. En la Fase II, percibir, decidir y comunicarse siguen siendo operaciones de las hojas ($L = 0$); que un holón opere como agente unitario es una extensión posible, no parte de esta fase.
+2. **Causalidad Ascendente y Descendente:** Hacia arriba ($\uparrow$), los sub-nodos aportan sus percepciones y creencias para formar la memoria colectiva del Holón. Hacia abajo ($\downarrow$), el Holón modula la retención de memoria de sus partes, para que dos sub-nodos no desperdicien su escasa capacidad $C_{\max}$ recordando los mismos patrones ($R_{18}$). La modulación de la exploración queda fuera del alcance de la Fase II.
 3. **Selección multinivel sobre una regla de asociación diseñada:** La fusión (`BOND`, $R_{15}$) es una regla programada: decide cuándo dos nodos se asocian. Lo que se pone a prueba es si la selección sostiene o no esas estructuras. Formar cada nivel adicional $L$ tiene un **costo metabólico de mantenimiento** ($c_{\text{coord}} > 0$). La hipótesis es que, si el entorno sólo tiene problemas simples, las estructuras de alto nivel se disuelven o mueren de hambre, y que, si contiene recursos compuestos de gran recompensa, la selección favorece holones de mayor nivel. Ambos desenlaces son resultados válidos.
 4. **Fusión (`BOND`), Fisión (`SPLIT`) y Endosimbiosis Reproductiva:** Una estructura de nivel $L$ puede desacoplarse en sus sub-estructuras de nivel $L-1$ cuando el entorno cambia, o bien dividirse reproductivamente como unidad simbiótica cuando alcanza un superávit energético sostenido.
 
@@ -140,7 +140,7 @@ $$\mathbf{Nivel\ 0\ (Agente)} \Longleftrightarrow \mathbf{Nivel\ 1\ (Grupo)} \Lo
 flowchart LR
     E001["Exp 001 (Completado):\nMemoria y Atribución Base"] --> E002["Exp 002:\nMetabolismo, Reproducción\ny Herencia Generacional"]
     E002 --> E003["Exp 003:\nMeta-Agentes Recursivos\n(Niveles L=1..K) y Composición"]
-    E003 --> E004["Exp 004:\nEspecialización Emergente\ny División del Trabajo"]
+    E003 --> E004["Exp 004:\nEspecialización\ny División del Trabajo"]
     E004 --> E005["Exp 005:\nShock Ambiental y\nReconfiguración Multinivel"]
     E005 --> E006["Exp 006:\nProtocolo de Comunicación\nEmergente (N1 -> N4)"]
 ```
@@ -163,7 +163,7 @@ flowchart LR
 
 ### Fase III — Experimento 003: Simbiogénesis y Jerarquía Recursiva de Meta-Agentes ($L = 1 \dots K$)
 - **Objetivo:** Permitir que agentes y grupos se asocien dinámicamente formando árboles holónicos de profundidad arbitraria ($L = 1, 2, 3, \dots, K$) frente a un entorno con **recursos composicionales** que exigen combinar simultáneamente $m$ patrones benéficos ($2 \le m \le N/2$).
-- **Qué se pone a prueba:** si la población, con la regla de fusión diseñada y bajo selección, sostiene holones capaces de resolver recursos de orden $m > C_{\max}$, y con qué nivel jerárquico. Que un individuo con $C_{\max} < m$ y sin ayuda no pueda resolverlos es una propiedad del entorno diseñado. Por eso el superávit cooperativo sobre esos recursos se declara **programado por construcción** y no se presenta como evidencia de emergencia. Además, la mutación puede elevar $C_{\max}$ individual: si la selección prefiere cerebros más grandes a la cooperación, eso también es un resultado.
+- **Qué se pone a prueba:** si la población, con la regla de fusión diseñada y bajo selección, sostiene holones capaces de resolver recursos de orden $m > C_{\max}$, y con qué nivel jerárquico. Que un individuo con $C_{\max} < m$ y sin ayuda no pueda resolverlos es una propiedad del entorno diseñado. Por eso la propuesta es declarar el superávit cooperativo sobre esos recursos como **programado por construcción**, y no presentarlo como evidencia de emergencia. Es una propuesta pendiente del pre-registro de la Fase II (P3): el criterio automático actual de "por construcción" sólo cubre la pérdida de comunicación. Además, la mutación puede elevar $C_{\max}$ individual: si la selección prefiere cerebros más grandes a la cooperación, eso también es un resultado.
 
 ### Fase IV — Experimentos 004 a 006: Especialización, Shock Ambiental y Lenguaje Emergente
 - **Exp 004 (Especialización dentro del Meta-Agente):** Diferenciación de roles internos (nodos sensores de amplio radio vs. nodos de alta memoria vs. nodos coordinadores) dentro de un mismo organismo multinivel.
