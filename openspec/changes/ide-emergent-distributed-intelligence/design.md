@@ -435,6 +435,8 @@ class MicroAgent:
     @property
     def agent_id(self) -> int: ...
     @property
+    def config(self) -> SimulationConfig: ...              # sólo lectura; la usa el protocolo
+    @property
     def memory(self) -> BoundedMemory: ...
     @property
     def capabilities(self) -> AgentCapabilities: ...       # constante en Exp 001
@@ -446,16 +448,16 @@ class MicroAgent:
     def learn_from_experience(self, pattern: Pattern, real_value: float, tick: int) -> None: ...
     def decay_memory(self, tick: int) -> None: ...
 ```
-- **Creencia "conocida"**: `get_effective_belief(p)` (memoria primero; si no está, caché efímero) no es `None` y tiene `confidence >= decision_conf_threshold`.
-- **Delegación del protocolo (Decisión 14):** `perceive_and_emit_messages` vacía el caché efímero y delega en `BeliefExchangeProtocol.emit(agent, obs, tick)`; `process_incoming_messages` delega en `BeliefExchangeProtocol.receive(agent, messages, tick)`. Las reglas siguientes describen ese protocolo por defecto.
+- **Creencia "conocida"**: `get_effective_belief(p)` (memoria primero; si no está, caché efímero) no es `None` y tiene `confidence >= decision_conf_threshold`. El criterio vive en un único lugar, `epistemology.is_known(belief, config) -> bool`, que usan tanto la decisión como el protocolo.
+- **Delegación del protocolo (Decisión 14):** `perceive_and_emit_messages` vacía el caché efímero y delega en `BeliefExchangeProtocol.emit(agent, obs, tick) -> list[Message]`; `process_incoming_messages` delega en `BeliefExchangeProtocol.receive(agent, messages, tick) -> list[Message]`. El protocolo no tiene estado: lee del agente sólo `agent_id`, `config`, `memory` y `get_effective_belief`, y escribe únicamente a través de `assimilate_testimony`. Las reglas siguientes describen ese protocolo por defecto.
 - **`assimilate_testimony`:** `merged = merge_social_belief(get_effective_belief(p), belief, tick, config, trust_strategy.compute_sender_trust(self.id, sender_id, γ))`; guarda `merged` en el caché efímero, intenta `memory.upsert(merged, tick)` y lo devuelve. Es la única puerta de entrada del conocimiento social, y no depende del formato de los mensajes.
 - **Emisión (`emit`):** si `obs.neighbor_ids` está vacío devuelve `[]`. Si no:
   1. Hasta `max_queries_per_tick` `QUERY_PATTERN` (broadcast) por patrones **distintos no conocidos** entre los visibles, en orden de `(distance mínima del patrón, pattern)`.
   2. Hasta `max_broadcast_per_tick` `BROADCAST_BELIEF` con las creencias de memoria con `confidence >= decision_conf_threshold`, ordenadas por utilidad descendente y luego por `pattern`.
   3. Orden de la lista devuelta: primero las consultas, luego los broadcasts.
-- **Recepción (`receive`):** recorre los mensajes en el orden recibido e ignora los propios y los dirigidos a otro destinatario.
-  - `QUERY_PATTERN`: si `memory.get(p)` existe con `confidence >= decision_conf_threshold`, agrega `QUERY_RESPONSE(recipient_id=sender_id, belief=unit)` a la salida. (El caché efímero no se re-difunde: sólo responde lo que el agente sostiene en memoria.)
-  - `BROADCAST_BELIEF` y `QUERY_RESPONSE`: `agent.assimilate_testimony(belief, sender_id, tick)`.
+- **Recepción (`receive`):** ignora los mensajes propios y los dirigidos a otro destinatario, y procesa el resto en dos pasos:
+  1. `QUERY_PATTERN`, en el orden recibido: si `memory.get(p)` existe con `confidence >= decision_conf_threshold`, agrega `QUERY_RESPONSE(recipient_id=sender_id, belief=unit)` a la salida. (El caché efímero no se re-difunde: sólo responde lo que el agente sostiene en memoria.) Todas las consultas se responden con la memoria **anterior** a cualquier asimilación del tick: el orden de la bandeja sigue la permutación del tick, y si un broadcast procesado antes de una consulta pudiera cambiar la respuesta, el sorteo afectaría a la comunicación (Decisión 15).
+  2. `BROADCAST_BELIEF` y `QUERY_RESPONSE`, en el orden recibido: `agent.assimilate_testimony(belief, sender_id, tick)`.
   - Devuelve sólo los `QUERY_RESPONSE` generados.
 - **`decide_action`** (determinista dado `rng`; desempates por menor `resource_id`):
   1. Alcanzables (`is_reachable_now`): si hay alguno conocido benéfico (`v̂ > 0`) → `INTERACT` sobre el de mayor `v̂·c`.

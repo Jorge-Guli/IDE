@@ -30,8 +30,8 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 6. Micro-Agente (`micro-agent`)
 
-- [ ] 6.1 [RED] Escribir `tests/test_micro_agent.py`: auditoría de imports con `ast`, auditoría del protocolo (sólo `protocol.py` construye `Message` o usa `MessageType`), `assimilate_testimony` como única entrada social, ablación de la navegación, firmas con `inspect.signature`, caché efímero (vida de un tick), emisión de consultas (límite y orden) y broadcasts (sólo con confianza suficiente), respuesta sólo desde memoria, asimilación con `TrustStrategyPort`, consumo de un benéfico conocido, exploración con ε = 1 y ε = 0, evitación de un tóxico, navegación por `recommended_move`, caminata e `IDLE`, y `learn_from_experience` con memoria llena.
-- [ ] 6.2 [GREEN] Implementar `BeliefExchangeProtocol` en `src/ide/agent/protocol.py` y `MicroAgent` en `src/ide/agent/micro_agent.py`.
+- [x] 6.1 [RED] Escribir `tests/test_micro_agent.py`: auditoría de imports con `ast`, auditoría del protocolo (sólo `protocol.py` construye `Message` o usa `MessageType`), `assimilate_testimony` como única entrada social, ablación de la navegación, firmas con `inspect.signature`, caché efímero (vida de un tick), emisión de consultas (límite y orden) y broadcasts (sólo con confianza suficiente), respuesta sólo desde memoria, asimilación con `TrustStrategyPort`, consumo de un benéfico conocido, exploración con ε = 1 y ε = 0, evitación de un tóxico, navegación por `recommended_move`, caminata e `IDLE`, y `learn_from_experience` con memoria llena.
+- [x] 6.2 [GREEN] Implementar `BeliefExchangeProtocol` en `src/ide/agent/protocol.py` y `MicroAgent` en `src/ide/agent/micro_agent.py`.
 
 ## 7. Grilla 2D Toroidal (`spatial-environments`)
 

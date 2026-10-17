@@ -1,6 +1,7 @@
 """Reglas de aprendizaje: experiencia directa y revalidación social de testimonios."""
 
 from dataclasses import replace
+from typing import TypeGuard
 
 from ide.config import SimulationConfig
 from ide.domain.types import KnowledgeUnit, Pattern
@@ -9,6 +10,11 @@ _MIN_ATTENUATED_MAGNITUDE = 0.05
 _OVERWRITE_RATIO = 1.2
 _OVERWRITE_PENALTY = 0.5
 _DIRECT_RESISTANCE = 2.0
+
+
+def is_known(belief: KnowledgeUnit | None, config: SimulationConfig) -> TypeGuard[KnowledgeUnit]:
+    """Una creencia es conocida si existe con confianza suficiente para decidir."""
+    return belief is not None and belief.confidence >= config.decision_conf_threshold
 
 
 def _clip(value: float, low: float = -1.0, high: float = 1.0) -> float:
