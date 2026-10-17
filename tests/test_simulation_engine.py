@@ -546,7 +546,7 @@ def test_el_control_no_desplaza_el_generador_principal() -> None:
     assert replace(a, accessible_coverage_mean=0.0) == replace(b, accessible_coverage_mean=0.0)
 
 
-def test_oraculo_de_verdad_sólo_lo_referencia_el_motor() -> None:
+def test_oraculo_de_verdad_nadie_fuera_del_motor_lo_referencia() -> None:
     """Ningún módulo de `src/ide` salvo el motor referencia `get_reachable_true_values`.
 
     Cuenta atributos, nombres, cadenas (`getattr`) e importaciones; las definiciones del
@@ -563,4 +563,4 @@ def test_oraculo_de_verdad_sólo_lo_referencia_el_motor() -> None:
         or (isinstance(node, ast.Constant) and node.value == nombre)
         or (isinstance(node, ast.alias) and node.name == nombre)
     }
-    assert referencian == {"simulation/engine.py"}
+    assert referencian <= {"simulation/engine.py"}

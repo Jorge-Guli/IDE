@@ -94,7 +94,7 @@ python -m ide.experiments.benchmark          # línea base de rendimiento (ticks
 
 ## Integración continua
 
-`.github/workflows/ci.yml` corre en cada PR y en cada push a `main`: `ruff check`, `ruff format --check`, `pyright`, `python -m pytest --cov=ide` (también con otro `PYTHONHASHSEED`) y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`. Si cambian los pasos de verificación de este documento, actualiza también el workflow. `/code-review` sigue siendo un paso manual.
+`.github/workflows/ci.yml` corre en cada PR y en cada push a `main`, en Python 3.11, 3.12 y 3.13: `ruff check`, `ruff format --check`, `pyright`, `python -m pytest --cov=ide` (también con otro `PYTHONHASHSEED`) y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`. Si cambian los pasos de verificación de este documento, actualiza también el workflow. `/code-review` sigue siendo un paso manual.
 
 ## Git
 
