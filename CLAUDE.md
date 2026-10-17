@@ -35,7 +35,7 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
   - **REFACTOR:** limpieza con la suite en verde.
 - Antes de marcar una tarea `[x]` o hacer commit, corre las verificaciones y muestra su salida (`superpowers:verification-before-completion`).
 - Ante un test que falla o un resultado inesperado, usa `superpowers:systematic-debugging`. En este proyecto un resultado raro puede ser un bug **o** un hallazgo científico: no los confundas.
-- Un bloque sólo está completo si pasan `ruff check`, `ruff format --check`, `pyright` y `pytest --cov=ide`. Después corre `/code-review`.
+- Un bloque sólo está completo si pasan `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide`. Después corre `/code-review`.
 - Además de los escenarios de las specs, verifica los invariantes con pruebas por propiedades (Hypothesis, perfil `ci` con `derandomize=True`).
 
 ## Reglas de arquitectura (invariantes)
@@ -81,9 +81,9 @@ Disponibles a partir del bloque 1 de `tasks.md`:
 ```bash
 pip install -e ".[dev]"                     # instalación manual (en la nube la hace el hook de inicio)
 ruff check && ruff format --check && pyright   # calidad estática
-pytest --cov=ide                            # suite de software (excluye empirical y slow)
-pytest -m slow                              # corridas largas de software (001-D completo)
-pytest -m empirical                        # expectativas empíricas: pueden fallar legítimamente
+python -m pytest --cov=ide                   # suite de software (excluye empirical y slow)
+python -m pytest -m slow                     # corridas largas de software (001-D completo)
+python -m pytest -m empirical                # expectativas empíricas: pueden fallar legítimamente
 python -m ide.experiments.exp001_runner --profile quick --seeds 42
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4
 python -m ide.experiments.benchmark          # línea base de rendimiento (ticks por segundo)

@@ -1,10 +1,10 @@
 # Tasks: Plataforma de Inteligencia Distribuida Emergente (IDE)
 
-Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, fórmulas y desempates exactos están en `design.md`; los criterios verificables, en `specs/`. Un test en rojo de una expectativa empírica (`-m empirical`) **no** bloquea ninguna tarea: se reporta. Los valores numéricos se comparan con `pytest.approx(abs=1e-9)`; sólo el determinismo exige igualdad exacta. Un bloque sólo se marca completo si pasan `ruff check`, `ruff format --check`, `pyright` y `pytest --cov=ide`.
+Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, fórmulas y desempates exactos están en `design.md`; los criterios verificables, en `specs/`. Un test en rojo de una expectativa empírica (`-m empirical`) **no** bloquea ninguna tarea: se reporta. Los valores numéricos se comparan con `pytest.approx(abs=1e-9)`; sólo el determinismo exige igualdad exacta. Un bloque sólo se marca completo si pasan `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide`.
 
 ## 1. Scaffolding y Configuración del Proyecto
 
-- [x] 1.1 Crear `pyproject.toml` según `design.md` (paquete `ide` en `src/`; dependencia `numpy`; extra `dev` con `pytest`, `pytest-cov`, `hypothesis`, `ruff`, `pyright`, `py-spy` y `line_profiler`; marcadores `empirical` y `slow` excluidos por defecto; configuración de Ruff y de Pyright estricto), `.gitignore`, `tests/conftest.py` con el perfil `ci` de Hypothesis (`derandomize=True`) y los `__init__.py` de `src/ide/{domain,agent,environments,simulation,experiments}`. Verificar con `pip install -e ".[dev]"`, `pytest --collect-only`, `ruff check` y `pyright`.
+- [x] 1.1 Crear `pyproject.toml` según `design.md` (paquete `ide` en `src/`; dependencia `numpy`; extra `dev` con `pytest`, `pytest-cov`, `hypothesis`, `ruff`, `pyright`, `py-spy` y `line_profiler`; marcadores `empirical` y `slow` excluidos por defecto; configuración de Ruff y de Pyright estricto), `.gitignore`, `tests/conftest.py` con el perfil `ci` de Hypothesis (`derandomize=True`) y los `__init__.py` de `src/ide/{domain,agent,environments,simulation,experiments}`. Verificar con `pip install -e ".[dev]"`, `python -m pytest --collect-only`, `ruff check` y `pyright`.
 
 ## 2. Contratos de Dominio y Configuración (`domain-contracts`)
 
@@ -50,7 +50,7 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 - [ ] 9.2 [GREEN] Implementar `KnowledgeSnapshot`, `knowledge_snapshot`, `MetricsCollector`, `judge_decision`, `windowed_accuracy` y `propagation_time` en `src/ide/experiments/metrics.py`.
 - [ ] 9.3 [RED] Escribir `tests/test_exp001_suite.py`: esquemas exactos de los tres reportes con corridas cortas, `injected_agents == 20` y `target_pattern == "id=p_0"`, `remaining_agents` por nivel de ablación, ventana de `recovery_ticks` sin ticks previos a la ablación, `sign_test_p_value` (0.03125 con cinco positivas), `aggregate_reports` con `None`, valores por defecto de `build_arg_parser()` (incluido `--jobs 1`), salida idéntica con `--jobs 1` y `--jobs 2`, columnas del CSV, `report_to_dict` serializable y el test de determinismo entre procesos (CLI `--profile quick` con dos `PYTHONHASHSEED` distintos).
 - [ ] 9.4 [GREEN] Implementar los protocolos, `report_to_dict`, `aggregate_reports`, `sign_test_p_value`, `build_arg_parser`, el paralelismo entre corridas (`ProcessPoolExecutor`, reunión ordenada por clave) y la CLI en `src/ide/experiments/exp001_runner.py`.
-- [ ] 9.5 Escribir `tests/test_empirical.py` con `@pytest.mark.empirical` (expectativas funcionales: superávit H1 y contención de falsedad sobre las semillas 42..46), ejecutar `pytest -m empirical` y registrar el resultado, positivo o negativo, sin ajustar parámetros.
+- [ ] 9.5 Escribir `tests/test_empirical.py` con `@pytest.mark.empirical` (expectativas funcionales: superávit H1 y contención de falsedad sobre las semillas 42..46), ejecutar `python -m pytest -m empirical` y registrar el resultado, positivo o negativo, sin ajustar parámetros.
 
 ## 10. Atribución de Emergencia (`emergence-attribution`)
 
@@ -60,5 +60,5 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 11. Cierre
 
-- [ ] 11.1 Ejecutar `ruff check`, `ruff format --check`, `pyright`, `pytest -v --cov=ide`, `pytest -m slow`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
+- [ ] 11.1 Ejecutar `ruff check`, `ruff format --check`, `pyright`, `python -m pytest -v --cov=ide`, `python -m pytest -m slow`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
 - [ ] 11.2 Crear `README.md` con instalación, ejecución, estructura, la regla de atribución y enlaces a los documentos de fundamento.

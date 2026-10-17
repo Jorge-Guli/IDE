@@ -79,7 +79,7 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - **Racional:** Es la definición formal de conocimiento colectivo "accesible a $\le d$ saltos" con $d=1$, y mide exactamente el meta-agente de la Decisión 4.
 
 ### 10. Hipótesis científica ≠ test de software
-- **Decisión:** Las expectativas empíricas sobre los mecanismos programados (superávit en 001-A, contención en 001-B) se verifican sobre las semillas `42..46` con tests marcados `@pytest.mark.empirical`. H1 exige que `collective_surplus > 0` en las 5 semillas, lo que equivale a una prueba de signo unilateral con $p = 1/32 \approx 0.031 < 0.05$. Esos tests están excluidos de la corrida por defecto (`addopts = "-m 'not empirical and not slow'"`) y ejecutados con `pytest -m empirical`. Un resultado negativo **no** autoriza a ajustar parámetros para "hacer pasar" el test: se reporta como hallazgo (criterio de falsabilidad del Documento Fundacional §10).
+- **Decisión:** Las expectativas empíricas sobre los mecanismos programados (superávit en 001-A, contención en 001-B) se verifican sobre las semillas `42..46` con tests marcados `@pytest.mark.empirical`. H1 exige que `collective_surplus > 0` en las 5 semillas, lo que equivale a una prueba de signo unilateral con $p = 1/32 \approx 0.031 < 0.05$. Esos tests están excluidos de la corrida por defecto (`addopts = "-m 'not empirical and not slow'"`) y ejecutados con `python -m pytest -m empirical`. Un resultado negativo **no** autoriza a ajustar parámetros para "hacer pasar" el test: se reporta como hallazgo (criterio de falsabilidad del Documento Fundacional §10).
 - **Racional:** Evitar *p-hacking* y mantener la suite de software estable e independiente del resultado científico.
 
 ### 11. Protocolos con perfiles `quick` y `full`
@@ -153,7 +153,7 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - **Reproducibilidad:** el perfil `ci` usa `derandomize=True`, así que la generación de casos también es determinista.
 
 ### 17. Herramientas de calidad
-- **Decisión:** `ruff check` y `ruff format --check` (estilo y errores comunes), `pyright` en modo estricto sobre `src/` (el tipado "verificable estáticamente" de `DEFINICIONES_TECNICAS.md` deja de ser una promesa) y `pytest --cov=ide` (cobertura). Las cuatro verificaciones deben pasar antes de marcar un bloque como completo.
+- **Decisión:** `ruff check` y `ruff format --check` (estilo y errores comunes), `pyright` en modo estricto sobre `src/` (el tipado "verificable estáticamente" de `DEFINICIONES_TECNICAS.md` deja de ser una promesa) y `python -m pytest --cov=ide` (cobertura). Las cuatro verificaciones deben pasar antes de marcar un bloque como completo.
 
 ### 18. Rendimiento por diseño, sin cambiar el modelo
 - **Decisión:** desde el día 0 se hace todo lo que acelera **sin tocar la semántica**:
@@ -754,18 +754,18 @@ def nullify_belief(belief: KnowledgeUnit, rng: np.random.Generator) -> Knowledge
 - [ ] **Persistencia social válida:** `ablate_discoverers(..., retire_stimulus=True)` elimina descubridores y recursos físicos.
 - [ ] **Determinismo intra-proceso:** dos motores con la misma `seed` producen historiales, posiciones y memorias idénticas.
 - [ ] **Determinismo inter-proceso:** la CLI con `--profile quick` genera JSON idéntico bajo `PYTHONHASHSEED=0` y `PYTHONHASHSEED=1`.
-- [ ] **Suite de software verde:** `pytest --cov=ide` (sin los marcadores `empirical` ni `slow`), `ruff check`, `ruff format --check` y `pyright`.
+- [ ] **Suite de software verde:** `python -m pytest --cov=ide` (sin los marcadores `empirical` ni `slow`), `ruff check`, `ruff format --check` y `pyright`.
 - [ ] **Paralelismo inocuo:** la CLI produce archivos idénticos con `--jobs 1` y `--jobs 4`.
 - [ ] **Línea base de rendimiento registrada:** `benchmark.json` generado al cerrar el bloque 8.
-- [ ] **Hipótesis ejecutadas y reportadas:** `pytest -m empirical` corrido sobre las semillas 42..46 y su resultado (positivo o negativo) registrado.
+- [ ] **Hipótesis ejecutadas y reportadas:** `python -m pytest -m empirical` corrido sobre las semillas 42..46 y su resultado (positivo o negativo) registrado.
 
 ## Setup, Ejecución y Validación Local
 
 ```bash
 pip install -e ".[dev]"                                   # instalar
 ruff check && ruff format --check && pyright              # calidad estática
-pytest -v --cov=ide                                       # suite de software
-pytest -m empirical -v                                   # hipótesis científicas (lento)
+python -m pytest -v --cov=ide                                       # suite de software
+python -m pytest -m empirical -v                                   # hipótesis científicas (lento)
 python -m ide.experiments.exp001_runner --profile quick   # corrida rápida
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --out results/ --jobs 4
 python -m ide.experiments.benchmark                       # línea base de rendimiento

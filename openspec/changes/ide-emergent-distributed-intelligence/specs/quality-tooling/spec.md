@@ -24,10 +24,10 @@ La suite SHALL verificar con Hypothesis los invariantes de memoria, epistemolog�
 - **THEN** toda creencia resultante tiene `predicted_value` en `[-1, 1]` y `confidence` en `[0, 1]`.
 
 ### Requirement: Cobertura Reportada
-La suite SHALL ejecutarse con `pytest --cov=ide` y reportar la cobertura por módulo, para identificar reglas de los escenarios que quedaron sin probar.
+La suite SHALL ejecutarse con `python -m pytest --cov=ide` y reportar la cobertura por módulo, para identificar reglas de los escenarios que quedaron sin probar.
 
 #### Scenario: Reporte de cobertura
-- **WHEN** se ejecuta `pytest --cov=ide`
+- **WHEN** se ejecuta `python -m pytest --cov=ide`
 - **THEN** la salida incluye una fila de cobertura por cada módulo de `src/ide/`.
 
 ### Requirement: Línea Base de Rendimiento
