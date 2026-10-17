@@ -97,8 +97,8 @@ Para cada afirmación, 001-D SHALL medir además una variante por cada regla abl
 - **THEN** el reporte tiene `profile == "quick"`, cuatro evaluaciones con cinco valores por cada variante medida, C1, C2 y C4 con `by_construction == True`, y C3 con `by_construction == False`.
 
 ### Requirement: Atribución desde la CLI
-La CLI SHALL aceptar `--attribution`, que ejecuta 001-D con las semillas indicadas y siempre con `ATTRIBUTION_PROFILE`, escribe `exp001_attribution.json` y muestra en consola una tabla con afirmación, estado, si es por construcción y p-valores, avisando si hay menos de 5 semillas.
+La CLI SHALL aceptar `--attribution`, que ejecuta sólo 001-D (sin 001-A/B/C) con las semillas indicadas y siempre con `ATTRIBUTION_PROFILE`, escribe `exp001_attribution.json` y muestra en consola una tabla con afirmación, estado, si es por construcción y p-valores, avisando si hay menos de 5 semillas.
 
 #### Scenario: Ejecución con pocas semillas
 - **WHEN** se ejecuta con `--seeds 42 --attribution`
-- **THEN** se escribe `exp001_attribution.json` con `profile == "quick"`, todos los estados son `INSUFFICIENT_EVIDENCE` y la consola muestra el aviso.
+- **THEN** se escribe sólo `exp001_attribution.json`, con `profile == "quick"`, todos los estados son `INSUFFICIENT_EVIDENCE` y la consola muestra el aviso.

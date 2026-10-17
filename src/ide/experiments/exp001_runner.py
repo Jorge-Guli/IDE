@@ -367,14 +367,33 @@ def _execute_task(args: tuple[SimulationConfig, Profile, Task]) -> Any:
     return _execute(*args)
 
 
+def validate_seeds(seeds: Sequence[int]) -> None:
+    """Al menos una, no negativas y sin repetir: una repetida es la misma corrida e infla `n`."""
+    if not seeds:
+        raise ValueError("se necesita al menos una semilla")
+    if any(seed < 0 for seed in seeds):
+        raise ValueError(f"las semillas deben ser >= 0: {list(seeds)}")
+    if len(set(seeds)) != len(seeds):
+        raise ValueError(f"semillas repetidas: {list(seeds)}")
+
+
+def map_in_order(function: Callable[[Any], Any], items: Sequence[Any], jobs: int) -> list[Any]:
+    """`map` reproducible (Decisión 18): sin procesos con `jobs <= 1`; si no, en un pool.
+
+    `pool.map` conserva el orden de `items`, así que la salida no depende de `jobs`.
+    """
+    jobs = min(jobs, len(items))
+    if jobs <= 1:
+        return [function(item) for item in items]
+    with ProcessPoolExecutor(max_workers=jobs) as pool:
+        return list(pool.map(function, items))
+
+
 def run_tasks(
     jobs_args: list[tuple[SimulationConfig, Profile, Task]], jobs: int
 ) -> dict[Task, Any]:
-    """Ejecuta las unidades en procesos y reúne los resultados por clave, en orden fijo."""
-    if jobs <= 1:
-        return {args[2]: _execute_task(args) for args in jobs_args}
-    with ProcessPoolExecutor(max_workers=jobs) as pool:
-        results = list(pool.map(_execute_task, jobs_args))
+    """Ejecuta las unidades independientes y reúne los resultados por clave, en orden fijo."""
+    results = map_in_order(_execute_task, jobs_args, jobs)
     return {args[2]: result for args, result in zip(jobs_args, results, strict=True)}
 
 
@@ -434,6 +453,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seeds", type=_non_negative_int, nargs="+", default=[42])
     parser.add_argument("--out", type=Path, default=Path("results/"))
     parser.add_argument("--jobs", type=_positive_int, default=1)
+    parser.add_argument(
+        "--attribution",
+        action="store_true",
+        help="ejecuta sólo 001-D, siempre con el perfil pre-registrado",
+    )
     return parser
 
 
@@ -444,15 +468,19 @@ def main(argv: list[str] | None = None) -> int:
     seeds: list[int] = args.seeds
     out: Path = args.out
     jobs: int = args.jobs
-    if len(set(seeds)) != len(seeds):
-        # Una semilla repetida es la misma corrida: inflaría `n` y la prueba de signo.
-        parser.error(f"--seeds no admite semillas repetidas: {seeds}")
-    profile = PROFILES[profile_name]
-    configs = {seed: SimulationConfig(seed=seed) for seed in seeds}
+    try:
+        validate_seeds(seeds)
+    except ValueError as error:
+        parser.error(f"--seeds: {error}")
     try:  # antes de calcular: un --out inválido falla ya
         out.mkdir(parents=True, exist_ok=True)
     except OSError as error:
         parser.error(f"--out no es un directorio utilizable ({out}): {error}")
+    if args.attribution:  # 001-D ignora --profile: usa siempre el perfil pre-registrado
+        return _main_attribution(seeds, out, jobs)
+
+    profile = PROFILES[profile_name]
+    configs = {seed: SimulationConfig(seed=seed) for seed in seeds}
 
     tasks: list[Task] = []
     for seed in seeds:
@@ -494,6 +522,41 @@ def main(argv: list[str] | None = None) -> int:
         _write_json(out / "exp001_aggregate.json", aggregate)
         p_value = aggregate["protocol_001a"]["surplus_sign_test_p"]
         print(f"prueba de signo del superávit ({len(seeds)} semillas): p = {p_value:.5f}")
+    return 0
+
+
+def _main_attribution(seeds: list[int], out: Path, jobs: int) -> int:
+    """001-D desde la CLI: perfil pre-registrado, JSON y tabla de estados en consola."""
+    # Importación diferida: `attribution` depende de este módulo.
+    from ide.experiments.attribution import (
+        ATTRIBUTION_PROFILE,
+        MIN_SEEDS,
+        run_protocol_001d_attribution,
+    )
+
+    print(
+        f"Atribución 001-D con el perfil {ATTRIBUTION_PROFILE} (pre-registrado; ignora --profile)"
+    )
+    if len(seeds) < MIN_SEEDS:
+        print(
+            f"Aviso: con menos de {MIN_SEEDS} semillas la prueba de signo no tiene potencia; "
+            "todos los estados serán INSUFFICIENT_EVIDENCE."
+        )
+    report = run_protocol_001d_attribution(SimulationConfig(), seeds, jobs=jobs)
+    _write_json(out / "exp001_attribution.json", report_to_dict(report))
+
+    def fmt(p: float | None) -> str:
+        return "—" if p is None else f"{p:.5f}"
+
+    print(
+        f"{'Afirmación':<11}{'Estado':<30}{'Por construcción':<18}{'p E2':>9}{'p E3':>9}{'p E4':>9}"
+    )
+    for e in report.evaluations:
+        print(
+            f"{e.claim_id:<11}{e.status.value:<30}{('sí' if e.by_construction else 'no'):<18}"
+            f"{fmt(e.p_vs_isolated):>9}{fmt(e.p_purpose_ablated_vs_isolated):>9}"
+            f"{fmt(e.p_vs_null_content):>9}"
+        )
     return 0
 
 

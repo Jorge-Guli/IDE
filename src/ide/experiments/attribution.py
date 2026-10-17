@@ -4,11 +4,22 @@
 antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
+from enum import Enum
 from typing import Any
 
 from ide.config import SimulationConfig
+from ide.experiments.exp001_runner import (
+    PROFILES,
+    Profile,
+    map_in_order,
+    run_protocol_001b_falsification,
+    run_protocol_001c_resilience,
+    sign_test_p_value,
+    validate_seeds,
+)
+from ide.simulation.engine import SimulationEngine
 
 
 @dataclass(frozen=True)
@@ -27,6 +38,37 @@ class EmergenceClaim:
     metric: str
     higher_is_better: bool
     purpose_rules: tuple[str, ...]  # R_c
+
+
+class ClaimStatus(Enum):
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    NOT_OBSERVED = "NOT_OBSERVED"
+    PROGRAMMED = "PROGRAMMED"
+    ACTIVITY_ARTIFACT = "ACTIVITY_ARTIFACT"
+    EMERGENT_PENDING_ROBUSTNESS = "EMERGENT_PENDING_ROBUSTNESS"
+    SCHEDULING_ARTIFACT = "SCHEDULING_ARTIFACT"
+    EMERGENT = "EMERGENT"
+
+
+@dataclass(frozen=True)
+class ClaimEvaluation:
+    claim_id: str
+    status: ClaimStatus
+    by_construction: bool  # E3 tautológico (Decisión 13)
+    seeds: tuple[int, ...]
+    values: dict[str, tuple[float, ...]]  # variante -> valor por semilla
+    p_vs_isolated: float  # E2
+    p_purpose_ablated_vs_isolated: float | None  # E3 (None si R_c es vacío o by_construction)
+    p_vs_null_content: float  # E4
+    e5_evaluated: bool  # False mientras el esquema asíncrono no exista
+    rule_effects: dict[str, float]  # regla -> media de d(full, sin esa regla)
+
+
+@dataclass(frozen=True)
+class AttributionReport:
+    profile: str
+    rules: tuple[DesignRule, ...]
+    evaluations: tuple[ClaimEvaluation, ...]
 
 
 # --- Pre-registro ------------------------------------------------------------------------------
@@ -132,3 +174,174 @@ def disables_communication(config: SimulationConfig) -> bool:
     return not config.comm_enabled or (
         config.max_queries_per_tick == 0 and config.max_broadcast_per_tick == 0
     )
+
+
+# --- Medición ----------------------------------------------------------------------------------
+
+MIN_SEEDS = 5
+_WITHOUT = "without:"
+
+
+def _protocol_result(protocol: str, config: SimulationConfig, profile: Profile) -> Any:
+    """Corre el protocolo de una afirmación con los parámetros del perfil."""
+    if protocol == "001a":
+        return SimulationEngine(config).run(profile.total_ticks)[-1]
+    if protocol == "001b":
+        return run_protocol_001b_falsification(config, profile.total_ticks, profile.injection_tick)
+    if protocol == "001c":
+        return run_protocol_001c_resilience(
+            config, profile.warmup_ticks, profile.post_ablation_ticks, ablation_levels=(0.5,)
+        )
+    raise ValueError(f"protocolo desconocido: {protocol}")
+
+
+def _metric(result: Any, claim: EmergenceClaim) -> float:
+    return float(getattr(result, claim.metric))
+
+
+def measure_claim(claim: EmergenceClaim, config: SimulationConfig, profile: str) -> float:
+    """Valor de la métrica de la afirmación: el último tick (001a) o el campo del reporte."""
+    return _metric(_protocol_result(claim.protocol, config, PROFILES[profile]), claim)
+
+
+# --- Clasificación -----------------------------------------------------------------------------
+
+
+def _differences(claim: EmergenceClaim, a: Sequence[float], b: Sequence[float]) -> list[float]:
+    """`d(a, b)` por semilla, orientada para que positivo signifique "a es mejor"."""
+    sign = 1.0 if claim.higher_is_better else -1.0
+    return [sign * (x - y) for x, y in zip(a, b, strict=True)]
+
+
+def _p(claim: EmergenceClaim, values: Mapping[str, Sequence[float]], a: str, b: str) -> float:
+    return sign_test_p_value(_differences(claim, values[a], values[b]))
+
+
+def classify(
+    claim: EmergenceClaim,
+    values: Mapping[str, Sequence[float]],
+    by_construction: bool,
+    alpha: float = 0.05,
+) -> ClaimEvaluation:
+    """Aplica E2 a E5 (prueba de signo unilateral) y la clasificación de la Decisión 13.
+
+    `seeds` queda vacío: lo completa `run_protocol_001d_attribution`, que conoce las semillas.
+    """
+    required = ["full", "isolated", "null_content"]
+    tests_e3 = bool(claim.purpose_rules) and not by_construction
+    if tests_e3:
+        required.append("purpose_ablated")
+    missing = [name for name in required if name not in values]
+    if missing:
+        raise ValueError(f"{claim.claim_id}: faltan las variantes {missing}")
+    seeds = len(values["full"])
+    if seeds == 0:
+        raise ValueError(f"{claim.claim_id}: no hay valores por semilla")
+    uneven = sorted(name for name, seq in values.items() if len(seq) != seeds)
+    if uneven:
+        raise ValueError(f"{claim.claim_id}: {uneven} no tienen {seeds} valores como 'full'")
+    p_iso = _p(claim, values, "full", "isolated")
+    p_purpose = _p(claim, values, "purpose_ablated", "isolated") if tests_e3 else None
+    p_null = _p(claim, values, "full", "null_content")
+    async_needed = ["async:full", "async:isolated"] + (
+        ["async:purpose_ablated"] if tests_e3 else []
+    )
+    e5_evaluated = all(name in values for name in async_needed)
+    rule_effects = {
+        name.removeprefix(_WITHOUT): sum(_differences(claim, values["full"], seq)) / len(seq)
+        for name, seq in values.items()
+        if name.startswith(_WITHOUT)
+    }
+
+    if seeds < MIN_SEEDS:
+        status = ClaimStatus.INSUFFICIENT_EVIDENCE
+    elif p_iso >= alpha:
+        status = ClaimStatus.NOT_OBSERVED
+    elif by_construction or (p_purpose is not None and p_purpose >= alpha):
+        status = ClaimStatus.PROGRAMMED
+    elif p_null >= alpha:
+        status = ClaimStatus.ACTIVITY_ARTIFACT
+    elif not e5_evaluated:
+        status = ClaimStatus.EMERGENT_PENDING_ROBUSTNESS
+    else:
+        e5 = _p(claim, values, "async:full", "async:isolated") < alpha and (
+            not tests_e3 or _p(claim, values, "async:purpose_ablated", "async:isolated") < alpha
+        )
+        status = ClaimStatus.EMERGENT if e5 else ClaimStatus.SCHEDULING_ARTIFACT
+
+    return ClaimEvaluation(
+        claim_id=claim.claim_id,
+        status=status,
+        by_construction=by_construction,
+        seeds=(),
+        values={name: tuple(seq) for name, seq in values.items()},
+        p_vs_isolated=p_iso,
+        p_purpose_ablated_vs_isolated=p_purpose,
+        p_vs_null_content=p_null,
+        e5_evaluated=e5_evaluated,
+        rule_effects=rule_effects,
+    )
+
+
+# --- Protocolo 001-D ---------------------------------------------------------------------------
+
+_Run = tuple[str, SimulationConfig, Profile]  # (protocolo, configuración, perfil)
+
+
+def _execute_run(run: _Run) -> Any:
+    return _protocol_result(*run)
+
+
+def is_by_construction(claim: EmergenceClaim, config: SimulationConfig) -> bool:
+    """Quitar `R_c` deja a la población sin canal de emisión: E3 sería una tautología."""
+    return bool(claim.purpose_rules) and disables_communication(ablate(config, claim.purpose_rules))
+
+
+def _variants(claim: EmergenceClaim, config: SimulationConfig) -> dict[str, SimulationConfig]:
+    """Variantes de una semilla, en orden fijo."""
+    variants = {"full": config, "isolated": replace(config, comm_enabled=False)}
+    if claim.purpose_rules and not is_by_construction(claim, config):
+        variants["purpose_ablated"] = ablate(config, claim.purpose_rules)
+    variants["null_content"] = replace(config, comm_content_null=True)
+    for rule in DESIGN_RULES:
+        if rule.ablation:
+            variants[_WITHOUT + rule.rule_id] = ablate(config, [rule.rule_id])
+    return variants
+
+
+def run_protocol_001d_attribution(
+    config: SimulationConfig,
+    seeds: Sequence[int],
+    claims: Sequence[EmergenceClaim] = EXP001_CLAIMS,
+    jobs: int = 1,
+) -> AttributionReport:
+    """Mide cada afirmación en todas sus variantes con `ATTRIBUTION_PROFILE` y la clasifica.
+
+    Las corridas idénticas (mismo protocolo y configuración) se ejecutan una sola vez; las
+    independientes se reparten en `jobs` procesos y se reúnen por clave, en orden fijo.
+    """
+    validate_seeds(seeds)
+    profile = PROFILES[ATTRIBUTION_PROFILE]
+    plans: list[tuple[EmergenceClaim, bool, dict[str, list[SimulationConfig]]]] = []
+    runs: dict[_Run, None] = {}  # conjunto ordenado por inserción
+    for claim in claims:
+        by_construction = is_by_construction(claim, config)
+        per_variant: dict[str, list[SimulationConfig]] = {}
+        for seed in seeds:
+            for name, variant in _variants(claim, replace(config, seed=seed)).items():
+                per_variant.setdefault(name, []).append(variant)
+                runs[(claim.protocol, variant, profile)] = None
+        plans.append((claim, by_construction, per_variant))
+
+    keys = list(runs)
+    results = dict(zip(keys, map_in_order(_execute_run, keys, jobs), strict=True))
+
+    evaluations: list[ClaimEvaluation] = []
+    for claim, by_construction, per_variant in plans:
+        values: dict[str, Sequence[float]] = {
+            name: [_metric(results[(claim.protocol, c, profile)], claim) for c in cfgs]
+            for name, cfgs in per_variant.items()
+        }
+        evaluation = classify(claim, values, by_construction)
+        evaluations.append(replace(evaluation, seeds=tuple(seeds)))
+    return AttributionReport(ATTRIBUTION_PROFILE, DESIGN_RULES, tuple(evaluations))
