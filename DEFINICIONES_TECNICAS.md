@@ -1,4 +1,4 @@
-# Especificación de Definiciones Técnicas — Proyecto IDE (v0.2)
+# Especificación de Definiciones Técnicas — Proyecto IDE (v0.3)
 
 Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en una **arquitectura de software concreta**: stack, estructura, contratos de datos, ciclo de ejecución y parámetros.
 
@@ -14,6 +14,8 @@ Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en 
 - **Testing y análisis:** `pytest`; exportación JSON y CSV desacoplada del motor.
 - **Arquitectura hexagonal:** el paquete `agent` **tiene prohibido** importar `environments`, `simulation` o `experiments`. Toda interacción pasa por estructuras agnósticas (`Observation`, `AgentAction`, `Message`).
 - **Determinismo entre procesos:** Python aleatoriza el hash de `str` por proceso, así que está prohibido iterar un `set` sin `sorted(...)` y toda selección aleatoria opera sobre listas ordenadas.
+- **Atribución verificable:** cada regla de diseño del agente se puede desactivar desde `SimulationConfig`, y la plataforma clasifica cada afirmación como programada o emergente (ver §7, protocolo 001-D, y [Definiciones Formales](DEFINICIONES_FORMALES.md) §3.1).
+- **Protocolo reemplazable:** toda la semántica de los mensajes vive en `agent/protocol.py`; ningún otro módulo del agente construye ni interpreta mensajes.
 
 ---
 
@@ -39,6 +41,7 @@ IDE/
 │       │   ├── __init__.py
 │       │   ├── memory.py            # BoundedMemory
 │       │   ├── epistemology.py      # Aprendizaje directo y revalidación social (A, B, C)
+│       │   ├── protocol.py          # BeliefExchangeProtocol: única semántica de mensajes
 │       │   └── micro_agent.py       # MicroAgent
 │       ├── environments/
 │       │   ├── __init__.py
@@ -49,6 +52,7 @@ IDE/
 │       └── experiments/
 │           ├── __init__.py
 │           ├── metrics.py           # TickMetrics, MetricsCollector, M1–M7
+│           ├── attribution.py       # Reglas de diseño, afirmaciones, ablación, control nulo y 001-D
 │           └── exp001_runner.py     # Protocolos 001-A, 001-B, 001-C y CLI
 └── tests/
     ├── test_domain_contracts.py
@@ -60,6 +64,7 @@ IDE/
     ├── test_simulation_engine.py
     ├── test_metrics.py
     ├── test_exp001_suite.py
+    ├── test_attribution.py
     └── test_hypotheses.py           # @pytest.mark.hypothesis (excluido por defecto)
 ```
 
@@ -119,6 +124,7 @@ class Observation:
 ```
 
 ### 3.5. `Message`
+Este es el protocolo de nivel N0: su semántica viene **predefinida de fábrica**, y es un presupuesto de diseño que se irá retirando ([Documento Fundacional](DOCUMENTO_FUNDACIONAL.md) §8).
 ```python
 class MessageType(Enum):
     QUERY_PATTERN = "QUERY_PATTERN"       # "¿Alguien conoce ρ?"
@@ -251,12 +257,17 @@ Centralizados en `SimulationConfig` (inmutable, validado en `__post_init__`, ser
 | Re-verificación escéptica | `epsilon_recheck` | `0.0` | Exp 004 (no implementado): probar lo que se cree dañino con probabilidad $\epsilon_{\text{recheck}}(1-c)$. |
 | Política de τ | `tau_policy` | `"validation"` | Exp 004 (no implementado): `"evidence_age"` hace que τ sea la edad de la evidencia empírica más reciente. |
 | Forzar $C_{\max} < N$ | `enforce_memory_constraint` | `True` | Validación de la restricción crítica. |
+| Anti-cámara de eco | `anti_echo_enabled` | `True` | `False` ablaciona la regla R6. |
+| Navegación | `enable_navigation` | `True` | `False` ablaciona la regla R11. |
+| Control nulo de contenido | `comm_content_null` | `False` | `True` aleatoriza el signo de cada creencia transmitida (criterio E4). |
+
+Las demás reglas se ablacionan con valores existentes: R3 `passive_conf_decay=0`, R4 `gamma_social_discount=1`, R5 `eta_consensus=0`, R7 `eta_doubt=0`, R8 `max_queries_per_tick=0`, R9 `max_broadcast_per_tick=0`, R10 `epsilon_explore=0`.
 
 ---
 
 ## 7. Sub-Experimentos del Experimento 001
 
-`exp001_runner.py` ejecuta tres protocolos. Cada uno tiene dos perfiles: **quick**, para tests y valores por defecto de las funciones, y **full**, el valor por defecto de la CLI.
+`exp001_runner.py` ejecuta cuatro protocolos. Cada uno tiene dos perfiles: **quick**, para tests y valores por defecto de las funciones, y **full**, el valor por defecto de la CLI.
 
 | Protocolo | quick | full |
 | :--- | :---: | :---: |
@@ -264,11 +275,13 @@ Centralizados en `SimulationConfig` (inmutable, validado en `__post_init__`, ser
 | 001-B: ticks totales / tick de inyección | 300 / 80 | 1000 / 200 |
 | 001-C: warmup / ticks post-ablación | 150 / 100 | 500 / 200 |
 
-1. **001-A (Emergencia: colectivo vs. aislado):** misma semilla con `comm_enabled=True` y `False`. Compara precisión de decisión (M2) y cobertura accesible a un salto (M1). La cobertura colectiva también se reporta, pero no sirve como criterio: la población aislada también cubre casi todos los patrones.
+1. **001-A (Superávit: colectivo vs. aislado):** misma semilla con `comm_enabled=True` y `False`. Compara precisión de decisión (M2) y cobertura accesible a un salto (M1). La cobertura colectiva también se reporta, pero no sirve como criterio: la población aislada también cubre casi todos los patrones. El superávit verifica que los mecanismos de comunicación cumplen su propósito; no es, por sí solo, evidencia de emergencia.
 2. **001-B (Falsificación):** inyecta en el 25 % de la población un rumor plantado ($c = 0.95$, `from_direct_experience=False`) que afirma que el patrón benéfico `p_0` es dañino, y mide su prevalencia inicial, pico y final y el tiempo hasta su extinción.
 3. **001-C (Daño y persistencia):** ablación del 10, 30, 50 y 70 % en corridas independientes (retención y tiempo de recuperación $T_{\text{rec}}$), y una corrida que elimina al 100 % de los descubridores de `p_0` y retira el estímulo físico, para medir la persistencia puramente social.
 
-La CLI acepta varias semillas y reporta media y desvío de cada métrica para la evaluación estadística.
+4. **001-D (Atribución de emergencia):** para cada afirmación pre-registrada (C1 acceso a conocimiento ajeno, C2 superávit de decisión, C3 inmunidad a la falsedad, C4 persistencia extra-individual) mide la métrica en cuatro variantes (completa, aislada, sin las reglas diseñadas para producirla y control nulo) y la clasifica como `PROGRAMMED`, `EMERGENT`, `ACTIVITY_ARTIFACT`, `NOT_OBSERVED` o `INSUFFICIENT_EVIDENCE`. Se ejecuta con `--attribution` y requiere al menos 5 semillas. **Predicción:** C1–C4 resultarán `PROGRAMMED`.
+
+La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las expectativas funcionales (`pytest -m hypothesis`) usan las semillas 42 a 46 y una prueba de signo unilateral: con 5 de 5 a favor, p = 1/32.
 
 ---
 
@@ -279,3 +292,5 @@ La CLI acepta varias semillas y reporta media y desvío de cada métrica para la
 3. **Aislamiento:** `src/ide/agent/` no importa `environments`, `simulation` ni `experiments` (verificado sobre el AST).
 4. **Reproducibilidad:** dos ejecuciones con `seed=42` producen métricas idénticas, también en procesos con distinto `PYTHONHASHSEED`.
 5. **Hipótesis:** `pytest -m hypothesis` se ejecuta y su resultado se reporta tal cual, sin ajustar parámetros para que pase.
+6. **Protocolo aislado:** dentro de `src/ide/agent/`, sólo `protocol.py` construye `Message` o usa `MessageType` (verificado sobre el AST).
+7. **Atribución:** las reglas y afirmaciones se versionan antes de la primera corrida de 001-D, y su tabla de estados se registra tal cual.

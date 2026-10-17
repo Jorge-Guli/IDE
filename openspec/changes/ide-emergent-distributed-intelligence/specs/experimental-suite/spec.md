@@ -101,16 +101,16 @@ Las métricas SHALL considerar sólo las creencias de `BoundedMemory`. Una creen
 - **THEN** la ventana contiene exactamente los 5 primeros ticks posteriores a la ablación.
 
 ### Requirement: Separación entre Software e Hipótesis
-Los tests que afirman resultados empíricos (por ejemplo, `emergence_surplus > 0`) SHALL marcarse con `@pytest.mark.hypothesis` y quedar excluidos de `pytest` por defecto; su fracaso SHALL reportarse como hallazgo, no corregirse ajustando parámetros.
+Los tests que afirman resultados empíricos sobre los mecanismos programados (por ejemplo, `emergence_surplus > 0`) SHALL marcarse con `@pytest.mark.hypothesis` y quedar excluidos de `pytest` por defecto; su fracaso SHALL reportarse como hallazgo, no corregirse ajustando parámetros.
 
 #### Scenario: Corrida por defecto
 - **WHEN** se ejecuta `pytest` sin argumentos
 - **THEN** no se ejecuta ningún test marcado `hypothesis`.
 
-### Requirement: Hipótesis H1 de Emergencia
-Bajo `pytest -m hypothesis`, la suite SHALL ejecutar 001-A con `total_ticks=300` para las semillas 42 a 46 y verificar en las cinco que `collective_accessible_coverage > isolated_accessible_coverage` y `emergence_surplus > 0` (prueba de signo unilateral, p = 1/32).
+### Requirement: Expectativa Funcional de Superávit (H1)
+H1 verifica que los mecanismos de comunicación programados cumplen su propósito; por la regla de atribución no constituye una afirmación de emergencia. Bajo `pytest -m hypothesis`, la suite SHALL ejecutar 001-A con `total_ticks=300` para las semillas 42 a 46 y verificar en las cinco que `collective_accessible_coverage > isolated_accessible_coverage` y `emergence_surplus > 0` (prueba de signo unilateral, p = 1/32).
 
-#### Scenario: Verificación de emergencia multi-semilla
+#### Scenario: Verificación del superávit multi-semilla
 - **WHEN** se ejecuta `run_protocol_001a_emergence(SimulationConfig(seed=s), total_ticks=300)` para `s` en 42..46
 - **THEN** se espera que en cada reporte la cobertura accesible colectiva supere a la aislada, y que `sign_test_p_value` de los cinco `emergence_surplus` sea `< 0.05`.
 

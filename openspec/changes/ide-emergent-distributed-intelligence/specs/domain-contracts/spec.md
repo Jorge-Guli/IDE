@@ -83,6 +83,13 @@ Para todo `VisibleResource` con `distance > 0`, `recommended_move` SHALL pertene
 - **WHEN** se instancia `SimulationConfig(grid_width=4, grid_height=4, perception_radius=2)`
 - **THEN** se lanza `ValueError`.
 
+### Requirement: Interruptores de Ablación y Control
+`SimulationConfig` SHALL incluir `anti_echo_enabled: bool = True`, `enable_navigation: bool = True` y `comm_content_null: bool = False`, de modo que la configuración por defecto active todas las reglas de diseño y ningún control.
+
+#### Scenario: Valores por defecto
+- **WHEN** se instancia `SimulationConfig()`
+- **THEN** `anti_echo_enabled` y `enable_navigation` son verdaderos y `comm_content_null` es falso.
+
 ### Requirement: Configuración Serializable
 `SimulationConfig.to_dict()` SHALL devolver un diccionario con todos los campos, serializable con `json.dumps` sin conversiones adicionales.
 

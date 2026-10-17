@@ -25,13 +25,13 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 5. Motor Epistemológico (`epistemic-engine`)
 
-- [ ] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo (refresca `τ`), anti-cámara de eco en 100 intercambios (no refresca `τ`), resistencia del Escenario C (incluido que `last_updated_tick` no cambie) y sobrescritura de rumor débil.
+- [ ] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo (refresca `τ`), anti-cámara de eco en 100 intercambios (no refresca `τ`), resistencia del Escenario C (incluido que `last_updated_tick` no cambie), sobrescritura de rumor débil y ablación de la protección anti-eco (`anti_echo_enabled=False`).
 - [ ] 5.2 [GREEN] Implementar `update_from_direct_experience` y `merge_social_belief` en `src/ide/agent/epistemology.py`.
 
 ## 6. Micro-Agente (`micro-agent`)
 
-- [ ] 6.1 [RED] Escribir `tests/test_micro_agent.py`: auditoría de imports con `ast`, firmas con `inspect.signature`, caché efímero (vida de un tick), emisión de consultas (límite y orden) y broadcasts (sólo con confianza suficiente), respuesta sólo desde memoria, asimilación con `TrustStrategyPort`, consumo de un benéfico conocido, exploración con ε = 1 y ε = 0, evitación de un tóxico, navegación por `recommended_move`, caminata e `IDLE`, y `learn_from_experience` con memoria llena.
-- [ ] 6.2 [GREEN] Implementar `MicroAgent` en `src/ide/agent/micro_agent.py`.
+- [ ] 6.1 [RED] Escribir `tests/test_micro_agent.py`: auditoría de imports con `ast`, auditoría del protocolo (sólo `protocol.py` construye `Message` o usa `MessageType`), `assimilate_testimony` como única entrada social, ablación de la navegación, firmas con `inspect.signature`, caché efímero (vida de un tick), emisión de consultas (límite y orden) y broadcasts (sólo con confianza suficiente), respuesta sólo desde memoria, asimilación con `TrustStrategyPort`, consumo de un benéfico conocido, exploración con ε = 1 y ε = 0, evitación de un tóxico, navegación por `recommended_move`, caminata e `IDLE`, y `learn_from_experience` con memoria llena.
+- [ ] 6.2 [GREEN] Implementar `BeliefExchangeProtocol` en `src/ide/agent/protocol.py` y `MicroAgent` en `src/ide/agent/micro_agent.py`.
 
 ## 7. Grilla 2D Toroidal (`spatial-environments`)
 
@@ -40,7 +40,7 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 8. Motor de Simulación (`simulation-engine`)
 
-- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, `epsilon_recheck > 0` o `tau_policy="evidence_age"`, orden de procesamiento idéntico con distintos `PYTHONHASHSEED` (subproceso), `capabilities` invariantes durante 100 ticks, `snapshot()` sin efectos secundarios, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80) y `ablate_discoverers` preservando al portador social.
+- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, `epsilon_recheck > 0` o `tau_policy="evidence_age"`, orden de procesamiento idéntico con distintos `PYTHONHASHSEED` (subproceso), `capabilities` invariantes durante 100 ticks, `snapshot()` sin efectos secundarios, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80), `ablate_discoverers` preservando al portador social y determinismo del control nulo (`comm_content_null`).
 - [ ] 8.2 [GREEN] Implementar `SimulationEngine` en `src/ide/simulation/engine.py`.
 
 ## 9. Métricas y Protocolos (`experimental-suite`)
@@ -49,9 +49,15 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 - [ ] 9.2 [GREEN] Implementar `KnowledgeSnapshot`, `knowledge_snapshot`, `MetricsCollector`, `judge_decision`, `windowed_accuracy` y `propagation_time` en `src/ide/experiments/metrics.py`.
 - [ ] 9.3 [RED] Escribir `tests/test_exp001_suite.py`: esquemas exactos de los tres reportes con corridas cortas, `injected_agents == 20` y `target_pattern == "id=p_0"`, `remaining_agents` por nivel de ablación, ventana de `recovery_ticks` sin ticks previos a la ablación, `sign_test_p_value` (0.03125 con cinco positivas), `aggregate_reports` con `None`, valores por defecto de `build_arg_parser()`, columnas del CSV, `report_to_dict` serializable y el test de determinismo entre procesos (CLI `--profile quick` con dos `PYTHONHASHSEED` distintos).
 - [ ] 9.4 [GREEN] Implementar los protocolos, `report_to_dict`, `aggregate_reports`, `sign_test_p_value`, `build_arg_parser` y la CLI en `src/ide/experiments/exp001_runner.py`.
-- [ ] 9.5 Escribir `tests/test_hypotheses.py` con `@pytest.mark.hypothesis` (H1 de emergencia y contención de falsedad sobre las semillas 42..46), ejecutar `pytest -m hypothesis` y registrar el resultado, positivo o negativo, sin ajustar parámetros.
+- [ ] 9.5 Escribir `tests/test_hypotheses.py` con `@pytest.mark.hypothesis` (expectativas funcionales: superávit H1 y contención de falsedad sobre las semillas 42..46), ejecutar `pytest -m hypothesis` y registrar el resultado, positivo o negativo, sin ajustar parámetros.
 
-## 10. Cierre
+## 10. Atribución de Emergencia (`emergence-attribution`)
 
-- [ ] 10.1 Ejecutar `pytest -v`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
-- [ ] 10.2 Crear `README.md` con instalación, ejecución, estructura y enlaces a los documentos de fundamento.
+- [ ] 10.1 [RED] Escribir `tests/test_attribution.py`: `DESIGN_RULES` (11 reglas, sólo R1 y R2 sin ablación), `ablate` (unión de overrides y `ValueError` para reglas nucleares), `EXP001_CLAIMS` con R8 y R9 en cada $R_c$, `nullify_belief` (sólo cambia el signo; fracción positiva en `[0.45, 0.55]`), `classify` con datos sintéticos para cada estado (incluidos la orientación `higher_is_better=False` e `INSUFFICIENT_EVIDENCE` con 3 semillas), esquema de `AttributionReport` con una corrida mínima, y la CLI con `--attribution`.
+- [ ] 10.2 [GREEN] Implementar `src/ide/experiments/attribution.py`, el control nulo en el motor y la opción `--attribution` de la CLI.
+- [ ] 10.3 Versionar `DESIGN_RULES` y `EXP001_CLAIMS` (pre-registro) **antes** de la primera corrida de 001-D; ejecutar `--profile quick --seeds 42 43 44 45 46 --attribution` y registrar la tabla de estados tal cual, sin modificar $R_c$ a la vista de los resultados.
+
+## 11. Cierre
+
+- [ ] 11.1 Ejecutar `pytest -v`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
+- [ ] 11.2 Crear `README.md` con instalación, ejecución, estructura, la regla de atribución y enlaces a los documentos de fundamento.

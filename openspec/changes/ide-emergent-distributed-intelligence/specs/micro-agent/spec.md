@@ -13,11 +13,18 @@ Ningún módulo de `src/ide/agent/` SHALL importar `ide.environments`, `ide.simu
 - **THEN** ninguna sentencia `import` o `from ... import` referencia `environments`, `simulation`, `experiments` ni `grid2d`.
 
 ### Requirement: Firmas Públicas Canónicas
-`MicroAgent` SHALL exponer `perceive_and_emit_messages(obs, tick) -> list[Message]`, `process_incoming_messages(messages, tick) -> list[Message]`, `decide_action(obs, tick, rng) -> AgentAction`, `learn_from_experience(pattern, real_value, tick) -> None`, `decay_memory(tick) -> None` y `get_effective_belief(pattern)`.
+`MicroAgent` SHALL exponer `perceive_and_emit_messages(obs, tick) -> list[Message]`, `process_incoming_messages(messages, tick) -> list[Message]`, `decide_action(obs, tick, rng) -> AgentAction`, `learn_from_experience(pattern, real_value, tick) -> None`, `decay_memory(tick) -> None`, `get_effective_belief(pattern)` y `assimilate_testimony(belief, sender_id, tick) -> KnowledgeUnit`.
 
 #### Scenario: Inspección de la interfaz
 - **WHEN** se inspeccionan con `inspect.signature` los métodos públicos de `MicroAgent`
 - **THEN** los nombres y parámetros coinciden exactamente con los de `design.md`.
+
+### Requirement: Semántica del Protocolo Aislada
+Dentro de `src/ide/agent/`, sólo `protocol.py` SHALL construir `Message` o referenciar `MessageType`; `MicroAgent` SHALL delegar la emisión y la recepción en `BeliefExchangeProtocol`, y todo conocimiento social SHALL entrar por `assimilate_testimony`.
+
+#### Scenario: Auditoría del protocolo
+- **WHEN** se analiza con `ast` cada archivo de `src/ide/agent/` distinto de `protocol.py`
+- **THEN** ninguno contiene una llamada a `Message(...)` ni una referencia a `MessageType`.
 
 ### Requirement: Creencia Efectiva y Caché Efímero
 `get_effective_belief(p)` SHALL devolver la creencia de `BoundedMemory` si existe y, si no, la del caché efímero del tick. El caché SHALL vaciarse al inicio de cada `perceive_and_emit_messages`.
@@ -89,6 +96,13 @@ Si no interactúa, `decide_action` SHALL devolver `MOVE` hacia el `recommended_m
 #### Scenario: Acercamiento usando recommended_move
 - **WHEN** la celda actual está vacía y hay un recurso visible a `distance = 2` con `recommended_move = (1, 0)` cuyo patrón se cree `v̂ = +1.0`, `c = 0.80`
 - **THEN** `decide_action` devuelve `AgentAction(ActionType.MOVE, target=(1, 0))`.
+
+### Requirement: Ablación de la Navegación
+Con `enable_navigation=False`, `decide_action` SHALL omitir el paso de navegación hacia recursos distantes y pasar directamente a la caminata aleatoria.
+
+#### Scenario: Recurso benéfico distante ignorado
+- **WHEN** `enable_navigation=False`, la celda está vacía y hay un recurso conocido como benéfico a `distance = 2` con `recommended_move = (1, 0)`, y `rng` está sembrado
+- **THEN** `decide_action` devuelve el mismo `MOVE` que la caminata aleatoria con ese `rng`, sin consultar `recommended_move`.
 
 ### Requirement: Caminata Aleatoria por Defecto
 Sin interacción ni objetivo distante, `decide_action` SHALL devolver `MOVE` a `available_moves[rng.integers(len(available_moves))]`, o `IDLE` si no hay movimientos disponibles.

@@ -37,6 +37,13 @@ Con `comm_enabled`, el motor SHALL entregar cada mensaje emitido a los vecinos d
 - **WHEN** el agente 1 consulta por $\rho_5$ y su vecino 2 lo conoce como dañino con `c = 0.85`
 - **THEN** en la fase de decisión del mismo tick el agente 1 ya tiene una creencia efectiva sobre $\rho_5$.
 
+### Requirement: Control Nulo de Contenido en el Ruteo
+Con `comm_content_null=True`, el motor SHALL reemplazar, antes de entregarlo, el signo de `predicted_value` de cada creencia transmitida (en ambas pasadas) por `+1` o `-1` según una extracción de `rng.random() < 0.5` por mensaje, en orden de emisión.
+
+#### Scenario: Determinismo del control nulo
+- **WHEN** se ejecutan dos motores con `SimulationConfig(seed=42, comm_content_null=True)` durante 100 ticks
+- **THEN** sus historiales son idénticos.
+
 ### Requirement: Modo Aislado
 Con `comm_enabled` falso, el motor SHALL descartar todos los mensajes emitidos sin entregarlos y registrar `messages_sent = 0`, sin alterar las demás fases.
 

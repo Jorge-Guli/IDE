@@ -8,7 +8,7 @@
 
 ## Context
 
-El proyecto IDE parte de los fundamentos establecidos en el Documento Fundacional y las Definiciones Formales y Técnicas. El repositorio contiene únicamente documentación (`greenfield`). El diseño debe permitir implementar el **Experimento 001** (Memoria y Propagación Colectiva en Grilla 2D Toroidal) asegurando que el núcleo cognitivo de los agentes sea reutilizable en entornos futuros (grafos, espacios continuos, microrrobótica) y en los Experimentos 002 a 006.
+El proyecto IDE parte de los fundamentos establecidos en el Documento Fundacional y las Definiciones Formales y Técnicas. El repositorio contiene únicamente documentación (`greenfield`). El diseño debe permitir implementar el **Experimento 001** (Memoria y Propagación Colectiva en Grilla 2D Toroidal) asegurando que el núcleo cognitivo de los agentes sea reutilizable en entornos futuros (grafos, espacios continuos, microrrobótica) y en los Experimentos 002 a 007.
 
 ## Goals / Non-Goals
 
@@ -19,6 +19,8 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - Reproducibilidad bit a bit **entre procesos distintos**, no sólo dentro del mismo proceso (ver Decisión 6).
 - Contratos extensibles (confianza social, capacidades, reglas compuestas, evolución) para los Experimentos 002–006 sin reescribir el motor.
 - Separar la **validación del software** (tests que deben pasar siempre) de la **validación de hipótesis científicas** (resultados que pueden ser negativos y deben reportarse tal cual).
+- **Regla de atribución de emergencia** (Decisión 13): ninguna propiedad se declara emergente si no puede distinguirse de una capacidad programada explícitamente en el agente. El software provee las ablaciones, los controles y la clasificación automática que lo verifican.
+- Dejar la semántica del protocolo de comunicación aislada en un único módulo reemplazable (Decisión 14), para poder des-programarla progresivamente en experimentos posteriores.
 
 **Non-Goals:**
 - Interfaz gráfica acoplada al bucle de simulación; el motor corre *headless* y exporta JSON/CSV.
@@ -26,6 +28,8 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - Paralelismo no determinista.
 - Estado interno de energía/salud $E_i(t)$ del agente: definido en el marco formal pero **fuera de alcance del Experimento 001** (los recursos no alteran la supervivencia; sólo se mide la calidad de decisión).
 - Recursos neutrales ($v(r) = 0$): el Experimento 001 usa sólo valores $\pm 1.0$.
+- Protocolo de comunicación aprendido (Exp 007): sólo se aísla la semántica del protocolo actual (Decisión 14).
+- Barrido de densidad y radio para buscar transiciones abruptas (candidatas a emergencia genuina en el Experimento 001): queda para un cambio posterior.
 - Lógica de especialización (Exp 003), reputación (Exp 002), shock (Exp 004), composición (Exp 005) y evolución (Exp 006): sólo se entregan los **contratos**; activar `enable_specialization=True`, `epsilon_recheck > 0` o `tau_policy="evidence_age"` lanza `NotImplementedError`.
 
 ## Decisions
@@ -69,13 +73,13 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - **Decisión:** `ablate_discoverers(pattern, retire_stimulus=True)` elimina a todos los agentes activos en `direct_discoverers[pattern]` e invoca `env.retire_pattern_resources(pattern)`.
 - **Racional:** Mide memoria colectiva pura, sin re-descubrimiento físico.
 
-### 9. Cobertura accesible como medida de emergencia
+### 9. Cobertura accesible como medida del meta-agente
 - **Problema detectado:** En modo aislado, 80 agentes × 3 creencias directas cubren casi seguro los 12 patrones; la cobertura colectiva aislada tiende a `1.0`, y exigir `collective_coverage > isolated_coverage` sería imposible de cumplir aunque la hipótesis fuera cierta.
-- **Decisión:** Se agrega **`accessible_coverage_mean`**: para cada agente, fracción de los $N$ patrones que conoce válidamente él o algún vecino de comunicación a 1 salto; promedio sobre agentes. En modo aislado es igual a la cobertura individual. El criterio de emergencia de 001-A usa `accessible_coverage_mean` y la precisión de decisión, no la cobertura colectiva (que se sigue reportando).
+- **Decisión:** Se agrega **`accessible_coverage_mean`**: para cada agente, fracción de los $N$ patrones que conoce válidamente él o algún vecino de comunicación a 1 salto; promedio sobre agentes. En modo aislado es igual a la cobertura individual. La comparación de 001-A usa `accessible_coverage_mean` y la precisión de decisión, no la cobertura colectiva (que se sigue reportando). Por la Decisión 13, esta cobertura mide una **capacidad programada** (la consulta en vivo existe para producirla), no una propiedad emergente.
 - **Racional:** Es la definición formal de conocimiento colectivo "accesible a $\le d$ saltos" con $d=1$, y mide exactamente el meta-agente de la Decisión 4.
 
 ### 10. Hipótesis científica ≠ test de software
-- **Decisión:** Las afirmaciones empíricas (emergencia en 001-A, contención en 001-B) se verifican sobre las semillas `42..46` con tests marcados `@pytest.mark.hypothesis`. H1 exige que `emergence_surplus > 0` en las 5 semillas, lo que equivale a una prueba de signo unilateral con $p = 1/32 \approx 0.031 < 0.05$. Esos tests están excluidos de la corrida por defecto (`addopts = "-m 'not hypothesis'"`) y ejecutados con `pytest -m hypothesis`. Un resultado negativo **no** autoriza a ajustar parámetros para "hacer pasar" el test: se reporta como hallazgo (criterio de falsabilidad del Documento Fundacional §10).
+- **Decisión:** Las expectativas empíricas sobre los mecanismos programados (superávit en 001-A, contención en 001-B) se verifican sobre las semillas `42..46` con tests marcados `@pytest.mark.hypothesis`. H1 exige que `emergence_surplus > 0` en las 5 semillas, lo que equivale a una prueba de signo unilateral con $p = 1/32 \approx 0.031 < 0.05$. Esos tests están excluidos de la corrida por defecto (`addopts = "-m 'not hypothesis'"`) y ejecutados con `pytest -m hypothesis`. Un resultado negativo **no** autoriza a ajustar parámetros para "hacer pasar" el test: se reporta como hallazgo (criterio de falsabilidad del Documento Fundacional §10).
 - **Racional:** Evitar *p-hacking* y mantener la suite de software estable e independiente del resultado científico.
 
 ### 11. Protocolos con perfiles `quick` y `full`
@@ -90,6 +94,39 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
   - `epsilon_recheck: float = 0.0`. Una probabilidad de re-verificación escéptica: ante un recurso alcanzable conocido como dañino, interactuar con probabilidad `epsilon_recheck · (1 - c)`.
 - **Racional:** la tensión entre estabilidad y plasticidad es el objeto de estudio del Experimento 004; decidirla a priori sesgaría ese resultado. Mientras no se implementen, el motor rechaza los valores no nulos con `NotImplementedError`, para que ningún experimento crea estar usándolos.
 
+### 13. Regla de atribución: emergente vs. programado
+- **Problema:** el agente ya trae mucha inteligencia de diseño (confianza, descuento del rumor, refuerzo, castigo, olvido, consultas, difusión). Si una propiedad poblacional es consecuencia directa de una regla diseñada para producirla, observarla sólo demuestra que el algoritmo distribuido funciona, no que haya emergido una capacidad nueva.
+- **Regla metodológica:** *toda propiedad que se afirme como emergente debe poder distinguirse de una capacidad programada explícitamente en el agente.* Las reglas se mantienen, pero cada una se declara, se puede apagar y se mide su contribución.
+- **Inventario de presupuestos de diseño** (`DESIGN_RULES` en `src/ide/experiments/attribution.py`): cada regla tiene un identificador, su **propósito declarado** y la ablación que la desactiva (overrides de `SimulationConfig`; vacía si no es ablacionable):
+
+  | ID | Regla | Propósito declarado | Ablación |
+  | :--- | :--- | :--- | :--- |
+  | R1 | Aprendizaje por experiencia directa | Aprender del entorno | — (núcleo) |
+  | R2 | Memoria acotada con reemplazo por utilidad | Restricción experimental $C_{\max} < N$ | — (núcleo) |
+  | R3 | Olvido pasivo | Eliminar lo no revalidado | `passive_conf_decay=0.0` |
+  | R4 | Descuento por testimonio γ | Atenuar rumores | `gamma_social_discount=1.0` |
+  | R5 | Refuerzo por consenso | Consolidar acuerdos | `eta_consensus=0.0` |
+  | R6 | Anti-cámara de eco | Impedir certeza sin evidencia | `anti_echo_enabled=False` |
+  | R7 | Duda ante contradicción | Filtrar testimonios falsos | `eta_doubt=0.0` |
+  | R8 | Consulta en vivo | Acceder a memoria ajena (meta-agente) | `max_queries_per_tick=0` |
+  | R9 | Difusión espontánea | Transmitir conocimiento | `max_broadcast_per_tick=0` |
+  | R10 | Exploración ε | Descubrir lo desconocido | `epsilon_explore=0.0` |
+  | R11 | Navegación hacia benéficos conocidos | Buscar alimento | `enable_navigation=False` |
+
+- **Registro de afirmaciones** (`EXP001_CLAIMS`): cada afirmación tiene una métrica poblacional, su dirección y el conjunto $R_c$ de reglas cuyo propósito declarado la produce. Se versiona en git **antes** de ver resultados (pre-registro); cambiar un $R_c$ después exige un commit que lo justifique. Principio conservador: *toda regla de comunicación se considera con propósito de transmitir conocimiento*, así que cualquier afirmación sobre conocimiento compartido incluye R8 y R9.
+- **Criterios** (sobre $n$ semillas, prueba de signo unilateral con $\alpha = 0.05$; con $n < 5$ no hay potencia y el estado es `INSUFFICIENT_EVIDENCE`):
+  - **E1 Localidad:** la métrica es poblacional y ningún agente la computa ni la recibe. Se garantiza por arquitectura (los agentes no acceden a métricas ni a estado global).
+  - **E2 Superávit sobre el aislamiento:** `m(completo)` supera a `m(aislado)`.
+  - **E3 Independencia del propósito:** con **todas** las reglas de $R_c$ ablacionadas a la vez, `m(sin R_c)` sigue superando a `m(aislado)`. Si $R_c$ es vacío, se cumple trivialmente.
+  - **E4 Dependencia del contenido:** `m(completo)` supera a `m(contenido nulo)`, un control que conserva el volumen y la estructura de los mensajes pero reemplaza el signo de cada creencia transmitida por uno aleatorio.
+- **Clasificación:** `NOT_OBSERVED` si falla E2; `PROGRAMMED` si cumple E2 y falla E3; `ACTIVITY_ARTIFACT` si cumple E2 y E3 pero falla E4; `EMERGENT` si cumple E1–E4.
+- **Predicción explícita para el Experimento 001:** como el protocolo transmite creencias con semántica predefinida, todas las afirmaciones sobre conocimiento compartido deberían clasificarse `PROGRAMMED`. El Experimento 001 es la **línea base funcional** de la plataforma y del método, no una demostración de emergencia. Sólo podrían calificar como emergentes las propiedades que ninguna regla persigue, por ejemplo transiciones abruptas al variar la densidad o el radio de comunicación, que se estudiarán en un barrido posterior.
+- **Racional:** convierte una advertencia metodológica en un procedimiento verificable por software, y hace que el resultado esperado de 001 (todo "programado") sea una predicción falsable del propio método.
+
+### 14. Semántica del protocolo aislada para des-programarla después
+- **Decisión:** toda la semántica de comunicación (qué se pregunta, qué se responde, qué se difunde y cómo se interpreta lo recibido) vive en `src/ide/agent/protocol.py`, en la clase `BeliefExchangeProtocol`. `MicroAgent` delega en ella `perceive_and_emit_messages` y `process_incoming_messages`. Dentro de `src/ide/agent/`, ningún otro módulo construye `Message` ni referencia `MessageType` (test sobre el AST).
+- **Racional:** hoy el agente recibe de fábrica `QUERY_PATTERN`, `QUERY_RESPONSE` y `BROADCAST_BELIEF`. El programa de investigación prevé eliminar esa semántica de forma progresiva (Documento Fundacional §8) hasta preguntar si una población puede inventar su propio protocolo (Experimento 007). Con la semántica concentrada en un módulo, cada nivel de des-programación reemplaza sólo ese módulo, y el resto del agente y del motor no cambia.
+
 ## Especificación Estructural de Módulos y Firmas Exactas
 
 ### Mapa de archivos a crear
@@ -98,10 +135,10 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - `src/ide/__init__.py`
 - `src/ide/config.py`: `SimulationConfig`
 - `src/ide/domain/{__init__,types,ports,extensions}.py`
-- `src/ide/agent/{__init__,memory,epistemology,micro_agent}.py`
+- `src/ide/agent/{__init__,memory,epistemology,protocol,micro_agent}.py`
 - `src/ide/environments/{__init__,grid2d}.py`
 - `src/ide/simulation/{__init__,engine}.py`
-- `src/ide/experiments/{__init__,metrics,exp001_runner}.py`
+- `src/ide/experiments/{__init__,metrics,attribution,exp001_runner}.py`
 
 ### 1. `src/ide/config.py`
 ```python
@@ -134,6 +171,9 @@ class SimulationConfig:
     enable_specialization: bool = False
     epsilon_recheck: float = 0.0           # contrato Exp 004 (Decisión 12)
     tau_policy: str = "validation"         # contrato Exp 004: "validation" | "evidence_age"
+    anti_echo_enabled: bool = True         # ablación de R6 (Decisión 13)
+    enable_navigation: bool = True         # ablación de R11 (Decisión 13)
+    comm_content_null: bool = False        # control nulo E4 (Decisión 13)
     enforce_memory_constraint: bool = True
 
     def __post_init__(self) -> None: ...
@@ -145,8 +185,8 @@ class SimulationConfig:
 3. `perception_radius >= 0`, `comm_radius >= 0` y `2 * max(perception_radius, comm_radius) < min(grid_width, grid_height)` (evita que una misma celda se vea por dos lados del toro y que `dx` toroidal sea ambiguo).
 4. En `[0.0, 1.0]`: `initial_direct_confidence`, `alpha_learning`, `beta_reinforce`, `beta_punish`, `gamma_social_discount`, `eta_consensus`, `eta_doubt`, `min_confidence`, `decision_conf_threshold`, `epsilon_explore`.
 5. `lambda_decay >= 0`, `passive_conf_decay >= 0`, `max_broadcast_per_tick >= 0`, `max_queries_per_tick >= 0`.
-7. `epsilon_recheck` en `[0.0, 1.0]` y `tau_policy` en `{"validation", "evidence_age"}`.
 6. `min_confidence < decision_conf_threshold`.
+7. `epsilon_recheck` en `[0.0, 1.0]` y `tau_policy` en `{"validation", "evidence_age"}`.
 
 Variantes de configuración se construyen con `dataclasses.replace(config, ...)`.
 
@@ -336,6 +376,7 @@ class BoundedMemory:
      - `raw = c + η_cons · e · (1 - c)`.
      - `new_conf = min(1, raw)` si `incoming.from_direct_experience`; si no, `min(max(c, e), raw)`.
      - `new_tau = tick` si `incoming.from_direct_experience`; si no, `existing.last_updated_tick`.
+     - Con `anti_echo_enabled=False` (ablación de R6), ambas salvaguardas se omiten: `new_conf = min(1, raw)` y `new_tau = tick` sin importar el origen.
      - Devuelve `(pattern, new_val, new_conf, n+1, new_tau, existing.from_direct_experience)`.
      - **Un rumor no valida a otro rumor:** el consenso sin evidencia directa del emisor no refresca τ. Si lo hiciera, dos portadores de un rumor que se lo re-difunden en cada tick quedarían exentos del decaimiento pasivo para siempre: la persistencia social (M4) nunca terminaría y un rumor falso compartido (M6) nunca se olvidaría.
    - **C** (`< 0`):
@@ -354,6 +395,7 @@ class MicroAgent:
     @property
     def capabilities(self) -> AgentCapabilities: ...       # constante en Exp 001
     def get_effective_belief(self, pattern: Pattern) -> KnowledgeUnit | None: ...
+    def assimilate_testimony(self, belief: KnowledgeUnit, sender_id: int, tick: int) -> KnowledgeUnit: ...
     def perceive_and_emit_messages(self, obs: Observation, tick: int) -> list[Message]: ...
     def process_incoming_messages(self, messages: list[Message], tick: int) -> list[Message]: ...
     def decide_action(self, obs: Observation, tick: int, rng: np.random.Generator) -> AgentAction: ...
@@ -361,18 +403,20 @@ class MicroAgent:
     def decay_memory(self, tick: int) -> None: ...
 ```
 - **Creencia "conocida"**: `get_effective_belief(p)` (memoria primero; si no está, caché efímero) no es `None` y tiene `confidence >= decision_conf_threshold`.
-- **`perceive_and_emit_messages`:** vacía el caché efímero. Si `obs.neighbor_ids` está vacío devuelve `[]`. Si no:
+- **Delegación del protocolo (Decisión 14):** `perceive_and_emit_messages` vacía el caché efímero y delega en `BeliefExchangeProtocol.emit(agent, obs, tick)`; `process_incoming_messages` delega en `BeliefExchangeProtocol.receive(agent, messages, tick)`. Las reglas siguientes describen ese protocolo por defecto.
+- **`assimilate_testimony`:** `merged = merge_social_belief(get_effective_belief(p), belief, tick, config, trust_strategy.compute_sender_trust(self.id, sender_id, γ))`; guarda `merged` en el caché efímero, intenta `memory.upsert(merged, tick)` y lo devuelve. Es la única puerta de entrada del conocimiento social, y no depende del formato de los mensajes.
+- **Emisión (`emit`):** si `obs.neighbor_ids` está vacío devuelve `[]`. Si no:
   1. Hasta `max_queries_per_tick` `QUERY_PATTERN` (broadcast) por patrones **distintos no conocidos** entre los visibles, en orden de `(distance mínima del patrón, pattern)`.
   2. Hasta `max_broadcast_per_tick` `BROADCAST_BELIEF` con las creencias de memoria con `confidence >= decision_conf_threshold`, ordenadas por utilidad descendente y luego por `pattern`.
   3. Orden de la lista devuelta: primero las consultas, luego los broadcasts.
-- **`process_incoming_messages`:** recorre los mensajes en el orden recibido e ignora los propios y los dirigidos a otro destinatario.
+- **Recepción (`receive`):** recorre los mensajes en el orden recibido e ignora los propios y los dirigidos a otro destinatario.
   - `QUERY_PATTERN`: si `memory.get(p)` existe con `confidence >= decision_conf_threshold`, agrega `QUERY_RESPONSE(recipient_id=sender_id, belief=unit)` a la salida. (El caché efímero no se re-difunde: sólo responde lo que el agente sostiene en memoria.)
-  - `BROADCAST_BELIEF` y `QUERY_RESPONSE`: `merged = merge_social_belief(get_effective_belief(p), belief, tick, config, trust_strategy.compute_sender_trust(self.id, sender_id, γ))`; guarda `merged` en el caché efímero e intenta `memory.upsert(merged, tick)`.
+  - `BROADCAST_BELIEF` y `QUERY_RESPONSE`: `agent.assimilate_testimony(belief, sender_id, tick)`.
   - Devuelve sólo los `QUERY_RESPONSE` generados.
 - **`decide_action`** (determinista dado `rng`; desempates por menor `resource_id`):
   1. Alcanzables (`is_reachable_now`): si hay alguno conocido benéfico (`v̂ > 0`) → `INTERACT` sobre el de mayor `v̂·c`.
   2. Si no, y hay alcanzables **no conocidos** → se extrae **un** `rng.random()`; si `< epsilon_explore` → `INTERACT` sobre el no conocido de menor `resource_id`.
-  3. Si no interactúa: entre los distantes conocidos benéficos, `MOVE` hacia `recommended_move` del de menor `distance`.
+  3. Si no interactúa y `enable_navigation` (R11): entre los distantes conocidos benéficos, `MOVE` hacia `recommended_move` del de menor `distance`.
   4. Si no: `MOVE` a `available_moves[rng.integers(len(available_moves))]`, o `IDLE` si no hay movimientos.
 - **`learn_from_experience`:** `memory.upsert(update_from_direct_experience(memory.get(p) or caché efímero, ...), tick, force=True)`. La experiencia directa siempre se retiene (prioridad empírica).
 - **`decay_memory`:** `memory.decay_step(tick, passive_conf_decay, min_confidence)`.
@@ -427,6 +471,7 @@ class SimulationEngine:
 1. **Percepción y emisión.** `order = rng.permutation(sorted(activos))`. Para cada agente en `order`: `obs = env.get_observation(aid, t)`; `emitted += agent.perceive_and_emit_messages(obs, t)`.
 2. **Intercambio social** (sólo si `comm_enabled`; si no, se descarta `emitted` y `messages_sent = 0`):
    - Ruteo: cada mensaje, en orden de emisión, se entrega a `env.get_communication_neighbors(sender)` (o sólo a `recipient_id` si es vecino).
+   - Control nulo (`comm_content_null=True`, E4): antes de entregar cada mensaje con `belief`, el motor reemplaza `belief.predicted_value` por `s · |predicted_value|` con `s = +1 si rng.random() < 0.5, si no -1`, una extracción por mensaje en orden de emisión (también en la segunda pasada). Conserva volumen, estructura, confianza y origen; destruye la información sobre el mundo.
    - Primera pasada: para cada agente en `order`, `responses += agent.process_incoming_messages(inbox, t)`.
    - Segunda pasada: se rutean las respuestas y cada agente en `order` procesa su bandeja (su salida debe ser vacía).
    - `messages_sent = len(emitted) + len(responses)` (un mensaje cuenta una vez, sin importar el número de receptores).
@@ -563,6 +608,70 @@ def main(argv: list[str] | None = None) -> int: ...
 - **CLI:** `python -m ide.experiments.exp001_runner [--profile {quick,full}] [--seeds 42 43 ...] [--out results/]`, con valores por defecto `full`, `42` y `results/`. Escribe `exp001_seed{seed}.json` (config + los tres reportes vía `report_to_dict`, con claves ordenadas e `indent=2`), `exp001_aggregate.json` cuando hay más de una semilla, y `exp001a_seed{seed}_timeseries.csv`. Imprime un resumen legible en consola y devuelve 0.
 - **CSV de series temporales:** una fila por `(mode, tick)` con `mode ∈ {collective, isolated}`; columnas en este orden: `mode`, los campos escalares de `TickMetrics` en orden de declaración, `prevalence[<label>]` y `false_prevalence[<label>]` por patrón en orden de `Pattern`.
 
+### 9. Atribución de emergencia (`src/ide/experiments/attribution.py`)
+```python
+@dataclass(frozen=True)
+class DesignRule:
+    rule_id: str                               # "R8"
+    name: str
+    purpose: str
+    ablation: tuple[tuple[str, Any], ...]      # overrides de SimulationConfig; () si no es ablacionable
+
+@dataclass(frozen=True)
+class EmergenceClaim:
+    claim_id: str                              # "C1"
+    description: str
+    protocol: str                              # "001a" | "001b" | "001c"
+    metric: str
+    higher_is_better: bool
+    purpose_rules: tuple[str, ...]             # R_c
+
+class ClaimStatus(Enum):
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    NOT_OBSERVED = "NOT_OBSERVED"
+    PROGRAMMED = "PROGRAMMED"
+    ACTIVITY_ARTIFACT = "ACTIVITY_ARTIFACT"
+    EMERGENT = "EMERGENT"
+
+@dataclass(frozen=True)
+class ClaimEvaluation:
+    claim_id: str
+    status: ClaimStatus
+    seeds: tuple[int, ...]
+    values: dict[str, tuple[float, ...]]       # variante -> valor por semilla
+    p_vs_isolated: float                       # E2
+    p_purpose_ablated_vs_isolated: float | None  # E3 (None si R_c es vacío)
+    p_vs_null_content: float                   # E4
+
+@dataclass(frozen=True)
+class AttributionReport:
+    rules: tuple[DesignRule, ...]
+    evaluations: tuple[ClaimEvaluation, ...]
+
+DESIGN_RULES: tuple[DesignRule, ...]           # R1..R11 de la Decisión 13
+EXP001_CLAIMS: tuple[EmergenceClaim, ...]
+def ablate(config: SimulationConfig, rule_ids: Sequence[str]) -> SimulationConfig: ...
+def nullify_belief(belief: KnowledgeUnit, rng: np.random.Generator) -> KnowledgeUnit: ...   # usada por el motor (E4)
+def measure_claim(claim: EmergenceClaim, config: SimulationConfig, profile: str) -> float: ...
+def classify(claim: EmergenceClaim, values: dict[str, Sequence[float]], alpha: float = 0.05) -> ClaimEvaluation: ...
+def run_protocol_001d_attribution(config: SimulationConfig, seeds: Sequence[int],
+        claims: Sequence[EmergenceClaim] = EXP001_CLAIMS, profile: str = "quick") -> AttributionReport: ...
+```
+- **`EXP001_CLAIMS`** (pre-registro):
+
+  | ID | Afirmación | Protocolo / métrica | Dirección | $R_c$ |
+  | :--- | :--- | :--- | :---: | :--- |
+  | C1 | Acceso a conocimiento no poseído | 001a / `accessible_coverage_mean` final | ↑ | R8, R9 |
+  | C2 | Superávit de decisión colectiva | 001a / `cumulative_decision_accuracy` final | ↑ | R8, R9 |
+  | C3 | Inmunidad colectiva a la falsedad | 001b / `final_false_prevalence` | ↓ | R4, R7, R8, R9 |
+  | C4 | Persistencia extra-individual | 001c / `final_social_persistence_prevalence` | ↑ | R8, R9 |
+
+- **`ablate`:** aplica con `dataclasses.replace` la unión de los overrides de las reglas indicadas; lanza `ValueError` si alguna no es ablacionable.
+- **`measure_claim`:** para `001a` corre un único motor con `config` durante los ticks del perfil y lee la métrica del último `TickMetrics`; para `001b` y `001c` corre el protocolo con los parámetros del perfil (`001c` sólo con el nivel `0.5`) y lee el campo del reporte.
+- **Variantes por semilla:** `full` (config de la semilla), `isolated` (`comm_enabled=False`), `purpose_ablated` (`ablate(config, R_c)`, se omite si $R_c$ es vacío) y `null_content` (`comm_content_null=True`).
+- **`classify`:** con `d(a, b)_s = m_a,s - m_b,s` si `higher_is_better`, o `m_b,s - m_a,s` si no: E2 = `sign_test_p_value(d(full, isolated)) < α`; E3 = `sign_test_p_value(d(purpose_ablated, isolated)) < α` (verdadero si $R_c$ es vacío); E4 = `sign_test_p_value(d(full, null_content)) < α`. Con menos de 5 semillas devuelve `INSUFFICIENT_EVIDENCE`; si no, aplica la clasificación de la Decisión 13 en ese orden.
+- **CLI:** `--attribution` agrega `exp001_attribution.json` con el `AttributionReport` y una tabla en consola (afirmación, estado y p-valores). Con menos de 5 semillas avisa que el resultado será `INSUFFICIENT_EVIDENCE`.
+
 ## Risks / Trade-offs
 
 - **[Thrashing de memoria por broadcasts]** → `upsert` exige utilidad estrictamente mayor; caché efímero para decidir en el tick; sólo se difunden creencias con $c \ge c_{\text{umbral}}$.
@@ -576,6 +685,8 @@ def main(argv: list[str] | None = None) -> int: ...
 ## Checklist de Criterios de Aceptación (Definition of Done)
 
 - [ ] **Aislamiento de capas:** ningún archivo en `src/ide/agent/` importa `environments`, `grid2d` ni `simulation` (test sobre el AST).
+- [ ] **Protocolo aislado:** dentro de `src/ide/agent/`, sólo `protocol.py` construye `Message` o referencia `MessageType` (test sobre el AST).
+- [ ] **Atribución pre-registrada:** `DESIGN_RULES` y `EXP001_CLAIMS` versionados antes de la primera corrida de 001-D, y `--attribution` ejecutado con las semillas 42..46, con su tabla de estados registrada tal cual.
 - [ ] **Cero fuga de información:** `VisibleResource` no tiene `true_value`; `get_reachable_true_values` sólo es invocado por `SimulationEngine`.
 - [ ] **Invariante de memoria:** para todo agente y todo tick, `len(agent.memory) <= config.memory_capacity`.
 - [ ] **Anti-cámara de eco:** el intercambio repetido de rumores indirectos nunca supera $\max(c_A, \gamma c_B)$.
@@ -593,4 +704,5 @@ pytest -v                                                 # suite de software
 pytest -m hypothesis -v                                   # hipótesis científicas (lento)
 python -m ide.experiments.exp001_runner --profile quick   # corrida rápida
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --out results/
+python -m ide.experiments.exp001_runner --profile quick --seeds 42 43 44 45 46 --attribution
 ```

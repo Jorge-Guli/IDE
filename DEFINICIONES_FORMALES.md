@@ -1,4 +1,4 @@
-# Especificación de Definiciones Formales — Proyecto IDE (v0.2)
+# Especificación de Definiciones Formales — Proyecto IDE (v0.3)
 
 Este documento establece de manera rigurosa y sin ambigüedades qué significa cada concepto dentro del sistema de **Inteligencia Distribuida Emergente (IDE)** antes de escribir código. Toda implementación debe respetar estas definiciones.
 
@@ -157,7 +157,7 @@ El vecino afirma que el recurso es bueno, pero el receptor cree que es malo (o v
 ### 2.4. Cómo Funciona la Memoria Colectiva en Tiempo Real (Consulta y Acción)
 Si un agente $a_i$ se encuentra frente a un recurso $r$ con patrón $\rho$, ¿cómo toma la decisión si su memoria individual es $C_{\max} \ll N$ y **no recuerda** $\rho$ en ese instante?
 
-Existen **dos mecanismos complementarios** que producen la emergencia colectiva:
+Existen **dos mecanismos complementarios**, ambos **diseñados** (reglas R9 y R8 de §3.1), que producen el acceso colectivo al conocimiento:
 
 1. **Difusión Continua y Recambio Adaptativo:**
    Los agentes intercambian creencias constantemente al cruzarse. Las creencias verdaderas son revalidadas una y otra vez por distintos agentes que interactúan con el entorno, manteniendo su confianza $c$ alta en la población, mientras que las falsas chocan con la experiencia empírica y se extinguen.
@@ -166,20 +166,56 @@ Existen **dos mecanismos complementarios** que producen la emergencia colectiva:
    - Si algún vecino $a_k \in \mathcal{N}_{\text{com}}(l_i)$ posee $\rho$ en su memoria $\mathcal{M}_k$, responde inmediatamente con su creencia $k$.
    - De este modo, un grupo de $G$ agentes cercanos con memorias disjuntas de tamaño $C_{\max}$ actúa efectivamente como un **meta-agente con memoria combinada de hasta $G \times C_{\max}$**, sin que ningún individuo haya ampliado su hardware interno.
 
+> **Advertencia de atribución.** El meta-agente es una consecuencia **directa y buscada** de la consulta en vivo: la regla existe para producirlo. Observarlo valida el mecanismo, pero no constituye emergencia (§3.1). El protocolo de mensajes (`QUERY`, `RESPONSE`, `BROADCAST`) tiene semántica predefinida; su des-programación progresiva es un eje del programa de investigación ([Documento Fundacional](DOCUMENTO_FUNDACIONAL.md) §8).
+
 ---
 
-## 3. Definiciones Operacionales de Fenómenos Emergentes
+## 3. Definiciones Operacionales de Fenómenos Colectivos
 
-Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada fenómeno se define operacionalmente así:
+Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada fenómeno se define operacionalmente así. Que un fenómeno colectivo aparezca **no** lo convierte en emergente: eso lo decide el criterio de atribución (§3.1).
 
 | Concepto | Definición Operacional Exacta |
 | :--- | :--- |
 | **Conocimiento Individual** | Conjunto de patrones $\rho$ en $\mathcal{M}_i(t)$ cuyo signo predicho $\text{sign}(\hat{v})$ coincide con la realidad $\text{sign}(F(\rho))$ y cuya confianza supera el umbral de decisión ($c \ge c_{\text{umbral}}$). |
 | **Conocimiento Colectivo (Poblacional)** | Unión de los conocimientos válidos presentes en al menos un agente activo ($p_{\min} = 1/M$). |
 | **Conocimiento Accesible** | Para un agente, unión de su conocimiento individual y el de sus vecinos de comunicación a $d = 1$ salto en el instante $t$. Es lo que puede usar para decidir mediante una consulta en vivo. |
-| **Superávit Cognitivo Emergente ($\Delta_{\text{emerg}}$)** | Diferencia entre el rendimiento (precisión $Acc$, M2) de la población conectada y el de una población idéntica sin comunicación, con las mismas condiciones iniciales: $\Delta_{\text{emerg}} = Acc_{\text{col}} - Acc_{\text{iso}}$. Un $\Delta_{\text{emerg}} > 0$ consistente entre semillas demuestra que la población supera el límite de sus partes. La cota teórica individual $C_{\max}/N$ se usa en cambio para la cobertura (M1). |
+| **Superávit Cognitivo Colectivo ($\Delta_{\text{col}}$)** | Diferencia entre el rendimiento (precisión $Acc$, M2) de la población conectada y el de una población idéntica sin comunicación, con las mismas condiciones iniciales: $\Delta_{\text{col}} = Acc_{\text{col}} - Acc_{\text{iso}}$. Un $\Delta_{\text{col}} > 0$ consistente entre semillas demuestra que la población supera el límite de sus partes; si ese superávit es emergente o programado lo decide §3.1. La cota teórica individual $C_{\max}/N$ se usa en cambio para la cobertura (M1). |
 | **Epistemología Distribuida (Inmunidad a Falsedad)** | Capacidad de la red para hacer que la prevalencia de una creencia falsa inyectada ($F(\rho) \neq \hat{v}_{\text{falso}}$) tienda a $0$ cuando $t \to \infty$ sin intervención externa. |
 | **Memoria Colectiva Persistente** | Condición en la cual una creencia verdadera descubierta en $t_0$ por un subconjunto de agentes $S_0$ sigue activa en la población en $t_1 \gg t_0$ después de que el $100\%$ de los agentes originales de $S_0$ han sido eliminados o han olvidado el dato. |
+
+### 3.1. Atribución de Emergencia
+
+**Regla central:** *toda propiedad que se afirme como emergente debe poder distinguirse de una capacidad programada explícitamente en el agente.*
+
+**Presupuestos de diseño.** Sea $\mathcal{R} = \{R_1, \dots, R_{11}\}$ el conjunto de reglas diseñadas del agente, cada una con un **propósito declarado**. Las reglas $R_1$ y $R_2$ son nucleares: no se ablacionan.
+
+| Regla | Descripción | Propósito declarado |
+| :--- | :--- | :--- |
+| $R_1$ | Aprendizaje por experiencia directa (§2.1) | Aprender del entorno |
+| $R_2$ | Memoria acotada con reemplazo por utilidad (§2.2) | Restricción experimental $C_{\max} < N$ |
+| $R_3$ | Olvido pasivo $\delta$ (§2.2) | Eliminar lo no revalidado |
+| $R_4$ | Descuento por testimonio $\gamma$ (§2.3 A) | Atenuar rumores |
+| $R_5$ | Refuerzo por consenso $\eta_{\text{consenso}}$ (§2.3 B) | Consolidar acuerdos |
+| $R_6$ | Protección anti-cámara de eco (§2.3 B) | Impedir certeza sin evidencia |
+| $R_7$ | Duda ante contradicción $\eta_{\text{duda}}$ (§2.3 C) | Filtrar testimonios falsos |
+| $R_8$ | Consulta en vivo (§2.4) | Acceder a memoria ajena (meta-agente) |
+| $R_9$ | Difusión espontánea (§2.4) | Transmitir conocimiento |
+| $R_{10}$ | Exploración $\epsilon$ | Descubrir lo desconocido |
+| $R_{11}$ | Navegación hacia benéficos conocidos | Buscar alimento |
+
+**Afirmación pre-registrada.** Una afirmación $C$ consiste en una métrica poblacional $m_C$, su dirección de mejora y el conjunto $R_C \subseteq \mathcal{R}$ de reglas cuyo propósito declarado la produce. Se declara antes de ejecutar el experimento. *Principio conservador:* toda afirmación sobre conocimiento compartido incluye $R_8$ y $R_9$ en $R_C$.
+
+**Variantes.** Para cada semilla se mide $m_C$ en: la población **completa**; la **aislada** (sin comunicación); la población **sin $R_C$** (todas las reglas de $R_C$ desactivadas a la vez); y el **control nulo** (mensajes con el mismo volumen y estructura, pero con el signo de cada creencia transmitida reemplazado por uno aleatorio).
+
+**Criterios.** Con $n \ge 5$ semillas y una prueba de signo unilateral con $\alpha = 0.05$:
+- **E1 Localidad:** $m_C$ es poblacional y ningún agente la computa ni la recibe.
+- **E2 Superávit:** la población completa supera a la aislada.
+- **E3 Independencia del propósito:** la población sin $R_C$ sigue superando a la aislada ($R_C = \emptyset$ lo cumple trivialmente).
+- **E4 Dependencia del contenido:** la población completa supera al control nulo.
+
+**Clasificación.** *No observada* si falla E2; *programada* si cumple E2 y falla E3; *artefacto de actividad* si cumple E2 y E3 y falla E4; **emergente** si cumple E1–E4. Con menos de 5 semillas el estado es *evidencia insuficiente*.
+
+**Consecuencia para el Experimento 001.** Con un protocolo de semántica predefinida, toda afirmación sobre conocimiento compartido tiene $R_8, R_9 \in R_C$, y quitar ambas reglas equivale a aislar la población. Por eso se predice que esas afirmaciones resulten **programadas**. Las candidatas genuinas a emergencia en este nivel son las propiedades que ninguna regla persigue, por ejemplo transiciones abruptas de la cobertura accesible o de la persistencia al variar la densidad de agentes o el radio de comunicación. Los saltos conceptuales vendrán de la des-programación del protocolo (Experimento 007).
 
 ---
 
@@ -222,18 +258,19 @@ En $t_{\text{inject}}$, se inyecta en una fracción $q$ de agentes ($q = 25\%$) 
 - *Trampa de evitación:* un agente que cree que un patrón benéfico es dañino no lo prueba, así que no puede refutarlo empíricamente. Si la creencia falsa es un rumor, su corrección depende de la duda social, del olvido y de la exploración, y es un fenómeno a medir en el Experimento 001. Si en cambio es evidencia directa que quedó obsoleta porque el mundo cambió (Experimento 004), la población puede quedar bloqueada, porque el consenso entre testigos directos refresca $\tau$. Para ese caso se compararán dos mecanismos: $\tau$ como edad de la evidencia más reciente y la re-verificación escéptica con probabilidad $\epsilon_{\text{recheck}}(1-c)$.
 
 ### M7. Eficiencia y Costo de Comunicación ($Cost_{\text{com}}(t)$)
-Cantidad media de mensajes transmitidos por agente por paso de tiempo ($\frac{\text{Mensajes}(t)}{M}$), evaluando la ganancia de precisión por cada mensaje enviado.
+Cantidad media de mensajes transmitidos por agente por paso de tiempo ($\frac{\text{Mensajes}(t)}{M}$). La eficiencia se resume como ganancia de precisión por mensaje: $\Delta_{\text{col}} / \overline{Cost_{\text{com}}}$ (indefinida si no hubo mensajes).
 
 ---
 
 ## 5. Contratos de Software (Interfaces Desacopladas)
 
-Antes de implementar, la arquitectura en Python se compromete a separar estrictamente estos 5 componentes (detalle en las [Definiciones Técnicas](DEFINICIONES_TECNICAS.md)):
+Antes de implementar, la arquitectura en Python se compromete a separar estrictamente estos 6 componentes (detalle en las [Definiciones Técnicas](DEFINICIONES_TECNICAS.md)):
 
 1. **`KnowledgeUnit` (Estructura de Datos Pura):** Representa la creencia $k = (\rho, \hat{v}, c, n, \tau, d)$. Inmutable; las actualizaciones son funciones puras que devuelven una creencia nueva.
 2. **`BoundedMemory` (Módulo de Memoria):** Contiene hasta $C_{\max}$ unidades `KnowledgeUnit`. Ejecuta inserción, búsqueda por patrón, decaimiento temporal y reemplazo por menor utilidad $U(k, t)$.
-3. **`MicroAgent` (Cerebro Local):** Contiene `BoundedMemory` y las reglas de aprendizaje directo, asimilación social (Escenarios A, B, C) y toma de decisiones. **No importa ni conoce ninguna clase de Grilla 2D.**
+3. **`MicroAgent` (Cerebro Local):** Contiene `BoundedMemory` y las reglas de aprendizaje directo, asimilación social (Escenarios A, B, C) y toma de decisiones. **No importa ni conoce ninguna clase de Grilla 2D.** La semántica del protocolo de mensajes vive aislada en un módulo reemplazable, para poder des-programarla.
 4. **`Environment` (Interfaz Abstracta del Mundo):**
    - Implementación 1: `ToroidalGrid2D` (Experimento 001).
    - Implementaciones futuras: `SpatialGraph`, `ContinuousSpace2D`.
 5. **`ExperimentRunner` y `MetricsCollector`:** Ejecuta los protocolos (base, falsificación, daño) con semillas reproducibles (`seed`) y calcula las métricas M1–M7.
+6. **Atribución:** Inventario de reglas con propósito declarado, ablaciones, control nulo, registro pre-declarado de afirmaciones y clasificación según §3.1.

@@ -66,6 +66,13 @@ Si los signos coinciden e `incoming.from_direct_experience` es falso, la confian
 - **WHEN** el receptor tiene una creencia con `τ = 10` y en `t = 50` recibe una del mismo signo con `from_direct_experience = True`
 - **THEN** la creencia resultante tiene `last_updated_tick = 50`.
 
+### Requirement: Ablación de la Protección Anti-Eco
+Con `anti_echo_enabled=False`, el Escenario B SHALL tratar todo testimonio como si tuviera evidencia directa: `confidence = min(1, c + η_consensus·(γc_ext)·(1-c))` y `last_updated_tick = tick`.
+
+#### Scenario: Cámara de eco sin protección
+- **WHEN** `anti_echo_enabled=False`, A y B tienen rumores con `c = 0.50` del mismo signo e intercambian sus creencias 100 veces (`γ = 0.75`, `η = 0.15`)
+- **THEN** la confianza de ambos supera `0.50` y crece en cada intercambio.
+
 ### Requirement: Resistencia ante Contradicción (Escenario C)
 Si los signos difieren y no corresponde sobrescritura, la función SHALL conservar el valor, el origen y el `last_updated_tick` de la creencia local y reducir su confianza a `max(0, c - η_doubt·(γc_ext)/r)`, con `r = 2.0` si la creencia local es directa y `r = 1.0` si no.
 
