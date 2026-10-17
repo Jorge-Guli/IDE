@@ -44,14 +44,14 @@ Al reproducirse un agente con `mutation_rate > 0` o `discrete_mutation_prob > 0`
 
 #### Scenario: Mutación acotada dentro de invariantes de dominio
 - **WHEN** se muta repetidamente un `AgentGenome` durante 500 eventos reproductivos con `mutation_rate = 0.2` y `discrete_mutation_prob = 0.5`
-- **THEN** todos los coeficientes continuos permanecen en `[0.0, 1.0]` (`alpha_learning` en `[0.01, 1.0]`), `memory_capacity` permanece en `[1, num_world_patterns - 1]` (cuando `enforce_memory_constraint=True`) y los radios permanecen dentro de la cota toroidal.
+- **THEN** todos los coeficientes continuos permanecen en `[0.0, 1.0]` (`alpha_learning` en `[0.01, 1.0]`), `memory_capacity` permanece en `[1, max_genome_memory_capacity]` y además `< num_world_patterns` cuando `enforce_memory_constraint=True`, y los radios permanecen en `[1, (min(grid_width, grid_height) - 1) // 2]`, de modo que `SimulationConfig` acepta el genoma del hijo.
 
 ### Requirement: Herencia Cultural Vertical con Descuento Intergeneracional (R14)
-Cuando `enable_cultural_inheritance=True` y `inheritance_discount > 0`, el hijo SHALL heredar al nacer hasta $\min(C_{\max, \text{hijo}}, |\mathcal{M}_{\text{padre}}|)$ creencias parentales por orden descendente de utilidad $U(k, t)$, descontadas por `gamma_gen * k.confidence` ($\ge c_{\min}$) con `evidence_count = 0` y `from_direct_experience = False`.
+Con `enable_cultural_inheritance=True` e `inheritance_discount > 0`, el motor SHALL entregar al hijo, por `assimilate_testimony` con `sender_id = parent_id`, hasta $\min(C_{\max, \text{hijo}}, |\mathcal{M}_{\text{padre}}|)$ creencias parentales en orden descendente de $U(k, t)$, cada una con confianza `gamma_gen * k.confidence` ($\ge c_{\min}$) antes del descuento social.
 
 #### Scenario: Transferencia epigénica con invariante no empírico
-- **WHEN** un padre con creencia directa $k(\rho_1, \hat{v}=+1.0, c=0.80, d=5, \text{direct}=True)$ se reproduce en `tick = 50` con `enable_cultural_inheritance=True` e `inheritance_discount = 0.5`
-- **THEN** el hijo nace con $k_{\text{hijo}}(\rho_1)$ en su memoria con `predicted_value == 1.0`, `confidence == 0.40`, `evidence_count == 0`, `last_updated_tick == 50` y `from_direct_experience == False`.
+- **WHEN** un padre con creencia directa $k(\rho_1, \hat{v}=+1.0, c=0.80, n=5, \text{direct}=True)$ se reproduce en `tick = 50` con `enable_cultural_inheritance=True`, `inheritance_discount = 0.5`, `gamma_social_discount = 0.75` y confianza uniforme en el emisor
+- **THEN** el hijo nace con $k_{\text{hijo}}(\rho_1)$ en su memoria con `predicted_value == 1.0`, `confidence == 0.30` (`0.75 * 0.5 * 0.80`, con tolerancia `1e-9`), `evidence_count == 1`, `last_updated_tick == 50` y `from_direct_experience == False`.
 
 #### Scenario: Ablación de herencia cultural (Tabula Rasa)
 - **WHEN** `enable_cultural_inheritance=False` o `inheritance_discount == 0.0`

@@ -46,11 +46,11 @@ documentado. Escribe "Ninguno" si no hay.
 - [ ] `src/ide/agent/` no importa `ide.environments`, `ide.simulation` ni `ide.experiments`; sólo `protocol.py` construye `Message` o referencia `MessageType`; el conocimiento social entra únicamente por `MicroAgent.assimilate_testimony`
 - [ ] El agente no ve `Resource.true_value` ni coordenadas; las entidades de dominio son `@dataclass(frozen=True)`
 - [ ] Ningún `set` (ni resultado de operaciones de conjuntos) se itera sin `sorted(...)`, y toda selección aleatoria opera sobre listas ordenadas
-- [ ] Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno (el control nulo usa su propio generador); sin efectos de orden fuera de los conflictos físicos; salida idéntica para cualquier `--jobs`
+- [ ] Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno; los únicos generadores adicionales son los derivados declarados en CLAUDE.md (`SeedSequence(seed, spawn_key=(k,))`); sin efectos de orden fuera de los conflictos físicos; salida idéntica para cualquier `--jobs`
 
 ## Reglas metodológicas
 
 - [ ] Nada se presenta como emergente si una regla diseñada lo persigue; si quitar las reglas de una afirmación deja a la población sin comunicación, se declara *programada por construcción*
 - [ ] No se ajustaron parámetros para que una hipótesis "pase"; los resultados negativos se reportan tal cual
 - [ ] Toda regla nueva del agente está en `DESIGN_RULES`, con propósito declarado y ablación, y en `DEFINICIONES_FORMALES.md` §3.1
-- [ ] El pre-registro (`DESIGN_RULES`, `EXP001_CLAIMS`, `ATTRIBUTION_PROFILE`) se versionó antes de mirar resultados; si cambió después, un commit lo justifica
+- [ ] El pre-registro (`DESIGN_RULES`, `EXP001_CLAIMS`, `ATTRIBUTION_PROFILE` y, en la Fase II, `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil) se versionó antes de mirar resultados; si cambió después, un commit lo justifica

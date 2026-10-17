@@ -36,18 +36,18 @@ Con `enable_holonic_hierarchy=True`, el operador `BOND` SHALL evaluar pares de n
 - **THEN** no se fusionan.
 
 ### Requirement: Costo de Coordinación y Operador de Fisión SPLIT (R16)
-En cada tick con `enable_holonic_hierarchy=True`, cada `CompositeAgent` activo $U$ SHALL descontar $c_{\text{enlace}} \cdot |U| \cdot L(U)$ repartido entre sus hojas y, si `enable_holon_splitting=True` y supera `holon_split_patience` ticks sin superávit cooperativo o cae bajo $|U| \cdot E_{\text{min\_holon}}$, SHALL disolverse liberando a sus `children` directos como nodos raíz.
+En cada tick con `enable_holonic_hierarchy=True`, cada `CompositeAgent` activo $U$ SHALL descontar $c_{\text{enlace}} \cdot |U| \cdot L(U)$ repartido entre sus hojas y, si `enable_holon_splitting=True` y acumula `holon_split_patience` ticks sin superávit (definido en design D24) o su energía cae bajo $|U| \cdot E_{\text{min\_holon}}$, SHALL disolverse liberando a sus `children` directos como nodos raíz.
 
 #### Scenario: Fisión de holón deficitario
 - **WHEN** un `CompositeAgent` de nivel 1 supera `holon_split_patience` ticks consecutivos sin obtener superávit cooperativo con `enable_holon_splitting=True`
 - **THEN** el holón se disuelve y sus nodos hijos vuelven a operar como nodos raíz autónomos sin pérdida de sus memorias individuales.
 
 ### Requirement: Causalidad Descendente y Particionamiento Epigenético Intra-Holón (R18)
-Cuando `enable_downward_causation=True`, para cada `CompositeAgent` activo $U$, el sistema SHALL identificar la hoja especialista de mayor confianza para cada patrón y configurar en las demás hojas `set_redundant_patterns` con `redundancy_penalty` ($\psi_{\text{red}} \in (0, 1]$), induciendo la ortogonalización espontánea de memorias ($\mathcal{M}_i \cap \mathcal{M}_j \to \emptyset$).
+Con `enable_downward_causation=True`, para cada hoja de un `CompositeAgent` raíz el sistema SHALL marcar como redundantes, vía `set_redundant_patterns` con `redundancy_penalty` ($\psi_{\text{red}} \in (0, 1]$), los patrones que otra hoja en alcance local conoce con más confianza (empate: menor `agent_id`). Esta regla está diseñada para ortogonalizar memorias.
 
 #### Scenario: Desalojo preferente de creencia redundante dentro del holón
-- **WHEN** los agentes 1 y 2 forman un holón con `enable_downward_causation=True` y `redundancy_penalty = 0.2`, ambos conocen $\rho_0$ con `c = 0.9`, el agente 2 también conoce $\rho_1$ con `c = 0.5` (que el agente 1 no conoce), y el agente 2 de capacidad 2 recibe un nuevo patrón $\rho_2$ con `c = 0.6`
-- **THEN** en la memoria del agente 2 la utilidad de $\rho_0$ se penaliza por `0.2` (`0.18 < 0.5`), por lo que el agente 2 desaloja la copia redundante de $\rho_0$ y conserva $\rho_1$ junto con $\rho_2$, elevando la cobertura colectiva del holón de 2 a 3 patrones.
+- **WHEN** los agentes 1 y 2 forman un holón, están en alcance local, tienen `enable_downward_causation=True` y `redundancy_penalty = 0.2`, ambos conocen $\rho_0$ con `c = 0.9`, el agente 2 también conoce $\rho_1$ con `c = 0.5` (que el agente 1 no conoce), y el agente 2 de capacidad 2 recibe un nuevo patrón $\rho_2$ con `c = 0.6`
+- **THEN** (con $|\hat{v}| = 1$ y la misma edad para todas las creencias) en la memoria del agente 2 la utilidad de $\rho_0$ se penaliza por `0.2` (`0.18 < 0.5`), por lo que el agente 2 desaloja la copia redundante de $\rho_0$ y conserva $\rho_1$ junto con $\rho_2$, elevando la cobertura colectiva del holón de 2 a 3 patrones.
 
 ### Requirement: Endosimbiosis Reproductiva Holónica (R17)
 Cuando `enable_holon_reproduction=True` y `enable_evolution=True`, un nodo raíz `CompositeAgent` $U$ con energía agregada $\ge |U| \cdot E_{\text{reprod}}$ y cupo poblacional (`len(agents) + |U| <= max_population`) SHALL reproducirse como unidad simbiótica completa (`reproduce_holon`), engendrando una hoja hija por cada hoja parental y replicando la topología arbórea de $U$.

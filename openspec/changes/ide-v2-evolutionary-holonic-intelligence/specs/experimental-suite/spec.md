@@ -7,7 +7,7 @@
 
 #### Scenario: Preservación de TickMetrics y cálculo de EvolutionaryTickMetrics
 - **WHEN** se inspeccionan los campos de `TickMetrics` y se registra un tick con `EvolutionaryMetricsCollector` sobre una población con un holón de nivel 1 formado por dos agentes especialistas
-- **THEN** `TickMetrics` conserva sus 14 campos de Fase I y `EvolutionaryTickMetrics` incluye `tick`, `active_agents`, `mean_generation`, `max_generation`, `births_this_tick`, `deaths_this_tick`, `mean_energy`, `inherited_coverage_ratio`, `holon_count_by_level == {1: 1}`, `max_holon_level == 1`, `mean_holon_size == 2.0`, `holonic_coverage_gain > 1.0`, `composite_completions` y `stigmergy_active_cells`.
+- **THEN** `TickMetrics` conserva sus 14 campos de Fase I y `EvolutionaryTickMetrics` incluye `tick`, `active_agents`, `mean_generation`, `max_generation`, `births_this_tick`, `deaths_this_tick`, `mean_energy`, `inherited_coverage_ratio`, `holon_count_by_level == ((1, 1),)`, `max_holon_level == 1`, `mean_holon_size == 2.0`, `holonic_coverage_gain > 1.0`, `composite_completions` y `stigmergy_active_cells`.
 
 ### Requirement: Protocolos 002-A y 002-B (Evolución y Herencia Cultural Acumulativa)
 `src/ide/experiments/exp002_runner.py` SHALL implementar `run_protocol_002a_adaptation(config, total_ticks=400)` (mutación genética $R_{13}$ activa vs. genoma congelado) y `run_protocol_002b_cultural_inheritance(config, total_ticks=400)` (herencia cultural vertical $R_{14}$ activa vs. tabula rasa), devolviendo reportes tipados serializables a JSON y exponiendo una CLI reproducible.

@@ -24,5 +24,5 @@ Cuando `num_composite_patterns > 0`, `ToroidalGrid2D` SHALL generar determiníst
 `ToroidalGrid2D` SHALL implementar `deposit_stigmergy(agent_id, pattern, value, confidence, tick)` y `get_cell_stigmergy(agent_id) -> tuple[StigmergicTrace, ...]`, aplicando en `step_dynamics(tick)` un decaimiento `stigmergy_decay` a cada rastro con `last_updated_tick < tick` y purgando aquellos bajo `min_confidence`.
 
 #### Scenario: Depósito, lectura y decaimiento estigmérgico
-- **WHEN** con `enable_stigmergy=True` y `stigmergy_decay=0.1` el agente 1 deposita en `tick=10` un rastro de `p_0` con `confidence=0.5` en su celda, otro agente en esa celda consulta `get_cell_stigmergy` en `tick=10` y luego se ejecuta `step_dynamics(11)`
+- **WHEN** con `enable_stigmergy=True`, `stigmergy_deposit_rate=1.0` y `stigmergy_decay=0.1` el agente 1 deposita en `tick=10` un rastro de `p_0` con `confidence=0.5` en su celda, otro agente en esa celda consulta `get_cell_stigmergy` en `tick=10` y luego se ejecuta `step_dynamics(11)`
 - **THEN** en `tick=10` el rastro tiene `intensity == 0.5`, y tras `step_dynamics(11)` su `intensity` es `0.4` (con tolerancia `1e-9`).

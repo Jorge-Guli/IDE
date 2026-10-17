@@ -4,7 +4,7 @@
 
 Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
 
-**Estado:** la especificación está completa y validada, y los bloques 1 a 11 de `tasks.md` están implementados y verificados. El trabajo nuevo parte de cambios de diseño (primero los artefactos OpenSpec). El plan de trabajo es `openspec/changes/ide-emergent-distributed-intelligence/tasks.md`.
+**Estado:** la Fase I (Experimento 001) está completa: sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`, con los requisitos vigentes sincronizados en `openspec/specs/`. La Fase II está en diseño en `openspec/changes/ide-v2-evolutionary-holonic-intelligence/`. Su plan es el `tasks.md` de ese cambio, y tiene decisiones abiertas (P1–P3 en su `proposal.md`) que bloquean parte de la implementación.
 
 ## Idioma
 
@@ -15,8 +15,8 @@ Plataforma de simulación en Python para investigar si una población de micro-a
 
 Ante una discrepancia entre documentos, rige este orden:
 
-1. `openspec/changes/ide-emergent-distributed-intelligence/specs/*/spec.md`: requisitos verificables.
-2. `openspec/changes/ide-emergent-distributed-intelligence/design.md`: firmas, fórmulas y desempates exactos.
+1. Requisitos verificables: `openspec/specs/*/spec.md` (vigentes) y los specs delta del cambio activo, `openspec/changes/ide-v2-evolutionary-holonic-intelligence/specs/*/spec.md`.
+2. Firmas, fórmulas y desempates exactos: el `design.md` del cambio activo para la Fase II (D19 en adelante) y el `design.md` archivado de la Fase I (`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md`, D1–D18).
 3. `DEFINICIONES_TECNICAS.md` y `DEFINICIONES_FORMALES.md`: fundamento.
 4. `DOCUMENTO_FUNDACIONAL.md`: visión y principios.
 
@@ -51,7 +51,7 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 
 ## Determinismo
 
-- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. El control nulo usa su propio generador.
+- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. Las únicas excepciones son generadores derivados de la semilla con `np.random.SeedSequence(seed, spawn_key=(k,))`, cada uno con un uso declarado: `(1,)` control nulo de contenido, `(2,)` dinámica evolutiva del motor (`evo_rng`) y `(3,)` recursos compuestos del entorno. Sólo se consumen cuando su mecanismo está activo. Un generador nuevo exige declararlo aquí y en `design.md`.
 - **Prohibido** iterar un `set`, o el resultado de una operación de conjuntos, sin `sorted(...)`. Python aleatoriza el hash de `str` por proceso. `Pattern` tiene `order=True` y es la clave canónica de orden.
 - Toda selección aleatoria (`rng.choice`, `rng.permutation`) opera sobre listas ya ordenadas.
 - Simultaneidad: percepción, comunicación y decisión son sincrónicas; sólo los conflictos físicos se resuelven por la permutación del tick, que funciona como un sorteo. No introduzcas efectos de orden en otras fases.
