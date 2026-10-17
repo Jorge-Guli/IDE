@@ -374,7 +374,7 @@ El genoma heredable es `AgentGenome` $= (\alpha, \gamma, \epsilon, \omega_{\text
 2. **Rasgos enteros** $g \in (C_{\max}, r_{\text{perc}}, r_{\text{com}})$, en ese orden, si $p_{\text{disc}}$ = `discrete_mutation_prob` $> 0$ (por defecto $0.10$): con probabilidad $p_{\text{disc}}$ el rasgo salta $\pm 1$ (equiprobable) y se recorta a sus cotas:
    $$g_{\text{hijo}} = \text{clip}\left(g_{\text{padre}} + \delta_g, \; g_{\min}, \; g_{\max}\right), \quad \delta_g \in \{-1, 0, +1\} \text{ con prob. } \left(\tfrac{p_{\text{disc}}}{2}, 1 - p_{\text{disc}}, \tfrac{p_{\text{disc}}}{2}\right)$$
    - $C_{\max}$: $g_{\min} = 1$ y $g_{\max}$ = `max_genome_memory_capacity` ($6$), acotado además por $N - 1$ cuando se impone la restricción de memoria (`enforce_memory_constraint=True`).
-   - $r_{\text{perc}}, r_{\text{com}}$: $g_{\min} = 0$ (el dominio de la Fase I) y $g_{\max} = \lfloor (\min(W, H) - 1)/2 \rfloor$, el mayor radio que admite la grilla.
+   - $r_{\text{perc}}, r_{\text{com}}$: $g_{\min} = 1$ y $g_{\max} = \lfloor (\min(W, H) - 1)/2 \rfloor$, el mayor radio que admite la grilla. Si $g_{\max} < g_{\min}$, el rasgo conserva el valor parental. La mutación no produce radio 0.
    - Las extracciones aleatorias se consumen siempre, aunque el recorte anule el salto, para que la secuencia del generador no dependa del valor del rasgo.
 3. **Ablación:** si $\sigma_{\text{mut}} = 0$ y $p_{\text{disc}} = 0$, el hijo es un clon exacto y no se consume el generador.
 4. **Fenotipo:** los radios mutados son efectivos: el entorno usa los radios individuales del agente para su percepción y su vecindad de comunicación.

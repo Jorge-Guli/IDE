@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Índice de Utilidad Epistémica
-`compute_utility(unit, t)` SHALL devolver $U(k,t) = \psi \cdot c \cdot \max(|\hat{v}|, 0.1) \cdot e^{-\lambda \cdot \max(0,\, t - \tau)}$, con $\lambda$ = `lambda_decay` de la memoria, $\psi$ = `penalty` si `unit.pattern` está en los patrones fijados con `set_redundant_patterns(patterns, penalty)` ($R_{18}$, $\psi_{\text{red}} \in (0, 1]$) y $\psi = 1$ en otro caso. Por defecto no hay patrones redundantes.
+`compute_utility(unit, t)` SHALL devolver $U(k,t) = \psi \cdot c \cdot \max(|\hat{v}|, 0.1) \cdot e^{-\lambda \cdot \max(0,\, t - \tau)}$, con $\lambda$ = `lambda_decay` de la memoria, $\psi$ = `penalty` si `unit.pattern` está en los patrones de la última llamada a `set_redundant_patterns(patterns: frozenset[Pattern], penalty: float = 1.0)` (cada llamada reemplaza a la anterior; `ValueError` si `penalty` no está en $(0, 1]$), y $\psi = 1$ si no. Por defecto no hay patrones redundantes.
 
 #### Scenario: Valor numérico exacto
 - **WHEN** `lambda_decay = 0.005`, la creencia tiene `confidence = 0.2`, `predicted_value = 1.0`, `last_updated_tick = 1` y `t = 10`

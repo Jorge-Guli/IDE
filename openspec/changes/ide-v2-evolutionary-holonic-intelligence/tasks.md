@@ -2,7 +2,7 @@
 
 > **Verificación de cada bloque (CLAUDE.md).** Un bloque sólo está completo cuando pasan `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide`, y después `/code-review` sobre el cambio del bloque. Si el bloque toca specs, también `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict`. Un commit por bloque.
 >
-> **Decisiones abiertas** (ver `proposal.md`): P1 bloquea los bloques 3 y 5, P2 los bloques 4 y 5, y P3 el bloque 6. Los bloques 1 y 2 no dependen de ellas, salvo los métodos de la vista del holón de la tarea 2.2 (`own_belief`, `clear_holon_beliefs`, `inject_ephemeral_belief`), que dependen de P1.
+> **Decisiones abiertas** (ver `proposal.md`): P1 bloquea los bloques 3 y 5, P2 los bloques 4 y 5, y P3 el bloque 6. Los bloques 1 y 2 no dependen de ellas, salvo los métodos de la vista del holón de la tarea 2.2 (`clear_holon_beliefs`, `inject_ephemeral_belief`), que dependen de P1.
 
 ## 0. Decisiones abiertas y pre-registro
 
@@ -38,8 +38,8 @@
 - [ ] 2.2 **[GREEN]** Implementar:
   - `set_redundant_patterns` en `src/ide/agent/memory.py`;
   - `src/ide/agent/evolution.py` (`genome_from_config`, `compute_metabolic_cost`, `transfer_cultural_heritage`);
-  - en `MicroAgent`: `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level`, `leaf_agents`, `effective_capacity`, `collective_memory`, `apply_energy_delta`, `from_lineage` y `create_offspring`;
-  - si P1 se resolvió por la variante (a): `own_belief`, `clear_holon_beliefs` e `inject_ephemeral_belief`, con el requisito `MODIFIED` de `micro-agent`.
+  - en `MicroAgent`: `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level`, `leaf_agents`, `effective_capacity`, `collective_memory`, `own_belief`, `apply_energy_delta`, `from_lineage` y `create_offspring`;
+  - si P1 se resolvió por la variante (a): `clear_holon_beliefs` e `inject_ephemeral_belief`, con el requisito `MODIFIED` de `micro-agent`.
 - [ ] 2.3 **[REFACTOR]** Pruebas por propiedades con Hypothesis (perfil `ci`) sobre `mutate_genome` (cotas y aceptación por `SimulationConfig`) y `transfer_cultural_heritage`; auditorías AST de `tests/test_micro_agent.py`; verificación del bloque.
 
 ## 3. Jerarquía Holónica Recursiva (`holonic-hierarchy`) — requiere P1

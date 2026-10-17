@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Implementación del Protocolo AgentNode de Nivel Cero y Estado de Linaje
-`MicroAgent` SHALL preservar las firmas exactas de sus 8 métodos y 4 propiedades de Fase I, y exponer además `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level` (`0`), `leaf_agents` (`(self,)`), `effective_capacity`, `collective_memory()`, `own_belief(pattern)`, `apply_energy_delta(delta)`, `clear_holon_beliefs()`, `inject_ephemeral_belief(unit)` y `MicroAgent.from_lineage(...)`. Los tres métodos de la vista del holón dependen de la decisión abierta P1.
+`MicroAgent` SHALL conservar sus 8 firmas y 4 propiedades de Fase I y exponer `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level` (`0`), `leaf_agents` (`(self,)`), `effective_capacity`, `collective_memory()`, `own_belief(pattern)`, `apply_energy_delta(delta)`, `clear_holon_beliefs()`, `inject_ephemeral_belief(unit)` y `MicroAgent.from_lineage(...)`. Los dos métodos de la vista del holón (`clear_*`, `inject_*`) dependen de P1.
 
 #### Scenario: Compatibilidad de firmas canónicas e implementación de AgentNode
 - **WHEN** se instancia `a = MicroAgent(7, SimulationConfig())`

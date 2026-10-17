@@ -50,8 +50,8 @@ Para investigar si una inteligencia distribuida abierta (*open-ended evolution*)
 
 ## Decisiones abiertas (bloquean la implementación de los bloques afectados)
 
-- **P1, canal de conocimiento del holón:** cómo comparten conocimiento las hojas de un holón sin violar que el conocimiento social entra sólo por `assimilate_testimony` (design D25). Bloquea los bloques 3 y 5.
-- **P2, conocimiento de recursos compuestos:** si el motor inyecta el patrón compuesto "desbloqueado" (oráculo parcial) o el agente lo aprende por experiencia (design D25 y D27). Bloquea los bloques 4 y 5.
+- **P1, canal de conocimiento del holón:** cómo comparten conocimiento las hojas de un holón sin violar que el conocimiento social entra sólo por `assimilate_testimony`: (a) un canal efímero declarado, con regla y ablación propias, o (b) mensajes ordinarios entre miembros (design D25). Bloquea los bloques 3 y 5.
+- **P2, conocimiento de recursos compuestos:** si (a) el motor inyecta el patrón compuesto "desbloqueado" (oráculo parcial) o (b) el agente lo aprende por experiencia (design D25 y D27). Bloquea los bloques 4 y 5.
 - **P3, pre-registro de Fase II:** las reglas responsables de C5–C8, las variantes de comparación, el control de deriva neutral para C6, las reglas que faltan para mecanismos diseñados y el perfil de corrida (design D29). Bloquea el bloque 6, y debe commitearse antes de mirar cualquier resultado.
 
 ## Impact
