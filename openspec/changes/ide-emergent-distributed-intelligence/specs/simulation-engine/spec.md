@@ -6,10 +6,14 @@ Orquestar el tiempo discreto mediante un pipeline determinista de 5 fases sin co
 ## ADDED Requirements
 
 ### Requirement: Construcción Reproducible
-`SimulationEngine(config, env=None, trust_strategy=None)` SHALL crear un único `np.random.Generator(np.random.PCG64(config.seed))`, construir `ToroidalGrid2D(config, rng)` si no se provee entorno, crear un `MicroAgent` por agente activo y lanzar `NotImplementedError` si `config.enable_specialization` es verdadero.
+`SimulationEngine(config, env=None, trust_strategy=None)` SHALL crear un único `np.random.Generator(np.random.PCG64(config.seed))`, construir `ToroidalGrid2D(config, rng)` si no se provee entorno, crear un `MicroAgent` por agente activo y lanzar `NotImplementedError` si `enable_specialization` es verdadero, si `epsilon_recheck > 0` o si `tau_policy` no es `"validation"`.
 
 #### Scenario: Especialización fuera de alcance
 - **WHEN** se instancia con `SimulationConfig(enable_specialization=True)`
+- **THEN** se lanza `NotImplementedError`.
+
+#### Scenario: Mecanismos del Experimento 004 aún no implementados
+- **WHEN** se instancia con `SimulationConfig(epsilon_recheck=0.1)` o con `SimulationConfig(tau_policy="evidence_age")`
 - **THEN** se lanza `NotImplementedError`.
 
 ### Requirement: Orden de Fases del Tick

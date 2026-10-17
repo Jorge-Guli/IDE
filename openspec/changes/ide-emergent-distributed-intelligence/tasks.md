@@ -8,7 +8,7 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 2. Contratos de Dominio y Configuración (`domain-contracts`)
 
-- [ ] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` (incluida `memory_capacity = 0` con `enforce_memory_constraint=False`) y la ida y vuelta por JSON de `to_dict()`.
+- [ ] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` (incluida `memory_capacity = 0` con `enforce_memory_constraint=False`, y `epsilon_recheck`/`tau_policy`) y la ida y vuelta por JSON de `to_dict()`.
 - [ ] 2.2 [GREEN] Implementar `src/ide/config.py`, `src/ide/domain/types.py` y `src/ide/domain/ports.py`.
 - [ ] 2.3 [REFACTOR] Docstrings y tipos; la suite sigue en verde.
 
@@ -40,7 +40,7 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 8. Motor de Simulación (`simulation-engine`)
 
-- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, orden de procesamiento idéntico con distintos `PYTHONHASHSEED` (subproceso), `capabilities` invariantes durante 100 ticks, `snapshot()` sin efectos secundarios, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80) y `ablate_discoverers` preservando al portador social.
+- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, `epsilon_recheck > 0` o `tau_policy="evidence_age"`, orden de procesamiento idéntico con distintos `PYTHONHASHSEED` (subproceso), `capabilities` invariantes durante 100 ticks, `snapshot()` sin efectos secundarios, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80) y `ablate_discoverers` preservando al portador social.
 - [ ] 8.2 [GREEN] Implementar `SimulationEngine` en `src/ide/simulation/engine.py`.
 
 ## 9. Métricas y Protocolos (`experimental-suite`)

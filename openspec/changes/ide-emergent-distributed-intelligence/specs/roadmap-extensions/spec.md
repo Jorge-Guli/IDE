@@ -33,6 +33,17 @@ Definir en `src/ide/domain/extensions.py` los contratos que permiten escalar de 
 - **WHEN** se verifica `isinstance(ToroidalGrid2D(config, rng), EnvironmentPort)`
 - **THEN** el resultado es `True`, lo que incluye la presencia de `invert_world_rules`.
 
+### Requirement: Contratos contra la Trampa de Evitación (Exp 004)
+`SimulationConfig` SHALL incluir `epsilon_recheck: float = 0.0` (re-verificación escéptica de recursos conocidos como dañinos) y `tau_policy: str = "validation"` (alternativa `"evidence_age"`: τ como edad de la evidencia empírica más reciente), validando que `epsilon_recheck` esté en `[0.0, 1.0]` y `tau_policy` en `{"validation", "evidence_age"}`.
+
+#### Scenario: Valores por defecto del Experimento 001
+- **WHEN** se instancia `SimulationConfig()`
+- **THEN** `epsilon_recheck == 0.0` y `tau_policy == "validation"`.
+
+#### Scenario: Política desconocida
+- **WHEN** se instancia `SimulationConfig(tau_policy="siempre")`
+- **THEN** se lanza `ValueError` cuyo mensaje menciona `tau_policy`.
+
 ### Requirement: Reglas Composicionales Multi-Fragmento (Exp 005)
 `extensions.py` SHALL definir `CompositeRule(required_patterns, composite_value)` que rechaza con `ValueError` menos de dos patrones o patrones repetidos, y cuyo `evaluate(known)` devuelve `composite_value` si todos los requeridos están en `known` (`set` o `dict`) y `None` si falta alguno.
 

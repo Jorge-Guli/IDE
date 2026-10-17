@@ -248,6 +248,8 @@ Centralizados en `SimulationConfig` (inmutable, validado en `__post_init__`, ser
 | Broadcasts por tick | `max_broadcast_per_tick` | `1` | Difusión espontánea. |
 | Consultas por tick | `max_queries_per_tick` | `2` | Patrones desconocidos consultados. |
 | Especialización | `enable_specialization` | `False` | Exp 003 (no implementado). |
+| Re-verificación escéptica | `epsilon_recheck` | `0.0` | Exp 004 (no implementado): probar lo que se cree dañino con probabilidad $\epsilon_{\text{recheck}}(1-c)$. |
+| Política de τ | `tau_policy` | `"validation"` | Exp 004 (no implementado): `"evidence_age"` hace que τ sea la edad de la evidencia empírica más reciente. |
 | Forzar $C_{\max} < N$ | `enforce_memory_constraint` | `True` | Validación de la restricción crítica. |
 
 ---

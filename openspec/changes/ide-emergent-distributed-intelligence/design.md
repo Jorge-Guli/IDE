@@ -26,7 +26,7 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - Paralelismo no determinista.
 - Estado interno de energía/salud $E_i(t)$ del agente: definido en el marco formal pero **fuera de alcance del Experimento 001** (los recursos no alteran la supervivencia; sólo se mide la calidad de decisión).
 - Recursos neutrales ($v(r) = 0$): el Experimento 001 usa sólo valores $\pm 1.0$.
-- Lógica de especialización (Exp 003), reputación (Exp 002), shock (Exp 004), composición (Exp 005) y evolución (Exp 006): sólo se entregan los **contratos**; activar `enable_specialization=True` lanza `NotImplementedError`.
+- Lógica de especialización (Exp 003), reputación (Exp 002), shock (Exp 004), composición (Exp 005) y evolución (Exp 006): sólo se entregan los **contratos**; activar `enable_specialization=True`, `epsilon_recheck > 0` o `tau_policy="evidence_age"` lanza `NotImplementedError`.
 
 ## Decisions
 
@@ -81,6 +81,15 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 ### 11. Protocolos con perfiles `quick` y `full`
 - **Decisión:** Las funciones de protocolo tienen como valores por defecto el perfil `quick` (300 ticks, inyección en t=80, warmup 150). La CLI usa por defecto el perfil `full` (1000 ticks, inyección en t=200, warmup 500 y 200 ticks post-ablación) y acepta `--profile quick`.
 
+### 12. Trampa de evitación: medir en 001, contratos para 004
+- **Problema:** un agente que cree que un patrón es dañino nunca lo prueba, así que la experiencia directa no puede refutarlo. Hay dos variantes:
+  - **Rumor falso (001-B):** tiene salida. Los vecinos que consumen el patrón emiten testimonios directos contrarios (duda social del Escenario C), los portadores del rumor no se eximen del olvido (Decisión 5) y, cuando la confianza cae bajo el umbral, el patrón vuelve a ser "desconocido" y se explora con probabilidad ε.
+  - **Evidencia directa obsoleta (004):** no tiene salida. Si el mundo cambia, los agentes con experiencia directa se confirman entre sí por consenso; cada confirmación refresca τ, así que ni el olvido los libera, y la población queda bloqueada con conocimiento obsoleto.
+- **Decisión:** el Experimento 001 no agrega ningún mecanismo (el mundo estático es la línea base y no debe contaminarse). Se dejan en `SimulationConfig` dos contratos para comparar en el Experimento 004 sin cambiar firmas, ambos desactivados por defecto:
+  - `tau_policy: str = "validation"`. El valor alternativo `"evidence_age"` hará que τ represente la edad de la evidencia empírica más reciente: en el Escenario B, `τ = max(τ_local, τ_ext)` sin importar el origen; en el A y en la sobrescritura del C, `τ = τ_ext`. Como τ sólo puede provenir de un tick de experiencia real, el rebote de mensajes nunca lo rejuvenece, y esto subsume la regla "un rumor no valida a otro rumor". Costo esperado: el conocimiento correcto sobre lo tóxico también se olvida (≈ `(c - c_umbral)/δ` ≈ 250 ticks con los valores base) y se re-aprende consumiendo veneno.
+  - `epsilon_recheck: float = 0.0`. Una probabilidad de re-verificación escéptica: ante un recurso alcanzable conocido como dañino, interactuar con probabilidad `epsilon_recheck · (1 - c)`.
+- **Racional:** la tensión entre estabilidad y plasticidad es el objeto de estudio del Experimento 004; decidirla a priori sesgaría ese resultado. Mientras no se implementen, el motor rechaza los valores no nulos con `NotImplementedError`, para que ningún experimento crea estar usándolos.
+
 ## Especificación Estructural de Módulos y Firmas Exactas
 
 ### Mapa de archivos a crear
@@ -123,6 +132,8 @@ class SimulationConfig:
     max_broadcast_per_tick: int = 1
     max_queries_per_tick: int = 2
     enable_specialization: bool = False
+    epsilon_recheck: float = 0.0           # contrato Exp 004 (Decisión 12)
+    tau_policy: str = "validation"         # contrato Exp 004: "validation" | "evidence_age"
     enforce_memory_constraint: bool = True
 
     def __post_init__(self) -> None: ...
@@ -134,6 +145,7 @@ class SimulationConfig:
 3. `perception_radius >= 0`, `comm_radius >= 0` y `2 * max(perception_radius, comm_radius) < min(grid_width, grid_height)` (evita que una misma celda se vea por dos lados del toro y que `dx` toroidal sea ambiguo).
 4. En `[0.0, 1.0]`: `initial_direct_confidence`, `alpha_learning`, `beta_reinforce`, `beta_punish`, `gamma_social_discount`, `eta_consensus`, `eta_doubt`, `min_confidence`, `decision_conf_threshold`, `epsilon_explore`.
 5. `lambda_decay >= 0`, `passive_conf_decay >= 0`, `max_broadcast_per_tick >= 0`, `max_queries_per_tick >= 0`.
+7. `epsilon_recheck` en `[0.0, 1.0]` y `tau_policy` en `{"validation", "evidence_age"}`.
 6. `min_confidence < decision_conf_threshold`.
 
 Variantes de configuración se construyen con `dataclasses.replace(config, ...)`.
@@ -390,6 +402,8 @@ class SimulationEngine:
                  trust_strategy: TrustStrategyPort | None = None) -> None:
         if config.enable_specialization:
             raise NotImplementedError("Especialización (Exp 003) fuera de alcance del Exp 001")
+        if config.epsilon_recheck > 0 or config.tau_policy != "validation":
+            raise NotImplementedError("Mecanismos anti-trampa de evitación (Exp 004) fuera de alcance del Exp 001")
         self.config = config
         self.rng = np.random.Generator(np.random.PCG64(config.seed))
         self.env: EnvironmentPort = env if env is not None else ToroidalGrid2D(config, self.rng)
@@ -553,7 +567,7 @@ def main(argv: list[str] | None = None) -> int: ...
 
 - **[Thrashing de memoria por broadcasts]** → `upsert` exige utilidad estrictamente mayor; caché efímero para decidir en el tick; sólo se difunden creencias con $c \ge c_{\text{umbral}}$.
 - **[Cámara de eco]** → regla anti-eco del Escenario B (Decisión 5).
-- **[Trampa de evitación]** → un agente que cree (falsamente) que un patrón benéfico es dañino nunca lo prueba, así que la experiencia directa no puede refutarlo. La corrección depende de la duda social (Escenario C) y del decaimiento pasivo. Es un fenómeno a **medir** en 001-B, no a parchear: no se agrega re-exploración de creencias conocidas en el Experimento 001.
+- **[Trampa de evitación]** → un agente que cree (falsamente) que un patrón benéfico es dañino nunca lo prueba, así que la experiencia directa no puede refutarlo. La variante por rumor se corrige por duda social, olvido y exploración, y se **mide** en 001-B; la variante por evidencia obsoleta queda para el Experimento 004 con los contratos de la Decisión 12.
 - **[Descubridores masivos en 001-C]** → `p_0` es benéfico y muy consumido, así que `direct_discoverers[p_0]` puede abarcar a gran parte de la población. Por eso el reporte incluye `discoverers_ablated_count` y `remaining_agents_after_discoverer_ablation`; si quedan 0 agentes, las prevalencias se reportan como `0.0`.
 - **[Colisión sobre el mismo recurso]** → gana el primero en `order`; los demás reciben `ActionResult(INTERACT, None, None)`. M2 juzga la intención, no el éxito físico.
 - **[División por cero en M2/M7]** → se reporta `0.0`.
