@@ -1,5 +1,6 @@
 """Tests de `simulation-engine`: pipeline de 5 fases, determinismo y perturbaciones."""
 
+import ast
 import copy
 import os
 import subprocess
@@ -545,17 +546,20 @@ def test_el_control_no_desplaza_el_generador_principal() -> None:
     assert replace(a, accessible_coverage_mean=0.0) == replace(b, accessible_coverage_mean=0.0)
 
 
-def test_oraculo_de_verdad_sólo_lo_invoca_el_motor() -> None:
-    """`get_reachable_true_values` (oráculo de M2) se invoca únicamente desde el motor."""
-    import ast
+def test_oraculo_de_verdad_sólo_lo_referencia_el_motor() -> None:
+    """Ningún módulo de `src/ide` salvo el motor referencia `get_reachable_true_values`.
 
+    Cuenta atributos, nombres y cadenas (`getattr`); las definiciones del puerto y del entorno
+    no son referencias.
+    """
+    nombre = "get_reachable_true_values"
     src = Path(__file__).resolve().parents[1] / "src" / "ide"
-    invocadores = sorted(
-        str(path.relative_to(src))
+    referencian = {
+        path.relative_to(src).as_posix()
         for path in src.rglob("*.py")
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "get_reachable_true_values"
-    )
-    assert invocadores == ["simulation/engine.py"]
+        if (isinstance(node, ast.Attribute) and node.attr == nombre)
+        or (isinstance(node, ast.Name) and node.id == nombre)
+        or (isinstance(node, ast.Constant) and node.value == nombre)
+    }
+    assert referencian == {"simulation/engine.py"}
