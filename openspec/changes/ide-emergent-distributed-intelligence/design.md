@@ -147,7 +147,7 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 ### 16. Pruebas por propiedades
 - **Decisión:** además de los escenarios de las specs, los invariantes se verifican con **Hypothesis**, que genera entradas al azar y reduce cualquier contraejemplo al caso mínimo. Los invariantes mínimos son:
   - **Memoria:** `len(memory) <= capacity` tras cualquier secuencia de `upsert` y `decay_step`; ninguna creencia queda con confianza menor que `min_confidence` después de `decay_step`.
-  - **Epistemología:** para cualquier entrada válida, `update_from_direct_experience` y `merge_social_belief` devuelven `predicted_value` en `[-1, 1]` y `confidence` en `[0, 1]`; el intercambio repetido de rumores nunca supera `max(c_A, γ c_B)`.
+  - **Epistemología:** para cualquier entrada válida, `update_from_direct_experience` y `merge_social_belief` devuelven `predicted_value` en `[-1, 1]` y `confidence` en `[0, 1]`; con factor de confianza `<= 1`, el intercambio repetido de rumores nunca supera `max(c_A, γ c_B)`.
   - **Grilla:** la distancia toroidal es simétrica, y mover `d` y luego `-d` vuelve a la celda original.
   - **Determinismo:** para cualquier semilla, dos motores pequeños producen historiales idénticos.
 - **Reproducibilidad:** el perfil `ci` usa `derandomize=True`, así que la generación de casos también es determinista.
@@ -412,7 +412,7 @@ class BoundedMemory:
      - `penalized < decision_conf_threshold` → reinicia: `(pattern, clip(real_value), initial_direct_confidence, 1)`.
      - si no → `blended = (1-α)·v̂ + α·v`; `new_val = sign(v̂) · max(0.05, |blended|)` con `sign(v̂) = 1.0 if v̂ >= 0 else -1.0`; `confidence = penalized`; `n+1`.
 2. **`merge_social_belief(existing, incoming, tick, config, sender_trust_factor=None) -> KnowledgeUnit`:**
-   - `gamma = config.gamma_social_discount if sender_trust_factor is None else sender_trust_factor`; `e = clip(gamma · incoming.confidence, 0, 1)`. El recorte sólo actúa si un `TrustStrategyPort` devuelve un factor fuera de `[0, 1]` (Exp 002); sin él, la confianza saldría de `[0, 1]`. La cota anti-eco `max(c, e)` sólo acota la confianza de la población si el factor es `<= 1`: un emisor en quien se confía más que en uno mismo la eleva legítimamente.
+   - `gamma = config.gamma_social_discount if sender_trust_factor is None else sender_trust_factor`; `e = clip(gamma · incoming.confidence, 0, 1)`. El recorte sólo actúa si un `TrustStrategyPort` devuelve un factor fuera de `[0, 1]` (Exp 002); sin él, la confianza saldría de `[0, 1]`. La cota anti-eco `max(c, e)` sólo acota la confianza de la población si el factor es `<= 1`; con un factor mayor, dos portadores de un rumor se lo rebotan hasta `c → 1`, así que esa estrategia equivale a una ablación parcial de R6 (riesgo declarado en `DEFINICIONES_FORMALES.md` §2.3).
    - Si `existing` no es `None` y `existing.pattern != incoming.pattern` → `ValueError`.
    - **A** (`existing is None`) → `(incoming.pattern, incoming.predicted_value, e, 1, tick, False)`.
    - **B** (`existing.predicted_value * incoming.predicted_value >= 0`):
@@ -753,7 +753,7 @@ def nullify_belief(belief: KnowledgeUnit, rng: np.random.Generator) -> Knowledge
 - [ ] **Atribución pre-registrada:** `DESIGN_RULES` y `EXP001_CLAIMS` versionados antes de la primera corrida de 001-D, y `--attribution` ejecutado con las semillas 42..46, con su tabla de estados registrada tal cual.
 - [ ] **Cero fuga de información:** `VisibleResource` no tiene `true_value`; `get_reachable_true_values` sólo es invocado por `SimulationEngine`.
 - [ ] **Invariante de memoria:** para todo agente y todo tick, `len(agent.memory) <= config.memory_capacity`.
-- [ ] **Anti-cámara de eco:** el intercambio repetido de rumores indirectos nunca supera $\max(c_A, \gamma c_B)$.
+- [ ] **Anti-cámara de eco:** con factor de confianza $\le 1$, el intercambio repetido de rumores indirectos nunca supera $\max(c_A, \gamma c_B)$.
 - [ ] **Persistencia social válida:** `ablate_discoverers(..., retire_stimulus=True)` elimina descubridores y recursos físicos.
 - [ ] **Determinismo intra-proceso:** dos motores con la misma `seed` producen historiales, posiciones y memorias idénticas.
 - [ ] **Determinismo inter-proceso:** la CLI con `--profile quick` genera JSON idéntico bajo `PYTHONHASHSEED=0` y `PYTHONHASHSEED=1`.

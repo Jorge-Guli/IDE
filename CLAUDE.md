@@ -36,6 +36,7 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 - Antes de marcar una tarea `[x]` o hacer commit, corre las verificaciones y muestra su salida (`superpowers:verification-before-completion`).
 - Ante un test que falla o un resultado inesperado, usa `superpowers:systematic-debugging`. En este proyecto un resultado raro puede ser un bug **o** un hallazgo científico: no los confundas.
 - Un bloque sólo está completo si pasan `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide`. Después corre `/code-review`.
+- **Revisión automática, sin preguntar:** después de **cada** cambio (un bloque o una tanda de correcciones, incluidas las que surgen de una revisión anterior), corre `/code-review` sobre ese cambio. Aplica los hallazgos que se sostienen, descarta con motivo los que no, y vuelve a revisar el resultado. Termina cuando una revisión no deja hallazgos accionables nuevos; los ya descartados con motivo no reabren el ciclo. Presenta los resultados en español y en lenguaje claro.
 - Además de los escenarios de las specs, verifica los invariantes con pruebas por propiedades (Hypothesis, perfil `ci` con `derandomize=True`).
 
 ## Reglas de arquitectura (invariantes)

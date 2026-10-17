@@ -86,7 +86,7 @@ class MicroAgent:
     def decide_action(self, obs: Observation, tick: int, rng: np.random.Generator) -> AgentAction:
         """Consumir, explorar, navegar o caminar al azar; desempates por menor `resource_id`."""
         navigate = self._config.enable_navigation
-        beneficial: list[tuple[float, VisibleResource]] = []  # con su valor esperado v̂·c
+        beneficial: list[tuple[float, int]] = []  # (-v̂·c, resource_id): `min` elige el mejor
         unknown: list[VisibleResource] = []
         goals: list[VisibleResource] = []
         for res in obs.visible_resources:
@@ -98,13 +98,14 @@ class MicroAgent:
                     unknown.append(res)
             elif belief.predicted_value > 0:
                 if res.is_reachable_now:
-                    beneficial.append((belief.predicted_value * belief.confidence, res))
+                    beneficial.append(
+                        (-belief.predicted_value * belief.confidence, res.resource_id)
+                    )
                 else:
                     goals.append(res)
 
         if beneficial:
-            _, best = min(beneficial, key=lambda item: (-item[0], item[1].resource_id))
-            return AgentAction(ActionType.INTERACT, best.resource_id)
+            return AgentAction(ActionType.INTERACT, min(beneficial)[1])
         if unknown and rng.random() < self._config.epsilon_explore:
             target = min(unknown, key=lambda r: r.resource_id)
             return AgentAction(ActionType.INTERACT, target.resource_id)
