@@ -1,7 +1,7 @@
 # Documento Fundacional: Inteligencia Distribuida Emergente (IDE)
-**Versión:** 0.3  
+**Versión:** 2.0  
 **Fecha:** 2026-10-17  
-**Estado:** Propuesta de Investigación / Base Teórica  
+**Estado:** Base Teórica y Hoja de Ruta Evolutiva Multinivel (Fase I verificada / Fase II en diseño)  
 
 ---
 
@@ -11,19 +11,24 @@ La mayor parte de los sistemas de inteligencia artificial contemporáneos concen
 
 Este proyecto explora una hipótesis alternativa fundamental:
 
-> **La inteligencia compleja puede emerger de una población de unidades computacionales simples, autónomas y severamente limitadas, capaces de aprender localmente, intercambiar conocimiento, revalidarlo y reorganizarse sin coordinación ni memoria central.**
+> **La inteligencia compleja puede emerger de una población abierta de unidades computacionales simples, autónomas y severamente limitadas, capaces de aprender localmente, intercambiar y revalidar conocimiento, reproducirse transmitiendo herencia cultural y genética, y ensamblarse recursivamente en jerarquías de agentes compuestos (meta-agentes de nivel arbitrario $L = 1, 2, \dots, K$) sin coordinación ni memoria central.**
 
-El objetivo no es la computación distribuida clásica (repartir el cómputo de un único modelo predefinido entre múltiples nodos). El objetivo es investigar si **la inteligencia misma es una propiedad emergente distribuida en la dinámica relacional de la población**.
+El objetivo no es la computación distribuida clásica (repartir el cómputo de un único modelo predefinido entre múltiples nodos). El objetivo es investigar si **la inteligencia misma es una propiedad emergente y evolutiva distribuida en la dinámica relacional, transgeneracional y jerárquica de la población**.
 
-```
-PARADIGMA ACTUAL:
-[Entorno] ---> [Modelo Monolítico Central / Supercómputo] ---> [Acción]
+```text
+PARADIGMA ACTUAL (Monolítico):
+[Entorno] ---> [Modelo Central Masivo] ---> [Acción]
 
-PARADIGMA IDE (Inteligencia Distribuida Emergente):
-[Entorno] ---> (Agente A) <---> (Agente B) <---> (Agente C) ---> [Respuesta Colectiva]
-                    ^                ^                ^
-                    +----------------+----------------+
-                      (Intercambio, revalidación, topología dinámica)
+PARADIGMA IDE v2.0 (Evolutivo y Fractal / Holónico):
+Nivel 0 (Micro-Agentes):   (a1) <--> (a2)       (a3) <--> (a4)       (a5) <--> (a6)
+                             \        /           \        /           \        /
+Nivel 1 (Meta-Agentes):       [Grupo G1]  <----->  [Grupo G2]           [Grupo G3]
+                                    \                  /                    /
+Nivel 2 (Federaciones):              [[Organismo O1]]  <-------------------+
+                                             |
+Nivel K (Escala arbitraria):       [[[Super-Organismo ...]]] ---> [Adaptación y Evolución]
+                                             |
+Ciclo Generacional (g -> g+1):     Reproducción + Mutación + Herencia Cultural
 ```
 
 ---
@@ -31,214 +36,171 @@ PARADIGMA IDE (Inteligencia Distribuida Emergente):
 ## 2. Preguntas de Investigación
 
 ### Pregunta Central
-> **¿Puede una población de agentes computacionales con capacidades individuales insuficientes desarrollar, conservar y mejorar conocimiento colectivo que ningún agente puede sostener por sí solo?**
+> **¿Puede una población evolutiva de agentes computacionales con capacidades individuales insuficientes desarrollar, heredar a través de las generaciones y escalar recursivamente —mediante agrupaciones multinivel sin tope fijo— capacidades cognitivas colectivas que ningún individuo ni nivel inferior puede sostener por sí solo?**
 
 ### Preguntas Derivadas
-1. **Propagación:** ¿Puede un descubrimiento local propagarse eficientemente por toda la población sin saturar los canales de comunicación?
+1. **Propagación Horizontal:** ¿Puede un descubrimiento local propagarse eficientemente entre pares sin saturar los canales de comunicación?
 2. **Epistemología Distribuida:** ¿Puede la red filtrar información falsa, degradada o desactualizada frente a evidencia contradictoria local?
-3. **Memoria Colectiva:** ¿Puede existir memoria y reconstrucción cognitiva sin un repositorio centralizado ni representación global del mundo?
-4. **Especialización Espontánea:** ¿Pueden emerger roles funcionales diferenciados a partir de agentes inicialmente homogéneos?
-5. **Resiliencia y Plasticidad:** ¿Puede el sistema recuperar conocimiento o funciones tras la destrucción catastrófica de una fracción sustancial de la población?
-6. **Capacidades Composicionales:** ¿Puede la agregación dinámica de agentes producir habilidades ausentes en cualquier individuo aislado?
-7. **Topología Adaptativa:** ¿Puede la red de comunicación adaptar su geometría y densidad de enlaces según las presiones del entorno?
-8. **Comunicación Emergente:** ¿Puede una población inventar por sí misma un protocolo de comunicación útil, si no recibe de fábrica la semántica de sus mensajes?
+3. **Memoria Colectiva y Transgeneracional (Vertical):** ¿Puede el conocimiento sobrevivir a la extinción del $100\%$ de sus descubridores originales mediante una combinación de transmisión social y herencia cultural de padres a hijos?
+4. **Evolución de Capacidades (Genética + Epigenética):** ¿Pueden generaciones sucesivas adaptar sus parámetros cognitivos y rasgos funcionales por selección natural energética, sin entrenamiento centralizado?
+5. **Simbiogénesis y Jerarquía Recursiva Ilimitada ($L \to \infty$):** ¿Pueden los agentes asociarse en meta-agentes de Nivel 1, éstos a su vez en estructuras de Nivel 2, Nivel 3 y Nivel $K$ arbitrario, operando en cada escala como una unidad más capaz?
+6. **Capacidades Composicionales de Orden Superior:** ¿Puede la combinación recursiva de memorias y percepciones en un meta-agente resolver problemas compuestos de complejidad $m > C_{\max}$ inaccesibles para los niveles inferiores?
+7. **Especialización y División del Trabajo:** ¿Pueden emerger espontáneamente castas o sub-unidades especializadas (exploradores, reservorios de memoria, integradores) dentro de un meta-agente multinivel?
+8. **Comunicación Emergente:** ¿Puede una población inventar por sí misma un protocolo de comunicación útil si no recibe de fábrica la semántica de sus mensajes?
 
 ---
 
 ## 3. Hipótesis Central
 
-Una población de agentes discretos exhibirá propiedades cognitivas emergentes de orden superior si y sólo si implementa mecanismos locales para:
+Una población de agentes discretos exhibirá propiedades cognitivas emergentes y evolutivas de orden creciente si y sólo si dispone de mecanismos locales para:
 
-1. **Percepción local:** Muestreo parcial y ruidoso del entorno inmediato.
-2. **Retención acotada:** Almacenamiento local estrictamente inferior al volumen necesario para resolver el entorno.
-3. **Aprendizaje local:** Adaptación paramétrica o de reglas guiada por experiencia directa.
-4. **Comunicación de pares:** Transmisión de representaciones a agentes vecinos o enlazados.
-5. **Evaluación de confianza:** Ponderación epistémica de la información externa recibida frente al historial propio.
-6. **Modulación comportamental:** Ajuste de acción en función del conocimiento consolidado.
-7. **Asociación dinámica:** Formación y disolución flexible de vínculos y agrupaciones operativas.
+1. **Percepción local:** Muestreo parcial del entorno inmediato.
+2. **Retención acotada:** Almacenamiento local estrictamente inferior al volumen necesario para resolver el entorno ($C_{\max} \ll N$).
+3. **Aprendizaje local:** Adaptación guiada por experiencia directa.
+4. **Comunicación entre pares:** Intercambio horizontal de representaciones con vecinos.
+5. **Evaluación epistémica de confianza:** Ponderación crítica de información externa frente al historial propio.
+6. **Metabolismo, reproducción y herencia dual:** Ciclo vital gobernado por energía real ($E_i$), donde los agentes exitosos se reproducen heredando a su descendencia tanto rasgos mutables (genoma) como fragmentos de memoria (cultura).
+7. **Composición holónica recursiva:** Capacidad de formar y disolver vínculos simbióticos en cualquier nivel $L$, donde un conjunto de unidades de nivel $L$ opera conjuntamente como una unidad de nivel $L+1$, y conjuntos de nivel $L+1$ vuelven a acoplarse en niveles $L+2, \dots, K$ sin límite preestablecido.
 
-La cognición no reside en los nodos. **Reside en las transiciones de estado, los flujos informacionales y los patrones autoorganizados de la población.**
+La cognición no reside en los nodos estáticos. **Reside en las transiciones de estado, los linajes evolutivos y las jerarquías dinámicas autoorganizadas de la población.**
 
-**Cómo se pone a prueba.** La parte "si" se examina construyendo poblaciones con estos mecanismos. La parte "sólo si" se examina **quitándolos**: cada mecanismo es una regla declarada que puede apagarse (ablación), y se mide qué propiedades desaparecen con ella (§10). Hoy varios de estos mecanismos, en particular la comunicación (4) y la evaluación de confianza (5), vienen **diseñados de fábrica**. Por eso sus efectos se consideran capacidades programadas, no emergentes, hasta que se demuestre lo contrario.
-
----
-
-## 4. Unidad Computacional Mínima (Micro-Agente)
-
-Cada agente es deliberadamente restringido. Ningún agente posee visión global ni capacidad de cómputo suficiente para modelar el problema completo.
-
-| Componente | Especificación Mínima |
-| :--- | :--- |
-| **Percepción** | Radio sensorial local acotado (observa sólo una fracción del espacio de estados). |
-| **Memoria** | Capacidad fija y pequeña ($k$ slots o memoria finita). Incapaz de contener la solución global. |
-| **Estado Interno** | Variables dinámicas simples (energía, confianza interna, nivel de actividad, estrés/urgencia). *No se modela en el Exp 001.* |
-| **Aprendizaje Local** | Ajuste heurístico o asociativo ante recompensas/castigos directos. |
-| **Comunicación** | Protocolo broadcast/punto a punto limitado a vecinos en radio $R$ o topología de grafo. *En el Exp 001 la semántica es predefinida (consultar, responder y difundir creencias); se irá des-programando (§8).* |
-| **Confiabilidad** | Metadato de confianza y grado de evidencia asociado a cada unidad de conocimiento. |
-| **Afinidad/Cohesión**| Capacidad de acoplamiento temporal con otros agentes según objetivos compartidos. *No se modela en el Exp 001.* |
+**Cómo se pone a prueba.** La parte "si" se examina construyendo poblaciones con estos mecanismos. La parte "sólo si" se examina **quitándolos**: cada mecanismo es una regla declarada que puede apagarse (ablación), midiendo qué propiedades desaparecen con ella (§10).
 
 ---
 
-## 5. El Conocimiento como Proceso Distribuido
+## 4. De la Unidad Mínima al Holón Recursivo (Más allá del "Gen Egoísta")
 
-En IDE, el conocimiento no es un dato estático en disco. Es un **flujo dinámico, competitivo y evolutivo**:
+La versión 2.0 supera el reduccionismo neodarwinista clásico (que ve al individuo aislado y a la mutación competitiva lenta como único motor) e incorpora los cuatro pilares de la **Síntesis Evolutiva Extendida y Biología de Sistemas**:
+
+1. **Simbiogénesis y Endosimbiosis Hereditaria (Lynn Margulis):** Los grandes saltos de complejidad en la naturaleza (como el paso de procariotas a eucariotas) no ocurren por mutación gradual aislada, sino por la **fusión simbiótica permanente** de unidades distintas que pasan a operar y reproducirse como un nuevo organismo integrado. En IDE, tanto los agentes sueltos ($L=0$) como los Meta-Agentes compuestos ($L \ge 1$) pueden reproducirse transmitiendo su arquitectura simbiótica a la siguiente generación.
+2. **Selección Multinivel (D. S. Wilson / E. O. Wilson):** La selección natural actúa simultáneamente sobre los individuos y sobre las coaliciones/holones. Aunque el egoísmo pueda parecer ventajoso dentro de un grupo, **los grupos cooperativos y epistémicamente diversos superan y desplazan a las poblaciones egoístas** al desbloquear recursos compuestos inaccesibles para individuos solitarios.
+3. **Causalidad Descendente y Epigenética (Denis Noble):** La causalidad no fluye sólo de abajo hacia arriba ($\text{Gen} \to \text{Agente} \to \text{Grupo}$), sino también **de arriba hacia abajo ($\text{Holón } L \to \text{Sub-nodos } L-1 \dots 0$)**. Un Meta-Agente regula epigenéticamente a sus miembros para evitar que memoricen información redundante (particionamiento de memoria intra-holón) y coordina sus tasas de exploración según las necesidades del todo.
+4. **Construcción de Nicho y Estigmergia Espacial:** Los agentes no sólo se adaptan pasivamente al entorno; **modifican activamente su nicho** depositando marcadores epistémicos (feromonas/señales espaciales) en las celdas del entorno, externalizando memoria colectiva más allá de sus cerebros individuales ($C_{\max}$).
+
+| Componente | Nivel Elemental ($L = 0$: Micro-Agente) | Nivel Compuesto ($L \ge 1$: Meta-Agente Recursivo / Holón) |
+| :--- | :--- | :--- |
+| **Percepción** | Radio sensorial local acotado $R_{\text{perc}}$ + lectura de rastros estigmérgicos locales. | Unión sensorial de todos sus sub-nodos activos. |
+| **Memoria** | Capacidad fija y pequeña ($C_{\max} \ll N$). | Memoria distribuida agregada y des-duplicada por causalidad descendente ($C_{\text{efectiva}} \to \sum C_i$). |
+| **Metabolismo ($E$)** | Energía individual ganada al nutrirse y gastada por tick/acción. | Pool energético compartido (selección multinivel) con costo de coordinación por nivel. |
+| **Reproducción y Herencia** | Fisión reproductiva cuando $E \ge E_{\text{reprod}}$, heredando genoma mutado y creencias top. | **Endosimbiosis reproductiva:** un Holón exitoso puede dividirse generando un Holón hijo ya ensamblado. |
+| **Causalidad** | Ascendente (aporta creencias y acciones a su nodo padre). | **Descendente** (inhibe redundancia epistémica y diferencia roles entre sus hijos). |
+| **Capacidad Operativa** | Resuelve recursos simples de orden $m \le C_{\max}$. | Desbloquea recursos compuestos (`CompositeRule`) de complejidad $m > C_{\max}$. |
+| **Acoplamiento** | Puede unirse a otros nodos formando un grupo $L=1$. | Puede unirse a otros nodos o grupos formando niveles $L=2, 3, \dots, K$ (o disolverse en sus partes si deja de ser rentable). |
+
+---
+
+## 5. El Conocimiento en Tres Vías: Horizontal, Vertical y Ambiental (Estigmérgica)
+
+En IDE v2.0, el conocimiento circula y persiste a través de **tres canales complementarios**:
 
 ```mermaid
 flowchart TD
-    A["Agente Descubridor"] -->|"Experiencia directa"| B["Registro Local + Confianza Alta"]
-    B -->|"Propagación local"| C["Agentes Vecinos"]
-    C -->|"Cotejo con experiencia propia"| D{"¿Consistente?"}
-    D -- Sí --> E["Validación, Refuerzo y Retransmisión"]
-    D -- No --> F["Atenuación, Conflicto o Rechazo"]
-    E --> G["Conocimiento Viral Consensuado"]
-    F --> H["Extinción de Información Falsa/Obsoleta"]
+    subgraph Horizontal["1. Eje Horizontal (Red Social / Intra-Generacional)"]
+        A["Agente / Holón Descubridor (d=1)"] -->|"Transmisión social (γ)"| B["Vecinos / Compañeros de Holón"]
+        B -->|"Cotejo con realidad"| C{"¿Consistente?"}
+        C -- Sí --> D["Consenso + Particionamiento Intra-Holón"]
+        C -- No --> E["Duda Social y Extinción de Falsedad"]
+    end
+    subgraph Vertical["2. Eje Vertical (Herencia Dual + Endosimbiosis)"]
+        A -->|"Superávit energético (E >= E_reprod)"| F["Reproducción (Individual o Holónica)"]
+        D -->|"Superávit energético"| F
+        F -->|"Herencia Cultural / Epigenética (γ_gen)"| G["Descendiente / Holón Hijo (g+1)"]
+        F -->|"Herencia Genética + Mutación (σ)"| G
+    end
+    subgraph Ambiental["3. Eje Ambiental (Construcción de Nicho / Estigmergia)"]
+        A -->|"Depósito de marca espacial"| H["Rastro Estigmérgico en Celda"]
+        H -->|"Lectura por generaciones futuras"| G
+    end
 ```
 
-1. **Descubrimiento:** Registro local con alta certidumbre inicial de origen experimental.
-2. **Propagación:** Transmisión local a agentes contiguos.
-3. **Cotejo y Concurrencia:** Los receptores cruzan el dato recibido con su memoria previa y experiencia empírica.
-4. **Revisión Epistémica:** Refuerzo, mutación, degradación o descarte.
-5. **Estabilidad Dinámica:** Las verdades pragmáticas sobreviven por confirmación recursiva; los sesgos o falsedades se extinguen al chocar con la realidad física del entorno.
+### Lección Fundamental del Experimento 001 que motiva la Versión 2.0
+El Experimento 001 (población inmortal sin reproducción ni construcción de nicho) demostró un teorema crítico:
+- Para que la red sea inmune a cámaras de eco de rumores falsos (regla anti-eco R6), el testimonio indirecto no puede auto-revalidarse eternamente sin contacto físico.
+- Como consecuencia, cuando mueren todos los descubridores originales y desaparece el recurso físico, la tradición puramente oral entre pares se extingue en $\sim 23$ ticks (resultado C4 en [RESULTADOS.md](file:///c:/Desarrollo/IDE/RESULTADOS.md)).
+- **La combinación de herencia cultural vertical, endosimbiosis holónica y construcción de nicho (estigmergia) es la respuesta de la naturaleza para que el conocimiento sobreviva a los individuos sin abrir la puerta a la histeria colectiva.**
 
 ---
 
-## 6. Memoria Colectiva y Fragmentación
+## 6. Organización Jerárquica Ilimitada (Arquitectura Fractal y Causalidad Bidireccional)
 
-La memoria global es un fenómeno reconstructivo, análogo a esquemas holográficos o redes asociativas distribuidas:
+Se elimina cualquier restricción artificial que limite la organización a 2 o 3 niveles fijos. La jerarquía es **recursiva, abierta y bidireccional**:
 
-$$\text{Solución } S = \{f_1, f_2, \dots, f_m\}$$
-$$\text{Capacidad individual } C(\text{Agente}_i) \ll |S|$$
+$$\mathbf{Nivel\ 0\ (Agente)} \Longleftrightarrow \mathbf{Nivel\ 1\ (Grupo)} \Longleftrightarrow \mathbf{Nivel\ 2\ (Meta\text{-}Grupo)} \Longleftrightarrow \dots \Longleftrightarrow \mathbf{Nivel\ K\ (Organismo\ de\ Orden\ K)}$$
 
-* El agente $A$ conserva $f_1$.
-* El agente $B$ conserva $f_2$.
-* El agente $C$ conserva $f_3$.
-
-Ninguno conoce $S$. Cuando se presenta una demanda ambiental que exige $S$, la interacción coordinada entre $A$, $B$ y $C$ sintetiza la respuesta correcta. La pérdida de cualquier agente individual no destruye el conocimiento si existe redundancia distribuida en la población.
+1. **Mismo contrato en todas las escalas:** Un nodo de nivel $L$ expone hacia arriba la misma interfaz cognitiva (percibir, recordar, decidir, comunicarse, asociarse, reproducirse) que un agente de nivel $0$.
+2. **Causalidad Ascendente y Descendente:** Hacia arriba ($\uparrow$), los sub-nodos aportan sus percepciones y creencias para formar la mente compuesta del Holón. Hacia abajo ($\downarrow$), el Holón modula la retención de memoria de sus partes (impidiendo que dos sub-nodos desperdicien su escasa capacidad $C_{\max}$ recordando exactamente los mismos patrones) y ajusta su propensión exploratoria.
+3. **Emergencia por Selección Multinivel, no por decreto:** Formar cada nivel adicional $L$ tiene un **costo metabólico de mantenimiento** ($c_{\text{coord}}(L) > 0$). Si el entorno sólo tiene problemas simples, las estructuras pesadas de alto nivel mueren de hambre o se disuelven; si el entorno contiene recursos compuestos de alta complejidad y gran recompensa energética, la selección multinivel favorece la aparición y reproducción de niveles $L=1, 2, 3, \dots, K$ capaces de resolverlos.
+4. **Fusión (`BOND`), Fisión (`SPLIT`) y Endosimbiosis Reproductiva:** Una estructura de nivel $L$ puede desacoplarse en sus sub-estructuras de nivel $L-1$ cuando el entorno cambia, o bien dividirse reproductivamente como unidad simbiótica cuando alcanza un superávit energético sostenido.
 
 ---
 
-## 7. Organización Dinámica Multinivel
-
-Se rechaza la preasignación de roles fijos (perceptores, actuadores, planificadores prefijados). La arquitectura adopta un esquema de autoensamblaje funcional:
-
-$$\mathbf{Unidad} \longrightarrow \mathbf{Grupo} \longrightarrow \mathbf{Funci\acute{o}n} \longrightarrow \mathbf{Organismo} \longrightarrow \mathbf{Poblaci\acute{o}n}$$
-
-* **Especialización emergente:** La interacción local y la demanda de la tarea provocan diferenciación funcional espontánea.
-* **Agrupaciones transitorias:** Los agentes forman agregados funcionales temporales; una vez resuelta la perturbación o tarea, el grupo se disuelve.
-* **Plasticidad morfológica:** El mismo sustrato de agentes puede configurar arquitecturas cognitivas radicalmente distintas según el contexto.
-
----
-
-## 8. Programa Experimental
+## 7. Programa Experimental (Hoja de Ruta v2.0)
 
 ```mermaid
 flowchart LR
-    E001["Exp 001: Memoria y Propagación"] --> E002["Exp 002: Revalidación Social"]
-    E002 --> E003["Exp 003: Especialización"]
-    E003 --> E004["Exp 004: Reorganización ante Shock"]
-    E004 --> E005["Exp 005: Inteligencia Composicional"]
-    E005 --> E006["Exp 006: Evolución"]
-    E006 --> E007["Exp 007: Protocolo Emergente"]
-    D["Eje transversal: des-programación progresiva"] -.-> E002
-    D -.-> E007
+    E001["Exp 001 (Completado):\nMemoria y Atribución Base"] --> E002["Exp 002:\nMetabolismo, Reproducción\ny Herencia Generacional"]
+    E002 --> E003["Exp 003:\nMeta-Agentes Recursivos\n(Niveles L=1..K) y Composición"]
+    E003 --> E004["Exp 004:\nEspecialización Emergente\ny División del Trabajo"]
+    E004 --> E005["Exp 005:\nShock Ambiental y\nReconfiguración Multinivel"]
+    E005 --> E006["Exp 006:\nProtocolo de Comunicación\nEmergente (N1 -> N4)"]
 ```
 
-### Experimento 001: Memoria y Propagación Colectiva (Hito Primario)
+### Fase I — Experimento 001: Memoria y Propagación Colectiva (Hito Completado)
+- **Estado:** Implementado y verificado empíricamente ([RESULTADOS.md](file:///c:/Desarrollo/IDE/RESULTADOS.md)).
+- **Logros:** Demostró el superávit funcional de decisión ($+16\text{ a }+24\text{ pp}$, $p = 0.03125$), la extinción al $100\%$ de creencias falsas tras brotes epidémicos transitorios, la necesidad crítica de la exploración $\epsilon$ para romper tabúes falsos, y dejó establecido el marco de **Atribución de Emergencia (001-D)**.
 
-* **Objetivo:** Establecer la **línea base funcional** de la plataforma y del método: verificar que una población con memoria individual estrictamente insuficiente adquiere, propaga, valida y retiene conocimiento del entorno sin supervisor central, **y** medir cuánto de ese desempeño se debe a cada regla diseñada.
-* **Qué puede concluir:** mientras el protocolo transmita creencias con semántica predefinida, las capacidades de **acceso, superávit y persistencia** del conocimiento compartido son **programadas por construcción** (§10): no se ponen a prueba, se declaran (y si ni siquiera superan a la población aislada, se reportan como no observadas). La única afirmación con prueba empírica genuina es la **inmunidad colectiva a la falsedad**: ¿sobrevive si se apagan los filtros epistémicos diseñados (descuento, anti-eco, duda y olvido)? El resultado está abierto. El Exp 001 mide además cuánto aporta cada regla.
-* **Entorno:** Grilla 2D toroidal con recursos heterogéneos. En esta primera versión, cada recurso tiene un único atributo observable (`id`) y es benéfico o dañino. Los recursos neutrales y los patrones de varios atributos quedan para experimentos posteriores.
-* **Restricción Fundamental:** Cada agente sólo puede almacenar un subconjunto estricto de las reglas del mundo ($C_{\max} < N$; valor base: 3 de 12 patrones, es decir, el 25 %).
-* **Métricas Formales:**
-  * **Precisión Colectiva:** Tasa de decisiones correctas a nivel población.
-  * **Cobertura Accesible:** Fracción del mundo que cada agente conoce o puede obtener de sus vecinos inmediatos. Es la medida del "meta-agente" que forma un grupo local; la cobertura de la población entera no basta, porque una población aislada también la alcanza.
-  * **Precisión Aislada:** Rendimiento de una población idéntica sin comunicación, con las mismas condiciones iniciales (línea base).
-  * **Velocidad de Propagación:** $t_{50}, t_{90}$ para difusión de nuevos descubrimientos.
-  * **Persistencia Temporal:** Supervivencia del conocimiento tras la eliminación de los agentes descubridores originales.
-  * **Resiliencia ante Daño:** Capacidad de retención tras eliminar el 10%, 30%, 50% y 70% de la población.
-  * **Filtrado de Falsificación:** Tasa de extinción de creencias erróneas inyectadas deliberadamente (epistemología distribuida).
-  * **Sobrecarga de Comunicación:** Ratio de mensajes emitidos vs. tasa de acierto cognitivo.
-  * **Atribución:** Clasificación de cada capacidad observada como *programada* o *emergente*, mediante la ablación de las reglas de diseño y un control de contenido nulo.
+### Fase II — Experimento 002: Ciclo Vital, Reproducción y Evolución Intergeneracional
+- **Objetivo:** Introducir metabolismo real ($E_i$), muerte por agotamiento/toxicidad y reproducción con **herencia dual** (genética de capacidades $\Theta_i$ + herencia cultural de creencias $\mathcal{M}_i$).
+- **Preguntas clave:**
+  - ¿Logra la herencia intergeneracional sostener y acumular conocimiento colectivo a lo largo de decenas de generaciones aunque ningún individuo viva lo suficiente para explorar todo el mapa?
+  - ¿Evolucionan por selección natural los hiperparámetros de los agentes ($\alpha, \gamma, \epsilon$, capacidad, visión) hacia configuraciones superiores a las iniciales sin ajuste manual?
 
-### Eje Transversal: Des-programación Progresiva
+### Fase III — Experimento 003: Simbiogénesis y Jerarquía Recursiva de Meta-Agentes ($L = 1 \dots K$)
+- **Objetivo:** Permitir que agentes y grupos se asocien dinámicamente formando árboles holónicos de profundidad arbitraria ($L = 1, 2, 3, \dots, K$) frente a un entorno con **recursos composicionales graduados** (que exigen combinar simultáneamente $m = 2, 4, 8, 12\dots$ patrones).
+- **Criterio de éxito:** Observar que la población ensambla espontáneamente el nivel de profundidad jerárquica $L^*$ necesario para la complejidad $m$ del entorno, logrando resolver tareas que un agente individual ($L=0$) o un grupo simple ($L=1$) tienen **probabilidad cero** de resolver.
 
-Cuanta más inteligencia se programa en el agente, menos se puede afirmar que emerge. El programa avanza, por lo tanto, retirando semántica de diseño por niveles. En cada nivel se pregunta qué capacidades colectivas sobreviven:
-
-| Nivel | Qué recibe el agente de fábrica | Qué debe aparecer por sí solo |
-| :--- | :--- | :--- |
-| **N0** (Exp 001) | Protocolo completo: consultar, responder y difundir creencias estructuradas con confianza y origen. | — (línea base) |
-| **N1** | Sólo difusión; no existe la "pregunta". | Coordinación sin demanda explícita. |
-| **N2** | Difusión de (patrón, signo) sin confianza ni origen. | Cuánto creer a quién (enlaza con el Exp 002). |
-| **N3** | Un canal de símbolos arbitrarios de un alfabeto finito, sin significado asignado. | Una convención compartida entre símbolos y estados del mundo. |
-| **N4** | Además, decidir cuándo emitir y a quién atender. | Un protocolo completo: turnos, selectividad, relevancia. |
-
-### Experimento 007: Protocolo de Comunicación Emergente
-
-* **Pregunta:** ¿puede una población inventar un protocolo de comunicación útil si sólo dispone de un canal de símbolos sin significado (niveles N3–N4)?
-* **Restricciones:** los símbolos no tienen semántica predefinida; nadie recibe recompensa por comunicar, sólo por sus propias decisiones (comer o evitar); no hay coordinador ni diccionario compartido inicial.
-* **Criterios de éxito:** (a) la población comunicada supera a la aislada; (b) la supera también frente a un control con símbolos barajados; (c) hay **señalización positiva**: los símbolos emitidos llevan información sobre el estado del mundo (información mutua mayor que 0); (d) hay **escucha positiva**: el comportamiento del receptor cambia según el símbolo recibido; (e) la convención es compartida, y no un dialecto privado de cada par.
-* **Antecedentes:** juegos de señalización de Lewis, *naming games* de Steels y comunicación emergente en aprendizaje multi-agente. Se adoptan sus advertencias metodológicas: el desempeño por sí solo no prueba que haya comunicación (Lowe et al., 2019).
-* **Alcance:** sería un salto conceptual. Una capacidad colectiva sostenida por un protocolo que la población inventó no puede atribuirse a una semántica programada.
+### Fase IV — Experimentos 004 a 006: Especialización, Shock Ambiental y Lenguaje Emergente
+- **Exp 004 (Especialización dentro del Meta-Agente):** Diferenciación de roles internos (nodos sensores de amplio radio vs. nodos de alta memoria vs. nodos coordinadores) dentro de un mismo organismo multinivel.
+- **Exp 005 (Shock y Fisión/Fusión Adaptativa):** Inversión abrupta de las reglas del entorno (`invert_world_rules`) para medir cómo los super-organismos disuelven ramas obsoletas y se reconfiguran.
+- **Exp 006 (Des-programación del Protocolo, Niveles N1 a N4):** Retiro progresivo de la semántica predefinida hasta que los agentes y meta-agentes evolucionen su propio código de señales.
 
 ---
 
-## 9. Visión Tecnológica a Largo Plazo
+## 8. Visión Tecnológica a Largo Plazo
 
-```
-[Nivel 1: Simulación Software]
-             │
-             ▼
-[Nivel 2: Sistemas Distribuidos y Edge Computing]
-             │
-             ▼
-[Nivel 3: Enjambres Microrrobóticos]
-             │
-             ▼
-[Nivel 4: Materia Programable / Reconfigurable]
+```text
+[Nivel 1: Simulación Evolutiva y Holónica en Software]
+                         │
+                         ▼
+[Nivel 2: Enjambres de Agentes de Software Autoorganizados]
+                         │
+                         ▼
+[Nivel 3: Enjambres Microrrobóticos con Acoplamiento Físico]
+                         │
+                         ▼
+[Nivel 4: Materia Programable / Organismos Reconfigurables]
 ```
 
-El fin último trasciende el software: trasladar los principios a sustratos físicos donde miles de micro-unidades aporten cómputo, energía, sensado y actuación, configurando organismos ad-hoc bajo demanda.
+El concepto final no es programar un agente fijo ni una jerarquía rígida de dos capas, sino crear el sustrato evolutivo capaz de **autoorganizarse en tantos niveles de complejidad como el problema exija**.
 
 ---
 
-## 10. Criterio Epistemológico, Falsabilidad y Atribución de Emergencia
+## 9. Criterio Epistemológico, Falsabilidad y Atribución de Emergencia
 
-El proyecto se rige por rigor empírico estricto:
-* **Hipótesis nula ($H_0$):** Una población de agentes limitados sin coordinador no puede superar el límite estocástico individual ni preservar conocimiento composicional coherente.
-* **Criterio de éxito ($H_1$):** La población resuelve con consistencia estadística problemas que ningún agente individual puede resolver a lo largo de su ciclo vital completo, **y esa capacidad no es atribuible a una regla programada para producirla**.
-* Un resultado negativo define con precisión las condiciones de frontera donde la autoorganización cognitiva colapsa.
+El rigor metodológico de la Fase I se mantiene y se extiende a la evolución y la jerarquía:
 
-### Regla Central de Atribución
+> **Toda propiedad que afirmemos como emergente —sea en la red social, en la evolución generacional o en la jerarquía de meta-agentes— debe poder distinguirse de una capacidad programada explícitamente en las reglas locales.**
 
-> **Toda propiedad que afirmemos como emergente debe poder distinguirse de una capacidad que hayamos programado explícitamente en el agente.**
-
-El riesgo que esta regla previene es concreto. Si diseñamos suficientes reglas inteligentes (confianza, descuento del rumor, refuerzo, castigo, olvido, consultas, difusión), terminamos demostrando que **nuestro algoritmo distribuido funciona**, en lugar de observar que **emerge una capacidad nueva**. La regla se aplica así:
-
-1. **Inventario de presupuestos de diseño.** Cada regla del agente se declara con su **propósito**: qué capacidad se diseñó para producir.
-2. **Pre-registro.** Antes de ejecutar un experimento se declara qué afirmaciones se harán y qué reglas tienen como propósito producir cada una. Ese registro se versiona y no se modifica a la vista de los resultados.
-3. **Ablación.** Toda regla no nuclear puede apagarse. Una propiedad que desaparece al apagar las reglas diseñadas para producirla es **programada**.
-4. **Control nulo.** Una propiedad que también aparece cuando los mensajes siguen las mismas reglas pero pierden su contenido informativo se atribuye a la mera **actividad**, no al intercambio de conocimiento.
-5. **Principio conservador.** Ante la duda, la propiedad se atribuye al diseño. Toda afirmación sobre disponibilidad o transmisión de conocimiento se considera producida por las reglas de comunicación.
-6. **Por construcción no es evidencia.** Si quitar las reglas de una afirmación deja a la población sin comunicación, la afirmación es *programada por construcción*, y eso se declara como consecuencia de la regla, no como un resultado.
-7. **Mínima maquinaria.** Entre dos poblaciones que exhiben el mismo fenómeno se prefiere la que lo logra con menos reglas diseñadas. Cada regla nueva debe justificarse, declararse y poder ablacionarse.
-
-8. **Independencia del reloj.** Una comunidad real no actúa al compás de un reloj común. Una propiedad que aparece con un esquema de actualización de la simulación y desaparece con otro es un artefacto del reloj, no de la población.
-
-Sólo se llama **emergente** a una propiedad poblacional que supera al control aislado, persiste sin las reglas diseñadas para producirla, depende del contenido real de la comunicación y no depende del esquema de actualización. Los criterios operativos están en [DEFINICIONES_FORMALES.md](DEFINICIONES_FORMALES.md) §3.1.
+1. **Inventario de presupuestos de diseño (`DESIGN_RULES`).** Toda regla nueva (metabolismo, herencia cultural, mutación genética, fusión/fisión holónica) se declara con su propósito y su ablación.
+2. **Pre-registro y Control Nulo.** Las afirmaciones sobre evolución y meta-agentes se contrastan contra controles sin herencia cultural, sin selección (reproducción aleatoria) y sin acoplamiento jerárquico.
+3. **Prohibición de ajuste ad-hoc (*no p-hacking*).** Los resultados negativos o colapsos poblacionales (extinción por inanición o parasitismo dentro de un grupo) no se ocultan: se registran en [RESULTADOS.md](file:///c:/Desarrollo/IDE/RESULTADOS.md) como descubrimientos sobre las condiciones de frontera de la inteligencia colectiva.
 
 ---
 
-## 11. Próximos Pasos de Implementación
+## 10. Mapa Documental del Proyecto
 
-> **Estado:** el simulador, las métricas y los protocolos 001-A a 001-D (este último, el de atribución) ya están implementados. El avance se sigue en [`tasks.md`](openspec/changes/ide-emergent-distributed-intelligence/tasks.md), que es la fuente del plan, y los resultados en [RESULTADOS.md](RESULTADOS.md). La lista se conserva como el plan original.
-
-1. **Arquitectura del Simulador Experimento 001:**
-   * Motor de grilla 2D discreto con soporte de eventos por pasos temporales (ticks).
-   * Modelo formal del agente (memoria finita, radio de visión, buffer de comunicación, confianza Bayesiana/heurística).
-   * Generador determinista de recursos y reglas ambientales.
-2. **Suite de Pruebas y Métricas:**
-   * Banco de benchmarks (propagación limpia, inyección de falsedad, ablación masiva).
-   * Protocolo de atribución: ablación de cada regla de diseño, control nulo y clasificación programado/emergente.
-   * Exportador de datos y visualización para análisis estadístico.
-
-El detalle formal está en [DEFINICIONES_FORMALES.md](DEFINICIONES_FORMALES.md), la arquitectura en [DEFINICIONES_TECNICAS.md](DEFINICIONES_TECNICAS.md) y el plan de implementación verificable en [`openspec/changes/ide-emergent-distributed-intelligence/`](openspec/changes/ide-emergent-distributed-intelligence/).
+1. **Visión y Programa Científico:** este [DOCUMENTO_FUNDACIONAL.md](file:///c:/Desarrollo/IDE/DOCUMENTO_FUNDACIONAL.md) (v2.0).
+2. **Modelo Matemático y Ontológico:** [DEFINICIONES_FORMALES.md](file:///c:/Desarrollo/IDE/DEFINICIONES_FORMALES.md) (v2.0).
+3. **Arquitectura de Software y Contratos:** [DEFINICIONES_TECNICAS.md](file:///c:/Desarrollo/IDE/DEFINICIONES_TECNICAS.md) (v2.0).
+4. **Registro Empírico Auditado:** [RESULTADOS.md](file:///c:/Desarrollo/IDE/RESULTADOS.md).
+5. **Especificación Ejecutable (OpenSpec):** [`openspec/changes/`](file:///c:/Desarrollo/IDE/openspec/changes/).
