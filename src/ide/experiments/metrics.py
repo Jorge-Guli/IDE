@@ -5,7 +5,7 @@ el del mundo y su confianza alcanza `decision_conf_threshold`; es falsa si el si
 con la misma confianza.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from ide.agent.micro_agent import MicroAgent
@@ -158,3 +158,28 @@ class MetricsCollector:
             messages_sent=messages_sent,
             messages_per_agent=messages_sent / active if active else 0.0,
         )
+
+
+def windowed_accuracy(history_slice: Sequence[TickMetrics]) -> float:
+    """Precisión ponderada: `Σ correctas / Σ oportunidades` (0.0 sin oportunidades).
+
+    Promediar `decision_accuracy` tick a tick sesgaría el resultado con los ticks vacíos.
+    """
+    opportunities = sum(m.decision_opportunities for m in history_slice)
+    correct = sum(m.correct_decisions for m in history_slice)
+    return correct / opportunities if opportunities else 0.0
+
+
+def propagation_time(history: Sequence[TickMetrics], pattern: Pattern, theta: float) -> int | None:
+    """M3: tiempo de subida normalizado desde el primer tick con prevalencia positiva.
+
+    Devuelve el menor `t - t_0` con prevalencia `>= theta · P_max`, o `None` si `P_max == 0`.
+    """
+    if not 0.0 <= theta <= 1.0:
+        raise ValueError(f"theta debe estar en [0, 1], recibido {theta}")
+    series = [(m.tick, m.pattern_prevalence.get(pattern, 0.0)) for m in history]
+    peak = max((value for _, value in series), default=0.0)
+    if peak <= 0:
+        return None
+    start = next(tick for tick, value in series if value > 0)
+    return next(tick - start for tick, value in series if tick >= start and value >= theta * peak)

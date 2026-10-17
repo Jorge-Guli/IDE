@@ -27,7 +27,10 @@ def measure_ticks_per_second(config: SimulationConfig, ticks: int) -> float:
 
 
 def _positive_int(text: str) -> int:
-    value = int(text)
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"se esperaba un entero, recibido {text!r}") from None
     if value < 1:
         raise argparse.ArgumentTypeError(f"debe ser >= 1, recibido {value}")
     return value
