@@ -35,8 +35,8 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 7. Grilla 2D Toroidal (`spatial-environments`)
 
-- [ ] 7.1 [RED] Escribir `tests/test_grid2d.py`: generación canónica y determinista, cruce de bordes, distancia y `recommended_move` toroidales, filtro y orden de la observación, consistencia de `cell_agents`/`cell_resources`, colisión sobre el mismo recurso, reposición con IDs nuevos, `retire_pattern_resources`, `invert_world_rules`, `get_reachable_true_values` y movimiento inválido tratado como `IDLE`, y propiedades con Hypothesis: simetría de la distancia toroidal e ida y vuelta de movimientos.
-- [ ] 7.2 [GREEN] Implementar `ToroidalGrid2D` en `src/ide/environments/grid2d.py`.
+- [x] 7.1 [RED] Escribir `tests/test_grid2d.py`: generación canónica y determinista, cruce de bordes, distancia y `recommended_move` toroidales, filtro y orden de la observación, consistencia de `cell_agents`/`cell_resources`, colisión sobre el mismo recurso, reposición con IDs nuevos, `retire_pattern_resources`, `invert_world_rules`, `get_reachable_true_values` y movimiento inválido tratado como `IDLE`, y propiedades con Hypothesis: simetría de la distancia toroidal e ida y vuelta de movimientos.
+- [x] 7.2 [GREEN] Implementar `ToroidalGrid2D` en `src/ide/environments/grid2d.py`.
 
 ## 8. Motor de Simulación (`simulation-engine`)
 
