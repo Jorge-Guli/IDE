@@ -24,8 +24,8 @@ Resultados tal cual se obtuvieron, positivos o negativos, **sin ajustar parámet
 ## Experimento 001-D: atribución de emergencia (bloque 10.3)
 
 - **Pre-registro:** `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE = "quick"` versionados en el commit `c05b8b3`, **antes** de implementar y ejecutar 001-D. Ningún $R_c$ se modificó a la vista de los resultados.
-- **Código:** el commit que agrega esta entrada (bloque 10 de `tasks.md`). La corrida se repitió sobre el árbol final y dio un `exp001_attribution.json` idéntico byte a byte.
-- **Comando:** `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4` (185 corridas distintas, unos 2 min 40 s con 4 procesos).
+- **Código:** el commit que agrega esta entrada (bloque 10 de `tasks.md`). La corrida se repitió sobre el árbol final y dio un `exp001_attribution.json` idéntico byte a byte. Tras el cambio posterior que mide C4 sólo con la ablación de descubridores (sin el nivel 0.5, que se descartaba), se volvió a correr y el JSON también fue idéntico byte a byte.
+- **Comando:** `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4` (185 corridas distintas: unos 2 min 40 s con 4 procesos en la versión original y 1 min 51 s tras el cambio de C4).
 
 ### Tabla de estados (tal cual)
 

@@ -26,6 +26,7 @@ _MIN_ONE_FIELDS = (
     "grid_height",
 )
 _NON_NEGATIVE_FIELDS = (
+    "seed",  # PCG64 no acepta semillas negativas
     "perception_radius",
     "comm_radius",
     "lambda_decay",

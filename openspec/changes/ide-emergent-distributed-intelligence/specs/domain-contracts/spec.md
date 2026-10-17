@@ -77,7 +77,7 @@ Para todo `VisibleResource` con `distance > 0`, `recommended_move` SHALL pertene
 - **THEN** se lanza `ValueError`.
 
 ### Requirement: Validación de Rangos de Hiperparámetros
-`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo si un coeficiente probabilístico sale de `[0.0, 1.0]`, si `num_agents`, `resources_per_pattern` o las dimensiones son menores que 1, si `num_world_patterns < 2`, si un radio o tasa es negativo, si `min_confidence >= decision_conf_threshold`, o si `2 * max(perception_radius, comm_radius) >= min(grid_width, grid_height)`.
+`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo si un coeficiente probabilístico sale de `[0.0, 1.0]`, si `num_agents`, `resources_per_pattern` o las dimensiones son menores que 1, si `num_world_patterns < 2`, si `seed` es negativa, si un radio o tasa es negativo, si `min_confidence >= decision_conf_threshold`, o si `2 * max(perception_radius, comm_radius) >= min(grid_width, grid_height)`.
 
 #### Scenario: Coeficiente fuera de rango
 - **WHEN** se instancia `SimulationConfig(gamma_social_discount=1.5)`

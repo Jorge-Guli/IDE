@@ -184,8 +184,12 @@ def run_protocol_001b_falsification(
 def recovery_ticks(post_history: Sequence[TickMetrics], pre_ablation_accuracy: float) -> int | None:
     """M5: menor `k` cuya ventana post-ablación `max(1, k-19)..k` alcanza el 90 % previo.
 
-    La ventana nunca incluye ticks anteriores a la ablación.
+    La ventana nunca incluye ticks anteriores a la ablación. Con `pre_ablation_accuracy == 0`
+    no hay referencia: el umbral 0 se alcanzaría en `k = 1` y se leería como una recuperación
+    instantánea, así que devuelve `None` (no medible).
     """
+    if pre_ablation_accuracy == 0:
+        return None
     target = _RECOVERY_FRACTION * pre_ablation_accuracy
     for k in range(1, len(post_history) + 1):
         window = post_history[max(0, k - RECOVERY_WINDOW) : k]
@@ -368,11 +372,13 @@ def _execute_task(args: tuple[SimulationConfig, Profile, Task]) -> Any:
 
 
 def validate_seeds(seeds: Sequence[int]) -> None:
-    """Al menos una, no negativas y sin repetir: una repetida es la misma corrida e infla `n`."""
+    """Al menos una y sin repetir: una repetida es la misma corrida e infla `n`.
+
+    La regla de dominio `seed >= 0` vive en `SimulationConfig`; la CLI la repite en el tipo de
+    `--seeds` sólo para responder con un error de argumento (código 2).
+    """
     if not seeds:
         raise ValueError("se necesita al menos una semilla")
-    if any(seed < 0 for seed in seeds):
-        raise ValueError(f"las semillas deben ser >= 0: {list(seeds)}")
     if len(set(seeds)) != len(seeds):
         raise ValueError(f"semillas repetidas: {list(seeds)}")
 

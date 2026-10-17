@@ -268,10 +268,21 @@ def test_measure_claim_001b(tiny_profile: str) -> None:
     assert measure_claim(EXP001_CLAIMS[2], SMALL, tiny_profile) == report.final_false_prevalence
 
 
-def test_measure_claim_001c(tiny_profile: str) -> None:
-    report = run_protocol_001c_resilience(SMALL, 20, 10, ablation_levels=(0.5,))
+def test_measure_claim_001c(tiny_profile: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    # La persistencia social sale de una corrida independiente: el nivel 0.5 no la altera.
+    with_level = run_protocol_001c_resilience(SMALL, 20, 10, ablation_levels=(0.5,))
+    only_discoverers = run_protocol_001c_resilience(SMALL, 20, 10, ablation_levels=())
+    assert only_discoverers.ablation_results == ()
+    assert only_discoverers.final_social_persistence_prevalence == pytest.approx(
+        with_level.final_social_persistence_prevalence, abs=1e-9
+    )
+
+    def no_level(*_: object, **__: object) -> None:
+        raise AssertionError("C4 no debe correr una ablación poblacional que se descarta")
+
+    monkeypatch.setattr(exp001_runner, "_ablation_point", no_level)
     value = measure_claim(EXP001_CLAIMS[3], SMALL, tiny_profile)
-    assert value == report.final_social_persistence_prevalence
+    assert value == pytest.approx(with_level.final_social_persistence_prevalence, abs=1e-9)
 
 
 def test_measure_claim_protocolo_desconocido(tiny_profile: str) -> None:
@@ -396,10 +407,27 @@ def test_classify_sin_valores() -> None:
         classify(UP, {"full": (), "isolated": (), "null_content": ()}, by_construction=True)
 
 
-@pytest.mark.parametrize("seeds", [[-1, 2], [3, 3]])
-def test_001d_rechaza_semillas_invalidas(seeds: list[int]) -> None:
-    with pytest.raises(ValueError, match="semillas"):
-        run_protocol_001d_attribution(SMALL, seeds)
+@pytest.mark.parametrize(
+    ("seeds", "message", "claims"),
+    [
+        ([-1, 2], "seed no puede ser negativo", EXP001_CLAIMS),
+        ([-1, 2], "seed no puede ser negativo", ()),
+        ([3, 3], "repetidas", EXP001_CLAIMS),
+        ([3, 3], "repetidas", ()),
+    ],
+)
+def test_001d_rechaza_semillas_invalidas(
+    monkeypatch: pytest.MonkeyPatch,
+    seeds: list[int],
+    message: str,
+    claims: tuple[EmergenceClaim, ...],
+) -> None:
+    def no_correr(*_: object, **__: object) -> None:
+        raise AssertionError("debe fallar antes de ejecutar corridas")
+
+    monkeypatch.setattr(attribution, "map_in_order", no_correr)
+    with pytest.raises(ValueError, match=message):
+        run_protocol_001d_attribution(SMALL, seeds, claims=claims)
 
 
 @pytest.mark.parametrize(("items", "jobs"), [([], 4), ([5], 8), ([1, 2, 3], 1)])

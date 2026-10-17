@@ -189,8 +189,10 @@ def _protocol_result(protocol: str, config: SimulationConfig, profile: Profile) 
     if protocol == "001b":
         return run_protocol_001b_falsification(config, profile.total_ticks, profile.injection_tick)
     if protocol == "001c":
+        # Sólo la ablación de descubridores produce la métrica de C4; un nivel de ablación
+        # poblacional sería una corrida independiente que se calcula y se descarta.
         return run_protocol_001c_resilience(
-            config, profile.warmup_ticks, profile.post_ablation_ticks, ablation_levels=(0.5,)
+            config, profile.warmup_ticks, profile.post_ablation_ticks, ablation_levels=()
         )
     raise ValueError(f"protocolo desconocido: {protocol}")
 
@@ -321,14 +323,16 @@ def run_protocol_001d_attribution(
     independientes se reparten en `jobs` procesos y se reúnen por clave, en orden fijo.
     """
     validate_seeds(seeds)
+    # Construir las configuraciones valida cada semilla (`seed >= 0`) antes de planificar.
+    seed_configs = [replace(config, seed=seed) for seed in seeds]
     profile = PROFILES[ATTRIBUTION_PROFILE]
     plans: list[tuple[EmergenceClaim, bool, dict[str, list[SimulationConfig]]]] = []
     runs: dict[_Run, None] = {}  # conjunto ordenado por inserción
     for claim in claims:
         by_construction = is_by_construction(claim, config)
         per_variant: dict[str, list[SimulationConfig]] = {}
-        for seed in seeds:
-            for name, variant in _variants(claim, replace(config, seed=seed)).items():
+        for seed_config in seed_configs:
+            for name, variant in _variants(claim, seed_config).items():
                 per_variant.setdefault(name, []).append(variant)
                 runs[(claim.protocol, variant, profile)] = None
         plans.append((claim, by_construction, per_variant))

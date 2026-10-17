@@ -98,11 +98,15 @@ Las métricas SHALL considerar sólo las creencias de `BoundedMemory`. Una creen
 - **THEN** `ablation_results` tiene 4 elementos con `remaining_agents` iguales a 72, 56, 40 y 24.
 
 ### Requirement: Tiempo de Recuperación (M5)
-`recovery_ticks` SHALL ser el menor `k` en `1..post_ablation_ticks` tal que la precisión ponderada (`Σ correctas / Σ oportunidades`) de los ticks post-ablación `max(1, k-19)..k` sea `>= 0.9 · pre_ablation_accuracy`, calculada ésta igual sobre los últimos 20 ticks de warmup; o `None` si no ocurre.
+`recovery_ticks` SHALL ser el menor `k` en `1..post_ablation_ticks` tal que la precisión ponderada (`Σ correctas / Σ oportunidades`) de los ticks post-ablación `max(1, k-19)..k` sea `>= 0.9 · pre_ablation_accuracy`, calculada ésta igual sobre los últimos 20 ticks de warmup; o `None` si no ocurre o si `pre_ablation_accuracy == 0`.
 
 #### Scenario: Ventana sin ticks previos a la ablación
 - **WHEN** se calcula `recovery_ticks` para `k = 5`
 - **THEN** la ventana contiene exactamente los 5 primeros ticks posteriores a la ablación.
+
+#### Scenario: Sin precisión previa no hay recuperación medible
+- **WHEN** `pre_ablation_accuracy == 0`
+- **THEN** `recovery_ticks` es `None`, aunque cualquier ventana alcance el umbral `0`.
 
 ### Requirement: Separación entre Software e Hipótesis
 Los tests que afirman resultados empíricos sobre los mecanismos programados (por ejemplo, `collective_surplus > 0`) SHALL marcarse con `@pytest.mark.empirical` y quedar excluidos de `python -m pytest` por defecto; su fracaso SHALL reportarse como hallazgo, no corregirse ajustando parámetros.

@@ -237,7 +237,7 @@ Centralizados en `SimulationConfig` (inmutable, validado en `__post_init__`, ser
 
 | Parámetro | Nombre en código | Valor base (Exp 001) | Descripción |
 | :--- | :--- | :---: | :--- |
-| Semilla | `seed` | `42` | Reproducibilidad exacta. |
+| Semilla | `seed` | `42` | Reproducibilidad exacta. Entero `>= 0`. |
 | Dimensiones | `grid_width`, `grid_height` | `40, 40` | 1.600 celdas toroidales. |
 | Población ($M$) | `num_agents` | `80` | Densidad de 5 %. |
 | Patrones ($N$) | `num_world_patterns` | `12` | 6 benéficos ($+1.0$) y 6 dañinos ($-1.0$). |

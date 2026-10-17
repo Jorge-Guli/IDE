@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from ide.config import SimulationConfig
 from ide.experiments.exp001_runner import (
@@ -197,9 +199,17 @@ def test_ventana_deslizante_de_20_ticks() -> None:
     assert k == 38  # 18 aciertos de 20 en la ventana 19..38
 
 
-def test_sin_precision_previa_se_recupera_en_el_primer_tick() -> None:
-    assert recovery_ticks([post_tick(1, 0, 0)], 0.0) == 1
+def test_sin_precision_previa_no_hay_recuperacion_medible() -> None:
+    # El umbral 0.9 · 0 se alcanzaría en k = 1: sin referencia, la recuperación no es medible.
+    assert recovery_ticks([post_tick(1, 0, 0)], 0.0) is None
+    assert recovery_ticks([post_tick(1, 10, 10), post_tick(2, 10, 10)], 0.0) is None
     assert recovery_ticks([], 0.5) is None
+
+
+@given(st.lists(st.tuples(st.integers(0, 20), st.integers(0, 20)), max_size=40))
+def test_sin_precision_previa_nunca_hay_recuperacion(pairs: list[tuple[int, int]]) -> None:
+    post = [post_tick(k, n, min(c, n)) for k, (n, c) in enumerate(pairs, start=1)]
+    assert recovery_ticks(post, 0.0) is None
 
 
 # --- Prueba de signo y agregación --------------------------------------------------------------
