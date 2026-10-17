@@ -11,7 +11,7 @@ Este documento establece de manera rigurosa y sin ambigüedades qué significa c
 ### 1.1. Tiempo ($t$)
 El sistema evoluciona en pasos de tiempo discretos (ticks):
 $$t \in \{0, 1, 2, \dots, T\}$$
-En cada paso $t$, todos los agentes perciben, se comunican, deciden, actúan y aprenden de forma local (ver §2), sin un coordinador que dirija sus estrategias. El tick es un reloj de simulación, no una entidad cognitiva.
+En cada paso $t$, todos los agentes perciben, se comunican, deciden, actúan y aprenden de forma local (ver §2), sin un coordinador que dirija sus estrategias. El tick es un reloj de simulación, no una entidad cognitiva. Dentro de un tick, la percepción, la comunicación y la decisión son **simultáneas**; los conflictos físicos (dos agentes que intentan consumir el mismo recurso) se resuelven por sorteo. Ninguna de las dos idealizaciones, reloj sincrónico o actualización secuencial, es más realista que la otra: una comunidad real es asíncrona. Por eso ninguna propiedad emergente puede depender del esquema de actualización (criterio E5, §3.1).
 
 ---
 
@@ -212,10 +212,11 @@ Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada f
 - **E2 Superávit:** la población completa supera a la aislada.
 - **E3 Independencia del propósito:** la población sin $R_C$ sigue superando a la aislada ($R_C = \emptyset$ lo cumple trivialmente).
 - **E4 Dependencia del contenido:** la población completa supera al control nulo.
+- **E5 Robustez al esquema de actualización:** bajo un esquema asíncrono (los agentes se activan de a uno, en orden aleatorio, viendo el mundo ya modificado por los anteriores), la afirmación vuelve a cumplir E2 y E3. Hay patrones que aparecen con actualización sincrónica y desaparecen con la asíncrona (Huberman y Glance, 1993): son artefactos del reloj, no de la población.
 
 **Programada por construcción.** Si quitar $R_C$ deja a la población sin ningún canal de emisión, la población sin $R_C$ *es* la aislada, y E3 deja de ser una prueba para ser una tautología. La afirmación se declara entonces *programada por construcción*, sin presentarlo como resultado empírico.
 
-**Clasificación.** *No observada* si falla E2; *programada* si es programada por construcción o si cumple E2 y falla E3; *artefacto de actividad* si cumple E2 y E3 y falla E4; **emergente** si cumple E1–E4. Con menos de 5 semillas el estado es *evidencia insuficiente*.
+**Clasificación.** *No observada* si falla E2; *programada* si es programada por construcción o si cumple E2 y falla E3; *artefacto de actividad* si cumple E2 y E3 y falla E4; si cumple E1–E4: *emergente pendiente de robustez* mientras E5 no pueda evaluarse, *artefacto del reloj* si falla E5 y **emergente** si la cumple. Con menos de 5 semillas el estado es *evidencia insuficiente*.
 
 **Consecuencia para el Experimento 001.** Las afirmaciones de acceso (C1), superávit de decisión (C2) y persistencia extra-individual (C4) tienen $R_8, R_9 \in R_C$; quitar ambas reglas aísla la población, así que son **programadas por construcción**. No es una predicción: es lo que establece la regla mientras el canal transmita creencias con semántica de fábrica. La inmunidad colectiva a la falsedad (C3) tiene $R_C = \{R_3, R_4, R_6, R_7\}$ (los filtros epistémicos y el olvido) y es la única con una prueba empírica genuina: ¿la contención del rumor sobrevive sólo con transmisión y aprendizaje directo? El resultado está abierto. Además se mide el aporte de cada regla, apagándolas de a una. Las candidatas genuinas a emergencia en este nivel son las propiedades que ninguna regla persigue, por ejemplo transiciones abruptas de la cobertura accesible o de la persistencia al variar la densidad de agentes o el radio de comunicación. Los saltos conceptuales vendrán de la des-programación del protocolo (Experimento 007).
 

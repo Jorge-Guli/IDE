@@ -222,7 +222,9 @@ El riesgo que esta regla previene es concreto. Si diseñamos suficientes reglas 
 6. **Por construcción no es evidencia.** Si quitar las reglas de una afirmación deja a la población sin comunicación, la afirmación es *programada por construcción*, y eso se declara como consecuencia de la regla, no como un resultado.
 7. **Mínima maquinaria.** Entre dos poblaciones que exhiben el mismo fenómeno se prefiere la que lo logra con menos reglas diseñadas. Cada regla nueva debe justificarse, declararse y poder ablacionarse.
 
-Sólo se llama **emergente** a una propiedad poblacional que supera al control aislado, persiste sin las reglas diseñadas para producirla y depende del contenido real de la comunicación. Los criterios operativos están en [DEFINICIONES_FORMALES.md](DEFINICIONES_FORMALES.md) §3.1.
+8. **Independencia del reloj.** Una comunidad real no actúa al compás de un reloj común. Una propiedad que aparece con un esquema de actualización de la simulación y desaparece con otro es un artefacto del reloj, no de la población.
+
+Sólo se llama **emergente** a una propiedad poblacional que supera al control aislado, persiste sin las reglas diseñadas para producirla, depende del contenido real de la comunicación y no depende del esquema de actualización. Los criterios operativos están en [DEFINICIONES_FORMALES.md](DEFINICIONES_FORMALES.md) §3.1.
 
 ---
 

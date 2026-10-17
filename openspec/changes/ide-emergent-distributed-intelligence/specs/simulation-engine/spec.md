@@ -6,14 +6,14 @@ Orquestar el tiempo discreto mediante un pipeline determinista de 5 fases sin co
 ## ADDED Requirements
 
 ### Requirement: Construcción Reproducible
-`SimulationEngine(config, env=None, trust_strategy=None)` SHALL crear un único `np.random.Generator(np.random.PCG64(config.seed))`, construir `ToroidalGrid2D(config, rng)` si no se provee entorno, crear un `MicroAgent` por agente activo y lanzar `NotImplementedError` si `enable_specialization` es verdadero, si `epsilon_recheck > 0` o si `tau_policy` no es `"validation"`.
+`SimulationEngine(config, env=None, trust_strategy=None)` SHALL crear un único `np.random.Generator(np.random.PCG64(config.seed))`, construir `ToroidalGrid2D(config, rng)` si no se provee entorno, crear un `MicroAgent` por agente activo y lanzar `NotImplementedError` si `enable_specialization` es verdadero, si `epsilon_recheck > 0`, si `tau_policy` no es `"validation"` o si `update_scheme` no es `"synchronous"`.
 
 #### Scenario: Especialización fuera de alcance
 - **WHEN** se instancia con `SimulationConfig(enable_specialization=True)`
 - **THEN** se lanza `NotImplementedError`.
 
 #### Scenario: Mecanismos del Experimento 004 aún no implementados
-- **WHEN** se instancia con `SimulationConfig(epsilon_recheck=0.1)` o con `SimulationConfig(tau_policy="evidence_age")`
+- **WHEN** se instancia con `SimulationConfig(epsilon_recheck=0.1)`, con `SimulationConfig(tau_policy="evidence_age")` o con `SimulationConfig(update_scheme="asynchronous")`
 - **THEN** se lanza `NotImplementedError`.
 
 ### Requirement: Orden de Fases del Tick
@@ -22,6 +22,13 @@ Orquestar el tiempo discreto mediante un pipeline determinista de 5 fases sin co
 #### Scenario: Decisiones sobre la misma instantánea
 - **WHEN** dos agentes de la misma celda observan el mismo recurso benéfico
 - **THEN** ambos deciden a partir de la observación de la fase 1, aunque el primero lo consuma en la fase 4.
+
+### Requirement: Resolución de Conflictos por Prioridad Aleatoria
+Con `update_scheme="synchronous"`, la percepción, la comunicación y la decisión SHALL ser simultáneas, y cuando varios agentes intenten consumir el mismo recurso en el mismo tick, SHALL obtenerlo el que aparezca primero en la permutación del tick.
+
+#### Scenario: Sorteo de un recurso disputado
+- **WHEN** los agentes 3 y 8 están en la misma celda, ambos deciden `INTERACT` sobre el mismo recurso, y en la permutación del tick 8 aparece antes que 3
+- **THEN** el agente 8 recibe el valor real y el agente 3 recibe `ActionResult(INTERACT, None, None)`.
 
 ### Requirement: Permutación Reproducible del Orden de Agentes
 En cada tick el motor SHALL procesar a los agentes en el orden `rng.permutation(sorted(activos))`, usando ese mismo orden en todas las fases del tick.

@@ -84,11 +84,15 @@ Para todo `VisibleResource` con `distance > 0`, `recommended_move` SHALL pertene
 - **THEN** se lanza `ValueError`.
 
 ### Requirement: Interruptores de Ablación y Control
-`SimulationConfig` SHALL incluir `anti_echo_enabled: bool = True`, `enable_navigation: bool = True` y `comm_content_null: bool = False`, de modo que la configuración por defecto active todas las reglas de diseño y ningún control.
+`SimulationConfig` SHALL incluir `anti_echo_enabled: bool = True`, `enable_navigation: bool = True`, `comm_content_null: bool = False` y `update_scheme: str = "synchronous"`, de modo que la configuración por defecto active todas las reglas de diseño y ningún control; `update_scheme` SHALL validarse en `{"synchronous", "asynchronous"}`.
 
 #### Scenario: Valores por defecto
 - **WHEN** se instancia `SimulationConfig()`
-- **THEN** `anti_echo_enabled` y `enable_navigation` son verdaderos y `comm_content_null` es falso.
+- **THEN** `anti_echo_enabled` y `enable_navigation` son verdaderos, `comm_content_null` es falso y `update_scheme == "synchronous"`.
+
+#### Scenario: Esquema desconocido
+- **WHEN** se instancia `SimulationConfig(update_scheme="continuo")`
+- **THEN** se lanza `ValueError` cuyo mensaje menciona `update_scheme`.
 
 ### Requirement: Configuración Serializable
 `SimulationConfig.to_dict()` SHALL devolver un diccionario con todos los campos, serializable con `json.dumps` sin conversiones adicionales.

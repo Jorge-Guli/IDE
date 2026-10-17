@@ -56,7 +56,7 @@ El módulo SHALL definir `ATTRIBUTION_PROFILE = "quick"` y `EXP001_CLAIMS` con l
 - **THEN** E2 se cumple con `p_vs_isolated == 0.03125`.
 
 ### Requirement: Clasificación de Afirmaciones
-`classify` SHALL devolver `INSUFFICIENT_EVIDENCE` con menos de 5 semillas y, si no, en este orden: `NOT_OBSERVED` si falla E2; `PROGRAMMED` si `by_construction` o si falla E3; `ACTIVITY_ARTIFACT` si falla E4; `EMERGENT` en otro caso.
+`classify` SHALL devolver `INSUFFICIENT_EVIDENCE` con menos de 5 semillas y, si no, en orden: `NOT_OBSERVED` si falla E2; `PROGRAMMED` si `by_construction` o falla E3; `ACTIVITY_ARTIFACT` si falla E4; y si cumple E1–E4: `EMERGENT_PENDING_ROBUSTNESS` sin E5 evaluable, `SCHEDULING_ARTIFACT` si falla E5, `EMERGENT` si la cumple.
 
 #### Scenario: Programada por construcción
 - **WHEN** en cinco semillas `full` supera a `isolated` y `by_construction` es verdadero
@@ -70,9 +70,13 @@ El módulo SHALL definir `ATTRIBUTION_PROFILE = "quick"` y `EXP001_CLAIMS` con l
 - **WHEN** en cinco semillas `full` y `purpose_ablated` superan a `isolated`, pero `full` no supera a `null_content`
 - **THEN** el estado es `ACTIVITY_ARTIFACT`.
 
-#### Scenario: Propiedad emergente
-- **WHEN** en cinco semillas `full` y `purpose_ablated` superan a `isolated` y `full` supera a `null_content`
-- **THEN** el estado es `EMERGENT`.
+#### Scenario: Candidata sin prueba de robustez
+- **WHEN** en cinco semillas `full` y `purpose_ablated` superan a `isolated`, `full` supera a `null_content` y E5 no puede evaluarse
+- **THEN** el estado es `EMERGENT_PENDING_ROBUSTNESS` y `e5_evaluated` es falso.
+
+#### Scenario: Artefacto del reloj
+- **WHEN** una afirmación cumple E1–E4 pero, bajo el esquema asíncrono, `full` deja de superar a `isolated`
+- **THEN** el estado es `SCHEDULING_ARTIFACT`.
 
 #### Scenario: Pocas semillas
 - **WHEN** se clasifica con tres semillas
@@ -86,7 +90,7 @@ Para cada afirmación, 001-D SHALL medir además una variante por cada regla abl
 - **THEN** cada evaluación tiene `rule_effects` con exactamente las claves `R3`..`R11`.
 
 ### Requirement: Protocolo 001-D de Atribución
-`run_protocol_001d_attribution(config, seeds, claims=EXP001_CLAIMS)` SHALL medir cada afirmación con `ATTRIBUTION_PROFILE` en las variantes `full`, `isolated`, `purpose_ablated` (salvo por construcción o $R_c$ vacío), `null_content` y `without:<Rk>`, y devolver un `AttributionReport` con el perfil, las reglas y una `ClaimEvaluation` por afirmación.
+`run_protocol_001d_attribution(config, seeds, claims=EXP001_CLAIMS, jobs=1)` SHALL medir cada afirmación con `ATTRIBUTION_PROFILE` en las variantes `full`, `isolated`, `purpose_ablated` (salvo por construcción o $R_c$ vacío), `null_content` y `without:<Rk>`, y devolver un `AttributionReport` con el perfil, las reglas y una `ClaimEvaluation` por afirmación.
 
 #### Scenario: Reporte completo
 - **WHEN** se ejecuta con cinco semillas y las afirmaciones por defecto

@@ -35,7 +35,8 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
   - **REFACTOR:** limpieza con la suite en verde.
 - Antes de marcar una tarea `[x]` o hacer commit, corre las verificaciones y muestra su salida (`superpowers:verification-before-completion`).
 - Ante un test que falla o un resultado inesperado, usa `superpowers:systematic-debugging`. En este proyecto un resultado raro puede ser un bug **o** un hallazgo científico: no los confundas.
-- Al cerrar cada bloque, corre `/code-review`.
+- Un bloque sólo está completo si pasan `ruff check`, `ruff format --check`, `pyright` y `pytest --cov=ide`. Después corre `/code-review`.
+- Además de los escenarios de las specs, verifica los invariantes con pruebas por propiedades (Hypothesis, perfil `ci` con `derandomize=True`).
 
 ## Reglas de arquitectura (invariantes)
 
@@ -50,6 +51,9 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 - Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. El control nulo usa su propio generador.
 - **Prohibido** iterar un `set`, o el resultado de una operación de conjuntos, sin `sorted(...)`. Python aleatoriza el hash de `str` por proceso. `Pattern` tiene `order=True` y es la clave canónica de orden.
 - Toda selección aleatoria (`rng.choice`, `rng.permutation`) opera sobre listas ya ordenadas.
+- Simultaneidad: percepción, comunicación y decisión son sincrónicas; sólo los conflictos físicos se resuelven por la permutación del tick, que funciona como un sorteo. No introduzcas efectos de orden en otras fases.
+- El paralelismo (`--jobs`) es sólo **entre** corridas independientes, nunca dentro de una corrida, y la salida debe ser idéntica para cualquier `N`.
+- No vectorices ni compiles el bucle de agentes sin una medición que lo justifique. Si se hace, valida la versión rápida contra la actual exigiendo historiales idénticos.
 - Los floats calculados se comparan con `pytest.approx(..., abs=1e-9)`. Sólo los tests de determinismo exigen igualdad exacta, incluida la igualdad entre procesos con distinto `PYTHONHASHSEED`.
 
 ## Regla metodológica central
@@ -69,11 +73,13 @@ Disponibles a partir del bloque 1 de `tasks.md`:
 
 ```bash
 pip install -e ".[dev]"                     # instalar (cada sesión en la nube arranca limpia)
-pytest                                      # suite de software (excluye hypothesis y slow)
+ruff check && ruff format --check && pyright   # calidad estática
+pytest --cov=ide                            # suite de software (excluye empirical y slow)
 pytest -m slow                              # corridas largas de software (001-D completo)
-pytest -m hypothesis                        # expectativas empíricas: pueden fallar legítimamente
+pytest -m empirical                        # expectativas empíricas: pueden fallar legítimamente
 python -m ide.experiments.exp001_runner --profile quick --seeds 42
-python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution
+python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4
+python -m ide.experiments.benchmark          # línea base de rendimiento (ticks por segundo)
 ```
 
 ## Git

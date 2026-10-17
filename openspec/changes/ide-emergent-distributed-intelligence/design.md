@@ -79,7 +79,7 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - **Racional:** Es la definición formal de conocimiento colectivo "accesible a $\le d$ saltos" con $d=1$, y mide exactamente el meta-agente de la Decisión 4.
 
 ### 10. Hipótesis científica ≠ test de software
-- **Decisión:** Las expectativas empíricas sobre los mecanismos programados (superávit en 001-A, contención en 001-B) se verifican sobre las semillas `42..46` con tests marcados `@pytest.mark.hypothesis`. H1 exige que `collective_surplus > 0` en las 5 semillas, lo que equivale a una prueba de signo unilateral con $p = 1/32 \approx 0.031 < 0.05$. Esos tests están excluidos de la corrida por defecto (`addopts = "-m 'not hypothesis'"`) y ejecutados con `pytest -m hypothesis`. Un resultado negativo **no** autoriza a ajustar parámetros para "hacer pasar" el test: se reporta como hallazgo (criterio de falsabilidad del Documento Fundacional §10).
+- **Decisión:** Las expectativas empíricas sobre los mecanismos programados (superávit en 001-A, contención en 001-B) se verifican sobre las semillas `42..46` con tests marcados `@pytest.mark.empirical`. H1 exige que `collective_surplus > 0` en las 5 semillas, lo que equivale a una prueba de signo unilateral con $p = 1/32 \approx 0.031 < 0.05$. Esos tests están excluidos de la corrida por defecto (`addopts = "-m 'not empirical and not slow'"`) y ejecutados con `pytest -m empirical`. Un resultado negativo **no** autoriza a ajustar parámetros para "hacer pasar" el test: se reporta como hallazgo (criterio de falsabilidad del Documento Fundacional §10).
 - **Racional:** Evitar *p-hacking* y mantener la suite de software estable e independiente del resultado científico.
 
 ### 11. Protocolos con perfiles `quick` y `full`
@@ -122,7 +122,8 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
   - **E3 Independencia del propósito:** `m(purpose_ablated)` sigue superando a `m(isolated)`. Si $R_c$ es vacío, se cumple trivialmente.
   - **E4 Dependencia del contenido:** `m(full)` supera a `m(null_content)`.
 - **Programada por construcción:** si `ablate(config, R_c)` deja a la población sin ningún canal de emisión (`comm_enabled` falso, o `max_queries_per_tick == 0` y `max_broadcast_per_tick == 0`), la variante `purpose_ablated` es idéntica a la aislada y E3 **no es una prueba sino una tautología**. En ese caso el estado es `PROGRAMMED` con `by_construction=True`, sin p-valor de E3. No se presenta como resultado empírico sino como consecuencia de la regla.
-- **Clasificación:** `INSUFFICIENT_EVIDENCE` con menos de 5 semillas; `NOT_OBSERVED` si falla E2; `PROGRAMMED` (por construcción o porque falla E3); `ACTIVITY_ARTIFACT` si cumple E2 y E3 pero falla E4; `EMERGENT` si cumple E1–E4.
+- **E5 Robustez al esquema de actualización (Decisión 15):** bajo `update_scheme="asynchronous"`, la afirmación vuelve a cumplir E2 y E3.
+- **Clasificación:** `INSUFFICIENT_EVIDENCE` con menos de 5 semillas; `NOT_OBSERVED` si falla E2; `PROGRAMMED` (por construcción o porque falla E3); `ACTIVITY_ARTIFACT` si cumple E2 y E3 pero falla E4; si cumple E1–E4: `EMERGENT_PENDING_ROBUSTNESS` cuando E5 no puede evaluarse, `SCHEDULING_ARTIFACT` si falla E5 y `EMERGENT` si la cumple.
 - **Control nulo de contenido** (`comm_content_null=True`): las reglas de emisión, recepción y ruteo no cambian, pero cada **entrega** (mensaje × receptor) recibe la creencia con `predicted_value` reemplazado por `+1.0` o `-1.0` al azar, conservando patrón, confianza, evidencia, τ y origen. Las extracciones salen de un generador **propio** (`PCG64(SeedSequence(seed, spawn_key=(1,)))`), así que el control no desplaza la secuencia aleatoria principal. El volumen de mensajes **no** se fija: depende de las creencias, por lo que cada variante reporta su propio `mean_messages_per_agent`.
 - **Qué puede y qué no puede concluir el Experimento 001:**
   - C1, C2 y C4 (acceso, superávit de decisión y persistencia) son **programadas por construcción** bajo el protocolo N0. No es una predicción: es lo que la regla establece mientras el canal transmita creencias con semántica de fábrica.
@@ -137,10 +138,40 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - **Racional:** hoy el agente recibe de fábrica `QUERY_PATTERN`, `QUERY_RESPONSE` y `BROADCAST_BELIEF`. El programa de investigación prevé eliminar esa semántica de forma progresiva (Documento Fundacional §8) hasta preguntar si una población puede inventar su propio protocolo (Experimento 007).
 - **Alcance real del aislamiento:** el nivel N1 (sin consultas) es sólo configuración (`max_queries_per_tick=0`). Desde N2, el contenido del mensaje deja de ser un `KnowledgeUnit`, así que además del protocolo cambiarán el tipo de carga útil de `Message`, su validación en `domain/types.py`, la puerta de entrada social del agente (`assimilate_testimony`) y el control nulo del motor. Lo que este cambio garantiza es que **dentro del agente** la construcción e interpretación de mensajes esté en un solo lugar, y que el ruteo del motor no dependa del contenido salvo en el control nulo.
 
+### 15. Simultaneidad declarada y robustez al esquema de actualización
+- **Esquema por defecto (`update_scheme="synchronous"`):** la percepción, la comunicación y la decisión son **simultáneas**: todos los agentes observan la misma instantánea, emiten antes de que nadie procese y deciden sin ver lo que otro hace en el mismo tick. Lo único que se ordena es la **resolución de conflictos** físicos: si dos agentes intentan consumir el mismo recurso en el mismo tick, lo obtiene el de mayor prioridad en una permutación aleatoria uniforme (`rng.permutation`), que funciona como un sorteo justo.
+- **Por qué importa:** ni el reloj sincrónico ni el orden barajado son "realistas"; una comunidad real es asíncrona. En simulación basada en agentes hay patrones que aparecen con actualización sincrónica y desaparecen con la asíncrona (Huberman y Glance, 1993). Una propiedad que depende del esquema de actualización es un **artefacto del reloj**, no de la población.
+- **Contrato del esquema alternativo (`update_scheme="asynchronous"`):** secuencial aleatorio. En cada tick los agentes se activan de a uno en el orden de la permutación, y cada uno completa su ciclo (observar, comunicarse con sus vecinos, decidir y actuar) viendo el mundo ya modificado por los anteriores. Se implementará junto con el barrido de densidad; hasta entonces el motor lo rechaza con `NotImplementedError`.
+- **Criterio E5 (Decisión 13):** una afirmación que cumple E1–E4 debe volver a cumplir E2 y E3 bajo el esquema alternativo antes de declararse `EMERGENT`. Mientras E5 no pueda evaluarse, su estado es `EMERGENT_PENDING_ROBUSTNESS`.
+
+### 16. Pruebas por propiedades
+- **Decisión:** además de los escenarios de las specs, los invariantes se verifican con **Hypothesis**, que genera entradas al azar y reduce cualquier contraejemplo al caso mínimo. Los invariantes mínimos son:
+  - **Memoria:** `len(memory) <= capacity` tras cualquier secuencia de `upsert` y `decay_step`; ninguna creencia queda con confianza menor que `min_confidence` después de `decay_step`.
+  - **Epistemología:** para cualquier entrada válida, `update_from_direct_experience` y `merge_social_belief` devuelven `predicted_value` en `[-1, 1]` y `confidence` en `[0, 1]`; el intercambio repetido de rumores nunca supera `max(c_A, γ c_B)`.
+  - **Grilla:** la distancia toroidal es simétrica, y mover `d` y luego `-d` vuelve a la celda original.
+  - **Determinismo:** para cualquier semilla, dos motores pequeños producen historiales idénticos.
+- **Reproducibilidad:** el perfil `ci` usa `derandomize=True`, así que la generación de casos también es determinista.
+
+### 17. Herramientas de calidad
+- **Decisión:** `ruff check` y `ruff format --check` (estilo y errores comunes), `pyright` en modo estricto sobre `src/` (el tipado "verificable estáticamente" de `DEFINICIONES_TECNICAS.md` deja de ser una promesa) y `pytest --cov=ide` (cobertura). Las cuatro verificaciones deben pasar antes de marcar un bloque como completo.
+
+### 18. Rendimiento por diseño, sin cambiar el modelo
+- **Decisión:** desde el día 0 se hace todo lo que acelera **sin tocar la semántica**:
+  - **Paralelismo entre corridas:** cada corrida es una función pura de su configuración, así que la CLI acepta `--jobs N` (por defecto 1) y reparte las corridas independientes (semillas, niveles de ablación y variantes de 001-D) en un `ProcessPoolExecutor`. Los resultados se reúnen por clave y en orden fijo; la salida es idéntica byte a byte para cualquier `N`.
+  - **Línea base medida:** `python -m ide.experiments.benchmark` mide ticks por segundo en una configuración fija (la base del Exp 001, 300 ticks, 3 repeticiones) y escribe `benchmark.json` con la mediana, la versión de Python y la plataforma. El valor de referencia se registra al cerrar el bloque 8.
+  - **Perfiladores instalados** (`py-spy`, `line_profiler`), sin usarlos hasta que una medición lo justifique.
+- **Lo que no se hace ahora:** vectorizar o compilar el bucle de agentes. Fundiría a los agentes en matrices compartidas y dificultaría la ablación de reglas y la des-programación del protocolo. Cuando se escale (Exp 006 o el barrido de densidad), la versión rápida se validará contra esta implementación clara, exigiendo historiales idénticos; la versión clara actúa como **oráculo**.
+
 ## Especificación Estructural de Módulos y Firmas Exactas
 
 ### Mapa de archivos a crear
-- `pyproject.toml`: paquete `ide` en `src/`, `requires-python = ">=3.11"`, dependencias `numpy>=1.26`; extra `dev`: `pytest>=8.0`. `[tool.pytest.ini_options]`: `pythonpath = ["src"]`, `testpaths = ["tests"]`, `markers = ["hypothesis: validación empírica de hipótesis científicas (lenta, puede fallar legítimamente)", "slow: corridas largas de software, como 001-D completo"]`, `addopts = "-m 'not hypothesis and not slow'"`.
+- `pyproject.toml` (ver Decisión 17):
+  - Paquete `ide` en `src/`, `requires-python = ">=3.11"`, dependencia `numpy>=1.26`.
+  - Extra `dev`: `pytest>=8.0`, `pytest-cov>=5.0`, `hypothesis>=6.100`, `ruff>=0.6`, `pyright>=1.1.380`, `py-spy>=0.3`, `line_profiler>=4.1`.
+  - `[tool.pytest.ini_options]`: `pythonpath = ["src"]`, `testpaths = ["tests"]`, `markers = ["empirical: expectativas empíricas sobre los mecanismos (lentas, pueden fallar legítimamente)", "slow: corridas largas de software, como 001-D completo"]`, `addopts = "-m 'not empirical and not slow'"`.
+  - `[tool.ruff]`: `target-version = "py311"`, `line-length = 100`, `src = ["src", "tests"]`; `[tool.ruff.lint] select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]`.
+  - `[tool.pyright]`: `include = ["src"]`, `typeCheckingMode = "strict"`, `pythonVersion = "3.11"`.
+- `tests/conftest.py`: registra el perfil de Hypothesis `ci` (`derandomize=True`, `deadline=None`, `max_examples=200`) y lo carga por defecto. Las pruebas por propiedades son así reproducibles entre corridas.
 - `.gitignore`: `__pycache__/`, `*.egg-info/`, `.pytest_cache/`, `results/`.
 - `src/ide/__init__.py`
 - `src/ide/config.py`: `SimulationConfig`
@@ -148,7 +179,7 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - `src/ide/agent/{__init__,memory,epistemology,protocol,micro_agent}.py`
 - `src/ide/environments/{__init__,grid2d}.py`
 - `src/ide/simulation/{__init__,engine,controls}.py`
-- `src/ide/experiments/{__init__,metrics,attribution,exp001_runner}.py`
+- `src/ide/experiments/{__init__,metrics,attribution,exp001_runner,benchmark}.py`
 
 ### 1. `src/ide/config.py`
 ```python
@@ -184,6 +215,7 @@ class SimulationConfig:
     anti_echo_enabled: bool = True         # ablación de R6 (Decisión 13)
     enable_navigation: bool = True         # ablación de R11 (Decisión 13)
     comm_content_null: bool = False        # control nulo E4 (Decisión 13)
+    update_scheme: str = "synchronous"     # Decisión 15: "synchronous" | "asynchronous" (contrato)
     enforce_memory_constraint: bool = True
 
     def __post_init__(self) -> None: ...
@@ -197,6 +229,7 @@ class SimulationConfig:
 5. `lambda_decay >= 0`, `passive_conf_decay >= 0`, `max_broadcast_per_tick >= 0`, `max_queries_per_tick >= 0`.
 6. `min_confidence < decision_conf_threshold`.
 7. `epsilon_recheck` en `[0.0, 1.0]` y `tau_policy` en `{"validation", "evidence_age"}`.
+8. `update_scheme` en `{"synchronous", "asynchronous"}`.
 
 Variantes de configuración se construyen con `dataclasses.replace(config, ...)`.
 
@@ -459,6 +492,8 @@ class SimulationEngine:
             raise NotImplementedError("Especialización (Exp 003) fuera de alcance del Exp 001")
         if config.epsilon_recheck > 0 or config.tau_policy != "validation":
             raise NotImplementedError("Mecanismos anti-trampa de evitación (Exp 004) fuera de alcance del Exp 001")
+        if config.update_scheme != "synchronous":
+            raise NotImplementedError("Esquema asíncrono (Decisión 15) previsto para el barrido de densidad")
         self.config = config
         self.rng = np.random.Generator(np.random.PCG64(config.seed))
         self.env: EnvironmentPort = env if env is not None else ToroidalGrid2D(config, self.rng)
@@ -617,7 +652,7 @@ def main(argv: list[str] | None = None) -> int: ...
 - **Convención de offsets:** todo conteo "k ticks después" de una perturbación empieza en `k = 1` (el primer tick ejecutado tras ella).
 - **`aggregate_reports`** (varias semillas del mismo protocolo): por campo escalar numérico, `{"mean", "std", "n"}` con desvío poblacional (`ddof=0`); por campo `bool`, la fracción de `True`; por campo `dict`, la misma agregación por clave; los valores `None` se excluyen y `n` cuenta los restantes. Para 001-A agrega además `surplus_sign_test_p = sign_test_p_value([r.collective_surplus ...])`.
 - **`sign_test_p_value`:** prueba de signo unilateral (H1: diferencia > 0). Se descartan los ceros; con `n` restantes y `s` positivos, `p = Σ_{i=s..n} C(n, i) / 2^n` (1.0 si `n == 0`). No requiere `scipy`.
-- **CLI:** `python -m ide.experiments.exp001_runner [--profile {quick,full}] [--seeds 42 43 ...] [--out results/]`, con valores por defecto `full`, `42` y `results/`. Escribe `exp001_seed{seed}.json` (config + los tres reportes vía `report_to_dict`, con claves ordenadas e `indent=2`), `exp001_aggregate.json` cuando hay más de una semilla, y `exp001a_seed{seed}_timeseries.csv`. Imprime un resumen legible en consola y devuelve 0.
+- **CLI:** `python -m ide.experiments.exp001_runner [--profile {quick,full}] [--seeds 42 43 ...] [--out results/] [--jobs N]`, con valores por defecto `full`, `42`, `results/` y `1`. `--jobs` reparte las corridas independientes en procesos (Decisión 18) sin alterar la salida. Escribe `exp001_seed{seed}.json` (config + los tres reportes vía `report_to_dict`, con claves ordenadas e `indent=2`), `exp001_aggregate.json` cuando hay más de una semilla, y `exp001a_seed{seed}_timeseries.csv`. Imprime un resumen legible en consola y devuelve 0.
 - **CSV de series temporales:** una fila por `(mode, tick)` con `mode ∈ {collective, isolated}`; columnas en este orden: `mode`, los campos escalares de `TickMetrics` en orden de declaración, `prevalence[<label>]` y `false_prevalence[<label>]` por patrón en orden de `Pattern`.
 
 ### 9. Atribución de emergencia (`src/ide/experiments/attribution.py`)
@@ -643,6 +678,8 @@ class ClaimStatus(Enum):
     NOT_OBSERVED = "NOT_OBSERVED"
     PROGRAMMED = "PROGRAMMED"
     ACTIVITY_ARTIFACT = "ACTIVITY_ARTIFACT"
+    EMERGENT_PENDING_ROBUSTNESS = "EMERGENT_PENDING_ROBUSTNESS"
+    SCHEDULING_ARTIFACT = "SCHEDULING_ARTIFACT"
     EMERGENT = "EMERGENT"
 
 @dataclass(frozen=True)
@@ -655,6 +692,7 @@ class ClaimEvaluation:
     p_vs_isolated: float                       # E2
     p_purpose_ablated_vs_isolated: float | None  # E3 (None si R_c es vacío o by_construction)
     p_vs_null_content: float                   # E4
+    e5_evaluated: bool                         # False mientras el esquema asíncrono no exista
     rule_effects: dict[str, float]             # regla -> media de d(full, sin esa regla)
 
 @dataclass(frozen=True)
@@ -672,7 +710,7 @@ def measure_claim(claim: EmergenceClaim, config: SimulationConfig, profile: str)
 def classify(claim: EmergenceClaim, values: dict[str, Sequence[float]], by_construction: bool,
              alpha: float = 0.05) -> ClaimEvaluation: ...
 def run_protocol_001d_attribution(config: SimulationConfig, seeds: Sequence[int],
-        claims: Sequence[EmergenceClaim] = EXP001_CLAIMS) -> AttributionReport: ...
+        claims: Sequence[EmergenceClaim] = EXP001_CLAIMS, jobs: int = 1) -> AttributionReport: ...
 
 # src/ide/simulation/controls.py
 def nullify_belief(belief: KnowledgeUnit, rng: np.random.Generator) -> KnowledgeUnit: ...
@@ -691,7 +729,7 @@ def nullify_belief(belief: KnowledgeUnit, rng: np.random.Generator) -> Knowledge
 - **`nullify_belief`:** devuelve la creencia con `predicted_value = +1.0` si `rng.random() < 0.5`, si no `-1.0`, y el resto de los campos intactos. Fijar la magnitud evita filtrar información (una creencia atenuada por refutación tiene magnitud menor).
 - **`measure_claim`:** para `001a` corre un único motor con `config` durante los ticks del perfil y lee la métrica del último `TickMetrics`; para `001b` y `001c` corre el protocolo con los parámetros del perfil (`001c` sólo con el nivel `0.5`) y lee el campo del reporte.
 - **Variantes por semilla:** `full` (config de la semilla), `isolated` (`comm_enabled=False`), `purpose_ablated` (`ablate(config, R_c)`; se omite si $R_c$ es vacío o si `disables_communication(ablate(config, R_c))`), `null_content` (`comm_content_null=True`) y `without:<Rk>` para cada regla ablacionable (perfil de contribución). Todas usan `ATTRIBUTION_PROFILE`.
-- **`classify`:** con `d(a, b)_s = m_a,s - m_b,s` si `higher_is_better`, o `m_b,s - m_a,s` si no: E2 = `sign_test_p_value(d(full, isolated)) < α`; E3 = `sign_test_p_value(d(purpose_ablated, isolated)) < α` (verdadero si $R_c$ es vacío; no se evalúa si `by_construction`); E4 = `sign_test_p_value(d(full, null_content)) < α`. Con menos de 5 semillas devuelve `INSUFFICIENT_EVIDENCE`; si no, aplica la clasificación de la Decisión 13 en ese orden. `rule_effects[Rk]` es la media sobre semillas de `d(full, without:Rk)`.
+- **`classify`:** con `d(a, b)_s = m_a,s - m_b,s` si `higher_is_better`, o `m_b,s - m_a,s` si no: E2 = `sign_test_p_value(d(full, isolated)) < α`; E3 = `sign_test_p_value(d(purpose_ablated, isolated)) < α` (verdadero si $R_c$ es vacío; no se evalúa si `by_construction`); E4 = `sign_test_p_value(d(full, null_content)) < α`. Con menos de 5 semillas devuelve `INSUFFICIENT_EVIDENCE`; si no, aplica la clasificación de la Decisión 13 en ese orden. E5 se evalúa sólo si `values` contiene las variantes `async:full` y `async:isolated` (y `async:purpose_ablated` cuando corresponde a E3), medidas con `update_scheme="asynchronous"`. En el Exp 001 no existen (`e5_evaluated=False`), así que el mejor estado alcanzable es `EMERGENT_PENDING_ROBUSTNESS`. `rule_effects[Rk]` es la media sobre semillas de `d(full, without:Rk)`.
 - **Costo:** con 5 semillas, 4 afirmaciones y hasta 13 variantes, 001-D ejecuta unas 260 corridas del perfil `quick`. Es un análisis lento y no forma parte de la suite por defecto.
 - **CLI:** `--attribution` ejecuta 001-D (definido en `attribution.py`) siempre con `ATTRIBUTION_PROFILE`, sin importar `--profile`, y agrega `exp001_attribution.json` con el `AttributionReport` más una tabla en consola (afirmación, estado, si es por construcción y p-valores). Con menos de 5 semillas avisa que el resultado será `INSUFFICIENT_EVIDENCE`.
 
@@ -716,16 +754,20 @@ def nullify_belief(belief: KnowledgeUnit, rng: np.random.Generator) -> Knowledge
 - [ ] **Persistencia social válida:** `ablate_discoverers(..., retire_stimulus=True)` elimina descubridores y recursos físicos.
 - [ ] **Determinismo intra-proceso:** dos motores con la misma `seed` producen historiales, posiciones y memorias idénticas.
 - [ ] **Determinismo inter-proceso:** la CLI con `--profile quick` genera JSON idéntico bajo `PYTHONHASHSEED=0` y `PYTHONHASHSEED=1`.
-- [ ] **Suite de software verde:** `pytest` (sin el marcador `hypothesis`).
-- [ ] **Hipótesis ejecutadas y reportadas:** `pytest -m hypothesis` corrido sobre las semillas 42..46 y su resultado (positivo o negativo) registrado.
+- [ ] **Suite de software verde:** `pytest --cov=ide` (sin los marcadores `empirical` ni `slow`), `ruff check`, `ruff format --check` y `pyright`.
+- [ ] **Paralelismo inocuo:** la CLI produce archivos idénticos con `--jobs 1` y `--jobs 4`.
+- [ ] **Línea base de rendimiento registrada:** `benchmark.json` generado al cerrar el bloque 8.
+- [ ] **Hipótesis ejecutadas y reportadas:** `pytest -m empirical` corrido sobre las semillas 42..46 y su resultado (positivo o negativo) registrado.
 
 ## Setup, Ejecución y Validación Local
 
 ```bash
 pip install -e ".[dev]"                                   # instalar
-pytest -v                                                 # suite de software
-pytest -m hypothesis -v                                   # hipótesis científicas (lento)
+ruff check && ruff format --check && pyright              # calidad estática
+pytest -v --cov=ide                                       # suite de software
+pytest -m empirical -v                                   # hipótesis científicas (lento)
 python -m ide.experiments.exp001_runner --profile quick   # corrida rápida
-python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --out results/
+python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --out results/ --jobs 4
+python -m ide.experiments.benchmark                       # línea base de rendimiento
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution   # 001-D, perfil pre-registrado
 ```

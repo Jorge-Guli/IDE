@@ -105,21 +105,21 @@ Las métricas SHALL considerar sólo las creencias de `BoundedMemory`. Una creen
 - **THEN** la ventana contiene exactamente los 5 primeros ticks posteriores a la ablación.
 
 ### Requirement: Separación entre Software e Hipótesis
-Los tests que afirman resultados empíricos sobre los mecanismos programados (por ejemplo, `collective_surplus > 0`) SHALL marcarse con `@pytest.mark.hypothesis` y quedar excluidos de `pytest` por defecto; su fracaso SHALL reportarse como hallazgo, no corregirse ajustando parámetros.
+Los tests que afirman resultados empíricos sobre los mecanismos programados (por ejemplo, `collective_surplus > 0`) SHALL marcarse con `@pytest.mark.empirical` y quedar excluidos de `pytest` por defecto; su fracaso SHALL reportarse como hallazgo, no corregirse ajustando parámetros.
 
 #### Scenario: Corrida por defecto
 - **WHEN** se ejecuta `pytest` sin argumentos
-- **THEN** no se ejecuta ningún test marcado `hypothesis`.
+- **THEN** no se ejecuta ningún test marcado `empirical`.
 
 ### Requirement: Expectativa Funcional de Superávit (H1)
-H1 verifica que los mecanismos de comunicación programados cumplen su propósito; por la regla de atribución no constituye una afirmación de emergencia. Bajo `pytest -m hypothesis`, la suite SHALL ejecutar 001-A con `total_ticks=300` para las semillas 42 a 46 y verificar en las cinco que `collective_accessible_coverage > isolated_accessible_coverage` y `collective_surplus > 0` (prueba de signo unilateral, p = 1/32).
+H1 verifica que los mecanismos de comunicación programados cumplen su propósito; por la regla de atribución no constituye una afirmación de emergencia. Bajo `pytest -m empirical`, la suite SHALL ejecutar 001-A con `total_ticks=300` para las semillas 42 a 46 y verificar en las cinco que `collective_accessible_coverage > isolated_accessible_coverage` y `collective_surplus > 0` (prueba de signo unilateral, p = 1/32).
 
 #### Scenario: Verificación del superávit multi-semilla
 - **WHEN** se ejecuta `run_protocol_001a_surplus(SimulationConfig(seed=s), total_ticks=300)` para `s` en 42..46
 - **THEN** se espera que en cada reporte la cobertura accesible colectiva supere a la aislada, y que `sign_test_p_value` de los cinco `collective_surplus` sea `< 0.05`.
 
 ### Requirement: Hipótesis de Contención de Falsedad
-Bajo `pytest -m hypothesis`, la suite SHALL verificar, para las semillas 42 a 46, que la prevalencia final del rumor falso es menor que la inicial.
+Bajo `pytest -m empirical`, la suite SHALL verificar, para las semillas 42 a 46, que la prevalencia final del rumor falso es menor que la inicial.
 
 #### Scenario: Contención del rumor
 - **WHEN** se ejecuta `run_protocol_001b_falsification(SimulationConfig(seed=s), total_ticks=300, injection_tick=80, injection_fraction=0.25)` para `s` en 42..46
@@ -137,11 +137,15 @@ Bajo `pytest -m hypothesis`, la suite SHALL verificar, para las semillas 42 a 46
 - **THEN** la entrada de `id=p_3` tiene `mean == 12` y `n == 1`.
 
 ### Requirement: CLI Reproducible Multi-Semilla
-`python -m ide.experiments.exp001_runner` SHALL aceptar `--profile {quick,full}` (por defecto `full`), `--seeds` (por defecto `42`) y `--out` (por defecto `results/`), y escribir por semilla un JSON con la configuración y los tres reportes, un CSV de series temporales de 001-A y, con varias semillas, un JSON agregado con media y desvío.
+`python -m ide.experiments.exp001_runner` SHALL aceptar `--profile {quick,full}` (por defecto `full`), `--seeds` (por defecto `42`), `--out` (por defecto `results/`) y `--jobs` (por defecto `1`), y escribir por semilla un JSON con la configuración y los tres reportes, un CSV de series temporales de 001-A y, con varias semillas, un JSON agregado con media y desvío.
 
 #### Scenario: Valores por defecto
 - **WHEN** se ejecuta `build_arg_parser().parse_args([])`
-- **THEN** el perfil es `full`, las semillas son `[42]` y el directorio de salida es `results/`.
+- **THEN** el perfil es `full`, las semillas son `[42]`, el directorio de salida es `results/` y `jobs == 1`.
+
+#### Scenario: Paralelismo inocuo
+- **WHEN** se ejecuta `--profile quick --seeds 42 43` una vez con `--jobs 1` y otra con `--jobs 2`
+- **THEN** todos los archivos generados son idénticos byte a byte.
 
 #### Scenario: Determinismo entre procesos
 - **WHEN** se ejecuta `--profile quick --seeds 42` dos veces, con `PYTHONHASHSEED=0` y con `PYTHONHASHSEED=1`

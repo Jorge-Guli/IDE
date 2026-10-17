@@ -21,7 +21,9 @@ Como el agente ya incorpora mucha inteligencia de diseño (confianza, descuento 
   - **001-C:** Resiliencia ante Daño Poblacional ($10\%, 30\%, 50\%, 70\%$) y Persistencia Extra-Individual.
   - **001-D:** Atribución de emergencia: ablación de las reglas de diseño, control nulo de contenido y clasificación de cada afirmación pre-registrada (`PROGRAMMED`, `EMERGENT`, etc.).
   - **Hooks de Extensión (002–006):** Puntos de extensión para estrategias de confianza social, especialización emergente, shock ambiental, inteligencia composicional y evolución (sólo contratos; su lógica queda fuera de este cambio).
-- CLI multi-semilla con exportación JSON/CSV y separación entre la suite de software (`pytest`) y la verificación de hipótesis científicas (`pytest -m hypothesis`), cuyos resultados negativos se reportan sin ajustar parámetros.
+- Simultaneidad declarada (percepción, comunicación y decisión sincrónicas; conflictos resueltos por sorteo) y un criterio de robustez al esquema de actualización (E5), para que el reloj de la simulación no pueda producir falsos positivos de emergencia.
+- Calidad verificable desde el día 0: Ruff, Pyright estricto, pruebas por propiedades con Hypothesis, cobertura, una línea base de rendimiento medida y paralelismo entre corridas (`--jobs`) que no altera los resultados.
+- CLI multi-semilla con exportación JSON/CSV y separación entre la suite de software (`pytest`) y la verificación de expectativas empíricas (`pytest -m empirical`), cuyos resultados negativos se reportan sin ajustar parámetros.
 
 ## Capabilities
 
@@ -34,6 +36,7 @@ Como el agente ya incorpora mucha inteligencia de diseño (confianza, descuento 
 - `simulation-engine`: Orquestador de ticks en 5 fases síncronas con aleatorización reproducible de orden de agentes e inyección controlada de perturbaciones.
 - `experimental-suite`: Cálculo de métricas M1–M7, ejecución reproducible de los protocolos 001-A, 001-B y 001-C, exportación de resultados en JSON/CSV y CLI de ejecución.
 - `emergence-attribution`: Inventario de reglas de diseño con propósito declarado, ablaciones, control nulo de contenido, registro pre-declarado de afirmaciones y clasificación automática emergente/programado (protocolo 001-D).
+- `quality-tooling`: Calidad estática (Ruff, Pyright estricto), pruebas por propiedades reproducibles con Hypothesis, cobertura y línea base de rendimiento.
 - `roadmap-extensions`: Contratos e interfaces de extensión para los Experimentos 002 (Revalidación Social y Reputación), 003 (Especialización Emergente), 004 (Reorganización ante Shock Ambiental), 005 (Inteligencia Composicional) y 006 (Evolución y Selección).
 
 ### Modified Capabilities
@@ -41,7 +44,7 @@ Como el agente ya incorpora mucha inteligencia de diseño (confianza, descuento 
 
 ## Impact
 
-- **Código nuevo:** Creación completa de `src/ide/` y `tests/` (13 módulos de producción y suite de pruebas unitarias, de integración y de hipótesis con `pytest`).
+- **Código nuevo:** Creación completa de `src/ide/` y `tests/` (15 módulos de producción y suite de pruebas unitarias, de integración y de hipótesis con `pytest`).
 - **Dependencias:** Python $\ge 3.11$, `numpy` (para RNG reproducible y agregaciones estadísticas) y `pytest` (desarrollo/testing).
 - **Reglas Arquitectónicas Aplicadas:**
   - Prohibición estricta de importar `environments` dentro de `src/ide/agent/`.

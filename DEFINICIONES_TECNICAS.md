@@ -11,7 +11,9 @@ Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en 
 - **Lenguaje:** Python $\ge 3.11$.
 - **Tipado:** Estricto (`typing`, `dataclasses`, `Protocol`, `Enum`).
 - **Dependencias del núcleo:** biblioteca estándar + `numpy` (generador reproducible `np.random.Generator(np.random.PCG64(seed))` y agregaciones).
-- **Testing y análisis:** `pytest`; exportación JSON y CSV desacoplada del motor.
+- **Testing y análisis:** `pytest` con `pytest-cov` (cobertura) e `hypothesis` (pruebas por propiedades con generación reproducible); exportación JSON y CSV desacoplada del motor.
+- **Calidad estática:** `ruff` (lint y formato) y `pyright` en modo estricto sobre `src/`. Un bloque de trabajo sólo se cierra con las cuatro verificaciones en verde.
+- **Rendimiento:** paralelismo entre corridas independientes (`--jobs N`, con salida idéntica para cualquier `N`), una línea base medida (`ide.experiments.benchmark`) y perfiladores instalados (`py-spy`, `line_profiler`). No se vectoriza el bucle de agentes sin una medición que lo justifique: cambiaría la arquitectura que permite ablacionar reglas.
 - **Arquitectura hexagonal:** el paquete `agent` **tiene prohibido** importar `environments`, `simulation` o `experiments`. Toda interacción pasa por estructuras agnósticas (`Observation`, `AgentAction`, `Message`).
 - **Determinismo entre procesos:** Python aleatoriza el hash de `str` por proceso, así que está prohibido iterar un `set` sin `sorted(...)` y toda selección aleatoria opera sobre listas ordenadas.
 - **Atribución verificable:** cada regla de diseño del agente se puede desactivar desde `SimulationConfig`, y la plataforma clasifica cada afirmación como programada o emergente (ver §7, protocolo 001-D, y [Definiciones Formales](DEFINICIONES_FORMALES.md) §3.1).
@@ -52,6 +54,7 @@ IDE/
 │       └── experiments/
 │           ├── __init__.py
 │           ├── metrics.py           # TickMetrics, MetricsCollector, M1–M7
+│           ├── benchmark.py         # Línea base de rendimiento (ticks por segundo)
 │           ├── attribution.py       # Reglas de diseño, afirmaciones, ablación, control nulo y 001-D
 │           └── exp001_runner.py     # Protocolos 001-A, 001-B, 001-C y CLI
 └── tests/
@@ -65,7 +68,8 @@ IDE/
     ├── test_metrics.py
     ├── test_exp001_suite.py
     ├── test_attribution.py
-    └── test_hypotheses.py           # @pytest.mark.hypothesis (excluido por defecto)
+    ├── test_empirical.py            # @pytest.mark.empirical (excluido por defecto)
+    └── conftest.py                  # Perfil `ci` de Hypothesis (derandomize=True)
 ```
 
 ---
@@ -190,7 +194,7 @@ Consultar vecinos en un radio $R$ inspecciona sólo las $(2R+1)^2$ celdas del ra
 
 ## 5. Ciclo de Ejecución por Tick (`simulation/engine.py`)
 
-Cada tick $t$ se ejecuta en **5 fases**. El orden de los agentes se baraja una vez por tick con `rng.permutation` y se usa en todas las fases:
+Cada tick $t$ se ejecuta en **5 fases**. La percepción, la comunicación y la decisión son **simultáneas**: todos ven la misma instantánea y nadie ve lo que otro hace en el mismo tick. El orden de los agentes se baraja una vez por tick con `rng.permutation`; su único efecto sustantivo es resolver por sorteo los conflictos físicos (dos agentes que intentan consumir el mismo recurso). Un esquema alternativo asíncrono (`update_scheme="asynchronous"`) servirá para verificar que ninguna propiedad dependa del reloj de la simulación (criterio E5):
 
 ```mermaid
 sequenceDiagram
@@ -259,6 +263,7 @@ Centralizados en `SimulationConfig` (inmutable, validado en `__post_init__`, ser
 | Forzar $C_{\max} < N$ | `enforce_memory_constraint` | `True` | Validación de la restricción crítica. |
 | Anti-cámara de eco | `anti_echo_enabled` | `True` | `False` ablaciona la regla R6. |
 | Navegación | `enable_navigation` | `True` | `False` ablaciona la regla R11. |
+| Esquema de actualización | `update_scheme` | `"synchronous"` | `"asynchronous"` (aún no implementado): secuencial aleatorio, para el criterio E5. |
 | Control nulo de contenido | `comm_content_null` | `False` | `True` entrega cada creencia con $\hat{v} = \pm 1$ al azar, desde un generador propio (criterio E4). |
 
 Las demás reglas se ablacionan con valores existentes: R3 `passive_conf_decay=0`, R4 `gamma_social_discount=1`, R5 `eta_consensus=0`, R7 `eta_doubt=0`, R8 `max_queries_per_tick=0`, R9 `max_broadcast_per_tick=0`, R10 `epsilon_explore=0`.
@@ -281,7 +286,7 @@ Las demás reglas se ablacionan con valores existentes: R3 `passive_conf_decay=0
 
 4. **001-D (Atribución de emergencia):** para cada afirmación pre-registrada (C1 acceso a conocimiento ajeno, C2 superávit de decisión, C3 inmunidad a la falsedad, C4 persistencia extra-individual) mide la métrica en cuatro variantes (completa, aislada, sin las reglas diseñadas para producirla y control nulo) y la clasifica como `PROGRAMMED`, `EMERGENT`, `ACTIVITY_ARTIFACT`, `NOT_OBSERVED` o `INSUFFICIENT_EVIDENCE`. También mide el aporte de cada regla apagándolas de a una. Se ejecuta con `--attribution`, siempre con el perfil pre-registrado `quick`, y requiere al menos 5 semillas. C1, C2 y C4 son programadas **por construcción** (sus reglas de propósito incluyen toda la comunicación); C3 es la única con prueba empírica genuina.
 
-La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las expectativas funcionales (`pytest -m hypothesis`) usan las semillas 42 a 46 y una prueba de signo unilateral: con 5 de 5 a favor, p = 1/32.
+La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las expectativas funcionales (`pytest -m empirical`) usan las semillas 42 a 46 y una prueba de signo unilateral: con 5 de 5 a favor, p = 1/32.
 
 ---
 
@@ -291,6 +296,8 @@ La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las ex
 2. **Epistemología:** la refutación directa derrumba una creencia falsa, un rumor sufre el descuento $\gamma$ y dos rumores no se inflan mutuamente.
 3. **Aislamiento:** `src/ide/agent/` no importa `environments`, `simulation` ni `experiments` (verificado sobre el AST).
 4. **Reproducibilidad:** dos ejecuciones con `seed=42` producen métricas idénticas, también en procesos con distinto `PYTHONHASHSEED`.
-5. **Hipótesis:** `pytest -m hypothesis` se ejecuta y su resultado se reporta tal cual, sin ajustar parámetros para que pase.
+5. **Hipótesis:** `pytest -m empirical` se ejecuta y su resultado se reporta tal cual, sin ajustar parámetros para que pase.
 6. **Protocolo aislado:** dentro de `src/ide/agent/`, sólo `protocol.py` construye `Message` o usa `MessageType` (verificado sobre el AST).
 7. **Atribución:** las reglas y afirmaciones se versionan antes de la primera corrida de 001-D, y su tabla de estados se registra tal cual.
+8. **Calidad estática y propiedades:** `ruff check`, `ruff format --check` y `pyright` sin errores; los invariantes de memoria, epistemología, grilla y determinismo verificados con Hypothesis.
+9. **Paralelismo inocuo:** la CLI produce archivos idénticos con `--jobs 1` y `--jobs N`.
