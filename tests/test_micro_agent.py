@@ -65,7 +65,8 @@ def rng(seed: int = 0) -> np.random.Generator:
 
 
 def agent_modules() -> list[Path]:
-    return sorted(AGENT_DIR.glob("*.py"))
+    # Recursivo: un subpaquete de `agent/` también queda bajo las auditorías.
+    return sorted(AGENT_DIR.rglob("*.py"))
 
 
 def test_auditoria_de_importaciones() -> None:
@@ -83,7 +84,7 @@ def test_auditoria_de_importaciones() -> None:
 
 def test_auditoria_del_protocolo() -> None:
     for path in agent_modules():
-        if path.name == "protocol.py":
+        if path == AGENT_DIR / "protocol.py":
             continue
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Call):
@@ -134,11 +135,11 @@ def test_asimilacion_social_solo_por_assimilate_testimony() -> None:
     # Fuera de `epistemology.py`, `merge_social_belief` sólo aparece en el método
     # `assimilate_testimony` de la clase de nivel superior `MicroAgent` de `micro_agent.py`.
     for path in agent_modules():
-        if path.name == "epistemology.py":
+        if path == AGENT_DIR / "epistemology.py":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for scope in references_by_scope(tree, "merge_social_belief"):
-            assert path.name == "micro_agent.py", f"{path.name}:{scope}"
+            assert path == AGENT_DIR / "micro_agent.py", f"{path.name}:{scope}"
             assert scope == "<module>/MicroAgent/assimilate_testimony", f"{path.name}:{scope}"
 
 
