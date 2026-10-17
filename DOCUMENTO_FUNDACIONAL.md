@@ -1,6 +1,6 @@
 # Documento Fundacional: Inteligencia Distribuida Emergente (IDE)
-**Versión:** 0.1  
-**Fecha:** 2026-10-16  
+**Versión:** 0.2  
+**Fecha:** 2026-10-17  
 **Estado:** Propuesta de Investigación / Base Teórica  
 
 ---
@@ -140,10 +140,11 @@ flowchart LR
 ### Experimento 001: Memoria y Propagación Colectiva (Hito Primario)
 
 * **Objetivo:** Demostrar que una población con memoria individual estrictamente insuficiente adquiere, propaga, valida y retiene conocimiento del entorno sin supervisor central.
-* **Entorno:** Grilla 2D con recursos heterogéneos (benéficos, neutrales, tóxicos/dañinos) definidos por múltiples atributos.
-* **Restricción Fundamental:** Cada agente sólo puede almacenar un subconjunto estricto de reglas/asociaciones (e.g., $k=1$ atributo de $N$ requeridos).
+* **Entorno:** Grilla 2D toroidal con recursos heterogéneos. En esta primera versión, cada recurso tiene un único atributo observable (`id`) y es benéfico o dañino. Los recursos neutrales y los patrones de varios atributos quedan para experimentos posteriores.
+* **Restricción Fundamental:** Cada agente sólo puede almacenar un subconjunto estricto de las reglas del mundo ($C_{\max} < N$; valor base: 3 de 12 patrones, es decir, el 25 %).
 * **Métricas Formales:**
   * **Precisión Colectiva:** Tasa de decisiones correctas a nivel población.
+  * **Cobertura Accesible:** Fracción del mundo que cada agente conoce o puede obtener de sus vecinos inmediatos. Es la medida del "meta-agente" que forma un grupo local; la cobertura de la población entera no basta, porque una población aislada también la alcanza.
   * **Precisión Individual Aislada:** Rendimiento de un agente sin comunicación (línea base).
   * **Velocidad de Propagación:** $t_{50}, t_{90}$ para difusión de nuevos descubrimientos.
   * **Persistencia Temporal:** Supervivencia del conocimiento tras la eliminación de los agentes descubridores originales.
@@ -190,3 +191,5 @@ El proyecto se rige por rigor empírico estricto:
 2. **Suite de Pruebas y Métricas:**
    * Banco de benchmarks (propagación limpia, inyección de falsedad, ablación masiva).
    * Exportador de datos y visualización para análisis estadístico.
+
+El detalle formal está en [DEFINICIONES_FORMALES.md](DEFINICIONES_FORMALES.md), la arquitectura en [DEFINICIONES_TECNICAS.md](DEFINICIONES_TECNICAS.md) y el plan de implementación verificable en [`openspec/changes/ide-emergent-distributed-intelligence/`](openspec/changes/ide-emergent-distributed-intelligence/).

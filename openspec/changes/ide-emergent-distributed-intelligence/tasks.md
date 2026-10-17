@@ -1,48 +1,57 @@
 # Tasks: Plataforma de Inteligencia Distribuida Emergente (IDE)
 
+Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, fórmulas y desempates exactos están en `design.md`; los criterios verificables, en `specs/`. Un test en rojo por una hipótesis científica (`-m hypothesis`) **no** bloquea ninguna tarea: se reporta.
+
 ## 1. Scaffolding y Configuración del Proyecto
 
-- [ ] 1.1 Crear `pyproject.toml` con configuración de paquete editable (`src/ide`), dependencias (`numpy>=1.26`, `pytest>=8.0`) y estructura de paquetes (`src/ide/{domain,agent,environments,simulation,experiments}` y `tests/`), verificando la instalación con `pip install -e ".[dev]"` y ejecución de `pytest --collect-only`.
+- [ ] 1.1 Crear `pyproject.toml` (paquete `ide` en `src/`, `requires-python >= 3.11`, `numpy>=1.26`, extra `dev` con `pytest>=8.0`, `pythonpath`, `testpaths`, marcador `hypothesis` y `addopts = "-m 'not hypothesis'"`), `.gitignore` y los `__init__.py` de `src/ide/{domain,agent,environments,simulation,experiments}`; verificar con `pip install -e ".[dev]"` y `pytest --collect-only`.
 
 ## 2. Contratos de Dominio y Configuración (`domain-contracts`)
 
-- [ ] 2.1 [TDD-RED] Escribir `tests/test_domain_contracts.py` probando inmutabilidad (`FrozenInstanceError`) y hashabilidad de `Pattern` y `KnowledgeUnit`, ausencia del atributo `true_value` y presencia de `recommended_move` y `distance` en `VisibleResource`, verificación de `EnvironmentPort` (incluyendo `retire_pattern_resources` e `invert_world_rules`) con `@runtime_checkable` y validación de invariantes en `SimulationConfig` ($1 \le C_{\max} < N$ y coeficientes en $[0, 1]$), verificando que `pytest tests/test_domain_contracts.py` falle inicialmente.
-- [ ] 2.2 [TDD-GREEN] Implementar `src/ide/config.py`, `src/ide/domain/types.py` y `src/ide/domain/ports.py` cumpliendo todas las firmas e invariantes, verificando que `pytest tests/test_domain_contracts.py` pase al 100%.
-- [ ] 2.3 [TDD-REFACTOR] Refactorizar anotaciones de tipos y docstrings en `src/ide/domain/` y `src/ide/config.py`, verificando que `pytest tests/test_domain_contracts.py` continúe en verde.
+- [ ] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` y la ida y vuelta por JSON de `to_dict()`.
+- [ ] 2.2 [GREEN] Implementar `src/ide/config.py`, `src/ide/domain/types.py` y `src/ide/domain/ports.py`.
+- [ ] 2.3 [REFACTOR] Docstrings y tipos; la suite sigue en verde.
 
-## 3. Contratos de Extensión para Roadmap Exp 002–006 (`roadmap-extensions`)
+## 3. Contratos de Extensión (`roadmap-extensions`)
 
-- [ ] 3.1 [TDD-RED] Escribir `tests/test_roadmap_extensions.py` probando `TrustStrategyPort` y `UniformTrustStrategy` (Exp 002), `AgentCapabilities` con multiplicadores plásticos (Exp 003), `CompositeRule.evaluate` para tareas multi-fragmento (Exp 005) y `DefaultEvolutionaryOperator.reproduce_and_mutate` acotado a $[0.0, 1.0]$ (Exp 006), verificando que `pytest tests/test_roadmap_extensions.py` falle inicialmente.
-- [ ] 3.2 [TDD-GREEN] Implementar `src/ide/domain/extensions.py` con todos los protocolos y operadores del roadmap, verificando que `pytest tests/test_roadmap_extensions.py` pase al 100%.
+- [ ] 3.1 [RED] Escribir `tests/test_roadmap_extensions.py`: `UniformTrustStrategy`, `AgentCapabilities` por defecto, validación y `evaluate` de `CompositeRule` (con `set` y `dict`), y mutación acotada y reproducible de `DefaultEvolutionaryOperator`.
+- [ ] 3.2 [GREEN] Implementar `src/ide/domain/extensions.py`.
 
-## 4. Subsistema de Memoria Acotada (`bounded-memory`)
+## 4. Memoria Acotada (`bounded-memory`)
 
-- [ ] 4.1 [TDD-RED] Escribir `tests/test_memory.py` cubriendo límite estricto `capacity` ($C_{\max}$), actualización in-place de patrón existente, cálculo exacto de utilidad epistémica $U(k, t) = c \cdot \max(|\hat{v}|, 0.1) \cdot e^{-\lambda(t-\tau)}$, reemplazo de la creencia de menor utilidad (con desempate por menor $\tau$), rechazo de creencias débiles en memoria llena y decaimiento pasivo con purga bajo `min_confidence`, verificando que `pytest tests/test_memory.py` falle inicialmente.
-- [ ] 4.2 [TDD-GREEN] Implementar `BoundedMemory` en `src/ide/agent/memory.py`, verificando que todos los casos de `pytest tests/test_memory.py` pasen sin errores.
-- [ ] 4.3 [TDD-REFACTOR] Optimizar complejidad de búsqueda y reemplazo en `BoundedMemory`, verificando que `pytest tests/test_memory.py` permanezca en verde.
+- [ ] 4.1 [RED] Escribir `tests/test_memory.py`: límite de capacidad, actualización de un patrón existente, valor exacto de $U(k,t)$ con piso 0.1, reemplazo de la creencia de menor utilidad con desempate triple, rechazo de creencias débiles, `force=True`, decaimiento que respeta `last_updated_tick == t`, purga bajo `min_confidence` y orden determinista de `all_units()`.
+- [ ] 4.2 [GREEN] Implementar `BoundedMemory` en `src/ide/agent/memory.py`.
+- [ ] 4.3 [REFACTOR] Simplificar búsqueda y reemplazo; la suite sigue en verde.
 
 ## 5. Motor Epistemológico (`epistemic-engine`)
 
-- [ ] 5.1 [TDD-RED] Escribir `tests/test_epistemology.py` cubriendo adquisición por experiencia directa (`from_direct_experience=True`), refuerzo empírico, ambas ramas de refutación empírica directa (`penalized_conf < decision_conf_threshold` y `>= decision_conf_threshold`), asimilación social con descuento $\gamma$ (Escenario A), refuerzo por consenso con regla anti-cámara de eco cuando `incoming.from_direct_experience=False` (Escenario B) y conflicto epistémico experiencia directa vs. rumor externo (Escenario C), verificando que `pytest tests/test_epistemology.py` falle inicialmente.
-- [ ] 5.2 [TDD-GREEN] Implementar `update_from_direct_experience` y `merge_social_belief` en `src/ide/agent/epistemology.py` soportando `sender_trust_factor`, verificando que `pytest tests/test_epistemology.py` pase al 100%.
+- [ ] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo, anti-cámara de eco en 100 intercambios, resistencia del Escenario C (incluido que `last_updated_tick` no cambie) y sobrescritura de rumor débil.
+- [ ] 5.2 [GREEN] Implementar `update_from_direct_experience` y `merge_social_belief` en `src/ide/agent/epistemology.py`.
 
-## 6. Micro-Agente Autónomo (`micro-agent`)
+## 6. Micro-Agente (`micro-agent`)
 
-- [ ] 6.1 [TDD-RED] Escribir `tests/test_micro_agent.py` verificando: (a) auditoría AST que compruebe cero imports de `environments` en `src/ide/agent/`, (b) firmas públicas canónicas (`perceive_and_emit_messages`, `process_incoming_messages`, `decide_action`, `learn_from_experience`, `decay_memory`), (c) emisión de `QUERY_PATTERN` y `QUERY_RESPONSE`, y (d) decisión de `INTERACT` en celda actual, evitación de recurso dañino y navegación hacia recurso benéfico distante usando `recommended_move` y menor `distance`, comprobando que `pytest tests/test_micro_agent.py` falle inicialmente.
-- [ ] 6.2 [TDD-GREEN] Implementar `MicroAgent` en `src/ide/agent/micro_agent.py` con soporte de caché efímero de consultas del tick (`_ephemeral_tick_beliefs`), verificando que `pytest tests/test_micro_agent.py` pase al 100%.
+- [ ] 6.1 [RED] Escribir `tests/test_micro_agent.py`: auditoría de imports con `ast`, firmas con `inspect.signature`, caché efímero (vida de un tick), emisión de consultas (límite y orden) y broadcasts (sólo con confianza suficiente), respuesta sólo desde memoria, asimilación con `TrustStrategyPort`, consumo de un benéfico conocido, exploración con ε = 1 y ε = 0, evitación de un tóxico, navegación por `recommended_move`, caminata e `IDLE`, y `learn_from_experience` con memoria llena.
+- [ ] 6.2 [GREEN] Implementar `MicroAgent` en `src/ide/agent/micro_agent.py`.
 
-## 7. Entorno Espacial Grilla 2D Toroidal (`spatial-environments`)
+## 7. Grilla 2D Toroidal (`spatial-environments`)
 
-- [ ] 7.1 [TDD-RED] Escribir `tests/test_grid2d.py` probando generación canónica de los $N$ patrones (`p_0` a `p_{N-1}`), aritmética modular toroidal (movimiento, percepción y cálculo de `recommended_move` y `distance` a través de los bordes), consistencia del índice espacial $O(1)$ (`cell_agents` y `cell_resources`), ocultamiento de `true_value` en `get_observation`, colisión segura sobre el mismo `resource_id`, retiro definitivo de patrón mediante `retire_pattern_resources`, e inversión abrupta de reglas `invert_world_rules` (Exp 004), verificando que `pytest tests/test_grid2d.py` falle inicialmente.
-- [ ] 7.2 [TDD-GREEN] Implementar `ToroidalGrid2D` en `src/ide/environments/grid2d.py` cumpliendo `EnvironmentPort`, verificando que `pytest tests/test_grid2d.py` pase al 100%.
+- [ ] 7.1 [RED] Escribir `tests/test_grid2d.py`: generación canónica y determinista, cruce de bordes, distancia y `recommended_move` toroidales, filtro y orden de la observación, consistencia de `cell_agents`/`cell_resources`, colisión sobre el mismo recurso, reposición con IDs nuevos, `retire_pattern_resources`, `invert_world_rules`, `get_reachable_true_values` y movimiento inválido tratado como `IDLE`.
+- [ ] 7.2 [GREEN] Implementar `ToroidalGrid2D` en `src/ide/environments/grid2d.py`.
 
-## 8. Motor de Simulación Discreto (`simulation-engine`)
+## 8. Motor de Simulación (`simulation-engine`)
 
-- [ ] 8.1 [TDD-RED] Escribir `tests/test_simulation_engine.py` probando el pipeline de 5 fases por tick (`step`), bloqueo total de mensajes cuando `comm_enabled=False`, reproducibilidad bit a bit entre dos corridas con `seed=42`, registro histórico `direct_discoverers`, y métodos de perturbación en caliente (`inject_false_belief`, `ablate_population`, y `ablate_discoverers` con `retire_stimulus=True`), verificando que `pytest tests/test_simulation_engine.py` falle inicialmente.
-- [ ] 8.2 [TDD-GREEN] Implementar `SimulationEngine` en `src/ide/simulation/engine.py` con permutación reproducible de turnos (`rng.permutation`), verificando que `pytest tests/test_simulation_engine.py` pase al 100%.
+- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80) y `ablate_discoverers` preservando al portador social.
+- [ ] 8.2 [GREEN] Implementar `SimulationEngine` en `src/ide/simulation/engine.py`.
 
-## 9. Suite Experimental y Métricas M1–M7 (`experimental-suite`)
+## 9. Métricas y Protocolos (`experimental-suite`)
 
-- [ ] 9.1 [TDD-RED] Escribir `tests/test_exp001_suite.py` validando el cálculo exacto de las métricas M1 a M7 en `MetricsCollector` (incluyendo invariante $Cov_{\text{ind}}(t) \le C_{\max}/N$, contabilización de oportunidad de decisión en M2 y protección contra división por cero) y los esquemas exactos de retorno (`EmergenceReport`, `FalsificationReport`, `ResilienceReport`) de `run_protocol_001a_emergence`, `run_protocol_001b_falsification` y `run_protocol_001c_resilience`, verificando que `pytest tests/test_exp001_suite.py` falle inicialmente.
-- [ ] 9.2 [TDD-GREEN] Implementar `MetricsCollector` en `src/ide/experiments/metrics.py` y los ejecutores de los protocolos 001-A, 001-B y 001-C con salida JSON/CLI en `src/ide/experiments/exp001_runner.py`, verificando que `pytest tests/test_exp001_suite.py` pase al 100%.
-- [ ] 9.3 [TDD-REFACTOR] Ejecutar validación integral con `pytest -v` y `python -m ide.experiments.exp001_runner`, verificando el Checklist de Definition of Done completo.
+- [ ] 9.1 [RED] Escribir `tests/test_metrics.py`: validez de creencias, M1 (incluida la cota $C_{\max}/N$ y la cobertura accesible del meta-agente), `judge_decision` en sus cuatro casos, M2 sin oportunidades, `propagation_time` (incluido `None`), M6 y M7 (un broadcast cuenta una vez).
+- [ ] 9.2 [GREEN] Implementar `MetricsCollector`, `judge_decision` y `propagation_time` en `src/ide/experiments/metrics.py`.
+- [ ] 9.3 [RED] Escribir `tests/test_exp001_suite.py`: esquemas exactos de los tres reportes con corridas cortas, `injected_agents == 20`, `remaining_agents` por nivel de ablación, `report_to_dict` serializable y el test de determinismo entre procesos (CLI `--profile quick` con dos `PYTHONHASHSEED` distintos).
+- [ ] 9.4 [GREEN] Implementar los protocolos, `report_to_dict`, `aggregate_reports` y la CLI en `src/ide/experiments/exp001_runner.py`.
+- [ ] 9.5 Escribir `tests/test_hypotheses.py` con `@pytest.mark.hypothesis` (H1 de emergencia y contención de falsedad), ejecutar `pytest -m hypothesis` y registrar el resultado, positivo o negativo, sin ajustar parámetros.
+
+## 10. Cierre
+
+- [ ] 10.1 Ejecutar `pytest -v`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
+- [ ] 10.2 Crear `README.md` con instalación, ejecución, estructura y enlaces a los documentos de fundamento.

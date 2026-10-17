@@ -1,42 +1,73 @@
 # Spec Delta: Spatial Environments
 
 ## Purpose
-Proveer la implementación inicial del entorno espacial `ToroidalGrid2D` cumpliendo el contrato `EnvironmentPort`, garantizando generación determinista de patrones, topología toroidal sin bordes, búsqueda de vecindad en $O(1)$ respecto al tamaño del mapa mediante indexación por celda, y ciclo de vida de recursos con retiro selectivo.
+Proveer el entorno `ToroidalGrid2D` que cumple `EnvironmentPort`, con generación determinista de patrones, topología toroidal sin bordes, vecindades por índice espacial y ciclo de vida de recursos con retiro selectivo.
 
 ## ADDED Requirements
 
-### Requirement: Generación Determinista de los $N$ Patrones del Mundo
-Al instanciar `ToroidalGrid2D(config: SimulationConfig, rng: np.random.Generator)`, el entorno SHALL generar exactamente `N = config.num_world_patterns` patrones con la estructura canónica `Pattern(attributes=(("id", f"p_{i}"),))` para $i \in \{0, \dots, N-1\}$, asignando `true_value = +1.0` a la primera mitad ($i < N // 2$) y `true_value = -1.0` a la segunda mitad ($i \ge N // 2$), e instanciando `config.resources_per_pattern` recursos de cada patrón en celdas elegidas mediante `rng`.
+### Requirement: Generación Determinista de los Patrones del Mundo
+`ToroidalGrid2D(config, rng)` SHALL generar `N = num_world_patterns` patrones `Pattern((("id", f"p_{i}"),))`, con `true_value = +1.0` si `i < N // 2` y `-1.0` en otro caso, y `resources_per_pattern` recursos por patrón con `resource_id` consecutivos desde 0.
 
-#### Scenario: Equilibrio exacto entre patrones benéficos y dañinos al iniciar
-- **WHEN** se instancia `ToroidalGrid2D` con `num_world_patterns = 12` y `resources_per_pattern = 8`
-- **THEN** `get_world_patterns()` retorna 6 patrones con valor `+1.0` (`p_0` a `p_5`) y 6 patrones con valor `-1.0` (`p_6` a `p_11`), existiendo 96 recursos en el tablero.
+#### Scenario: Equilibrio inicial
+- **WHEN** se instancia con `num_world_patterns = 12` y `resources_per_pattern = 8`
+- **THEN** `get_world_patterns()` asigna `+1.0` a `p_0`..`p_5` y `-1.0` a `p_6`..`p_11`, y hay 96 recursos en el tablero.
 
-### Requirement: Geometría Toroidal sin Bordes y Cálculo de `recommended_move`
-La clase `ToroidalGrid2D` en `src/ide/environments/grid2d.py` SHALL implementar aritmética modular `(x % width, y % height)` para toda operación de movimiento, percepción y cálculo de distancia Chebyshev/Moore entre celdas, calculando para cada `VisibleResource` su `distance = max(|dx|, |dy|)` toroidal y su `recommended_move = (sign(dx), sign(dy))` dentro de los 8 movimientos de Moore `available_moves`.
+#### Scenario: Misma semilla, mismo tablero
+- **WHEN** se instancian dos grillas con la misma configuración y generadores `PCG64` con la misma semilla
+- **THEN** las posiciones de todos los agentes y recursos son idénticas.
 
-#### Scenario: Movimiento cruzando el límite derecho y superior del mapa
-- **WHEN** un agente situado en `(width - 1, 0)` se mueve en dirección `(+1, -1)` en una grilla de tamaño `width x height`
-- **THEN** su nueva ubicación pasa a ser exactamente `(0, height - 1)`.
+### Requirement: Movimiento Toroidal
+`execute_action` con `MOVE` SHALL desplazar al agente aplicando `(x + dx) % width` y `(y + dy) % height`, aceptando sólo los 8 movimientos de Moore de `MOORE_MOVES`.
 
-#### Scenario: Percepción y recommended_move a través de la frontera toroidal
-- **WHEN** un agente está en `(0, 0)` con `perception_radius = 2` y existe un recurso en `(width - 2, 0)`
-- **THEN** dicho recurso aparece en `Observation.visible_resources` con `distance = 2`, `is_reachable_now = False` y `recommended_move = (-1, 0)`.
+#### Scenario: Cruce simultáneo de dos bordes
+- **WHEN** un agente en `(width - 1, 0)` ejecuta `MOVE` con destino `(+1, -1)`
+- **THEN** su nueva posición es `(0, height - 1)`.
 
-### Requirement: Indexación Espacial por Celda en Tiempo Constante
-`ToroidalGrid2D` SHALL mantener estructuras de índice inverso por coordenada (`cell_agents: dict[tuple[int, int], set[int]]` y `cell_resources: dict[tuple[int, int], dict[int, Resource]]`) actualizadas en cada movimiento, inserción o eliminación, evitando recorridos $O(M^2)$ sobre toda la población al consultar vecindades.
+### Requirement: Distancia y Dirección Toroidales
+Para cada recurso visible, la grilla SHALL calcular `dx = ((x2 - x1 + W//2) % W) - W//2` (ídem `dy`), `distance = max(|dx|, |dy|)` y `recommended_move = (sign(dx), sign(dy))`, o `None` si `distance == 0`.
 
-#### Scenario: Consistencia del índice espacial tras mover o eliminar agentes
-- **WHEN** un agente se desplaza de `c_origen` a `c_destino` o es eliminado mediante `remove_agents`
-- **THEN** su ID desaparece inmediatamente de `cell_agents[c_origen]` y, si fue un movimiento, se registra en `cell_agents[c_destino]`.
+#### Scenario: Percepción a través del borde
+- **WHEN** un agente en `(0, 0)` con `perception_radius = 2` tiene un recurso en `(width - 2, 0)`
+- **THEN** el recurso aparece con `distance = 2`, `is_reachable_now = False` y `recommended_move = (-1, 0)`.
 
-### Requirement: Interacción con Recursos, Reposición y Retiro de Patrones (`retire_pattern_resources`)
-Cuando un agente ejecute `AgentAction(ActionType.INTERACT, target=resource_id)` sobre un recurso presente en su misma celda, `ToroidalGrid2D` SHALL devolver `ActionResult` con el `Pattern` y el `true_value` real del recurso, consumir el recurso de la celda actual y reponerlo en una celda aleatoria durante `step_dynamics`, salvo que el patrón haya sido retirado mediante `retire_pattern_resources(pattern: Pattern)`, método que elimina todas las instancias físicas de ese patrón en el tablero e impide su futura reposición.
+### Requirement: Observación Ordenada y Acotada
+`get_observation` SHALL incluir sólo recursos con `distance <= perception_radius`, ordenados por `(distance, resource_id)`; `available_moves` igual a `MOORE_MOVES`; y `neighbor_ids` con los agentes a `distance <= comm_radius`, ascendentes y sin el propio agente.
 
-#### Scenario: Intento de interacción con recurso inexistente o fuera de celda
-- **WHEN** un agente envía `INTERACT` hacia un `resource_id` que ya fue consumido por otro agente antes en el mismo tick o está en otra celda
-- **THEN** `execute_action` devuelve `ActionResult(action_type=ActionType.INTERACT, interacted_pattern=None, experienced_value=None)` sin lanzar excepción.
+#### Scenario: Recurso fuera de rango
+- **WHEN** un recurso está a distancia 3 y `perception_radius = 2`
+- **THEN** no aparece en `obs.visible_resources`.
 
-#### Scenario: Retiro de estímulo físico para prueba de memoria social pura
-- **WHEN** se invoca `env.retire_pattern_resources(pattern_0)` y luego corre `step_dynamics` durante 50 ticks
-- **THEN** ningún recurso con `pattern_0` vuelve a aparecer en el tablero ni en ninguna `Observation`.
+### Requirement: Índice Espacial por Celda
+La grilla SHALL mantener `cell_agents` y `cell_resources` actualizados en cada movimiento, consumo, reposición o eliminación, y SHALL resolver vecindades inspeccionando sólo las $(2R+1)^2$ celdas del radio.
+
+#### Scenario: Consistencia tras moverse o ser eliminado
+- **WHEN** un agente se mueve de `c_origen` a `c_destino`, o es eliminado con `remove_agents`
+- **THEN** su ID ya no está en `cell_agents[c_origen]` y, si se movió, está en `cell_agents[c_destino]`.
+
+### Requirement: Interacción y Consumo de Recursos
+Un `INTERACT` sobre un recurso de la celda del agente SHALL devolver `ActionResult(INTERACT, pattern, true_value)` y retirarlo del tablero; si el recurso no existe o está en otra celda SHALL devolver `ActionResult(INTERACT, None, None)`.
+
+#### Scenario: Dos agentes sobre el mismo recurso
+- **WHEN** dos agentes de la misma celda envían `INTERACT` al mismo `resource_id` en el mismo tick
+- **THEN** el primero recibe el valor real y el segundo recibe `ActionResult(INTERACT, None, None)` sin excepción.
+
+### Requirement: Reposición de Recursos
+`step_dynamics` SHALL reponer cada recurso consumido, en orden de consumo, con un `resource_id` nuevo de un contador monótono y en una celda elegida con el `rng` del entorno, salvo que su patrón esté retirado.
+
+#### Scenario: Población estable de recursos
+- **WHEN** se consume un recurso de `p_3` y luego se ejecuta `step_dynamics`
+- **THEN** la cantidad de recursos de `p_3` vuelve a `resources_per_pattern` y el nuevo recurso tiene un `resource_id` nunca usado.
+
+### Requirement: Retiro Definitivo de un Patrón
+`retire_pattern_resources(pattern)` SHALL eliminar todas las instancias físicas del patrón, descartar sus reposiciones pendientes e impedir reposiciones futuras.
+
+#### Scenario: Estímulo retirado
+- **WHEN** se invoca `retire_pattern_resources(p_0)` y luego `step_dynamics` durante 50 ticks con interacciones
+- **THEN** ningún recurso de `p_0` aparece en el tablero ni en ninguna `Observation`.
+
+### Requirement: Inversión de Reglas del Mundo
+`invert_world_rules(fraction, rng)` SHALL invertir el signo de `round(fraction · N)` patrones elegidos con `rng.choice` sobre la lista ordenada de patrones, en la tabla del mundo y en todos los recursos presentes y futuros, y devolver los patrones invertidos ordenados.
+
+#### Scenario: Shock del 50 %
+- **WHEN** hay 12 patrones y se invoca `invert_world_rules(0.5, rng)`
+- **THEN** se devuelven exactamente 6 patrones y cada recurso de esos patrones tiene ahora el valor opuesto.

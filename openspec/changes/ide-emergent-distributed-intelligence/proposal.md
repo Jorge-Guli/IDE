@@ -7,17 +7,18 @@ Los sistemas actuales de inteligencia artificial concentran la cognición en mod
 ## What Changes
 
 - Creación de la estructura de paquete Python (`pyproject.toml`, `src/ide/`, `tests/`) bajo arquitectura hexagonal estricta (separación total entre cognición del agente y topología del entorno).
-- Implementación de contratos de dominio inmutables (`Pattern`, `KnowledgeUnit`, `Resource`, `VisibleResource`, `Observation`, `Message`, `AgentAction`, `ActionResult`) y el puerto abstracto `EnvironmentPort`.
+- Implementación de contratos de dominio inmutables (`Pattern`, `KnowledgeUnit`, `Resource`, `VisibleResource`, `Observation`, `Message`, `AgentAction`, `ActionResult`) y el puerto abstracto `EnvironmentPort`, incluido un oráculo de verdad restringido a telemetría (`get_reachable_true_values`).
 - Implementación del módulo de memoria acotada (`BoundedMemory`) con límite estricto $C_{\max}$, índice de utilidad epistémica $U(k, t)$ y decaimiento temporal pasivo.
 - Implementación del motor epistemológico (`EpistemicEngine`) con reglas formales para aprendizaje por experiencia directa y revalidación social en tres escenarios (Desconocido con descuento $\gamma$, Consenso y Conflicto Epistémico).
 - Implementación del agente autónomo (`MicroAgent`) agnóstico de coordenadas, con soporte para consultas colectivas en tiempo real (`QUERY_PATTERN` / `QUERY_RESPONSE`), difusión espontánea (`BROADCAST_BELIEF`) y toma de decisiones basada en umbral de confianza y exploración $\epsilon$.
 - Implementación del entorno inicial `ToroidalGrid2D` con aritmética modular sin bordes, indexación espacial $O(1)$ por celda y ocultamiento estricto del valor real $v(r)$ antes de la interacción.
-- Implementación del motor de simulación por pasos discretos (`SimulationEngine`) con pipeline determinista de 5 fases por tick y barajado de turnos mediante semilla (`np.random.Generator`).
-- Implementación del colector de métricas matemáticas M1–M7 (`MetricsCollector`) y el ejecutor automatizado de los protocolos experimentales:
+- Implementación del motor de simulación por pasos discretos (`SimulationEngine`) con pipeline determinista de 5 fases por tick, barajado de turnos mediante semilla (`np.random.Generator`) y reproducibilidad garantizada también entre procesos (independiente de `PYTHONHASHSEED`).
+- Implementación del colector de métricas M1–M7 (`MetricsCollector`), incluida la cobertura accesible a un salto como medida operativa de emergencia, y el ejecutor automatizado de los protocolos experimentales:
   - **001-A:** Emergencia Colectiva vs. Agentes Aislados.
   - **001-B:** Falsificación y Extinción de Creencias Falsas Inyectadas.
   - **001-C:** Resiliencia ante Daño Poblacional ($10\%, 30\%, 50\%, 70\%$) y Persistencia Extra-Individual.
-  - **Hooks de Extensión (002–006):** Puntos de extensión para estrategias de confianza social, especialización emergente, shock ambiental, inteligencia composicional y evolución.
+  - **Hooks de Extensión (002–006):** Puntos de extensión para estrategias de confianza social, especialización emergente, shock ambiental, inteligencia composicional y evolución (sólo contratos; su lógica queda fuera de este cambio).
+- CLI multi-semilla con exportación JSON/CSV y separación entre la suite de software (`pytest`) y la verificación de hipótesis científicas (`pytest -m hypothesis`), cuyos resultados negativos se reportan sin ajustar parámetros.
 
 ## Capabilities
 
@@ -36,9 +37,10 @@ Los sistemas actuales de inteligencia artificial concentran la cognición en mod
 
 ## Impact
 
-- **Código nuevo:** Creación completa de `src/ide/` y `tests/` (7 módulos de producción y suite de pruebas unitarias/integración con `pytest`).
+- **Código nuevo:** Creación completa de `src/ide/` y `tests/` (10 módulos de producción y suite de pruebas unitarias, de integración y de hipótesis con `pytest`).
 - **Dependencias:** Python $\ge 3.11$, `numpy` (para RNG reproducible y agregaciones estadísticas) y `pytest` (desarrollo/testing).
 - **Reglas Arquitectónicas Aplicadas:**
   - Prohibición estricta de importar `environments` dentro de `src/ide/agent/`.
   - Prohibición de exponer `Resource.true_value` en `Observation` antes de ejecutar `INTERACT`.
-  - Determinismo bit a bit garantizado mediante instancia explícita de `np.random.Generator(np.random.PCG64(seed))`.
+  - Determinismo bit a bit garantizado mediante instancia explícita de `np.random.Generator(np.random.PCG64(seed))` y prohibición de iterar conjuntos sin ordenar.
+- **Fuera de alcance:** energía $E_i$ del agente, recursos neutrales, interfaz gráfica y la lógica de los Experimentos 002–006.

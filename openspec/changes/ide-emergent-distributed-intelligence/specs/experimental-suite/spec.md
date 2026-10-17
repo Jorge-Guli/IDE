@@ -1,36 +1,115 @@
 # Spec Delta: Experimental Suite
 
 ## Purpose
-Proveer el sistema de medición científica (`MetricsCollector`) para las métricas M1 a M7 y el ejecutor reproducible de los protocolos del Experimento 001 (001-A Base, 001-B Falsificación, 001-C Daño/Persistencia) con parámetros y reportes tipados exactos.
+Proveer la medición científica (`MetricsCollector`) de las métricas M1 a M7 y el ejecutor reproducible de los protocolos del Experimento 001 (001-A Emergencia, 001-B Falsificación, 001-C Daño y Persistencia), separando la validación del software de la validación de hipótesis.
 
 ## ADDED Requirements
 
-### Requirement: Cálculo Exacto de las Métricas Formales M1 a M7
-El módulo `src/ide/experiments/metrics.py` SHALL calcular en cada tick un `TickMetrics` que contenga:
-- **M1 (`individual_coverage_mean`, `collective_coverage`):** Cobertura epistémica individual media ($\le C_{\max}/N$) y cobertura colectiva de los $N$ patrones del mundo.
-- **M2 (`decision_accuracy`, `cumulative_decision_accuracy`):** Ratio de decisiones correctas sobre el total de oportunidades de decisión en la celda actual (`is_reachable_now == True`). Una decisión se contabiliza como correcta si: (a) el agente ejecuta `INTERACT` sobre un recurso con `true_value > 0`, o (b) en la celda actual existen exclusivamente recursos dañinos (`true_value < 0`) y el agente decide evitarlos (`MOVE` o `IDLE`). Se contabiliza como incorrecta si: (c) ejecuta `INTERACT` sobre un recurso con `true_value < 0`, o (d) ignora una celda que contenía al menos un recurso benéfico (`true_value > 0`) sin consumir ninguno. Si una celda no tiene recursos alcanzables, no suma al denominador de oportunidades de decisión.
-- **M3 (`pattern_prevalence`):** Diccionario con la fracción de agentes que sostienen conocimiento válido por cada patrón $\rho$.
-- **M6 (`false_belief_prevalence`):** Fracción de agentes activos que sostienen una creencia con signo opuesto al valor real $F(\rho)$ y confianza $\ge c_{\text{umbral}}$.
-- **M7 (`messages_per_agent`):** Total de mensajes transmitidos en el tick dividido entre el número de agentes activos.
+### Requirement: Validez de Creencias para las Métricas
+Las métricas SHALL considerar sólo las creencias de `BoundedMemory`. Una creencia es válida si `sign(v̂) == sign(F(ρ))` y `c >= decision_conf_threshold`, y es falsa si el signo es opuesto y `c >= decision_conf_threshold`.
 
-#### Scenario: Invariante de límite superior en cobertura individual
-- **WHEN** `MetricsCollector` evalúa cualquier población con $C_{\max} = 3$ y $N = 12$
-- **THEN** `individual_coverage_mean` es siempre $\le 0.25$, mientras que `collective_coverage` puede alcanzar `1.0`.
+#### Scenario: Creencia correcta pero débil
+- **WHEN** un agente cree `v̂ = +1.0` con `c = 0.30` sobre un patrón benéfico y el umbral es `0.35`
+- **THEN** la creencia no cuenta como válida ni como falsa.
 
-#### Scenario: Contabilización exacta de acierto por evitación de recurso tóxico en M2
-- **WHEN** un agente se encuentra en una celda que sólo contiene un recurso con `true_value = -1.0` y el agente ejecuta `ActionType.MOVE` sin interactuar con él
-- **THEN** el evento se registra como 1 oportunidad de decisión y 1 decisión correcta (`decision_accuracy = 1.0`).
+### Requirement: Cobertura Individual y Colectiva (M1)
+`TickMetrics` SHALL incluir `individual_coverage_mean` (media sobre agentes activos de creencias válidas / N) y `collective_coverage` (fracción de patrones con al menos un agente activo que los conoce válidamente).
 
-### Requirement: Ejecutor Automatizado de los Tres Protocolos del Experimento 001 con Firmas y Parámetros Exactos
-El módulo `src/ide/experiments/exp001_runner.py` SHALL implementar tres funciones de protocolo reproducibles que retornen reportes `@dataclass(frozen=True)` serializables a JSON:
-1. `run_protocol_001a_emergence(config: SimulationConfig, total_ticks: int = 300) -> EmergenceReport`: Compara una corrida con `comm_enabled=True` frente a `comm_enabled=False` y calcula `emergence_surplus = collective_accuracy - isolated_accuracy`.
-2. `run_protocol_001b_falsification(config: SimulationConfig, total_ticks: int = 300, injection_tick: int = 80, injection_fraction: float = 0.25) -> FalsificationReport`: Inyecta una creencia falsa con confianza `0.95` sobre `Pattern((("id", "p_0"),))` (`false_value = -1.0` cuando el real es `+1.0`) en `injection_tick` y mide prevalencia en el momento de inyección, prevalencia pico y prevalencia final en `total_ticks`.
-3. `run_protocol_001c_resilience(config: SimulationConfig, warmup_ticks: int = 150, post_ablation_ticks: int = 100, ablation_levels: tuple[float, ...] = (0.10, 0.30, 0.50, 0.70)) -> ResilienceReport`: Ejecuta ablación para cada fracción en `ablation_levels` (en corridas independientes clonadas de la misma semilla) y una corrida adicional invocando `ablate_discoverers(Pattern((("id", "p_0"),)), retire_stimulus=True)` para medir la persistencia extra-individual pura.
+#### Scenario: Cota superior de la cobertura individual
+- **WHEN** se evalúa cualquier población con $C_{\max} = 3$ y $N = 12$
+- **THEN** `individual_coverage_mean <= 0.25` en todos los ticks.
 
-#### Scenario: Verificación de emergencia colectiva en Protocolo 001-A
+### Requirement: Cobertura Accesible a Un Salto (M1)
+`TickMetrics.accessible_coverage_mean` SHALL ser la media, sobre agentes activos, de la fracción de patrones conocidos válidamente por el agente o por algún vecino de comunicación; con `comm_enabled` falso SHALL ser igual a `individual_coverage_mean`.
+
+#### Scenario: Meta-agente de tres vecinos
+- **WHEN** tres agentes mutuamente vecinos conocen válidamente 3 patrones disjuntos cada uno, con $N = 12$, y no hay otros agentes
+- **THEN** `accessible_coverage_mean == 0.75` mientras `individual_coverage_mean == 0.25`.
+
+### Requirement: Juicio de Decisiones por Intención (M2)
+`judge_decision(action, reachable_truth)` SHALL considerar correcta una decisión si es `INTERACT` sobre un objetivo con valor real positivo, o si no es `INTERACT` y todos los recursos alcanzables son dañinos; cualquier otro caso es incorrecto.
+
+#### Scenario: Evitación correcta de un recurso tóxico
+- **WHEN** la celda sólo contiene un recurso con valor `-1.0` y la acción es `MOVE`
+- **THEN** `judge_decision` devuelve `True`.
+
+#### Scenario: Omisión de un recurso benéfico
+- **WHEN** la celda contiene un recurso con valor `+1.0` y la acción es `MOVE`
+- **THEN** `judge_decision` devuelve `False`.
+
+### Requirement: Precisión de Decisión (M2)
+`TickMetrics` SHALL registrar `decision_opportunities` (agentes con recursos alcanzables al decidir), `correct_decisions`, `decision_accuracy` (0.0 sin oportunidades) y `cumulative_decision_accuracy` desde el inicio de la corrida.
+
+#### Scenario: Tick sin oportunidades
+- **WHEN** ningún agente tiene recursos alcanzables en un tick
+- **THEN** `decision_accuracy == 0.0`, no se lanza `ZeroDivisionError` y `cumulative_decision_accuracy` conserva el valor acumulado.
+
+### Requirement: Prevalencia por Patrón y Tiempo de Propagación (M3)
+`TickMetrics.pattern_prevalence` SHALL dar, por patrón, la fracción de agentes activos que lo conocen válidamente; `propagation_time(history, pattern, theta)` SHALL devolver el menor `t - t_0` con prevalencia `>= theta · P_max`, donde `t_0` es el primer tick con prevalencia positiva.
+
+#### Scenario: Patrón nunca descubierto
+- **WHEN** la prevalencia de un patrón es 0 en todo el historial
+- **THEN** `propagation_time` devuelve `None`.
+
+### Requirement: Prevalencia de Creencias Falsas (M6)
+`TickMetrics` SHALL incluir `pattern_false_prevalence` (por patrón, fracción de agentes con creencia falsa) y `false_belief_prevalence` (fracción de agentes con al menos una creencia falsa).
+
+#### Scenario: Población sin falsedades
+- **WHEN** ningún agente sostiene creencias de signo opuesto al real con confianza suficiente
+- **THEN** `false_belief_prevalence == 0.0`.
+
+### Requirement: Costo de Comunicación (M7)
+`TickMetrics` SHALL incluir `messages_sent` (cada mensaje emitido cuenta una vez, sin importar cuántos receptores tenga) y `messages_per_agent = messages_sent / activos`, o `0.0` si no hay agentes activos.
+
+#### Scenario: Un broadcast con tres receptores
+- **WHEN** en un tick el único mensaje es un `BROADCAST_BELIEF` entregado a tres vecinos
+- **THEN** `messages_sent == 1`.
+
+### Requirement: Protocolo 001-A Emergencia
+`run_protocol_001a_emergence(config, total_ticks=300)` SHALL correr dos motores con la misma semilla, con y sin comunicación, y devolver un `EmergenceReport` con precisión, cobertura colectiva, cobertura accesible, `emergence_surplus = collective_accuracy - isolated_accuracy` y tiempos `t50`/`t90` por patrón.
+
+#### Scenario: Esquema del reporte
+- **WHEN** se ejecuta con `SimulationConfig(seed=42)` y `total_ticks=50`
+- **THEN** devuelve un `EmergenceReport` cuyos campos son exactamente los de `design.md` y `emergence_surplus == collective_accuracy - isolated_accuracy`.
+
+### Requirement: Protocolo 001-B Falsificación
+`run_protocol_001b_falsification(config, total_ticks=300, injection_tick=80, injection_fraction=0.25)` SHALL inyectar en `injection_tick` el rumor `(p_0, -1.0, 0.95)` y devolver un `FalsificationReport` con prevalencia inicial, pico, final y `ticks_to_extinction`.
+
+#### Scenario: Prevalencia inicial exacta
+- **WHEN** se ejecuta con 80 agentes e `injection_fraction = 0.25`
+- **THEN** `injected_agents == 20` e `initial_injected_prevalence == 0.25`.
+
+### Requirement: Protocolo 001-C Resiliencia y Persistencia
+`run_protocol_001c_resilience(config, warmup_ticks=150, post_ablation_ticks=100, ablation_levels=(0.10, 0.30, 0.50, 0.70))` SHALL hacer una corrida independiente por nivel de ablación y otra con `ablate_discoverers(p_0, retire_stimulus=True)`, y devolver un `ResilienceReport`.
+
+#### Scenario: Un resultado por nivel
+- **WHEN** se ejecuta con los niveles por defecto y 80 agentes
+- **THEN** `ablation_results` tiene 4 elementos con `remaining_agents` iguales a 72, 56, 40 y 24.
+
+### Requirement: Separación entre Software e Hipótesis
+Los tests que afirman resultados empíricos (por ejemplo, `emergence_surplus > 0`) SHALL marcarse con `@pytest.mark.hypothesis` y quedar excluidos de `pytest` por defecto; su fracaso SHALL reportarse como hallazgo, no corregirse ajustando parámetros.
+
+#### Scenario: Corrida por defecto
+- **WHEN** se ejecuta `pytest` sin argumentos
+- **THEN** no se ejecuta ningún test marcado `hypothesis`.
+
+### Requirement: Hipótesis H1 de Emergencia
+Bajo `pytest -m hypothesis`, la suite SHALL verificar con `SimulationConfig(seed=42)` y `total_ticks=300` que `collective_accessible_coverage > isolated_accessible_coverage` y que `emergence_surplus > 0`.
+
+#### Scenario: Verificación de emergencia
 - **WHEN** se ejecuta `run_protocol_001a_emergence(SimulationConfig(seed=42), total_ticks=300)`
-- **THEN** `report.collective_coverage > report.isolated_coverage` y `report.emergence_surplus > 0.0`.
+- **THEN** se espera `report.collective_accessible_coverage > report.isolated_accessible_coverage` y `report.emergence_surplus > 0.0`.
 
-#### Scenario: Extinción o contención de creencia falsa en Protocolo 001-B
+### Requirement: Hipótesis de Contención de Falsedad
+Bajo `pytest -m hypothesis`, la suite SHALL verificar con `SimulationConfig(seed=42)` que la prevalencia final del rumor falso es menor que la inicial.
+
+#### Scenario: Contención del rumor
 - **WHEN** se ejecuta `run_protocol_001b_falsification(SimulationConfig(seed=42), total_ticks=300, injection_tick=80, injection_fraction=0.25)`
-- **THEN** `report.final_false_prevalence < report.initial_injected_prevalence`.
+- **THEN** se espera `report.final_false_prevalence < report.initial_injected_prevalence`.
+
+### Requirement: CLI Reproducible Multi-Semilla
+`python -m ide.experiments.exp001_runner` SHALL aceptar `--profile {quick,full}` (por defecto `full`), `--seeds` (por defecto `42`) y `--out` (por defecto `results/`), y escribir por semilla un JSON con la configuración y los tres reportes, un CSV de series temporales de 001-A y, con varias semillas, un JSON agregado con media y desvío.
+
+#### Scenario: Determinismo entre procesos
+- **WHEN** se ejecuta `--profile quick --seeds 42` dos veces, con `PYTHONHASHSEED=0` y con `PYTHONHASHSEED=1`
+- **THEN** los archivos `exp001_seed42.json` generados son idénticos byte a byte.

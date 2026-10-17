@@ -1,38 +1,87 @@
 # Spec Delta: Domain Contracts
 
 ## Purpose
-Definir los modelos de datos inmutables, la configuración reproducible del sistema y el contrato abstracto `EnvironmentPort` que desacopla el razonamiento del agente de la topología física o espacial del entorno.
+Definir los modelos de datos inmutables, la configuración reproducible del sistema y el contrato abstracto `EnvironmentPort` que desacopla el razonamiento del agente de la topología del entorno.
 
 ## ADDED Requirements
 
-### Requirement: Estructuras de Datos Inmutables y Hashables
-El sistema SHALL definir todas las entidades de intercambio entre agentes y entorno (`Pattern`, `KnowledgeUnit`, `Resource`, `VisibleResource`, `Observation`, `Message`, `AgentAction`, `ActionResult`) como `@dataclass(frozen=True)` en `src/ide/domain/types.py`.
+### Requirement: Estructuras de Datos Inmutables
+El sistema SHALL definir `Pattern`, `KnowledgeUnit`, `Resource`, `VisibleResource`, `Observation`, `Message`, `AgentAction` y `ActionResult` como `@dataclass(frozen=True)` en `src/ide/domain/types.py`, con los campos exactos de `design.md`.
 
-#### Scenario: Inmutabilidad de Pattern y KnowledgeUnit
-- **WHEN** se instancia un `Pattern(attributes=(("id", "p_0"),))` o un `KnowledgeUnit` y un consumidor intenta reasignar cualquiera de sus atributos
-- **THEN** Python lanza `dataclasses.FrozenInstanceError` y el objeto original permanece intacto.
+#### Scenario: Intento de mutación
+- **WHEN** un consumidor intenta reasignar un atributo de un `Pattern` o de un `KnowledgeUnit`
+- **THEN** Python lanza `dataclasses.FrozenInstanceError` y el objeto permanece intacto.
 
-#### Scenario: Uso de Pattern como clave de diccionario
-- **WHEN** se utiliza una instancia de `Pattern` como clave en un `dict` o elemento en un `set`
-- **THEN** el hash se calcula de manera determinista a partir de su tupla ordenada de atributos sin lanzar `TypeError`.
+### Requirement: Pattern Hashable y con Orden Total
+`Pattern` SHALL ser `@dataclass(frozen=True, order=True)`, utilizable como clave de `dict` y elemento de `set`, y SHALL exponer la propiedad `label` que une los pares `clave=valor` con `&`.
 
-### Requirement: Ocultamiento Estricto del Valor Real y Guía Agnóstica de Movimiento en la Percepción
-El sistema SHALL separar la entidad interna del entorno (`Resource`, que contiene `true_value: float`) de la entidad percibida por el agente (`VisibleResource`, que omite `true_value`), e incluir en `VisibleResource` los campos `recommended_move: Any`, `distance: int` e `is_reachable_now: bool` para que el agente pueda acercarse a recursos distantes sin conocer coordenadas cartesianas.
+#### Scenario: Uso como clave y orden canónico
+- **WHEN** se construyen `Pattern((("id", "p_1"),))` y `Pattern((("id", "p_0"),))` y se ordenan con `sorted`
+- **THEN** el primero de la lista es `p_0`, ambos pueden usarse como claves de `dict` sin `TypeError` y `Pattern((("id", "p_0"),)).label == "id=p_0"`.
 
-#### Scenario: Inspección de Observation por parte del agente
-- **WHEN** el entorno construye un objeto `Observation` para un agente con recursos cercanos
-- **THEN** cada elemento dentro de `obs.visible_resources` es una instancia de `VisibleResource` que contiene únicamente `resource_id`, `pattern`, `recommended_move`, `distance` e `is_reachable_now`, carece del atributo `true_value`, y su `recommended_move` (cuando `distance > 0`) pertenece a `obs.available_moves`.
+### Requirement: Validación de Coherencia de Mensajes
+`Message` SHALL lanzar `ValueError` al construirse si su tipo es `QUERY_RESPONSE` o `BROADCAST_BELIEF` y `belief` es `None`, o si `belief.pattern` difiere de `pattern`.
 
-### Requirement: Contrato Abstracto EnvironmentPort Agnóstico de Topología
-El módulo `src/ide/domain/ports.py` SHALL declarar un `Protocol` verificable en tiempo de ejecución (`@runtime_checkable`) llamado `EnvironmentPort` con los métodos `get_active_agent_ids`, `get_observation`, `get_communication_neighbors`, `execute_action`, `remove_agents`, `retire_pattern_resources`, `invert_world_rules`, `step_dynamics` y `get_world_patterns`.
+#### Scenario: Respuesta sin creencia
+- **WHEN** se instancia `Message(MessageType.QUERY_RESPONSE, sender_id=1, recipient_id=2, pattern=p, belief=None)`
+- **THEN** se lanza `ValueError`.
 
-#### Scenario: Sustitución de entorno sin modificar el agente
-- **WHEN** se pasa al motor de simulación cualquier implementación de `EnvironmentPort` (sea `ToroidalGrid2D` o un entorno simulado basado en grafos)
-- **THEN** `isinstance(env, EnvironmentPort)` evalúa a `True` y `MicroAgent` opera sin cambios de código ni conversiones de coordenadas.
+### Requirement: Ocultamiento del Valor Real en la Percepción
+`VisibleResource` SHALL carecer del atributo `true_value` y SHALL exponer `resource_id`, `pattern`, `recommended_move`, `distance` e `is_reachable_now`, donde `is_reachable_now` es verdadero si y sólo si `distance == 0`.
 
-### Requirement: Configuración Centralizada y Validada
-El módulo `src/ide/config.py` SHALL proveer la clase `SimulationConfig` con validación en `__post_init__` que verifique las invariantes matemáticas del sistema, incluyendo la restricción crítica $1 \le C_{\max} < N$ y rangos válidos de probabilidades en $[0.0, 1.0]$.
+#### Scenario: Inspección de un recurso visible
+- **WHEN** se inspeccionan los campos de `VisibleResource` con `dataclasses.fields`
+- **THEN** el conjunto de nombres es exactamente `{resource_id, pattern, recommended_move, distance, is_reachable_now}`.
 
-#### Scenario: Rechazo de configuración que viola la restricción de memoria insuficiente
-- **WHEN** se instancia `SimulationConfig(num_world_patterns=8, memory_capacity=8)` donde $C_{\max} \ge N$ (y `enforce_memory_constraint=True`)
-- **THEN** `SimulationConfig` lanza `ValueError` indicando que la capacidad de memoria individual debe ser estrictamente menor al número de patrones del mundo.
+### Requirement: Guía de Movimiento Agnóstica
+Para todo `VisibleResource` con `distance > 0`, `recommended_move` SHALL pertenecer a `Observation.available_moves`; con `distance == 0` SHALL ser `None`.
+
+#### Scenario: Recurso distante
+- **WHEN** el entorno construye una `Observation` con un recurso a `distance = 2`
+- **THEN** su `recommended_move` es uno de los elementos de `obs.available_moves`.
+
+### Requirement: Contrato EnvironmentPort Verificable en Ejecución
+`src/ide/domain/ports.py` SHALL declarar `@runtime_checkable class EnvironmentPort(Protocol)` con `get_active_agent_ids`, `get_observation`, `get_communication_neighbors`, `execute_action`, `remove_agents`, `retire_pattern_resources`, `invert_world_rules`, `step_dynamics`, `get_world_patterns` y `get_reachable_true_values`.
+
+#### Scenario: Sustitución de entorno
+- **WHEN** se pasa a `SimulationEngine` un objeto que implementa los diez métodos (sea `ToroidalGrid2D` o un entorno de prueba basado en grafos)
+- **THEN** `isinstance(env, EnvironmentPort)` es `True` y `MicroAgent` opera sin cambios de código.
+
+### Requirement: Oráculo de Verdad Restringido a Telemetría
+`get_reachable_true_values(agent_id)` SHALL devolver un `dict[int, float]` de `resource_id` a `true_value` de los recursos alcanzables por el agente, y SHALL ser invocado únicamente por `SimulationEngine` para calcular M2, nunca entregado a un `MicroAgent`.
+
+#### Scenario: Agente sin recursos alcanzables
+- **WHEN** el agente está en una celda sin recursos
+- **THEN** `get_reachable_true_values(agent_id)` devuelve `{}`.
+
+### Requirement: Semántica Tolerante de execute_action
+`execute_action` SHALL tratar un `MOVE` con destino fuera de `available_moves` como `IDLE` y un `INTERACT` sobre un recurso inexistente o en otra celda como `ActionResult(INTERACT, None, None)`, sin lanzar excepciones.
+
+#### Scenario: Movimiento inválido
+- **WHEN** un agente envía `AgentAction(ActionType.MOVE, target=(5, 5))` en una grilla de Moore
+- **THEN** el agente no cambia de posición y no se lanza ninguna excepción.
+
+### Requirement: Restricción de Memoria Insuficiente en la Configuración
+`SimulationConfig.__post_init__` SHALL lanzar `ValueError` si `enforce_memory_constraint` es verdadero y no se cumple `1 <= memory_capacity < num_world_patterns`.
+
+#### Scenario: Capacidad igual al número de patrones
+- **WHEN** se instancia `SimulationConfig(num_world_patterns=8, memory_capacity=8)`
+- **THEN** se lanza `ValueError` cuyo mensaje menciona `memory_capacity`.
+
+### Requirement: Validación de Rangos de Hiperparámetros
+`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo si un coeficiente probabilístico sale de `[0.0, 1.0]`, si un tamaño o tasa es negativo, si `min_confidence >= decision_conf_threshold`, o si `2 * max(perception_radius, comm_radius) >= min(grid_width, grid_height)`.
+
+#### Scenario: Coeficiente fuera de rango
+- **WHEN** se instancia `SimulationConfig(gamma_social_discount=1.5)`
+- **THEN** se lanza `ValueError` cuyo mensaje menciona `gamma_social_discount`.
+
+#### Scenario: Radio que da la vuelta al toro
+- **WHEN** se instancia `SimulationConfig(grid_width=4, grid_height=4, perception_radius=2)`
+- **THEN** se lanza `ValueError`.
+
+### Requirement: Configuración Serializable
+`SimulationConfig.to_dict()` SHALL devolver un diccionario con todos los campos, serializable con `json.dumps` sin conversiones adicionales.
+
+#### Scenario: Ida y vuelta por JSON
+- **WHEN** se ejecuta `SimulationConfig(**json.loads(json.dumps(cfg.to_dict())))`
+- **THEN** el resultado es igual a `cfg`.
