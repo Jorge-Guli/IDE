@@ -1,7 +1,7 @@
 # Spec Delta: Bounded Memory
 
 ## Purpose
-Proveer la memoria local acotada (`BoundedMemory`) de cada micro-agente, garantizando la capacidad máxima $C_{\max}$, el reemplazo selectivo por utilidad epistémica $U(k, t)$ y el decaimiento pasivo de confianza.
+Proveer la memoria local acotada (`BoundedMemory`) de cada micro-agente, garantizando la capacidad máxima $C_{\max}$, el reemplazo selectivo por utilidad epistémica $U(k, t)$ y el decaimiento pasivo de confianza. Los valores numéricos de los escenarios se verifican con tolerancia absoluta `1e-9`.
 
 ## ADDED Requirements
 
@@ -54,7 +54,7 @@ Con la memoria llena y un patrón nuevo, `upsert` SHALL elegir como víctima la 
 
 #### Scenario: Purga de creencia degradada
 - **WHEN** una creencia tiene `confidence = 0.06`, `last_updated_tick < t`, y se invoca `decay_step(t, 0.02, 0.05)`
-- **THEN** su confianza cae a `0.04`, se elimina de la memoria y su patrón aparece en la lista devuelta.
+- **THEN** su confianza cae a `0.04` (con tolerancia `1e-9`), se elimina de la memoria y su patrón aparece en la lista devuelta.
 
 #### Scenario: Creencia validada en el tick actual
 - **WHEN** una creencia tiene `last_updated_tick == t` y se invoca `decay_step(t, 0.02, 0.05)`

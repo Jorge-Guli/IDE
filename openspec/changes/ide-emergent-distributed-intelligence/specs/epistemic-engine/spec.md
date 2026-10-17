@@ -1,7 +1,7 @@
 # Spec Delta: Epistemic Engine
 
 ## Purpose
-Implementar las reglas de aprendizaje individual por experiencia directa y la revalidación social frente a testimonios de otros agentes: adopción con descuento, consenso con protección anti-cámara de eco y resolución de contradicciones.
+Implementar las reglas de aprendizaje individual por experiencia directa y la revalidación social frente a testimonios de otros agentes: adopción con descuento, consenso con protección anti-cámara de eco y resolución de contradicciones. Los valores numéricos de los escenarios se verifican con tolerancia absoluta `1e-9`.
 
 ## ADDED Requirements
 
@@ -52,11 +52,19 @@ Si los signos coinciden e `incoming.from_direct_experience` es verdadero, la fun
 - **THEN** la confianza resultante es `0.636` y `evidence_count` aumenta en 1.
 
 ### Requirement: Protección Anti-Cámara de Eco (Escenario B)
-Si los signos coinciden e `incoming.from_direct_experience` es falso, la confianza resultante SHALL ser `min(max(c, γc_ext), c + η_consensus·(γc_ext)·(1-c))`.
+Si los signos coinciden e `incoming.from_direct_experience` es falso, la confianza resultante SHALL ser `min(max(c, γc_ext), c + η_consensus·(γc_ext)·(1-c))` y `last_updated_tick` SHALL conservar el valor de la creencia local: un rumor no valida a otro rumor.
 
 #### Scenario: Dos portadores de rumores en bucle
 - **WHEN** A y B tienen `from_direct_experience = False` y `c = 0.50` sobre el mismo patrón con igual signo, e intercambian sus creencias 100 veces (`γ = 0.75`)
 - **THEN** la confianza de ambos permanece en `0.50`.
+
+#### Scenario: El rumor compartido no se exime del olvido
+- **WHEN** el receptor tiene un rumor con `τ = 10` y en `t = 50` recibe un rumor del mismo signo de otro portador sin experiencia directa
+- **THEN** la creencia resultante conserva `last_updated_tick = 10`, de modo que `decay_step(50, ...)` le sigue restando confianza.
+
+#### Scenario: El consenso con evidencia directa sí valida
+- **WHEN** el receptor tiene una creencia con `τ = 10` y en `t = 50` recibe una del mismo signo con `from_direct_experience = True`
+- **THEN** la creencia resultante tiene `last_updated_tick = 50`.
 
 ### Requirement: Resistencia ante Contradicción (Escenario C)
 Si los signos difieren y no corresponde sobrescritura, la función SHALL conservar el valor, el origen y el `last_updated_tick` de la creencia local y reducir su confianza a `max(0, c - η_doubt·(γc_ext)/r)`, con `r = 2.0` si la creencia local es directa y `r = 1.0` si no.

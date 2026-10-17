@@ -68,6 +68,13 @@ Dos motores construidos con la misma `SimulationConfig` SHALL producir historial
 - **WHEN** hay 80 agentes activos y se invoca `ablate_population(0.50)`
 - **THEN** se eliminan exactamente 40 agentes del motor y del entorno, y quedan 40 activos.
 
+### Requirement: Instantánea Epistémica sin Avanzar el Tiempo
+`SimulationEngine.snapshot()` SHALL devolver `knowledge_snapshot` del estado actual sin ejecutar ticks ni modificar `history`, `next_tick` ni el acumulado de M2.
+
+#### Scenario: Medición inmediatamente después de una ablación
+- **WHEN** tras 50 ticks se invoca `ablate_population(0.5)` y luego `snapshot()` dos veces
+- **THEN** ambas instantáneas son iguales, `active_agents == 40`, y `len(history)` y `next_tick` siguen siendo 50.
+
 ### Requirement: Ablación de Descubridores con Retiro de Estímulo
 `ablate_discoverers(pattern, retire_stimulus=True)` SHALL eliminar a todos los agentes activos de `direct_discoverers[pattern]` y, si `retire_stimulus` es verdadero, invocar `env.retire_pattern_resources(pattern)`.
 

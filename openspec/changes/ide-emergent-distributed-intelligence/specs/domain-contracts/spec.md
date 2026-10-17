@@ -62,14 +62,18 @@ Para todo `VisibleResource` con `distance > 0`, `recommended_move` SHALL pertene
 - **THEN** el agente no cambia de posición y no se lanza ninguna excepción.
 
 ### Requirement: Restricción de Memoria Insuficiente en la Configuración
-`SimulationConfig.__post_init__` SHALL lanzar `ValueError` si `enforce_memory_constraint` es verdadero y no se cumple `1 <= memory_capacity < num_world_patterns`.
+`SimulationConfig.__post_init__` SHALL lanzar `ValueError` si `memory_capacity < 1`, o si `enforce_memory_constraint` es verdadero y `memory_capacity >= num_world_patterns`.
 
 #### Scenario: Capacidad igual al número de patrones
 - **WHEN** se instancia `SimulationConfig(num_world_patterns=8, memory_capacity=8)`
 - **THEN** se lanza `ValueError` cuyo mensaje menciona `memory_capacity`.
 
+#### Scenario: Capacidad nula sin restricción
+- **WHEN** se instancia `SimulationConfig(memory_capacity=0, enforce_memory_constraint=False)`
+- **THEN** se lanza `ValueError`.
+
 ### Requirement: Validación de Rangos de Hiperparámetros
-`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo si un coeficiente probabilístico sale de `[0.0, 1.0]`, si un tamaño o tasa es negativo, si `min_confidence >= decision_conf_threshold`, o si `2 * max(perception_radius, comm_radius) >= min(grid_width, grid_height)`.
+`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo si un coeficiente probabilístico sale de `[0.0, 1.0]`, si `num_agents`, `resources_per_pattern` o las dimensiones son menores que 1, si `num_world_patterns < 2`, si un radio o tasa es negativo, si `min_confidence >= decision_conf_threshold`, o si `2 * max(perception_radius, comm_radius) >= min(grid_width, grid_height)`.
 
 #### Scenario: Coeficiente fuera de rango
 - **WHEN** se instancia `SimulationConfig(gamma_social_discount=1.5)`

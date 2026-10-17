@@ -9,7 +9,7 @@ Los sistemas actuales de inteligencia artificial concentran la cognición en mod
 - Creación de la estructura de paquete Python (`pyproject.toml`, `src/ide/`, `tests/`) bajo arquitectura hexagonal estricta (separación total entre cognición del agente y topología del entorno).
 - Implementación de contratos de dominio inmutables (`Pattern`, `KnowledgeUnit`, `Resource`, `VisibleResource`, `Observation`, `Message`, `AgentAction`, `ActionResult`) y el puerto abstracto `EnvironmentPort`, incluido un oráculo de verdad restringido a telemetría (`get_reachable_true_values`).
 - Implementación del módulo de memoria acotada (`BoundedMemory`) con límite estricto $C_{\max}$, índice de utilidad epistémica $U(k, t)$ y decaimiento temporal pasivo.
-- Implementación del motor epistemológico (`EpistemicEngine`) con reglas formales para aprendizaje por experiencia directa y revalidación social en tres escenarios (Desconocido con descuento $\gamma$, Consenso y Conflicto Epistémico).
+- Implementación del motor epistemológico (funciones puras de `epistemology.py`) con reglas formales para aprendizaje por experiencia directa y revalidación social en tres escenarios (Desconocido con descuento $\gamma$, Consenso y Conflicto Epistémico).
 - Implementación del agente autónomo (`MicroAgent`) agnóstico de coordenadas, con soporte para consultas colectivas en tiempo real (`QUERY_PATTERN` / `QUERY_RESPONSE`), difusión espontánea (`BROADCAST_BELIEF`) y toma de decisiones basada en umbral de confianza y exploración $\epsilon$.
 - Implementación del entorno inicial `ToroidalGrid2D` con aritmética modular sin bordes, indexación espacial $O(1)$ por celda y ocultamiento estricto del valor real $v(r)$ antes de la interacción.
 - Implementación del motor de simulación por pasos discretos (`SimulationEngine`) con pipeline determinista de 5 fases por tick, barajado de turnos mediante semilla (`np.random.Generator`) y reproducibilidad garantizada también entre procesos (independiente de `PYTHONHASHSEED`).
@@ -37,7 +37,7 @@ Los sistemas actuales de inteligencia artificial concentran la cognición en mod
 
 ## Impact
 
-- **Código nuevo:** Creación completa de `src/ide/` y `tests/` (10 módulos de producción y suite de pruebas unitarias, de integración y de hipótesis con `pytest`).
+- **Código nuevo:** Creación completa de `src/ide/` y `tests/` (11 módulos de producción y suite de pruebas unitarias, de integración y de hipótesis con `pytest`).
 - **Dependencias:** Python $\ge 3.11$, `numpy` (para RNG reproducible y agregaciones estadísticas) y `pytest` (desarrollo/testing).
 - **Reglas Arquitectónicas Aplicadas:**
   - Prohibición estricta de importar `environments` dentro de `src/ide/agent/`.

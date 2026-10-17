@@ -49,8 +49,8 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - **Racional:** Con $C_{\max}=3$ y $N=12$, la difusión sola produce *thrashing*; la consulta permite que un grupo de $G$ vecinos actúe como un meta-agente con hasta $G \cdot C_{\max}$ creencias.
 
 ### 5. Protección anti-cámara de eco (*Bootstrap Illusion*)
-- **Decisión:** `KnowledgeUnit.from_direct_experience` + descuento $\gamma$ por salto + en el Escenario B, si el emisor no tiene experiencia directa, la confianza resultante no supera $\max(c_{\text{local}}, \gamma c_{\text{ext}})$.
-- **Racional:** Sin esta regla, dos portadores de un mismo rumor se lo rebotarían hasta $c \to 1.0$ sin evidencia física.
+- **Decisión:** `KnowledgeUnit.from_direct_experience` + descuento $\gamma$ por salto + en el Escenario B, si el emisor no tiene experiencia directa, la confianza resultante no supera $\max(c_{\text{local}}, \gamma c_{\text{ext}})$ **y `last_updated_tick` no se refresca** (un rumor no valida a otro rumor).
+- **Racional:** Sin la cota, dos portadores de un mismo rumor se lo rebotarían hasta $c \to 1.0$ sin evidencia física. Sin congelar τ, ese rebote los eximiría del decaimiento pasivo para siempre, y ni la persistencia social (M4) ni un rumor falso compartido (M6) podrían extinguirse nunca.
 
 ### 6. Determinismo entre procesos (hash aleatorizado de `str`)
 - **Problema detectado:** Python aleatoriza el hash de `str` por proceso (`PYTHONHASHSEED`). `Pattern` contiene strings, así que el orden de iteración de un `set[Pattern]` varía entre ejecuciones, rompiendo la reproducibilidad bit a bit si alguna lógica itera sobre él.
@@ -75,7 +75,7 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 - **Racional:** Es la definición formal de conocimiento colectivo "accesible a $\le d$ saltos" con $d=1$, y mide exactamente el meta-agente de la Decisión 4.
 
 ### 10. Hipótesis científica ≠ test de software
-- **Decisión:** Las afirmaciones empíricas (emergencia en 001-A, contención en 001-B) se verifican con tests marcados `@pytest.mark.hypothesis`, excluidos de la corrida por defecto (`addopts = "-m 'not hypothesis'"`) y ejecutados con `pytest -m hypothesis`. Un resultado negativo **no** autoriza a ajustar parámetros para "hacer pasar" el test: se reporta como hallazgo (criterio de falsabilidad del Documento Fundacional §10).
+- **Decisión:** Las afirmaciones empíricas (emergencia en 001-A, contención en 001-B) se verifican sobre las semillas `42..46` con tests marcados `@pytest.mark.hypothesis`. H1 exige que `emergence_surplus > 0` en las 5 semillas, lo que equivale a una prueba de signo unilateral con $p = 1/32 \approx 0.031 < 0.05$. Esos tests están excluidos de la corrida por defecto (`addopts = "-m 'not hypothesis'"`) y ejecutados con `pytest -m hypothesis`. Un resultado negativo **no** autoriza a ajustar parámetros para "hacer pasar" el test: se reporta como hallazgo (criterio de falsabilidad del Documento Fundacional §10).
 - **Racional:** Evitar *p-hacking* y mantener la suite de software estable e independiente del resultado científico.
 
 ### 11. Protocolos con perfiles `quick` y `full`
@@ -129,7 +129,7 @@ class SimulationConfig:
     def to_dict(self) -> dict[str, Any]: ...   # dataclasses.asdict, serializable a JSON
 ```
 **Validaciones de `__post_init__` (todas lanzan `ValueError` con mensaje que nombra el campo):**
-1. Si `enforce_memory_constraint`: `1 <= memory_capacity < num_world_patterns`.
+1. Siempre `memory_capacity >= 1`; además, si `enforce_memory_constraint`, `memory_capacity < num_world_patterns`.
 2. `num_world_patterns >= 2`, `num_agents >= 1`, `resources_per_pattern >= 1`, `grid_width >= 1`, `grid_height >= 1`.
 3. `perception_radius >= 0`, `comm_radius >= 0` y `2 * max(perception_radius, comm_radius) < min(grid_width, grid_height)` (evita que una misma celda se vea por dos lados del toro y que `dx` toroidal sea ambiguo).
 4. En `[0.0, 1.0]`: `initial_direct_confidence`, `alpha_learning`, `beta_reinforce`, `beta_punish`, `gamma_social_discount`, `eta_consensus`, `eta_doubt`, `min_confidence`, `decision_conf_threshold`, `epsilon_explore`.
@@ -323,7 +323,9 @@ class BoundedMemory:
      - `new_val = (c·v̂ + e·v̂_ext)/(c + e)` si `c + e > 0`, si no `v̂_ext`.
      - `raw = c + η_cons · e · (1 - c)`.
      - `new_conf = min(1, raw)` si `incoming.from_direct_experience`; si no, `min(max(c, e), raw)`.
-     - Devuelve `(pattern, new_val, new_conf, n+1, tick, existing.from_direct_experience)`.
+     - `new_tau = tick` si `incoming.from_direct_experience`; si no, `existing.last_updated_tick`.
+     - Devuelve `(pattern, new_val, new_conf, n+1, new_tau, existing.from_direct_experience)`.
+     - **Un rumor no valida a otro rumor:** el consenso sin evidencia directa del emisor no refresca τ. Si lo hiciera, dos portadores de un rumor que se lo re-difunden en cada tick quedarían exentos del decaimiento pasivo para siempre: la persistencia social (M4) nunca terminaría y un rumor falso compartido (M6) nunca se olvidaría.
    - **C** (`< 0`):
      - Sobrescritura si `not existing.from_direct_experience and e > 1.2 · c` → `(pattern, v̂_ext, max(min_confidence, e - 0.5·c), 1, tick, False)`.
      - Resistencia en otro caso → `resistance = 2.0 if existing.from_direct_experience else 1.0`; `new_conf = max(0, c - η_duda · e / resistance)`; devuelve `existing` con esa confianza **conservando su `last_updated_tick`** (la duda no es una validación, no debe refrescar la utilidad ni eximir del decaimiento).
@@ -405,6 +407,7 @@ class SimulationEngine:
                             confidence: float, fraction: float) -> list[int]: ...
     def ablate_population(self, fraction: float) -> list[int]: ...
     def ablate_discoverers(self, pattern: Pattern, retire_stimulus: bool = True) -> list[int]: ...
+    def snapshot(self) -> KnowledgeSnapshot: ...      # estado epistémico actual, sin ejecutar ticks
 ```
 **Pipeline de un tick `t` (5 fases):**
 1. **Percepción y emisión.** `order = rng.permutation(sorted(activos))`. Para cada agente en `order`: `obs = env.get_observation(aid, t)`; `emitted += agent.perceive_and_emit_messages(obs, t)`.
@@ -452,12 +455,27 @@ class MetricsCollector:
                     decision_opportunities: int, correct_decisions: int,
                     messages_sent: int) -> TickMetrics: ...
 
+@dataclass(frozen=True)
+class KnowledgeSnapshot:                     # estado epistémico sin decisiones ni mensajes
+    active_agents: int
+    individual_coverage_mean: float
+    collective_coverage: float
+    accessible_coverage_mean: float
+    pattern_prevalence: dict[Pattern, float]
+    pattern_false_prevalence: dict[Pattern, float]
+    false_belief_prevalence: float
+
+def knowledge_snapshot(agents: dict[int, MicroAgent], world_patterns: dict[Pattern, float],
+                       neighbors: dict[int, list[int]], config: SimulationConfig) -> KnowledgeSnapshot: ...
 def judge_decision(action: AgentAction, reachable_truth: dict[int, float]) -> bool: ...
 def propagation_time(history: Sequence[TickMetrics], pattern: Pattern, theta: float) -> int | None: ...
 ```
 - **M2 `judge_decision`** (sólo se invoca si `reachable_truth` no está vacío): correcta si (a) `INTERACT` sobre un `target` con valor `> 0`, o (b) no `INTERACT` y todos los valores son `< 0`. Incorrecta en cualquier otro caso (incluye `INTERACT` sobre un `target` que no está en `reachable_truth`).
 - **M3 `propagation_time`:** sea `t_0` el primer tick con `pattern_prevalence[p] > 0` y `P_max` el máximo de la serie; devuelve el menor `t - t_0` con prevalencia `>= theta · P_max`, o `None` si `P_max == 0`. (Tiempo de subida normalizado: la prevalencia absoluta de un patrón está acotada por $C_{\max}/N$ en promedio, así que un umbral absoluto podría no alcanzarse nunca.)
 - Si `comm_enabled == False`, `accessible_coverage_mean == individual_coverage_mean`.
+- **`knowledge_snapshot`** es una función pura: `record_tick` la usa para los campos epistémicos de `TickMetrics`, y los protocolos la usan para medir el estado entre ticks (justo después de una ablación o inyección) sin alterar el acumulado de M2. `SimulationEngine.snapshot() -> KnowledgeSnapshot` la invoca con el mapa de vecinos actual (vacío por agente si `comm_enabled` es falso). Sin agentes activos, todos los campos valen `0.0` (y los diccionarios, `0.0` por patrón).
+- **Precisión ponderada en una ventana:** `windowed_accuracy(history_slice) = Σ correct_decisions / Σ decision_opportunities` (0.0 si no hubo oportunidades). Promediar `decision_accuracy` tick a tick sesgaría el resultado con los ticks sin oportunidades.
+- **Tolerancia numérica:** los valores de los escenarios de las specs se verifican con `pytest.approx(valor, abs=1e-9)`; ningún test compara floats calculados con `==`, salvo el determinismo entre corridas, que exige igualdad exacta.
 
 ### 8. Protocolos (`src/ide/experiments/exp001_runner.py`)
 ```python
@@ -474,39 +492,40 @@ class EmergenceReport:
     collective_coverage: float
     isolated_coverage: float
     collective_individual_coverage_mean: float
-    mean_messages_per_agent: float
+    mean_messages_per_agent: float           # media de messages_per_agent sobre todos los ticks, comm on
+    accuracy_gain_per_message: float | None  # emergence_surplus / mean_messages_per_agent; None si es 0
     propagation_t50: dict[str, int | None]   # por pattern.label, corrida colectiva
     propagation_t90: dict[str, int | None]
 
 @dataclass(frozen=True)
 class FalsificationReport:
-    target_pattern_id: str                   # "p_0"
+    target_pattern: str                      # TARGET_PATTERN.label == "id=p_0"
     injected_agents: int
-    initial_injected_prevalence: float       # injected_agents / activos (exacto por construcción)
-    peak_false_prevalence: float             # máximo de pattern_false_prevalence[p_0] desde la inyección
-    final_false_prevalence: float
-    ticks_to_extinction: int | None          # primer tick con prevalencia falsa 0, relativo a la inyección
+    initial_injected_prevalence: float       # knowledge_snapshot() inmediatamente tras inyectar
+    peak_false_prevalence: float             # máximo entre la inicial y la de cada tick posterior
+    final_false_prevalence: float            # pattern_false_prevalence[p_0] del último tick
+    ticks_to_extinction: int | None          # menor k >= 1 (k-ésimo tick tras inyectar) con prevalencia falsa 0
     extinguished_or_contained: bool          # final < initial
 
 @dataclass(frozen=True)
 class AblationPointResult:
     ablation_fraction: float
     remaining_agents: int
-    pre_ablation_coverage: float             # collective_coverage
-    immediate_post_ablation_coverage: float  # recalculada sobre sobrevivientes, sin ejecutar ticks
-    final_recovered_coverage: float
-    retention_ratio: float                   # post/pre (0.0 si pre == 0)
-    pre_ablation_accuracy: float             # media de decision_accuracy en las últimas RECOVERY_WINDOW
-    recovery_ticks: int | None               # primer offset con media móvil >= 0.9 * pre
+    pre_ablation_coverage: float             # collective_coverage del último tick de warmup
+    immediate_post_ablation_coverage: float  # engine.snapshot() inmediatamente tras la ablación
+    final_recovered_coverage: float          # collective_coverage del último tick
+    retention_ratio: float                   # immediate_post / pre (0.0 si pre == 0)
+    pre_ablation_accuracy: float             # windowed_accuracy de los últimos RECOVERY_WINDOW ticks de warmup
+    recovery_ticks: int | None               # ver regla de recuperación abajo
 
 @dataclass(frozen=True)
 class ResilienceReport:
     ablation_results: tuple[AblationPointResult, ...]
     discoverers_ablated_count: int
     remaining_agents_after_discoverer_ablation: int
-    post_discoverer_ablation_prevalence: float
-    final_social_persistence_prevalence: float
-    social_persistence_ticks: int | None     # ticks hasta prevalencia 0 de p_0; None si sobrevive
+    post_discoverer_ablation_prevalence: float   # pattern_prevalence[p_0] de engine.snapshot() tras la ablación
+    final_social_persistence_prevalence: float   # pattern_prevalence[p_0] del último tick
+    social_persistence_ticks: int | None         # menor k >= 1 con pattern_prevalence[p_0] == 0; None si sobrevive
 
 def run_protocol_001a_emergence(config: SimulationConfig, total_ticks: int = 300) -> EmergenceReport: ...
 def run_protocol_001b_falsification(config: SimulationConfig, total_ticks: int = 300,
@@ -515,13 +534,20 @@ def run_protocol_001c_resilience(config: SimulationConfig, warmup_ticks: int = 1
         post_ablation_ticks: int = 100,
         ablation_levels: tuple[float, ...] = (0.10, 0.30, 0.50, 0.70)) -> ResilienceReport: ...
 def report_to_dict(report: Any) -> dict[str, Any]: ...      # Pattern -> label, tuplas -> listas
-def aggregate_reports(reports: Sequence[Any]) -> dict[str, dict[str, float]]: ...  # mean/std por campo numérico
+def aggregate_reports(reports: Sequence[Any]) -> dict[str, Any]: ...
+def sign_test_p_value(differences: Sequence[float]) -> float: ...
+def build_arg_parser() -> argparse.ArgumentParser: ...
 def main(argv: list[str] | None = None) -> int: ...
 ```
 - **001-A:** dos motores independientes con la misma `config`, uno con `comm_enabled=True` y otro con `dataclasses.replace(config, comm_enabled=False)`, `total_ticks` cada uno.
 - **001-B:** corre `injection_tick` ticks, inyecta `(p_0, -1.0, 0.95, injection_fraction)`, corre `total_ticks - injection_tick` ticks más.
-- **001-C:** para cada nivel, un motor nuevo con la misma `config` (por determinismo, su estado tras `warmup_ticks` es idéntico al de los demás), ablación, `post_ablation_ticks` ticks. Una corrida adicional con `ablate_discoverers(p_0, retire_stimulus=True)`.
-- **CLI:** `python -m ide.experiments.exp001_runner [--profile {quick,full}] [--seeds 42 43 ...] [--out results/]`. Escribe `exp001_seed{seed}.json` (config + los tres reportes), `exp001_aggregate.json` (media y desvío por campo numérico cuando hay más de una semilla) y `exp001a_seed{seed}_timeseries.csv` (una fila por tick y modo). Imprime un resumen legible en consola. Devuelve 0.
+- **001-C:** para cada nivel, un motor nuevo con la misma `config` (por determinismo, su estado tras `warmup_ticks` es idéntico al de los demás), ablación, `post_ablation_ticks` ticks. Una corrida adicional, también nueva: `warmup_ticks` ticks, `ablate_discoverers(p_0, retire_stimulus=True)`, `post_ablation_ticks` ticks.
+- **Regla de recuperación (M5):** tras la ablación, para cada `k = 1..post_ablation_ticks`, se calcula `windowed_accuracy` sobre los ticks post-ablación `max(1, k - RECOVERY_WINDOW + 1)..k` (nunca se mezclan ticks previos a la ablación). `recovery_ticks` es el menor `k` cuyo valor es `>= 0.9 · pre_ablation_accuracy`, o `None` si no ocurre.
+- **Convención de offsets:** todo conteo "k ticks después" de una perturbación empieza en `k = 1` (el primer tick ejecutado tras ella).
+- **`aggregate_reports`** (varias semillas del mismo protocolo): por campo escalar numérico, `{"mean", "std", "n"}` con desvío poblacional (`ddof=0`); por campo `bool`, la fracción de `True`; por campo `dict`, la misma agregación por clave; los valores `None` se excluyen y `n` cuenta los restantes. Para 001-A agrega además `emergence_sign_test_p = sign_test_p_value([r.emergence_surplus ...])`.
+- **`sign_test_p_value`:** prueba de signo unilateral (H1: diferencia > 0). Se descartan los ceros; con `n` restantes y `s` positivos, `p = Σ_{i=s..n} C(n, i) / 2^n` (1.0 si `n == 0`). No requiere `scipy`.
+- **CLI:** `python -m ide.experiments.exp001_runner [--profile {quick,full}] [--seeds 42 43 ...] [--out results/]`, con valores por defecto `full`, `42` y `results/`. Escribe `exp001_seed{seed}.json` (config + los tres reportes vía `report_to_dict`, con claves ordenadas e `indent=2`), `exp001_aggregate.json` cuando hay más de una semilla, y `exp001a_seed{seed}_timeseries.csv`. Imprime un resumen legible en consola y devuelve 0.
+- **CSV de series temporales:** una fila por `(mode, tick)` con `mode ∈ {collective, isolated}`; columnas en este orden: `mode`, los campos escalares de `TickMetrics` en orden de declaración, `prevalence[<label>]` y `false_prevalence[<label>]` por patrón en orden de `Pattern`.
 
 ## Risks / Trade-offs
 
@@ -543,7 +569,7 @@ def main(argv: list[str] | None = None) -> int: ...
 - [ ] **Determinismo intra-proceso:** dos motores con la misma `seed` producen historiales, posiciones y memorias idénticas.
 - [ ] **Determinismo inter-proceso:** la CLI con `--profile quick` genera JSON idéntico bajo `PYTHONHASHSEED=0` y `PYTHONHASHSEED=1`.
 - [ ] **Suite de software verde:** `pytest` (sin el marcador `hypothesis`).
-- [ ] **Hipótesis ejecutadas y reportadas:** `pytest -m hypothesis` corrido y su resultado (positivo o negativo) registrado.
+- [ ] **Hipótesis ejecutadas y reportadas:** `pytest -m hypothesis` corrido sobre las semillas 42..46 y su resultado (positivo o negativo) registrado.
 
 ## Setup, Ejecución y Validación Local
 

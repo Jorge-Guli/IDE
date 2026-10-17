@@ -1,6 +1,6 @@
 # Tasks: Plataforma de Inteligencia Distribuida Emergente (IDE)
 
-Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, fórmulas y desempates exactos están en `design.md`; los criterios verificables, en `specs/`. Un test en rojo por una hipótesis científica (`-m hypothesis`) **no** bloquea ninguna tarea: se reporta.
+Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, fórmulas y desempates exactos están en `design.md`; los criterios verificables, en `specs/`. Un test en rojo por una hipótesis científica (`-m hypothesis`) **no** bloquea ninguna tarea: se reporta. Los valores numéricos se comparan con `pytest.approx(abs=1e-9)`; sólo el determinismo exige igualdad exacta.
 
 ## 1. Scaffolding y Configuración del Proyecto
 
@@ -8,13 +8,13 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 2. Contratos de Dominio y Configuración (`domain-contracts`)
 
-- [ ] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` y la ida y vuelta por JSON de `to_dict()`.
+- [ ] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` (incluida `memory_capacity = 0` con `enforce_memory_constraint=False`) y la ida y vuelta por JSON de `to_dict()`.
 - [ ] 2.2 [GREEN] Implementar `src/ide/config.py`, `src/ide/domain/types.py` y `src/ide/domain/ports.py`.
 - [ ] 2.3 [REFACTOR] Docstrings y tipos; la suite sigue en verde.
 
 ## 3. Contratos de Extensión (`roadmap-extensions`)
 
-- [ ] 3.1 [RED] Escribir `tests/test_roadmap_extensions.py`: `UniformTrustStrategy`, `AgentCapabilities` por defecto, validación y `evaluate` de `CompositeRule` (con `set` y `dict`), y mutación acotada y reproducible de `DefaultEvolutionaryOperator`.
+- [ ] 3.1 [RED] Escribir `tests/test_roadmap_extensions.py`: `UniformTrustStrategy`, `AgentCapabilities` por defecto (la invariancia durante 100 ticks se prueba en 8.1), validación y `evaluate` de `CompositeRule` (con `set` y `dict`), y mutación acotada y reproducible de `DefaultEvolutionaryOperator`.
 - [ ] 3.2 [GREEN] Implementar `src/ide/domain/extensions.py`.
 
 ## 4. Memoria Acotada (`bounded-memory`)
@@ -25,7 +25,7 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 5. Motor Epistemológico (`epistemic-engine`)
 
-- [ ] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo, anti-cámara de eco en 100 intercambios, resistencia del Escenario C (incluido que `last_updated_tick` no cambie) y sobrescritura de rumor débil.
+- [ ] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo (refresca `τ`), anti-cámara de eco en 100 intercambios (no refresca `τ`), resistencia del Escenario C (incluido que `last_updated_tick` no cambie) y sobrescritura de rumor débil.
 - [ ] 5.2 [GREEN] Implementar `update_from_direct_experience` y `merge_social_belief` en `src/ide/agent/epistemology.py`.
 
 ## 6. Micro-Agente (`micro-agent`)
@@ -40,16 +40,16 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 8. Motor de Simulación (`simulation-engine`)
 
-- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80) y `ablate_discoverers` preservando al portador social.
+- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, orden de procesamiento idéntico con distintos `PYTHONHASHSEED` (subproceso), `capabilities` invariantes durante 100 ticks, `snapshot()` sin efectos secundarios, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80) y `ablate_discoverers` preservando al portador social.
 - [ ] 8.2 [GREEN] Implementar `SimulationEngine` en `src/ide/simulation/engine.py`.
 
 ## 9. Métricas y Protocolos (`experimental-suite`)
 
-- [ ] 9.1 [RED] Escribir `tests/test_metrics.py`: validez de creencias, M1 (incluida la cota $C_{\max}/N$ y la cobertura accesible del meta-agente), `judge_decision` en sus cuatro casos, M2 sin oportunidades, `propagation_time` (incluido `None`), M6 y M7 (un broadcast cuenta una vez).
-- [ ] 9.2 [GREEN] Implementar `MetricsCollector`, `judge_decision` y `propagation_time` en `src/ide/experiments/metrics.py`.
-- [ ] 9.3 [RED] Escribir `tests/test_exp001_suite.py`: esquemas exactos de los tres reportes con corridas cortas, `injected_agents == 20`, `remaining_agents` por nivel de ablación, `report_to_dict` serializable y el test de determinismo entre procesos (CLI `--profile quick` con dos `PYTHONHASHSEED` distintos).
-- [ ] 9.4 [GREEN] Implementar los protocolos, `report_to_dict`, `aggregate_reports` y la CLI en `src/ide/experiments/exp001_runner.py`.
-- [ ] 9.5 Escribir `tests/test_hypotheses.py` con `@pytest.mark.hypothesis` (H1 de emergencia y contención de falsedad), ejecutar `pytest -m hypothesis` y registrar el resultado, positivo o negativo, sin ajustar parámetros.
+- [ ] 9.1 [RED] Escribir `tests/test_metrics.py`: `knowledge_snapshot` con población vacía, `windowed_accuracy` ponderada, validez de creencias, M1 (incluida la cota $C_{\max}/N$ y la cobertura accesible del meta-agente), `judge_decision` en sus cuatro casos, M2 sin oportunidades, `propagation_time` (incluido `None`), M6 y M7 (un broadcast cuenta una vez).
+- [ ] 9.2 [GREEN] Implementar `KnowledgeSnapshot`, `knowledge_snapshot`, `MetricsCollector`, `judge_decision`, `windowed_accuracy` y `propagation_time` en `src/ide/experiments/metrics.py`.
+- [ ] 9.3 [RED] Escribir `tests/test_exp001_suite.py`: esquemas exactos de los tres reportes con corridas cortas, `injected_agents == 20` y `target_pattern == "id=p_0"`, `remaining_agents` por nivel de ablación, ventana de `recovery_ticks` sin ticks previos a la ablación, `sign_test_p_value` (0.03125 con cinco positivas), `aggregate_reports` con `None`, valores por defecto de `build_arg_parser()`, columnas del CSV, `report_to_dict` serializable y el test de determinismo entre procesos (CLI `--profile quick` con dos `PYTHONHASHSEED` distintos).
+- [ ] 9.4 [GREEN] Implementar los protocolos, `report_to_dict`, `aggregate_reports`, `sign_test_p_value`, `build_arg_parser` y la CLI en `src/ide/experiments/exp001_runner.py`.
+- [ ] 9.5 Escribir `tests/test_hypotheses.py` con `@pytest.mark.hypothesis` (H1 de emergencia y contención de falsedad sobre las semillas 42..46), ejecutar `pytest -m hypothesis` y registrar el resultado, positivo o negativo, sin ajustar parámetros.
 
 ## 10. Cierre
 
