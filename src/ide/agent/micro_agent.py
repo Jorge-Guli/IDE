@@ -18,6 +18,7 @@ from ide.domain.types import (
     Message,
     Observation,
     Pattern,
+    VisibleResource,
 )
 
 
@@ -84,29 +85,32 @@ class MicroAgent:
 
     def decide_action(self, obs: Observation, tick: int, rng: np.random.Generator) -> AgentAction:
         """Consumir, explorar, navegar o caminar al azar; desempates por menor `resource_id`."""
-        beneficial: list[tuple[float, int]] = []  # (-v̂·c, resource_id)
-        unknown: list[int] = []
-        goals: list[tuple[int, int, object]] = []  # (distance, resource_id, recommended_move)
+        navigate = self._config.enable_navigation
+        beneficial: list[tuple[float, VisibleResource]] = []  # con su valor esperado v̂·c
+        unknown: list[VisibleResource] = []
+        goals: list[VisibleResource] = []
         for res in obs.visible_resources:
+            if not (res.is_reachable_now or navigate):
+                continue
             belief = self.get_effective_belief(res.pattern)
-            known = is_known(belief, self._config)
-            if res.is_reachable_now:
-                if known and belief.predicted_value > 0:
-                    beneficial.append(
-                        (-belief.predicted_value * belief.confidence, res.resource_id)
-                    )
-                elif not known:
-                    unknown.append(res.resource_id)
-            elif self._config.enable_navigation and known and belief.predicted_value > 0:
-                goals.append((res.distance, res.resource_id, res.recommended_move))
+            if not is_known(belief, self._config):
+                if res.is_reachable_now:
+                    unknown.append(res)
+            elif belief.predicted_value > 0:
+                if res.is_reachable_now:
+                    beneficial.append((belief.predicted_value * belief.confidence, res))
+                else:
+                    goals.append(res)
 
         if beneficial:
-            return AgentAction(ActionType.INTERACT, min(beneficial)[1])
+            _, best = min(beneficial, key=lambda item: (-item[0], item[1].resource_id))
+            return AgentAction(ActionType.INTERACT, best.resource_id)
         if unknown and rng.random() < self._config.epsilon_explore:
-            return AgentAction(ActionType.INTERACT, min(unknown))
+            target = min(unknown, key=lambda r: r.resource_id)
+            return AgentAction(ActionType.INTERACT, target.resource_id)
         if goals:
-            nearest = min(goals, key=lambda g: (g[0], g[1]))
-            return AgentAction(ActionType.MOVE, nearest[2])
+            goal = min(goals, key=lambda r: (r.distance, r.resource_id))
+            return AgentAction(ActionType.MOVE, goal.recommended_move)
         if not obs.available_moves:
             return AgentAction(ActionType.IDLE)
         return AgentAction(

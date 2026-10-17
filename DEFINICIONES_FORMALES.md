@@ -131,7 +131,8 @@ El receptor $a_j$ evalúa $k_{\text{ext}}$ bajo tres escenarios posibles:
 
 #### Escenario A: Patrón desconocido ($\rho \notin \mathcal{M}_j$)
 El receptor no sabe nada sobre $\rho$. Adopta la creencia pero aplicando un **descuento por testimonio indirecto** ($\gamma \in (0, 1]$, donde $\gamma = 1$ sólo se usa para ablacionar la regla; ej. $\gamma = 0.7$):
-$$c_{\text{recibida}} = \gamma \cdot c_{\text{ext}}$$
+$$c_{\text{recibida}} = \min\left(1,\; \gamma \cdot c_{\text{ext}}\right)$$
+*(El recorte en 1 sólo actúa si una estrategia de confianza por emisor (Exp 002) asigna un factor mayor que 1; en el Exp 001, $\gamma \le 1$ y $c_{\text{recibida}} = \gamma \cdot c_{\text{ext}}$. En las fórmulas siguientes, $\gamma c_{\text{ext}}$ denota este valor ya recortado).*
 *(Un rumor nunca tiene la misma fuerza inicial que haberlo vivido directamente; cada salto de boca en boca sin verificación empírica atenúa la confianza).*
 
 #### Escenario B: Consenso ($\rho \in \mathcal{M}_j$ y $\text{sign}(\hat{v}_j) == \text{sign}(\hat{v}_{\text{ext}})$)
@@ -142,7 +143,9 @@ $$c^{*} = c_j + \eta_{\text{consenso}} \cdot \gamma c_{\text{ext}} (1 - c_j)$$
 - Si el emisor tiene evidencia directa ($d_{\text{ext}} = 1$): $c_j \leftarrow \min(1.0, c^{*})$.
 - Si el emisor sólo transmite un rumor ($d_{\text{ext}} = 0$): $c_j \leftarrow \min\left(\max(c_j, \gamma c_{\text{ext}}),\; c^{*}\right)$, y $\tau_j$ **no** se actualiza.
 
-*(Protección anti-cámara de eco: sin la segunda regla, dos agentes que sólo tienen el mismo rumor podrían rebotárselo hasta $c \to 1$ sin ninguna evidencia física; y si el rebote refrescara $\tau$, quedarían exentos del olvido para siempre.)*
+*(Protección anti-cámara de eco: sin la segunda regla, dos agentes que sólo tienen el mismo rumor podrían rebotárselo hasta $c \to 1$ sin ninguna evidencia física; y si el rebote refrescara $\tau$, quedarían exentos del olvido para siempre. La cota $\max(c_j, \gamma c_{\text{ext}})$ impide que la confianza de la población crezca sólo mientras el factor de confianza sea $\le 1$: un emisor en quien se confía más que en uno mismo la eleva legítimamente.)*
+
+Las fórmulas de los tres escenarios suponen que $k_j$ y $k_{\text{ext}}$ se refieren al mismo patrón $\rho$; fusionar creencias sobre patrones distintos es un error.
 
 #### Escenario C: Conflicto Epistémico ($\rho \in \mathcal{M}_j$ y $\text{sign}(\hat{v}_j) \neq \text{sign}(\hat{v}_{\text{ext}})$)
 El vecino afirma que el recurso es bueno, pero el receptor cree que es malo (o viceversa).

@@ -3,6 +3,7 @@
 import ast
 import inspect
 from dataclasses import dataclass, replace
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -110,12 +111,14 @@ def test_auditoria_sin_alias_de_nombres_vigilados() -> None:
 
 
 def references_by_scope(tree: ast.AST, name: str) -> list[str]:
-    """Ámbito (función o lambda más interna) de cada referencia a `name`."""
+    """Ámbito calificado (`Clase.función`, `función` o `<lambda>`) de cada referencia a `name`."""
     found: list[str] = []
 
     def visit(node: ast.AST, scope: str) -> None:
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+        if isinstance(node, ast.ClassDef):
             scope = node.name
+        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            scope = f"{scope}.{node.name}" if scope and scope[0].isupper() else node.name
         elif isinstance(node, ast.Lambda):
             scope = "<lambda>"
         if (isinstance(node, ast.Name) and node.id == name) or (
@@ -130,19 +133,29 @@ def references_by_scope(tree: ast.AST, name: str) -> list[str]:
 
 
 def test_asimilacion_social_solo_por_assimilate_testimony() -> None:
-    # Fuera de `epistemology.py`, `merge_social_belief` sólo aparece en `assimilate_testimony`,
-    # en cualquier ámbito: módulo, clase, lambda o función asíncrona.
+    # Fuera de `epistemology.py`, `merge_social_belief` sólo aparece en
+    # `MicroAgent.assimilate_testimony`, en cualquier ámbito: módulo, clase, lambda o función.
     for path in agent_modules():
         if path.name == "epistemology.py":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for scope in references_by_scope(tree, "merge_social_belief"):
-            assert scope == "assimilate_testimony", f"{path.name}:{scope}"
+            assert scope == "MicroAgent.assimilate_testimony", f"{path.name}:{scope}"
 
 
 def test_auditoria_de_ambitos_detecta_lambda_de_modulo() -> None:
     tree = ast.parse("f = lambda b: merge_social_belief(b)\nclass A:\n    x = merge_social_belief")
-    assert references_by_scope(tree, "merge_social_belief") == ["<lambda>", "<module>"]
+    assert references_by_scope(tree, "merge_social_belief") == ["<lambda>", "A"]
+
+
+def test_auditoria_de_ambitos_exige_la_clase_micro_agent() -> None:
+    source = (
+        "def assimilate_testimony(a, b):\n    return merge_social_belief(b)\n"
+        "class MicroAgent:\n    def assimilate_testimony(self, b):\n"
+        "        return merge_social_belief(b)\n"
+    )
+    scopes = references_by_scope(ast.parse(source), "merge_social_belief")
+    assert scopes == ["assimilate_testimony", "MicroAgent.assimilate_testimony"]
 
 
 def test_protocolo_no_escribe_la_memoria_directamente() -> None:
@@ -492,6 +505,22 @@ def test_ablacion_de_la_navegacion() -> None:
     assert action == AgentAction(ActionType.MOVE, MOVES[int(reference.integers(len(MOVES)))])
 
 
+class SpyAgent(MicroAgent):
+    def __init__(self, config: SimulationConfig) -> None:
+        super().__init__(1, config)
+        self.looked_up: list[Pattern] = []
+
+    def get_effective_belief(self, pattern: Pattern) -> KnowledgeUnit | None:
+        self.looked_up.append(pattern)
+        return super().get_effective_belief(pattern)
+
+
+def test_sin_navegacion_no_consulta_recursos_lejanos() -> None:
+    a = SpyAgent(replace(CFG, enable_navigation=False))
+    a.decide_action(obs((vis(10, 3), vis(11, 1, 2, (1, 0)))), 0, rng())
+    assert a.looked_up == [pat(3)]
+
+
 def test_caminata_aleatoria() -> None:
     a = agent()
     action = a.decide_action(obs(), 0, rng(3))
@@ -617,18 +646,32 @@ def test_propiedad_emision_acotada_y_ordenada(
         assert m.belief is not None and m.belief.confidence >= CFG.decision_conf_threshold
         assert a.memory.get(m.pattern) == m.belief
 
-    # Consultas: los patrones no conocidos de menor (distancia mínima, patrón), sin conocidos.
-    nearest: dict[Pattern, int] = {}
-    for r in resources:
-        nearest[r.pattern] = min(nearest.get(r.pattern, r.distance), r.distance)
-    unknown = sorted(
-        (d, p) for p, d in nearest.items() if not is_known(a.get_effective_belief(p), CFG)
-    )
-    assert [m.pattern for m in queries] == [p for _, p in unknown[:max_queries]]
+    # Consultas (spec "Emisión de Consultas en Vivo"): sólo patrones no conocidos; si hubo
+    # lugar se consultaron todos; y ningún desconocido omitido precede a uno consultado en
+    # (distancia mínima del patrón, pattern).
+    def rank(pattern: Pattern) -> tuple[int, Pattern]:
+        return (min(r.distance for r in resources if r.pattern == pattern), pattern)
 
-    # Broadcasts: los de mayor utilidad y luego menor patrón, entre los confiables.
-    reliable = sorted(
-        (u for u in a.memory.all_units() if is_known(u, CFG)),
-        key=lambda u: (-a.memory.compute_utility(u, 0), u.pattern),
-    )
-    assert [m.belief for m in broadcasts] == reliable[:max_broadcast]
+    queried = [m.pattern for m in queries]
+    unknown = {r.pattern for r in resources} - {
+        r.pattern for r in resources if is_known(a.get_effective_belief(r.pattern), CFG)
+    }
+    assert set(queried) <= unknown
+    assert [rank(q) for q in queried] == sorted(rank(q) for q in queried)
+    if len(queried) < max_queries:
+        assert set(queried) == unknown
+    for omitted in sorted(unknown - set(queried)):
+        assert all(rank(omitted) > rank(q) for q in queried)
+
+    # Broadcasts (spec "Difusión Espontánea Priorizada"): utilidad no creciente; si hubo lugar
+    # se difundieron todas las confiables; y ninguna omitida supera a una difundida.
+    def utility(unit: KnowledgeUnit) -> float:
+        return a.memory.compute_utility(unit, 0)
+
+    sent = [m.belief for m in broadcasts if m.belief is not None]
+    reliable = [u for u in a.memory.all_units() if u.confidence >= CFG.decision_conf_threshold]
+    assert all(utility(x) >= utility(y) for x, y in pairwise(sent))
+    if len(sent) < max_broadcast:
+        assert sorted(u.pattern for u in sent) == sorted(u.pattern for u in reliable)
+    for omitted in (u for u in reliable if u not in sent):
+        assert all(utility(omitted) <= utility(x) for x in sent)
