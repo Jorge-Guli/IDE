@@ -19,9 +19,9 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 4. Memoria Acotada (`bounded-memory`)
 
-- [ ] 4.1 [RED] Escribir `tests/test_memory.py`: límite de capacidad, actualización de un patrón existente, valor exacto de $U(k,t)$ con piso 0.1, reemplazo de la creencia de menor utilidad con desempate triple, rechazo de creencias débiles, `force=True`, decaimiento que respeta `last_updated_tick == t`, purga bajo `min_confidence` y orden determinista de `all_units()`, y propiedades con Hypothesis: `len(memory) <= capacity` y ninguna confianza bajo `min_confidence` tras secuencias arbitrarias de `upsert` y `decay_step`.
-- [ ] 4.2 [GREEN] Implementar `BoundedMemory` en `src/ide/agent/memory.py`.
-- [ ] 4.3 [REFACTOR] Simplificar búsqueda y reemplazo; la suite sigue en verde.
+- [x] 4.1 [RED] Escribir `tests/test_memory.py`: límite de capacidad, actualización de un patrón existente, valor exacto de $U(k,t)$ con piso 0.1, reemplazo de la creencia de menor utilidad con desempate triple, rechazo de creencias débiles, `force=True`, decaimiento que respeta `last_updated_tick == t`, purga bajo `min_confidence` y orden determinista de `all_units()`, y propiedades con Hypothesis: `len(memory) <= capacity` y ninguna confianza bajo `min_confidence` tras secuencias arbitrarias de `upsert` y `decay_step`.
+- [x] 4.2 [GREEN] Implementar `BoundedMemory` en `src/ide/agent/memory.py`.
+- [x] 4.3 [REFACTOR] Simplificar búsqueda y reemplazo; la suite sigue en verde.
 
 ## 5. Motor Epistemológico (`epistemic-engine`)
 
