@@ -72,14 +72,14 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 
 ## Entorno automático
 
-Cada sesión de Claude Code en la nube arranca con un contenedor limpio. El hook `.claude/hooks/session-start.sh`, registrado en `.claude/settings.json`, se ejecuta solo al iniciar cada sesión. Instala `pip install -e ".[dev]"` si existe `pyproject.toml` y, antes del bloque 1, las mismas herramientas del extra `dev`; además precarga Pyright y la CLI de OpenSpec. En una máquina local no hace nada.
+Cada sesión de Claude Code en la nube arranca con un contenedor limpio. El hook `.claude/hooks/session-start.sh`, registrado en `.claude/settings.json`, se ejecuta solo al iniciar cada sesión. Instala `pip install -e ".[dev]"` si existe `pyproject.toml` y, si no existe (lista de respaldo), las mismas herramientas del extra `dev`; además precarga Pyright y la CLI de OpenSpec. En una máquina local no hace nada.
 
 - Si cambian las dependencias de desarrollo en `pyproject.toml`, actualiza también la lista de respaldo del hook.
 - No hace falta instalar nada a mano al empezar una sesión.
 
 ## Comandos
 
-Disponibles a partir del bloque 1 de `tasks.md`:
+Todos disponibles (el proyecto completó los bloques de `tasks.md`):
 
 ```bash
 pip install -e ".[dev]"                     # instalación manual (en la nube la hace el hook de inicio)

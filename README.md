@@ -18,6 +18,7 @@ pip install -e ".[dev]"
 # Calidad estática y suite de software (excluye los marcadores empirical y slow)
 ruff check && ruff format --check && pyright
 python -m pytest --cov=ide
+OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict   # specs
 
 # Corridas largas de software (001-D completo) y expectativas empíricas
 python -m pytest -m slow
@@ -27,7 +28,8 @@ python -m pytest -m empirical          # pueden fallar legítimamente
 python -m ide.experiments.exp001_runner --profile quick --seeds 42
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --out results/ --jobs 4
 
-# Atribución de emergencia (001-D), siempre con el perfil pre-registrado
+# Atribución de emergencia (001-D): fuerza el perfil pre-registrado (`quick`);
+# si se pasa otro `--profile`, la CLI lo ignora y avisa, para no romper el pre-registro
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4
 
 # Línea base de rendimiento (ticks por segundo)

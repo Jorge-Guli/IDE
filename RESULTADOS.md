@@ -66,14 +66,15 @@ Valores por semilla (42..46):
 
 ## Cierre del proyecto (bloque 11)
 
-Verificación sobre el código final (`360c771` más el `README.md` del bloque 11), sin ajustar parámetros:
+Verificación sobre el árbol del bloque 11 (`360c771` más los cambios de documentación de ese bloque; el código de `src/` no cambió), sin ajustar parámetros:
 
 - `ruff check`, `ruff format --check` y `pyright`: sin errores ni advertencias.
 - `python -m pytest --cov=ide`: 378 pasan, 18 deseleccionados; cobertura total 98 %.
 - `python -m pytest -m slow`: 2 pasan (001-D completo con 5 semillas).
 - `python -m pytest -m empirical`: 16 de 16 pasan, repetido sobre el código final (tras la optimización de vecindades y la revisión cruzada).
 - `openspec validate --all --strict`: pasa.
-- `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --jobs 2` (perfil `full`): superávit positivo en las 5 semillas (+0.145 a +0.177), prueba de signo `p = 0.03125`, rumor final 0.000 en las 5 (inicial 0.250). La persistencia social final es 0.000 en las 5 semillas con ese perfil, coherente con C4 `NOT_OBSERVED` de 001-D.
+- `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --jobs 2` (perfil `full`): superávit positivo en las 5 semillas (+0.145 a +0.177), prueba de signo `p = 0.03125`, rumor final 0.000 en las 5 (inicial 0.250). La persistencia social final de este protocolo (001-C del perfil `full`) es 0.000 en las 5 semillas. Es otra medición que la de 001-D (perfil `quick`, ablación de descubridores con retiro del estímulo, donde 2 de 5 semillas conservan conocimiento social); no se comparan ni se usan como confirmación mutua.
+- Invariantes del checklist cubiertos por la suite de software: aislamiento de capas, protocolo aislado y cero fuga (`tests/test_micro_agent.py`, `tests/test_domain_contracts.py`), invariante de memoria y determinismo intra e inter-proceso (`tests/test_simulation_engine.py`), anti-eco (`tests/test_epistemology.py`), y paralelismo inocuo y determinismo de la CLI con `PYTHONHASHSEED` 0 y 1 y `--jobs 1` frente a `--jobs 2` (`tests/test_exp001_suite.py`). Todos pasan en la corrida de arriba.
 
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
