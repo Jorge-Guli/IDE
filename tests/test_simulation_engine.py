@@ -549,8 +549,8 @@ def test_el_control_no_desplaza_el_generador_principal() -> None:
 def test_oraculo_de_verdad_sólo_lo_referencia_el_motor() -> None:
     """Ningún módulo de `src/ide` salvo el motor referencia `get_reachable_true_values`.
 
-    Cuenta atributos, nombres y cadenas (`getattr`); las definiciones del puerto y del entorno
-    no son referencias.
+    Cuenta atributos, nombres, cadenas (`getattr`) e importaciones; las definiciones del
+    puerto y del entorno no son referencias.
     """
     nombre = "get_reachable_true_values"
     src = Path(__file__).resolve().parents[1] / "src" / "ide"
@@ -561,5 +561,6 @@ def test_oraculo_de_verdad_sólo_lo_referencia_el_motor() -> None:
         if (isinstance(node, ast.Attribute) and node.attr == nombre)
         or (isinstance(node, ast.Name) and node.id == nombre)
         or (isinstance(node, ast.Constant) and node.value == nombre)
+        or (isinstance(node, ast.alias) and node.name == nombre)
     }
     assert referencian == {"simulation/engine.py"}

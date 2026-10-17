@@ -66,7 +66,7 @@ Valores por semilla (42..46):
 
 ## Cierre del proyecto (bloque 11)
 
-Verificación con `src/` idéntico al del commit `360c771`; `tests/` también, salvo el test del oráculo agregado en la revisión del cierre (las cifras de abajo ya lo incluyen donde se indica), sin ajustar parámetros:
+Verificación con `src/` idéntico al del commit `360c771`; `tests/` también, salvo el test del oráculo agregado en la revisión del cierre (sólo agrega una aserción sobre el AST: `slow`, `empirical`, la corrida de la CLI y `openspec validate` se ejecutaron antes de agregarlo y no dependen de él; la suite con cobertura y las pasadas en 3.11 y 3.12 se repitieron con la versión final), sin ajustar parámetros:
 
 - `ruff check`, `ruff format --check` y `pyright`: sin errores ni advertencias.
 - `python -m pytest --cov=ide`: 378 pasan, 18 deseleccionados; cobertura total 98 %. Tras agregar el test del oráculo: 379 pasan con cobertura total 98 %, y también en Python 3.11 y 3.12 (CI sólo prueba 3.13; el mínimo declarado de 3.11 se comprobó a mano).
