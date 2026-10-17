@@ -34,7 +34,7 @@ Si `existing.predicted_value * real_value < 0` y `c - β_punish >= decision_conf
 - **THEN** la creencia resultante tiene `predicted_value = 0.2` y `confidence = 0.4`.
 
 ### Requirement: Adopción de Rumor con Descuento (Escenario A)
-`merge_social_belief(None, incoming, tick, config, sender_trust_factor)` SHALL devolver una creencia con el valor del emisor, `confidence = γ · incoming.confidence` (γ = `sender_trust_factor` o, si es `None`, `gamma_social_discount`), `evidence_count = 1` y `from_direct_experience = False`.
+`merge_social_belief(None, incoming, tick, config, sender_trust_factor)` SHALL devolver una creencia con el valor del emisor, `confidence = clip(γ · incoming.confidence, 0, 1)` (γ = `sender_trust_factor` o, si es `None`, `gamma_social_discount`), `evidence_count = 1` y `from_direct_experience = False`.
 
 #### Scenario: Atenuación en cadena
 - **WHEN** A descubre un recurso con confianza `0.85`, lo transmite a B (`γ = 0.75`) y B lo retransmite a C, sin que B ni C interactúen con el recurso

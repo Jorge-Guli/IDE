@@ -79,7 +79,9 @@ def test_auditoria_de_importaciones() -> None:
             elif isinstance(node, ast.ImportFrom):
                 names = [node.module or ""] + [alias.name for alias in node.names]
             for name in names:
-                assert not any(word in name for word in forbidden), f"{path.name}: {name}"
+                assert not any(word in name for word in forbidden), (
+                    f"{path.relative_to(AGENT_DIR)}: {name}"
+                )
 
 
 def test_auditoria_del_protocolo() -> None:
@@ -90,14 +92,20 @@ def test_auditoria_del_protocolo() -> None:
             if isinstance(node, ast.Call):
                 func = node.func
                 called = func.id if isinstance(func, ast.Name) else getattr(func, "attr", None)
-                assert called != "Message", f"{path.name} construye Message"
+                assert called != "Message", f"{path.relative_to(AGENT_DIR)} construye Message"
             if isinstance(node, ast.Name):
-                assert node.id != "MessageType", f"{path.name} referencia MessageType"
+                assert node.id != "MessageType", (
+                    f"{path.relative_to(AGENT_DIR)} referencia MessageType"
+                )
             if isinstance(node, ast.Attribute):
-                assert node.attr != "MessageType", f"{path.name} referencia MessageType"
+                assert node.attr != "MessageType", (
+                    f"{path.relative_to(AGENT_DIR)} referencia MessageType"
+                )
             if isinstance(node, ast.ImportFrom):
                 imported = [alias.name for alias in node.names]
-                assert "MessageType" not in imported, f"{path.name} importa MessageType"
+                assert "MessageType" not in imported, (
+                    f"{path.relative_to(AGENT_DIR)} importa MessageType"
+                )
 
 
 def test_auditoria_sin_alias_de_nombres_vigilados() -> None:
@@ -108,7 +116,9 @@ def test_auditoria_sin_alias_de_nombres_vigilados() -> None:
             if isinstance(node, ast.Import | ast.ImportFrom):
                 for alias in node.names:
                     leaf = alias.name.rsplit(".", 1)[-1]
-                    assert alias.asname is None or leaf not in watched, f"{path.name}: {alias.name}"
+                    assert alias.asname is None or leaf not in watched, (
+                        f"{path.relative_to(AGENT_DIR)}: {alias.name}"
+                    )
 
 
 def references_by_scope(tree: ast.AST, name: str) -> list[str]:
@@ -139,8 +149,10 @@ def test_asimilacion_social_solo_por_assimilate_testimony() -> None:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for scope in references_by_scope(tree, "merge_social_belief"):
-            assert path == AGENT_DIR / "micro_agent.py", f"{path.name}:{scope}"
-            assert scope == "<module>/MicroAgent/assimilate_testimony", f"{path.name}:{scope}"
+            assert path == AGENT_DIR / "micro_agent.py", f"{path.relative_to(AGENT_DIR)}:{scope}"
+            assert scope == "<module>/MicroAgent/assimilate_testimony", (
+                f"{path.relative_to(AGENT_DIR)}:{scope}"
+            )
 
 
 def test_auditoria_de_ambitos_registra_cada_ambito() -> None:
