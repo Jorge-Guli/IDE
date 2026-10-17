@@ -14,8 +14,8 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 3. Contratos de Extensión (`roadmap-extensions`)
 
-- [ ] 3.1 [RED] Escribir `tests/test_roadmap_extensions.py`: `UniformTrustStrategy`, `AgentCapabilities` por defecto (la invariancia durante 100 ticks se prueba en 8.1), validación y `evaluate` de `CompositeRule` (con `set` y `dict`), y mutación acotada y reproducible de `DefaultEvolutionaryOperator`.
-- [ ] 3.2 [GREEN] Implementar `src/ide/domain/extensions.py`.
+- [x] 3.1 [RED] Escribir `tests/test_roadmap_extensions.py`: `UniformTrustStrategy`, `AgentCapabilities` por defecto (la invariancia durante 100 ticks se prueba en 8.1), validación y `evaluate` de `CompositeRule` (con `set` y `dict`), y mutación acotada y reproducible de `DefaultEvolutionaryOperator`.
+- [x] 3.2 [GREEN] Implementar `src/ide/domain/extensions.py`.
 
 ## 4. Memoria Acotada (`bounded-memory`)
 
