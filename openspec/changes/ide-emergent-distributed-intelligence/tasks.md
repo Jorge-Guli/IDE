@@ -4,7 +4,7 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 1. Scaffolding y Configuración del Proyecto
 
-- [ ] 1.1 Crear `pyproject.toml` según `design.md` (paquete `ide` en `src/`; dependencia `numpy`; extra `dev` con `pytest`, `pytest-cov`, `hypothesis`, `ruff`, `pyright`, `py-spy` y `line_profiler`; marcadores `empirical` y `slow` excluidos por defecto; configuración de Ruff y de Pyright estricto), `.gitignore`, `tests/conftest.py` con el perfil `ci` de Hypothesis (`derandomize=True`) y los `__init__.py` de `src/ide/{domain,agent,environments,simulation,experiments}`. Verificar con `pip install -e ".[dev]"`, `pytest --collect-only`, `ruff check` y `pyright`.
+- [x] 1.1 Crear `pyproject.toml` según `design.md` (paquete `ide` en `src/`; dependencia `numpy`; extra `dev` con `pytest`, `pytest-cov`, `hypothesis`, `ruff`, `pyright`, `py-spy` y `line_profiler`; marcadores `empirical` y `slow` excluidos por defecto; configuración de Ruff y de Pyright estricto), `.gitignore`, `tests/conftest.py` con el perfil `ci` de Hypothesis (`derandomize=True`) y los `__init__.py` de `src/ide/{domain,agent,environments,simulation,experiments}`. Verificar con `pip install -e ".[dev]"`, `pytest --collect-only`, `ruff check` y `pyright`.
 
 ## 2. Contratos de Dominio y Configuración (`domain-contracts`)
 
