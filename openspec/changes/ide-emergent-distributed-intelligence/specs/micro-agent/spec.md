@@ -13,7 +13,7 @@ Ningún módulo de `src/ide/agent/` SHALL importar `ide.environments`, `ide.simu
 - **THEN** ninguna sentencia `import` o `from ... import` referencia `environments`, `simulation`, `experiments` ni `grid2d`.
 
 ### Requirement: Firmas Públicas Canónicas
-`MicroAgent` SHALL exponer `perceive_and_emit_messages(obs, tick) -> list[Message]`, `process_incoming_messages(messages, tick) -> list[Message]`, `decide_action(obs, tick, rng) -> AgentAction`, `learn_from_experience(pattern, real_value, tick) -> None`, `decay_memory(tick) -> None`, `get_effective_belief(pattern)` y `assimilate_testimony(belief, sender_id, tick) -> KnowledgeUnit`.
+`MicroAgent` SHALL exponer las propiedades de sólo lectura `agent_id`, `config`, `memory` y `capabilities`, y los métodos `perceive_and_emit_messages(obs, tick) -> list[Message]`, `process_incoming_messages(messages, tick) -> list[Message]`, `decide_action(obs, tick, rng) -> AgentAction`, `learn_from_experience(pattern, real_value, tick) -> None`, `decay_memory(tick) -> None`, `get_effective_belief(pattern)` y `assimilate_testimony(belief, sender_id, tick) -> KnowledgeUnit`.
 
 #### Scenario: Inspección de la interfaz
 - **WHEN** se inspeccionan con `inspect.signature` los métodos públicos de `MicroAgent`
@@ -56,11 +56,15 @@ Con vecinos presentes, `perceive_and_emit_messages` SHALL emitir, después de la
 - **THEN** se emite un único `BROADCAST_BELIEF`, el de la creencia con `c = 0.9`.
 
 ### Requirement: Respuesta a Consultas
-Ante un `QUERY_PATTERN` de otro agente, `process_incoming_messages` SHALL devolver un `QUERY_RESPONSE` dirigido al emisor con su creencia de memoria si ésta existe con `c >= decision_conf_threshold`; no SHALL responder con creencias del caché efímero.
+Ante un `QUERY_PATTERN` de otro agente, `process_incoming_messages` SHALL devolver un `QUERY_RESPONSE` dirigido al emisor con su creencia de memoria, tal como estaba antes de asimilar cualquier mensaje de la bandeja, si ésta existe con `c >= decision_conf_threshold`; no SHALL responder con creencias del caché efímero.
 
 #### Scenario: Vecino informado responde
 - **WHEN** el agente 2 recibe `QUERY_PATTERN(ρ5)` del agente 1 y tiene en memoria $k(\rho_5, \hat{v}=-1.0, c=0.85)$
 - **THEN** devuelve `[Message(QUERY_RESPONSE, sender_id=2, recipient_id=1, pattern=ρ5, belief=k)]`.
+
+#### Scenario: Respuesta independiente del orden de la bandeja
+- **WHEN** la bandeja del agente 2 contiene un `BROADCAST_BELIEF(ρ5)` del agente 3 y un `QUERY_PATTERN(ρ5)` del agente 1, en cualquiera de los dos órdenes
+- **THEN** la respuesta lleva la creencia de memoria previa al broadcast y es idéntica en ambos órdenes.
 
 ### Requirement: Asimilación Social de Mensajes
 Ante un `BROADCAST_BELIEF` o un `QUERY_RESPONSE` de otro agente, `process_incoming_messages` SHALL fusionar la creencia con `merge_social_belief` usando el factor de `TrustStrategyPort`, guardarla en el caché efímero e intentar `memory.upsert`, procesando los mensajes en el orden recibido e ignorando los propios.

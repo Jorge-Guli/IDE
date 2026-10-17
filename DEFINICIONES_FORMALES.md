@@ -131,7 +131,8 @@ El receptor $a_j$ evalúa $k_{\text{ext}}$ bajo tres escenarios posibles:
 
 #### Escenario A: Patrón desconocido ($\rho \notin \mathcal{M}_j$)
 El receptor no sabe nada sobre $\rho$. Adopta la creencia pero aplicando un **descuento por testimonio indirecto** ($\gamma \in (0, 1]$, donde $\gamma = 1$ sólo se usa para ablacionar la regla; ej. $\gamma = 0.7$):
-$$c_{\text{recibida}} = \gamma \cdot c_{\text{ext}}$$
+$$c_{\text{recibida}} = \max\left(0,\; \min\left(1,\; \varphi \cdot c_{\text{ext}}\right)\right)$$
+donde $\varphi$ es el **factor de confianza en el emisor**. En el Exp 001, $\varphi = \gamma$ para todo emisor, así que el recorte nunca actúa y $c_{\text{recibida}} = \gamma \cdot c_{\text{ext}}$. Una estrategia de confianza por emisor (Exp 002) puede asignar otro $\varphi$, incluso mayor que 1; el recorte mantiene la confianza en $[0, 1]$. En las fórmulas siguientes, $\gamma c_{\text{ext}}$ abrevia $c_{\text{recibida}}$.
 *(Un rumor nunca tiene la misma fuerza inicial que haberlo vivido directamente; cada salto de boca en boca sin verificación empírica atenúa la confianza).*
 
 #### Escenario B: Consenso ($\rho \in \mathcal{M}_j$ y $\text{sign}(\hat{v}_j) == \text{sign}(\hat{v}_{\text{ext}})$)
@@ -142,7 +143,11 @@ $$c^{*} = c_j + \eta_{\text{consenso}} \cdot \gamma c_{\text{ext}} (1 - c_j)$$
 - Si el emisor tiene evidencia directa ($d_{\text{ext}} = 1$): $c_j \leftarrow \min(1.0, c^{*})$.
 - Si el emisor sólo transmite un rumor ($d_{\text{ext}} = 0$): $c_j \leftarrow \min\left(\max(c_j, \gamma c_{\text{ext}}),\; c^{*}\right)$, y $\tau_j$ **no** se actualiza.
 
-*(Protección anti-cámara de eco: sin la segunda regla, dos agentes que sólo tienen el mismo rumor podrían rebotárselo hasta $c \to 1$ sin ninguna evidencia física; y si el rebote refrescara $\tau$, quedarían exentos del olvido para siempre.)*
+*(Protección anti-cámara de eco: sin la segunda regla, dos agentes que sólo tienen el mismo rumor podrían rebotárselo hasta $c \to 1$ sin ninguna evidencia física; y si el rebote refrescara $\tau$, quedarían exentos del olvido para siempre. La cota $\max(c_j, \gamma c_{\text{ext}})$ sólo impide que la confianza de la población crezca si $\varphi \le 1$.)*
+
+> **Riesgo declarado (Exp 002).** Con $\varphi > 1$, la cota deja de proteger: dos portadores del mismo rumor que se asignan $\varphi > 1$ se lo rebotan hasta $c \to 1$ sin ninguna evidencia física, aunque $\tau$ siga sin refrescarse. Una estrategia de confianza que asigne $\varphi > 1$ equivale a una ablación parcial de R6 y debe declararse como tal en el diseño de ese experimento.
+
+Las fórmulas de los tres escenarios suponen que $k_j$ y $k_{\text{ext}}$ se refieren al mismo patrón $\rho$; fusionar creencias sobre patrones distintos es un error.
 
 #### Escenario C: Conflicto Epistémico ($\rho \in \mathcal{M}_j$ y $\text{sign}(\hat{v}_j) \neq \text{sign}(\hat{v}_{\text{ext}})$)
 El vecino afirma que el recurso es bueno, pero el receptor cree que es malo (o viceversa).
@@ -163,7 +168,7 @@ Existen **dos mecanismos complementarios**, ambos **diseñados** (reglas R9 y R8
    Los agentes intercambian creencias constantemente al cruzarse. Las creencias verdaderas son revalidadas una y otra vez por distintos agentes que interactúan con el entorno, manteniendo su confianza $c$ alta en la población, mientras que las falsas chocan con la experiencia empírica y se extinguen.
 2. **Consulta Local en Vivo (*Collective Query / Micro-Grupos*):**
    Cuando el agente $a_i$ observa un recurso con patrón $\rho \notin \mathcal{M}_i$, puede emitir una **consulta local** (`QUERY(ρ)`) a sus vecinos inmediatos en $\mathcal{N}_{\text{com}}(l_i)$.
-   - Si algún vecino $a_k \in \mathcal{N}_{\text{com}}(l_i)$ posee $\rho$ en su memoria $\mathcal{M}_k$, responde inmediatamente con su creencia $k$.
+   - Si algún vecino $a_k \in \mathcal{N}_{\text{com}}(l_i)$ posee $\rho$ en su memoria $\mathcal{M}_k$, responde inmediatamente con su creencia $k$, tal como la sostenía antes de procesar los demás mensajes del tick: en el esquema sincrónico, el orden en que llegan los mensajes no altera la respuesta.
    - De este modo, un grupo de $G$ agentes cercanos con memorias disjuntas de tamaño $C_{\max}$ actúa efectivamente como un **meta-agente con memoria combinada de hasta $G \times C_{\max}$**, sin que ningún individuo haya ampliado su hardware interno.
 
 > **Advertencia de atribución.** El meta-agente es una consecuencia **directa y buscada** de la consulta en vivo: la regla existe para producirlo. Observarlo valida el mecanismo, pero no constituye emergencia (§3.1). El protocolo de mensajes (`QUERY`, `RESPONSE`, `BROADCAST`) tiene semántica predefinida; su des-programación progresiva es un eje del programa de investigación ([Documento Fundacional](DOCUMENTO_FUNDACIONAL.md) §8).

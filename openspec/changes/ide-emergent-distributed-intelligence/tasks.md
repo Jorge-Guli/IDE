@@ -25,13 +25,13 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 5. Motor Epistemológico (`epistemic-engine`)
 
-- [ ] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo (refresca `τ`), anti-cámara de eco en 100 intercambios (no refresca `τ`), resistencia del Escenario C (incluido que `last_updated_tick` no cambie), sobrescritura de rumor débil y ablación de la protección anti-eco (`anti_echo_enabled=False`), y propiedades con Hypothesis: rangos `[-1, 1]` y `[0, 1]` para entradas válidas arbitrarias, y cota anti-eco en intercambios arbitrarios.
-- [ ] 5.2 [GREEN] Implementar `update_from_direct_experience` y `merge_social_belief` en `src/ide/agent/epistemology.py`.
+- [x] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo (refresca `τ`), anti-cámara de eco en 100 intercambios (no refresca `τ`), resistencia del Escenario C (incluido que `last_updated_tick` no cambie), sobrescritura de rumor débil y ablación de la protección anti-eco (`anti_echo_enabled=False`), y propiedades con Hypothesis: rangos `[-1, 1]` y `[0, 1]` para entradas válidas arbitrarias, y cota anti-eco en intercambios arbitrarios.
+- [x] 5.2 [GREEN] Implementar `update_from_direct_experience` y `merge_social_belief` en `src/ide/agent/epistemology.py`.
 
 ## 6. Micro-Agente (`micro-agent`)
 
-- [ ] 6.1 [RED] Escribir `tests/test_micro_agent.py`: auditoría de imports con `ast`, auditoría del protocolo (sólo `protocol.py` construye `Message` o usa `MessageType`), `assimilate_testimony` como única entrada social, ablación de la navegación, firmas con `inspect.signature`, caché efímero (vida de un tick), emisión de consultas (límite y orden) y broadcasts (sólo con confianza suficiente), respuesta sólo desde memoria, asimilación con `TrustStrategyPort`, consumo de un benéfico conocido, exploración con ε = 1 y ε = 0, evitación de un tóxico, navegación por `recommended_move`, caminata e `IDLE`, y `learn_from_experience` con memoria llena.
-- [ ] 6.2 [GREEN] Implementar `BeliefExchangeProtocol` en `src/ide/agent/protocol.py` y `MicroAgent` en `src/ide/agent/micro_agent.py`.
+- [x] 6.1 [RED] Escribir `tests/test_micro_agent.py`: auditoría de imports con `ast`, auditoría del protocolo (sólo `protocol.py` construye `Message` o usa `MessageType`), `assimilate_testimony` como única entrada social, ablación de la navegación, firmas con `inspect.signature`, caché efímero (vida de un tick), emisión de consultas (límite y orden) y broadcasts (sólo con confianza suficiente), respuesta sólo desde memoria, asimilación con `TrustStrategyPort`, consumo de un benéfico conocido, exploración con ε = 1 y ε = 0, evitación de un tóxico, navegación por `recommended_move`, caminata e `IDLE`, y `learn_from_experience` con memoria llena.
+- [x] 6.2 [GREEN] Implementar `BeliefExchangeProtocol` en `src/ide/agent/protocol.py` y `MicroAgent` en `src/ide/agent/micro_agent.py`.
 
 ## 7. Grilla 2D Toroidal (`spatial-environments`)
 

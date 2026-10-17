@@ -147,7 +147,7 @@ El proyecto IDE parte de los fundamentos establecidos en el Documento Fundaciona
 ### 16. Pruebas por propiedades
 - **Decisión:** además de los escenarios de las specs, los invariantes se verifican con **Hypothesis**, que genera entradas al azar y reduce cualquier contraejemplo al caso mínimo. Los invariantes mínimos son:
   - **Memoria:** `len(memory) <= capacity` tras cualquier secuencia de `upsert` y `decay_step`; ninguna creencia queda con confianza menor que `min_confidence` después de `decay_step`.
-  - **Epistemología:** para cualquier entrada válida, `update_from_direct_experience` y `merge_social_belief` devuelven `predicted_value` en `[-1, 1]` y `confidence` en `[0, 1]`; el intercambio repetido de rumores nunca supera `max(c_A, γ c_B)`.
+  - **Epistemología:** para cualquier entrada válida, `update_from_direct_experience` y `merge_social_belief` devuelven `predicted_value` en `[-1, 1]` y `confidence` en `[0, 1]`; con factor de confianza `<= 1`, el intercambio repetido de rumores nunca supera `max(c_A, γ c_B)`.
   - **Grilla:** la distancia toroidal es simétrica, y mover `d` y luego `-d` vuelve a la celda original.
   - **Determinismo:** para cualquier semilla, dos motores pequeños producen historiales idénticos.
 - **Reproducibilidad:** el perfil `ci` usa `derandomize=True`, así que la generación de casos también es determinista.
@@ -412,7 +412,8 @@ class BoundedMemory:
      - `penalized < decision_conf_threshold` → reinicia: `(pattern, clip(real_value), initial_direct_confidence, 1)`.
      - si no → `blended = (1-α)·v̂ + α·v`; `new_val = sign(v̂) · max(0.05, |blended|)` con `sign(v̂) = 1.0 if v̂ >= 0 else -1.0`; `confidence = penalized`; `n+1`.
 2. **`merge_social_belief(existing, incoming, tick, config, sender_trust_factor=None) -> KnowledgeUnit`:**
-   - `gamma = config.gamma_social_discount if sender_trust_factor is None else sender_trust_factor`; `e = gamma · incoming.confidence`.
+   - `gamma = config.gamma_social_discount if sender_trust_factor is None else sender_trust_factor`; `e = clip(gamma · incoming.confidence, 0, 1)`. El recorte sólo actúa si un `TrustStrategyPort` devuelve un factor fuera de `[0, 1]` (Exp 002); sin él, la confianza saldría de `[0, 1]`. La cota anti-eco `max(c, e)` sólo acota la confianza de la población si el factor es `<= 1`; con un factor mayor, dos portadores de un rumor se lo rebotan hasta `c → 1`, así que esa estrategia equivale a una ablación parcial de R6 (riesgo declarado en `DEFINICIONES_FORMALES.md` §2.3).
+   - Si `existing` no es `None` y `existing.pattern != incoming.pattern` → `ValueError`.
    - **A** (`existing is None`) → `(incoming.pattern, incoming.predicted_value, e, 1, tick, False)`.
    - **B** (`existing.predicted_value * incoming.predicted_value >= 0`):
      - `new_val = (c·v̂ + e·v̂_ext)/(c + e)` si `c + e > 0`, si no `v̂_ext`.
@@ -435,6 +436,8 @@ class MicroAgent:
     @property
     def agent_id(self) -> int: ...
     @property
+    def config(self) -> SimulationConfig: ...              # sólo lectura; la usa el protocolo
+    @property
     def memory(self) -> BoundedMemory: ...
     @property
     def capabilities(self) -> AgentCapabilities: ...       # constante en Exp 001
@@ -446,16 +449,16 @@ class MicroAgent:
     def learn_from_experience(self, pattern: Pattern, real_value: float, tick: int) -> None: ...
     def decay_memory(self, tick: int) -> None: ...
 ```
-- **Creencia "conocida"**: `get_effective_belief(p)` (memoria primero; si no está, caché efímero) no es `None` y tiene `confidence >= decision_conf_threshold`.
-- **Delegación del protocolo (Decisión 14):** `perceive_and_emit_messages` vacía el caché efímero y delega en `BeliefExchangeProtocol.emit(agent, obs, tick)`; `process_incoming_messages` delega en `BeliefExchangeProtocol.receive(agent, messages, tick)`. Las reglas siguientes describen ese protocolo por defecto.
+- **Creencia "conocida"**: `get_effective_belief(p)` (memoria primero; si no está, caché efímero) no es `None` y tiene `confidence >= decision_conf_threshold`. El criterio vive en un único lugar, `epistemology.is_known(belief, config) -> bool`, que usan tanto la decisión como el protocolo.
+- **Delegación del protocolo (Decisión 14):** `perceive_and_emit_messages` vacía el caché efímero y delega en `BeliefExchangeProtocol.emit(agent, obs, tick) -> list[Message]`; `process_incoming_messages` delega en `BeliefExchangeProtocol.receive(agent, messages, tick) -> list[Message]`. El protocolo no tiene estado: lee del agente sólo `agent_id`, `config`, `memory` y `get_effective_belief`, y escribe únicamente a través de `assimilate_testimony`. Las reglas siguientes describen ese protocolo por defecto.
 - **`assimilate_testimony`:** `merged = merge_social_belief(get_effective_belief(p), belief, tick, config, trust_strategy.compute_sender_trust(self.id, sender_id, γ))`; guarda `merged` en el caché efímero, intenta `memory.upsert(merged, tick)` y lo devuelve. Es la única puerta de entrada del conocimiento social, y no depende del formato de los mensajes.
 - **Emisión (`emit`):** si `obs.neighbor_ids` está vacío devuelve `[]`. Si no:
   1. Hasta `max_queries_per_tick` `QUERY_PATTERN` (broadcast) por patrones **distintos no conocidos** entre los visibles, en orden de `(distance mínima del patrón, pattern)`.
   2. Hasta `max_broadcast_per_tick` `BROADCAST_BELIEF` con las creencias de memoria con `confidence >= decision_conf_threshold`, ordenadas por utilidad descendente y luego por `pattern`.
   3. Orden de la lista devuelta: primero las consultas, luego los broadcasts.
-- **Recepción (`receive`):** recorre los mensajes en el orden recibido e ignora los propios y los dirigidos a otro destinatario.
-  - `QUERY_PATTERN`: si `memory.get(p)` existe con `confidence >= decision_conf_threshold`, agrega `QUERY_RESPONSE(recipient_id=sender_id, belief=unit)` a la salida. (El caché efímero no se re-difunde: sólo responde lo que el agente sostiene en memoria.)
-  - `BROADCAST_BELIEF` y `QUERY_RESPONSE`: `agent.assimilate_testimony(belief, sender_id, tick)`.
+- **Recepción (`receive`):** ignora los mensajes propios y los dirigidos a otro destinatario, y procesa el resto en dos pasos:
+  1. `QUERY_PATTERN`, en el orden recibido: si `memory.get(p)` existe con `confidence >= decision_conf_threshold`, agrega `QUERY_RESPONSE(recipient_id=sender_id, belief=unit)` a la salida. (El caché efímero no se re-difunde: sólo responde lo que el agente sostiene en memoria.) Todas las consultas se responden con la memoria **anterior** a cualquier asimilación del tick: el orden de la bandeja sigue la permutación del tick, y si un broadcast procesado antes de una consulta pudiera cambiar la respuesta, el sorteo afectaría a la comunicación (Decisión 15).
+  2. `BROADCAST_BELIEF` y `QUERY_RESPONSE`, en el orden recibido: `agent.assimilate_testimony(belief, sender_id, tick)`.
   - Devuelve sólo los `QUERY_RESPONSE` generados.
 - **`decide_action`** (determinista dado `rng`; desempates por menor `resource_id`):
   1. Alcanzables (`is_reachable_now`): si hay alguno conocido benéfico (`v̂ > 0`) → `INTERACT` sobre el de mayor `v̂·c`.
@@ -750,7 +753,7 @@ def nullify_belief(belief: KnowledgeUnit, rng: np.random.Generator) -> Knowledge
 - [ ] **Atribución pre-registrada:** `DESIGN_RULES` y `EXP001_CLAIMS` versionados antes de la primera corrida de 001-D, y `--attribution` ejecutado con las semillas 42..46, con su tabla de estados registrada tal cual.
 - [ ] **Cero fuga de información:** `VisibleResource` no tiene `true_value`; `get_reachable_true_values` sólo es invocado por `SimulationEngine`.
 - [ ] **Invariante de memoria:** para todo agente y todo tick, `len(agent.memory) <= config.memory_capacity`.
-- [ ] **Anti-cámara de eco:** el intercambio repetido de rumores indirectos nunca supera $\max(c_A, \gamma c_B)$.
+- [ ] **Anti-cámara de eco:** con factor de confianza $\le 1$, el intercambio repetido de rumores indirectos nunca supera $\max(c_A, \gamma c_B)$.
 - [ ] **Persistencia social válida:** `ablate_discoverers(..., retire_stimulus=True)` elimina descubridores y recursos físicos.
 - [ ] **Determinismo intra-proceso:** dos motores con la misma `seed` producen historiales, posiciones y memorias idénticas.
 - [ ] **Determinismo inter-proceso:** la CLI con `--profile quick` genera JSON idéntico bajo `PYTHONHASHSEED=0` y `PYTHONHASHSEED=1`.

@@ -217,6 +217,9 @@ sequenceDiagram
     S->>E: step_dynamics() y registro de TickMetrics
 ```
 
+### Recepción de mensajes (Fase 2)
+Cada agente responde primero todas las consultas de su bandeja con la memoria que tenía al empezar la fase, y recién después asimila los testimonios recibidos, en el orden de llegada. Como ese orden sigue la permutación del tick, responder antes de asimilar evita que el sorteo altere el contenido de una respuesta.
+
 ### Toma de decisión del agente (Fase 3)
 Una creencia es **conocida** si su confianza es $\ge c_{\text{umbral}}$. Se consulta primero la memoria y luego las creencias recibidas en el tick.
 1. **Recursos en la celda actual:**
@@ -293,7 +296,7 @@ La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las ex
 ## 8. Criterios de Calidad (Definition of Done)
 
 1. **Memoria:** `BoundedMemory` jamás supera $C_{\max}$ y reemplaza siempre la creencia de menor utilidad, con desempate determinista.
-2. **Epistemología:** la refutación directa derrumba una creencia falsa, un rumor sufre el descuento $\gamma$ y dos rumores no se inflan mutuamente.
+2. **Epistemología:** la refutación directa derrumba una creencia falsa, un rumor sufre el descuento $\gamma$ y, con factor de confianza en el emisor $\le 1$, dos rumores no se inflan mutuamente (ver el riesgo declarado en [DEFINICIONES_FORMALES.md](DEFINICIONES_FORMALES.md) §2.3).
 3. **Aislamiento:** `src/ide/agent/` no importa `environments`, `simulation` ni `experiments` (verificado sobre el AST).
 4. **Reproducibilidad:** dos ejecuciones con `seed=42` producen métricas idénticas, también en procesos con distinto `PYTHONHASHSEED`.
 5. **Hipótesis:** `python -m pytest -m empirical` se ejecuta y su resultado se reporta tal cual, sin ajustar parámetros para que pase.

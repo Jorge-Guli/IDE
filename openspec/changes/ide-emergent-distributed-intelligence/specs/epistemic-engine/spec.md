@@ -34,7 +34,7 @@ Si `existing.predicted_value * real_value < 0` y `c - β_punish >= decision_conf
 - **THEN** la creencia resultante tiene `predicted_value = 0.2` y `confidence = 0.4`.
 
 ### Requirement: Adopción de Rumor con Descuento (Escenario A)
-`merge_social_belief(None, incoming, tick, config, sender_trust_factor)` SHALL devolver una creencia con el valor del emisor, `confidence = γ · incoming.confidence` (γ = `sender_trust_factor` o, si es `None`, `gamma_social_discount`), `evidence_count = 1` y `from_direct_experience = False`.
+`merge_social_belief(None, incoming, tick, config, sender_trust_factor)` SHALL devolver una creencia con el valor del emisor, `confidence = clip(γ · incoming.confidence, 0, 1)` (γ = `sender_trust_factor` o, si es `None`, `gamma_social_discount`), `evidence_count = 1` y `from_direct_experience = False`.
 
 #### Scenario: Atenuación en cadena
 - **WHEN** A descubre un recurso con confianza `0.85`, lo transmite a B (`γ = 0.75`) y B lo retransmite a C, sin que B ni C interactúen con el recurso
@@ -86,3 +86,17 @@ Si los signos difieren, la creencia local no es directa y `γc_ext > 1.2·c`, la
 #### Scenario: Testimonio fuerte contra un rumor viejo
 - **WHEN** el agente tiene un rumor `v̂ = -1.0`, `c = 0.25` y recibe `v̂ = +1.0`, `c = 0.90` (`γ = 0.75`)
 - **THEN** la creencia resultante tiene `predicted_value = +1.0` y `confidence = 0.55`.
+
+### Requirement: Testimonio Acotado
+`merge_social_belief` SHALL acotar `γ·incoming.confidence` al intervalo `[0, 1]` antes de aplicar los Escenarios A, B y C.
+
+#### Scenario: Factor de confianza mayor que uno
+- **WHEN** se invoca con `existing = None`, `incoming.confidence = 0.9` y `sender_trust_factor = 1.2`
+- **THEN** la confianza resultante es `1.0`.
+
+### Requirement: Coherencia de Patrones en la Fusión
+`merge_social_belief` SHALL lanzar `ValueError` si `existing` no es `None` y su `pattern` difiere de `incoming.pattern`.
+
+#### Scenario: Patrones distintos
+- **WHEN** `existing` es una creencia sobre $\rho_1$ e `incoming` una sobre $\rho_2$
+- **THEN** la función lanza `ValueError`.
