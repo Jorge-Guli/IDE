@@ -23,7 +23,7 @@ Como el agente ya incorpora mucha inteligencia de diseño (confianza, descuento 
   - **Hooks de Extensión (002–006):** Puntos de extensión para estrategias de confianza social, especialización emergente, shock ambiental, inteligencia composicional y evolución (sólo contratos; su lógica queda fuera de este cambio).
 - Simultaneidad declarada (percepción, comunicación y decisión sincrónicas; conflictos resueltos por sorteo) y un criterio de robustez al esquema de actualización (E5), para que el reloj de la simulación no pueda producir falsos positivos de emergencia.
 - Calidad verificable desde el día 0: Ruff, Pyright estricto, pruebas por propiedades con Hypothesis, cobertura, una línea base de rendimiento medida y paralelismo entre corridas (`--jobs`) que no altera los resultados.
-- CLI multi-semilla con exportación JSON/CSV y separación entre la suite de software (`pytest`) y la verificación de expectativas empíricas (`pytest -m empirical`), cuyos resultados negativos se reportan sin ajustar parámetros.
+- CLI multi-semilla con exportación JSON/CSV y separación entre la suite de software (`pytest`) y la verificación de expectativas empíricas (`python -m pytest -m empirical`), cuyos resultados negativos se reportan sin ajustar parámetros.
 
 ## Capabilities
 

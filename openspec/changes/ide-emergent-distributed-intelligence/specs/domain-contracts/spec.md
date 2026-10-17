@@ -20,11 +20,15 @@ El sistema SHALL definir `Pattern`, `KnowledgeUnit`, `Resource`, `VisibleResourc
 - **THEN** el primero de la lista es `p_0`, ambos pueden usarse como claves de `dict` sin `TypeError` y `Pattern((("id", "p_0"),)).label == "id=p_0"`.
 
 ### Requirement: Validación de Coherencia de Mensajes
-`Message` SHALL lanzar `ValueError` al construirse si su tipo es `QUERY_RESPONSE` o `BROADCAST_BELIEF` y `belief` es `None`, o si `belief.pattern` difiere de `pattern`.
+`Message` SHALL lanzar `ValueError` al construirse si su tipo es `QUERY_RESPONSE` o `BROADCAST_BELIEF` y `belief` es `None`, si `belief.pattern` difiere de `pattern`, o si su tipo es `QUERY_PATTERN` y `belief` no es `None`.
 
 #### Scenario: Respuesta sin creencia
 - **WHEN** se instancia `Message(MessageType.QUERY_RESPONSE, sender_id=1, recipient_id=2, pattern=p, belief=None)`
 - **THEN** se lanza `ValueError`.
+
+#### Scenario: Consulta que transporta conocimiento
+- **WHEN** se instancia `Message(MessageType.QUERY_PATTERN, sender_id=1, recipient_id=2, pattern=p, belief=k)` con `k` un `KnowledgeUnit`
+- **THEN** se lanza `ValueError`, porque una consulta no puede introducir conocimiento fuera de `assimilate_testimony`.
 
 ### Requirement: Ocultamiento del Valor Real en la Percepción
 `VisibleResource` SHALL carecer del atributo `true_value` y SHALL exponer `resource_id`, `pattern`, `recommended_move`, `distance` e `is_reachable_now`, donde `is_reachable_now` es verdadero si y sólo si `distance == 0`.

@@ -286,7 +286,7 @@ Las demás reglas se ablacionan con valores existentes: R3 `passive_conf_decay=0
 
 4. **001-D (Atribución de emergencia):** para cada afirmación pre-registrada (C1 acceso a conocimiento ajeno, C2 superávit de decisión, C3 inmunidad a la falsedad, C4 persistencia extra-individual) mide la métrica en cuatro variantes (completa, aislada, sin las reglas diseñadas para producirla y control nulo) y la clasifica como `PROGRAMMED`, `EMERGENT`, `ACTIVITY_ARTIFACT`, `NOT_OBSERVED` o `INSUFFICIENT_EVIDENCE`. También mide el aporte de cada regla apagándolas de a una. Se ejecuta con `--attribution`, siempre con el perfil pre-registrado `quick`, y requiere al menos 5 semillas. C1, C2 y C4 son programadas **por construcción** (sus reglas de propósito incluyen toda la comunicación); C3 es la única con prueba empírica genuina.
 
-La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las expectativas funcionales (`pytest -m empirical`) usan las semillas 42 a 46 y una prueba de signo unilateral: con 5 de 5 a favor, p = 1/32.
+La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las expectativas funcionales (`python -m pytest -m empirical`) usan las semillas 42 a 46 y una prueba de signo unilateral: con 5 de 5 a favor, p = 1/32.
 
 ---
 
@@ -296,7 +296,7 @@ La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las ex
 2. **Epistemología:** la refutación directa derrumba una creencia falsa, un rumor sufre el descuento $\gamma$ y dos rumores no se inflan mutuamente.
 3. **Aislamiento:** `src/ide/agent/` no importa `environments`, `simulation` ni `experiments` (verificado sobre el AST).
 4. **Reproducibilidad:** dos ejecuciones con `seed=42` producen métricas idénticas, también en procesos con distinto `PYTHONHASHSEED`.
-5. **Hipótesis:** `pytest -m empirical` se ejecuta y su resultado se reporta tal cual, sin ajustar parámetros para que pase.
+5. **Hipótesis:** `python -m pytest -m empirical` se ejecuta y su resultado se reporta tal cual, sin ajustar parámetros para que pase.
 6. **Protocolo aislado:** dentro de `src/ide/agent/`, sólo `protocol.py` construye `Message` o usa `MessageType` (verificado sobre el AST).
 7. **Atribución:** las reglas y afirmaciones se versionan antes de la primera corrida de 001-D, y su tabla de estados se registra tal cual.
 8. **Calidad estática y propiedades:** `ruff check`, `ruff format --check` y `pyright` sin errores; los invariantes de memoria, epistemología, grilla y determinismo verificados con Hypothesis.

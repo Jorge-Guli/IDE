@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ide"
+version = "0.1.0"
+description = "Plataforma de simulación de Inteligencia Distribuida Emergente (IDE)"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.100",
+    "ruff>=0.6",
+    "pyright>=1.1.380",
+    "py-spy>=0.3",
+    "line_profiler>=4.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "empirical: expectativas empíricas sobre los mecanismos (lentas, pueden fallar legítimamente)",
+    "slow: corridas largas de software, como 001-D completo",
+]
+addopts = "-m 'not empirical and not slow'"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["openspec", "*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+# Letras griegas de la notación formal (DEFINICIONES_FORMALES.md) en docstrings y comentarios.
+allowed-confusables = ["α", "β", "γ", "δ", "ε", "η", "λ", "ρ", "τ", "ν", "ο", "×", "−"]
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "strict"
+pythonVersion = "3.11"
