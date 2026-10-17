@@ -1,41 +1,63 @@
 # Spec Delta: Roadmap Extensions (Experimentos 002 a 006)
 
 ## Purpose
-Definir los contratos e interfaces extensibles en `src/ide/domain/extensions.py` que permiten escalar la plataforma desde el Experimento 001 hacia los Experimentos 002 (Revalidación Social), 003 (Especialización Emergente), 004 (Reorganización ante Shock Ambiental), 005 (Inteligencia Composicional) y 006 (Evolución y Selección) sin romper la compatibilidad de `MicroAgent` ni `SimulationEngine`.
+Definir en `src/ide/domain/extensions.py` los contratos que permiten escalar de Experimento 001 a los Experimentos 002 (Revalidación Social), 003 (Especialización), 004 (Shock Ambiental), 005 (Inteligencia Composicional) y 006 (Evolución) sin romper la compatibilidad de `MicroAgent` ni `SimulationEngine`. Este cambio entrega sólo los contratos, no la lógica de esos experimentos.
 
 ## ADDED Requirements
 
-### Requirement: Estrategias Enchufables de Confianza Social (Experimento 002)
-El módulo `src/ide/domain/extensions.py` SHALL definir el protocolo `@runtime_checkable class TrustStrategyPort(Protocol)` con el método `compute_sender_trust(receiver_id: int, sender_id: int, base_gamma: float) -> float`, junto con una implementación por defecto `UniformTrustStrategy` que devuelva siempre `base_gamma` en el Experimento 001.
+### Requirement: Estrategias Enchufables de Confianza Social (Exp 002)
+`extensions.py` SHALL definir `@runtime_checkable class TrustStrategyPort(Protocol)` con `compute_sender_trust(receiver_id, sender_id, base_gamma) -> float` y la implementación por defecto `UniformTrustStrategy`, que devuelve siempre `base_gamma`.
 
-#### Scenario: Inyección de estrategia de confianza personalizada
-- **WHEN** un agente o motor utiliza una implementación de `TrustStrategyPort` que penaliza a emisores que enviaron creencias refutadas previamente
-- **THEN** `compute_sender_trust` devuelve un factor de descuento menor a `base_gamma` para dicho emisor sin requerir cambios en la firma de `MicroAgent`.
+#### Scenario: Estrategia uniforme
+- **WHEN** se invoca `UniformTrustStrategy().compute_sender_trust(1, 2, 0.75)`
+- **THEN** devuelve `0.75`.
 
-### Requirement: Perfil de Especialización Plástica (Experimento 003)
-El sistema SHALL definir la estructura `AgentCapabilities` en `src/ide/domain/extensions.py` con multiplicadores plásticos (`perception_multiplier: float = 1.0`, `memory_bonus: int = 0`, `comm_multiplier: float = 1.0`) que puedan ser modulados por la experiencia acumulada del agente cuando `config.enable_specialization == True`.
+### Requirement: Inyección de Estrategia en el Agente
+`MicroAgent` y `SimulationEngine` SHALL aceptar un `TrustStrategyPort` opcional y usar su resultado como `sender_trust_factor` de `merge_social_belief`.
 
-#### Scenario: Comportamiento estático por defecto en Experimento 001
-- **WHEN** `config.enable_specialization` es `False` (valor por defecto en Experimento 001)
-- **THEN** todos los agentes mantienen `AgentCapabilities` uniformes e invariantes durante toda la simulación.
+#### Scenario: Estrategia que penaliza a un emisor
+- **WHEN** el agente usa una estrategia que devuelve `0.25` para el emisor 9 y recibe de él un `BROADCAST_BELIEF` con `c = 0.8` sobre un patrón desconocido
+- **THEN** la creencia asimilada tiene `confidence = 0.2`, sin cambios en la firma de `MicroAgent`.
 
-### Requirement: Perturbación de Reglas del Mundo para Shock Ambiental (Experimento 004)
-El contrato `EnvironmentPort` y la clase `ToroidalGrid2D` SHALL proveer el método `invert_world_rules(fraction: float, rng: np.random.Generator) -> list[Pattern]` que invierta el signo de `true_value` ($+v \leftrightarrow -v$) de una fracción de los patrones del mundo en pleno vuelo para medir la plasticidad y reorganización colectiva.
+### Requirement: Perfil de Capacidades Plásticas (Exp 003)
+`extensions.py` SHALL definir `AgentCapabilities(perception_multiplier=1.0, memory_bonus=0, comm_multiplier=1.0)`, y `MicroAgent.capabilities` SHALL permanecer en esos valores durante todo el Experimento 001.
 
-#### Scenario: Inversión abrupta del 50% de las reglas del entorno
-- **WHEN** existen 12 patrones en el mundo y se invoca `env.invert_world_rules(0.5, rng)` en el tick $t=500$
-- **THEN** exactamente 6 patrones invierten el signo de su `true_value` en todos los recursos actuales y futuros de ese patrón, devolviendo la lista de los 6 patrones alterados.
+#### Scenario: Capacidades invariantes
+- **WHEN** se ejecutan 100 ticks con `enable_specialization = False`
+- **THEN** todos los agentes tienen `capabilities == AgentCapabilities()`.
 
-### Requirement: Reglas Composicionales Multi-Fragmento (Experimento 005)
-El módulo `src/ide/domain/extensions.py` SHALL definir `CompositeRule` donde la evaluación de un recurso compuesto depende de combinar al menos dos patrones elementales ($\rho_A \land \rho_B \implies v_{\text{comp}}$), permitiendo evaluar tareas donde distintos subgrupos poseen fragmentos complementarios.
+### Requirement: Shock Ambiental en el Contrato del Entorno (Exp 004)
+`EnvironmentPort` SHALL incluir `invert_world_rules(fraction, rng) -> list[Pattern]`, cuya implementación en `ToroidalGrid2D` se define en la capacidad `spatial-environments`.
 
-#### Scenario: Reconstrucción de valor compuesto mediante dos fragmentos
-- **WHEN** una `CompositeRule` requiere los fragmentos $\rho_A$ y $\rho_B$ y el agente reúne ambos fragmentos en su contexto de decisión (memoria local + respuestas `QUERY_RESPONSE` del tick)
-- **THEN** `CompositeRule.evaluate(known_patterns)` retorna el valor compuesto verdadero.
+#### Scenario: Entorno conforme
+- **WHEN** se verifica `isinstance(ToroidalGrid2D(config, rng), EnvironmentPort)`
+- **THEN** el resultado es `True`, lo que incluye la presencia de `invert_world_rules`.
 
-### Requirement: Operadores Evolutivos de Reproducción y Mutación (Experimento 006)
-El módulo `src/ide/domain/extensions.py` SHALL definir el protocolo `@runtime_checkable class EvolutionaryPort(Protocol)` con el método `reproduce_and_mutate(parent_params: AgentHyperParams, rng: np.random.Generator) -> AgentHyperParams` para mutar tasas locales ($\alpha, \gamma, \epsilon$) en experimentos evolutivos futuros.
+### Requirement: Contratos contra la Trampa de Evitación (Exp 004)
+`SimulationConfig` SHALL incluir `epsilon_recheck: float = 0.0` (re-verificación escéptica de recursos conocidos como dañinos) y `tau_policy: str = "validation"` (alternativa `"evidence_age"`: τ como edad de la evidencia empírica más reciente), validando que `epsilon_recheck` esté en `[0.0, 1.0]` y `tau_policy` en `{"validation", "evidence_age"}`.
 
-#### Scenario: Mutación acotada de hiperparámetros de agente
-- **WHEN** se invoca `DefaultEvolutionaryOperator().reproduce_and_mutate(params, rng)` con `mutation_std = 0.05`
-- **THEN** el nuevo objeto `AgentHyperParams` mantiene todos sus coeficientes dentro del intervalo válido $[0.0, 1.0]$ y es reproducible dada la misma semilla.
+#### Scenario: Valores por defecto del Experimento 001
+- **WHEN** se instancia `SimulationConfig()`
+- **THEN** `epsilon_recheck == 0.0` y `tau_policy == "validation"`.
+
+#### Scenario: Política desconocida
+- **WHEN** se instancia `SimulationConfig(tau_policy="siempre")`
+- **THEN** se lanza `ValueError` cuyo mensaje menciona `tau_policy`.
+
+### Requirement: Reglas Composicionales Multi-Fragmento (Exp 005)
+`extensions.py` SHALL definir `CompositeRule(required_patterns, composite_value)` que rechaza con `ValueError` menos de dos patrones o patrones repetidos, y cuyo `evaluate(known)` devuelve `composite_value` si todos los requeridos están en `known` (`set` o `dict`) y `None` si falta alguno.
+
+#### Scenario: Reconstrucción con dos fragmentos
+- **WHEN** una `CompositeRule` requiere $\rho_A$ y $\rho_B$ y se evalúa con un diccionario que contiene ambos
+- **THEN** devuelve `composite_value`.
+
+#### Scenario: Fragmento faltante
+- **WHEN** se evalúa con un conjunto que sólo contiene $\rho_A$
+- **THEN** devuelve `None`.
+
+### Requirement: Operadores Evolutivos (Exp 006)
+`extensions.py` SHALL definir `@runtime_checkable class EvolutionaryPort(Protocol)` con `reproduce_and_mutate(parent_params, rng) -> AgentHyperParams` y `DefaultEvolutionaryOperator(mutation_std=0.05)`, que suma ruido gaussiano a α, γ y ε y recorta a `[0.0, 1.0]`.
+
+#### Scenario: Mutación acotada y reproducible
+- **WHEN** se invoca `reproduce_and_mutate` 1000 veces desde `AgentHyperParams(1.0, 0.0, 0.5)` y luego se repite con un generador de la misma semilla
+- **THEN** todos los coeficientes quedan en `[0.0, 1.0]` y ambas secuencias son idénticas.
