@@ -58,7 +58,7 @@ class BoundedMemory:
         self, current_tick: int, passive_decay: float, min_confidence: float
     ) -> list[Pattern]:
         """Olvido pasivo de lo no revalidado; purga lo que queda bajo `min_confidence`."""
-        for pattern, unit in self._units.items():
+        for pattern, unit in list(self._units.items()):
             if unit.last_updated_tick < current_tick:
                 self._units[pattern] = replace(unit, confidence=unit.confidence - passive_decay)
         purged = sorted(p for p, u in self._units.items() if u.confidence < min_confidence)
