@@ -20,11 +20,15 @@ Ningún módulo de `src/ide/agent/` SHALL importar `ide.environments`, `ide.simu
 - **THEN** los nombres y parámetros coinciden exactamente con los de `design.md`.
 
 ### Requirement: Semántica del Protocolo Aislada
-Dentro de `src/ide/agent/`, sólo `protocol.py` SHALL construir `Message` o referenciar `MessageType`; `MicroAgent` SHALL delegar la emisión y la recepción en `BeliefExchangeProtocol`, y todo conocimiento social SHALL entrar por `assimilate_testimony`.
+Dentro de `src/ide/agent/`, sólo `protocol.py` SHALL construir `Message` o referenciar `MessageType`; `MicroAgent(agent_id, config, trust_strategy=None, protocol=None)` SHALL delegar la emisión y la recepción en el protocolo inyectado (por defecto `BeliefExchangeProtocol`), y todo conocimiento social SHALL entrar por `assimilate_testimony`.
 
 #### Scenario: Auditoría del protocolo
 - **WHEN** se analiza con `ast` cada archivo de `src/ide/agent/` distinto de `protocol.py`
 - **THEN** ninguno contiene una llamada a `Message(...)` ni una referencia a `MessageType`.
+
+#### Scenario: Protocolo inyectado
+- **WHEN** se construye un `MicroAgent` con un protocolo de prueba cuyo `emit` devuelve siempre `[]`
+- **THEN** `perceive_and_emit_messages` devuelve `[]` aunque el agente tenga vecinos y creencias difundibles.
 
 ### Requirement: Creencia Efectiva y Caché Efímero
 `get_effective_belief(p)` SHALL devolver la creencia de `BoundedMemory` si existe y, si no, la del caché efímero del tick. El caché SHALL vaciarse al inicio de cada `perceive_and_emit_messages`.

@@ -4,11 +4,11 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 1. Scaffolding y Configuración del Proyecto
 
-- [ ] 1.1 Crear `pyproject.toml` (paquete `ide` en `src/`, `requires-python >= 3.11`, `numpy>=1.26`, extra `dev` con `pytest>=8.0`, `pythonpath`, `testpaths`, marcador `hypothesis` y `addopts = "-m 'not hypothesis'"`), `.gitignore` y los `__init__.py` de `src/ide/{domain,agent,environments,simulation,experiments}`; verificar con `pip install -e ".[dev]"` y `pytest --collect-only`.
+- [ ] 1.1 Crear `pyproject.toml` (paquete `ide` en `src/`, `requires-python >= 3.11`, `numpy>=1.26`, extra `dev` con `pytest>=8.0`, `pythonpath`, `testpaths`, marcadores `hypothesis` y `slow`, y `addopts = "-m 'not hypothesis and not slow'"`), `.gitignore` y los `__init__.py` de `src/ide/{domain,agent,environments,simulation,experiments}`; verificar con `pip install -e ".[dev]"` y `pytest --collect-only`.
 
 ## 2. Contratos de Dominio y Configuración (`domain-contracts`)
 
-- [ ] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` (incluida `memory_capacity = 0` con `enforce_memory_constraint=False`, y `epsilon_recheck`/`tau_policy`) y la ida y vuelta por JSON de `to_dict()`.
+- [ ] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` (incluida `memory_capacity = 0` con `enforce_memory_constraint=False`, `epsilon_recheck`/`tau_policy`, y los valores por defecto de `anti_echo_enabled`, `enable_navigation` y `comm_content_null`) y la ida y vuelta por JSON de `to_dict()`.
 - [ ] 2.2 [GREEN] Implementar `src/ide/config.py`, `src/ide/domain/types.py` y `src/ide/domain/ports.py`.
 - [ ] 2.3 [REFACTOR] Docstrings y tipos; la suite sigue en verde.
 
@@ -40,12 +40,12 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 8. Motor de Simulación (`simulation-engine`)
 
-- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, `epsilon_recheck > 0` o `tau_policy="evidence_age"`, orden de procesamiento idéntico con distintos `PYTHONHASHSEED` (subproceso), `capabilities` invariantes durante 100 ticks, `snapshot()` sin efectos secundarios, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80), `ablate_discoverers` preservando al portador social y determinismo del control nulo (`comm_content_null`).
+- [ ] 8.1 [RED] Escribir `tests/test_simulation_engine.py`: `NotImplementedError` con especialización, `epsilon_recheck > 0` o `tau_policy="evidence_age"`, orden de procesamiento idéntico con distintos `PYTHONHASHSEED` (subproceso), `capabilities` invariantes durante 100 ticks, `snapshot()` sin efectos secundarios, decisiones sobre la instantánea de la fase 1, consulta resuelta en el mismo tick, modo aislado sin creencias sociales y con 0 mensajes, registro de `direct_discoverers`, reproducibilidad bit a bit con 200 ticks, `inject_false_belief` (20 de 80), `ablate_population` (40 de 80), `ablate_discoverers` preservando al portador social y el control nulo (`comm_content_null`: determinismo, una extracción por entrega desde `null_rng`, y generador principal intacto en el primer tick).
 - [ ] 8.2 [GREEN] Implementar `SimulationEngine` en `src/ide/simulation/engine.py`.
 
 ## 9. Métricas y Protocolos (`experimental-suite`)
 
-- [ ] 9.1 [RED] Escribir `tests/test_metrics.py`: `knowledge_snapshot` con población vacía, `windowed_accuracy` ponderada, validez de creencias, M1 (incluida la cota $C_{\max}/N$ y la cobertura accesible del meta-agente), `judge_decision` en sus cuatro casos, M2 sin oportunidades, `propagation_time` (incluido `None`), M6 y M7 (un broadcast cuenta una vez).
+- [ ] 9.1 [RED] Escribir `tests/test_metrics.py`: `knowledge_snapshot` con población vacía, cobertura accesible igual a la individual sin canal de consulta veraz, `windowed_accuracy` ponderada, validez de creencias, M1 (incluida la cota $C_{\max}/N$ y la cobertura accesible del meta-agente), `judge_decision` en sus cuatro casos, M2 sin oportunidades, `propagation_time` (incluido `None`), M6 y M7 (un broadcast cuenta una vez).
 - [ ] 9.2 [GREEN] Implementar `KnowledgeSnapshot`, `knowledge_snapshot`, `MetricsCollector`, `judge_decision`, `windowed_accuracy` y `propagation_time` en `src/ide/experiments/metrics.py`.
 - [ ] 9.3 [RED] Escribir `tests/test_exp001_suite.py`: esquemas exactos de los tres reportes con corridas cortas, `injected_agents == 20` y `target_pattern == "id=p_0"`, `remaining_agents` por nivel de ablación, ventana de `recovery_ticks` sin ticks previos a la ablación, `sign_test_p_value` (0.03125 con cinco positivas), `aggregate_reports` con `None`, valores por defecto de `build_arg_parser()`, columnas del CSV, `report_to_dict` serializable y el test de determinismo entre procesos (CLI `--profile quick` con dos `PYTHONHASHSEED` distintos).
 - [ ] 9.4 [GREEN] Implementar los protocolos, `report_to_dict`, `aggregate_reports`, `sign_test_p_value`, `build_arg_parser` y la CLI en `src/ide/experiments/exp001_runner.py`.
@@ -53,11 +53,11 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 10. Atribución de Emergencia (`emergence-attribution`)
 
-- [ ] 10.1 [RED] Escribir `tests/test_attribution.py`: `DESIGN_RULES` (11 reglas, sólo R1 y R2 sin ablación), `ablate` (unión de overrides y `ValueError` para reglas nucleares), `EXP001_CLAIMS` con R8 y R9 en cada $R_c$, `nullify_belief` (sólo cambia el signo; fracción positiva en `[0.45, 0.55]`), `classify` con datos sintéticos para cada estado (incluidos la orientación `higher_is_better=False` e `INSUFFICIENT_EVIDENCE` con 3 semillas), esquema de `AttributionReport` con una corrida mínima, y la CLI con `--attribution`.
-- [ ] 10.2 [GREEN] Implementar `src/ide/experiments/attribution.py`, el control nulo en el motor y la opción `--attribution` de la CLI.
-- [ ] 10.3 Versionar `DESIGN_RULES` y `EXP001_CLAIMS` (pre-registro) **antes** de la primera corrida de 001-D; ejecutar `--profile quick --seeds 42 43 44 45 46 --attribution` y registrar la tabla de estados tal cual, sin modificar $R_c$ a la vista de los resultados.
+- [ ] 10.1 [RED] Escribir `tests/test_attribution.py`: `DESIGN_RULES` (11 reglas, sólo R1 y R2 sin ablación), `ablate` (unión de overrides, validez de la configuración resultante y `ValueError` para reglas nucleares o inexistentes), `disables_communication`, `EXP001_CLAIMS` (R8 y R9 en C1, C2 y C4; C3 con R3, R4, R6 y R7) y `ATTRIBUTION_PROFILE == "quick"`, `nullify_belief` en `tests/test_controls.py` (`PCG64(0)`: valores en `{±1.0}`, resto intacto, fracción positiva `0.473`), `classify` con datos sintéticos para cada estado (incluidos `by_construction`, la orientación `higher_is_better=False` e `INSUFFICIENT_EVIDENCE` con 3 semillas), `measure_claim` para cada protocolo con una configuración pequeña, la CLI con `--seeds 42 --attribution` (perfil `quick` forzado y aviso), y, marcado `@pytest.mark.slow`, el reporte completo con 5 semillas (`by_construction` en C1, C2 y C4, no en C3, y `rule_effects` con claves `R3`..`R11`).
+- [ ] 10.2 [GREEN] Implementar `src/ide/simulation/controls.py` (`nullify_belief`), el control nulo en el motor, `src/ide/experiments/attribution.py` y la opción `--attribution` de la CLI.
+- [ ] 10.3 Versionar `DESIGN_RULES` y `EXP001_CLAIMS` (pre-registro) **antes** de la primera corrida de 001-D; ejecutar `--seeds 42 43 44 45 46 --attribution` y registrar la tabla de estados y el perfil de contribución tal cual, sin modificar $R_c$ a la vista de los resultados.
 
 ## 11. Cierre
 
-- [ ] 11.1 Ejecutar `pytest -v`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
+- [ ] 11.1 Ejecutar `pytest -v`, `pytest -m slow`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
 - [ ] 11.2 Crear `README.md` con instalación, ejecución, estructura, la regla de atribución y enlaces a los documentos de fundamento.

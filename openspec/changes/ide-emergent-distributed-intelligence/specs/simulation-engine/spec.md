@@ -38,7 +38,7 @@ Con `comm_enabled`, el motor SHALL entregar cada mensaje emitido a los vecinos d
 - **THEN** en la fase de decisión del mismo tick el agente 1 ya tiene una creencia efectiva sobre $\rho_5$.
 
 ### Requirement: Control Nulo de Contenido en el Ruteo
-Con `comm_content_null=True`, el motor SHALL reemplazar, antes de entregarlo, el signo de `predicted_value` de cada creencia transmitida (en ambas pasadas) por `+1` o `-1` según una extracción de `rng.random() < 0.5` por mensaje, en orden de emisión.
+Con `comm_content_null=True`, el motor SHALL aplicar `nullify_belief` a cada entrega (mensaje × receptor, en orden de emisión y de receptor ascendente, en ambas pasadas) usando `null_rng`, un generador `PCG64(SeedSequence(seed, spawn_key=(1,)))` distinto del principal.
 
 #### Scenario: Determinismo del control nulo
 - **WHEN** se ejecutan dos motores con `SimulationConfig(seed=42, comm_content_null=True)` durante 100 ticks

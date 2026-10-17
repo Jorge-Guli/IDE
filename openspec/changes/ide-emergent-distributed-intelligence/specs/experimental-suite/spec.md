@@ -1,7 +1,7 @@
 # Spec Delta: Experimental Suite
 
 ## Purpose
-Proveer la medición científica (`MetricsCollector`) de las métricas M1 a M7 y el ejecutor reproducible de los protocolos del Experimento 001 (001-A Emergencia, 001-B Falsificación, 001-C Daño y Persistencia), separando la validación del software de la validación de hipótesis. Los valores numéricos de los escenarios se verifican con tolerancia absoluta `1e-9`.
+Proveer la medición científica (`MetricsCollector`) de las métricas M1 a M7 y el ejecutor reproducible de los protocolos del Experimento 001 (001-A Superávit, 001-B Falsificación, 001-C Daño y Persistencia), separando la validación del software de la validación de hipótesis. Los valores numéricos de los escenarios se verifican con tolerancia absoluta `1e-9`.
 
 ## ADDED Requirements
 
@@ -27,11 +27,15 @@ Las métricas SHALL considerar sólo las creencias de `BoundedMemory`. Una creen
 - **THEN** `individual_coverage_mean <= 0.25` en todos los ticks.
 
 ### Requirement: Cobertura Accesible a Un Salto (M1)
-`TickMetrics.accessible_coverage_mean` SHALL ser la media, sobre agentes activos, de la fracción de patrones conocidos válidamente por el agente o por algún vecino de comunicación; con `comm_enabled` falso SHALL ser igual a `individual_coverage_mean`.
+`TickMetrics.accessible_coverage_mean` SHALL ser la media, sobre agentes activos, de la fracción de patrones conocidos válidamente por el agente o por algún vecino de comunicación; sin un canal de consulta veraz (`comm_enabled` falso, `max_queries_per_tick == 0` o `comm_content_null`) SHALL ser igual a `individual_coverage_mean`.
 
 #### Scenario: Meta-agente de tres vecinos
 - **WHEN** tres agentes mutuamente vecinos conocen válidamente 3 patrones disjuntos cada uno, con $N = 12$, y no hay otros agentes
 - **THEN** `accessible_coverage_mean == 0.75` mientras `individual_coverage_mean == 0.25`.
+
+#### Scenario: Sin consulta no hay acceso
+- **WHEN** los mismos tres agentes se evalúan con `max_queries_per_tick = 0`
+- **THEN** `accessible_coverage_mean == individual_coverage_mean == 0.25`.
 
 ### Requirement: Juicio de Decisiones por Intención (M2)
 `judge_decision(action, reachable_truth)` SHALL considerar correcta una decisión si es `INTERACT` sobre un objetivo con valor real positivo, o si no es `INTERACT` y todos los recursos alcanzables son dañinos; cualquier otro caso es incorrecto.
@@ -66,18 +70,18 @@ Las métricas SHALL considerar sólo las creencias de `BoundedMemory`. Una creen
 - **THEN** `false_belief_prevalence == 0.0`.
 
 ### Requirement: Costo de Comunicación (M7)
-`TickMetrics` SHALL incluir `messages_sent` (cada mensaje emitido cuenta una vez, sin importar cuántos receptores tenga) y `messages_per_agent = messages_sent / activos`, o `0.0` si no hay agentes activos. `EmergenceReport.accuracy_gain_per_message` SHALL ser `emergence_surplus / mean_messages_per_agent`, o `None` si el divisor es 0.
+`TickMetrics` SHALL incluir `messages_sent` (cada mensaje emitido cuenta una vez, sin importar cuántos receptores tenga) y `messages_per_agent = messages_sent / activos`, o `0.0` si no hay agentes activos. `SurplusReport.accuracy_gain_per_message` SHALL ser `collective_surplus / mean_messages_per_agent`, o `None` si el divisor es 0.
 
 #### Scenario: Un broadcast con tres receptores
 - **WHEN** en un tick el único mensaje es un `BROADCAST_BELIEF` entregado a tres vecinos
 - **THEN** `messages_sent == 1`.
 
-### Requirement: Protocolo 001-A Emergencia
-`run_protocol_001a_emergence(config, total_ticks=300)` SHALL correr dos motores con la misma semilla, con y sin comunicación, y devolver un `EmergenceReport` con precisión, coberturas, `emergence_surplus`, costo de comunicación y tiempos `t50`/`t90` por patrón.
+### Requirement: Protocolo 001-A Superávit
+`run_protocol_001a_surplus(config, total_ticks=300)` SHALL correr dos motores con la misma semilla, con y sin comunicación, y devolver un `SurplusReport` con precisión, coberturas, `collective_surplus`, costo de comunicación y tiempos `t50`/`t90` por patrón.
 
 #### Scenario: Esquema del reporte
 - **WHEN** se ejecuta con `SimulationConfig(seed=42)` y `total_ticks=50`
-- **THEN** devuelve un `EmergenceReport` cuyos campos son exactamente los de `design.md` y `emergence_surplus == collective_accuracy - isolated_accuracy`.
+- **THEN** devuelve un `SurplusReport` cuyos campos son exactamente los de `design.md` y `collective_surplus == collective_accuracy - isolated_accuracy`.
 
 ### Requirement: Protocolo 001-B Falsificación
 `run_protocol_001b_falsification(config, total_ticks=300, injection_tick=80, injection_fraction=0.25)` SHALL inyectar en `injection_tick` el rumor `(p_0, -1.0, 0.95)` y devolver un `FalsificationReport` con prevalencia inicial (instantánea tras inyectar), pico (que incluye la inicial), final y `ticks_to_extinction` (con `k = 1` para el primer tick posterior).
@@ -101,18 +105,18 @@ Las métricas SHALL considerar sólo las creencias de `BoundedMemory`. Una creen
 - **THEN** la ventana contiene exactamente los 5 primeros ticks posteriores a la ablación.
 
 ### Requirement: Separación entre Software e Hipótesis
-Los tests que afirman resultados empíricos sobre los mecanismos programados (por ejemplo, `emergence_surplus > 0`) SHALL marcarse con `@pytest.mark.hypothesis` y quedar excluidos de `pytest` por defecto; su fracaso SHALL reportarse como hallazgo, no corregirse ajustando parámetros.
+Los tests que afirman resultados empíricos sobre los mecanismos programados (por ejemplo, `collective_surplus > 0`) SHALL marcarse con `@pytest.mark.hypothesis` y quedar excluidos de `pytest` por defecto; su fracaso SHALL reportarse como hallazgo, no corregirse ajustando parámetros.
 
 #### Scenario: Corrida por defecto
 - **WHEN** se ejecuta `pytest` sin argumentos
 - **THEN** no se ejecuta ningún test marcado `hypothesis`.
 
 ### Requirement: Expectativa Funcional de Superávit (H1)
-H1 verifica que los mecanismos de comunicación programados cumplen su propósito; por la regla de atribución no constituye una afirmación de emergencia. Bajo `pytest -m hypothesis`, la suite SHALL ejecutar 001-A con `total_ticks=300` para las semillas 42 a 46 y verificar en las cinco que `collective_accessible_coverage > isolated_accessible_coverage` y `emergence_surplus > 0` (prueba de signo unilateral, p = 1/32).
+H1 verifica que los mecanismos de comunicación programados cumplen su propósito; por la regla de atribución no constituye una afirmación de emergencia. Bajo `pytest -m hypothesis`, la suite SHALL ejecutar 001-A con `total_ticks=300` para las semillas 42 a 46 y verificar en las cinco que `collective_accessible_coverage > isolated_accessible_coverage` y `collective_surplus > 0` (prueba de signo unilateral, p = 1/32).
 
 #### Scenario: Verificación del superávit multi-semilla
-- **WHEN** se ejecuta `run_protocol_001a_emergence(SimulationConfig(seed=s), total_ticks=300)` para `s` en 42..46
-- **THEN** se espera que en cada reporte la cobertura accesible colectiva supere a la aislada, y que `sign_test_p_value` de los cinco `emergence_surplus` sea `< 0.05`.
+- **WHEN** se ejecuta `run_protocol_001a_surplus(SimulationConfig(seed=s), total_ticks=300)` para `s` en 42..46
+- **THEN** se espera que en cada reporte la cobertura accesible colectiva supere a la aislada, y que `sign_test_p_value` de los cinco `collective_surplus` sea `< 0.05`.
 
 ### Requirement: Hipótesis de Contención de Falsedad
 Bajo `pytest -m hypothesis`, la suite SHALL verificar, para las semillas 42 a 46, que la prevalencia final del rumor falso es menor que la inicial.

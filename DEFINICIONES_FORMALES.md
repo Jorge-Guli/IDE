@@ -130,7 +130,7 @@ El emisor $a_i$ transmite una creencia $k_{\text{ext}} = (\rho, \hat{v}_{\text{e
 El receptor $a_j$ evalúa $k_{\text{ext}}$ bajo tres escenarios posibles:
 
 #### Escenario A: Patrón desconocido ($\rho \notin \mathcal{M}_j$)
-El receptor no sabe nada sobre $\rho$. Adopta la creencia pero aplicando un **descuento por testimonio indirecto** ($\gamma \in (0, 1)$, ej. $\gamma = 0.7$):
+El receptor no sabe nada sobre $\rho$. Adopta la creencia pero aplicando un **descuento por testimonio indirecto** ($\gamma \in (0, 1]$, donde $\gamma = 1$ sólo se usa para ablacionar la regla; ej. $\gamma = 0.7$):
 $$c_{\text{recibida}} = \gamma \cdot c_{\text{ext}}$$
 *(Un rumor nunca tiene la misma fuerza inicial que haberlo vivido directamente; cada salto de boca en boca sin verificación empírica atenúa la confianza).*
 
@@ -203,9 +203,9 @@ Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada f
 | $R_{10}$ | Exploración $\epsilon$ | Descubrir lo desconocido |
 | $R_{11}$ | Navegación hacia benéficos conocidos | Buscar alimento |
 
-**Afirmación pre-registrada.** Una afirmación $C$ consiste en una métrica poblacional $m_C$, su dirección de mejora y el conjunto $R_C \subseteq \mathcal{R}$ de reglas cuyo propósito declarado la produce. Se declara antes de ejecutar el experimento. *Principio conservador:* toda afirmación sobre conocimiento compartido incluye $R_8$ y $R_9$ en $R_C$.
+**Afirmación pre-registrada.** Una afirmación $C$ consiste en una métrica poblacional $m_C$, su dirección de mejora y el conjunto $R_C \subseteq \mathcal{R}$ de reglas cuyo propósito declarado la produce. Se declara antes de ejecutar el experimento, junto con el perfil de corrida. *Principio conservador acotado:* toda afirmación sobre **disponibilidad o transmisión** de conocimiento incluye en $R_C$ las reglas de comunicación $R_8$ y $R_9$; una afirmación sobre **cómo se procesa** lo transmitido incluye las reglas diseñadas para ese procesamiento.
 
-**Variantes.** Para cada semilla se mide $m_C$ en: la población **completa**; la **aislada** (sin comunicación); la población **sin $R_C$** (todas las reglas de $R_C$ desactivadas a la vez); y el **control nulo** (mensajes con el mismo volumen y estructura, pero con el signo de cada creencia transmitida reemplazado por uno aleatorio).
+**Variantes.** Para cada semilla se mide $m_C$ en: la población **completa**; la **aislada** (sin comunicación); la población **sin $R_C$** (todas las reglas de $R_C$ desactivadas a la vez); y el **control nulo** (mismas reglas de emisión, recepción y ruteo, pero cada creencia entregada llega con $\hat{v}$ reemplazado por $\pm 1$ al azar, extraído de un generador propio). El control no fija el volumen de mensajes, que depende de las creencias; cada variante reporta el suyo.
 
 **Criterios.** Con $n \ge 5$ semillas y una prueba de signo unilateral con $\alpha = 0.05$:
 - **E1 Localidad:** $m_C$ es poblacional y ningún agente la computa ni la recibe.
@@ -213,9 +213,11 @@ Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada f
 - **E3 Independencia del propósito:** la población sin $R_C$ sigue superando a la aislada ($R_C = \emptyset$ lo cumple trivialmente).
 - **E4 Dependencia del contenido:** la población completa supera al control nulo.
 
-**Clasificación.** *No observada* si falla E2; *programada* si cumple E2 y falla E3; *artefacto de actividad* si cumple E2 y E3 y falla E4; **emergente** si cumple E1–E4. Con menos de 5 semillas el estado es *evidencia insuficiente*.
+**Programada por construcción.** Si quitar $R_C$ deja a la población sin ningún canal de emisión, la población sin $R_C$ *es* la aislada, y E3 deja de ser una prueba para ser una tautología. La afirmación se declara entonces *programada por construcción*, sin presentarlo como resultado empírico.
 
-**Consecuencia para el Experimento 001.** Con un protocolo de semántica predefinida, toda afirmación sobre conocimiento compartido tiene $R_8, R_9 \in R_C$, y quitar ambas reglas equivale a aislar la población. Por eso se predice que esas afirmaciones resulten **programadas**. Las candidatas genuinas a emergencia en este nivel son las propiedades que ninguna regla persigue, por ejemplo transiciones abruptas de la cobertura accesible o de la persistencia al variar la densidad de agentes o el radio de comunicación. Los saltos conceptuales vendrán de la des-programación del protocolo (Experimento 007).
+**Clasificación.** *No observada* si falla E2; *programada* si es programada por construcción o si cumple E2 y falla E3; *artefacto de actividad* si cumple E2 y E3 y falla E4; **emergente** si cumple E1–E4. Con menos de 5 semillas el estado es *evidencia insuficiente*.
+
+**Consecuencia para el Experimento 001.** Las afirmaciones de acceso (C1), superávit de decisión (C2) y persistencia extra-individual (C4) tienen $R_8, R_9 \in R_C$; quitar ambas reglas aísla la población, así que son **programadas por construcción**. No es una predicción: es lo que establece la regla mientras el canal transmita creencias con semántica de fábrica. La inmunidad colectiva a la falsedad (C3) tiene $R_C = \{R_3, R_4, R_6, R_7\}$ (los filtros epistémicos y el olvido) y es la única con una prueba empírica genuina: ¿la contención del rumor sobrevive sólo con transmisión y aprendizaje directo? El resultado está abierto. Además se mide el aporte de cada regla, apagándolas de a una. Las candidatas genuinas a emergencia en este nivel son las propiedades que ninguna regla persigue, por ejemplo transiciones abruptas de la cobertura accesible o de la persistencia al variar la densidad de agentes o el radio de comunicación. Los saltos conceptuales vendrán de la des-programación del protocolo (Experimento 007).
 
 ---
 
@@ -235,7 +237,7 @@ Sea $\mathcal{A}$ la población de $M$ agentes, $\mathcal{P}_{\text{mundo}}$ el 
 En una ventana de tiempo $\Delta t$, sea $D_{\text{totales}}$ el número de oportunidades de decisión (un agente con al menos un recurso en su celda) y $D_{\text{correctas}}$ las acertadas: consumir un recurso benéfico, o no consumir nada cuando todos los recursos de la celda son dañinos. Ignorar una celda con algún recurso benéfico, o consumir uno dañino, es incorrecto. Se juzga la intención en el momento de decidir, aunque otro agente consuma antes el recurso:
 $$Acc(t) = \frac{D_{\text{correctas}}}{D_{\text{totales}}}$$
 - Se compara la población con comunicación activa ($Acc_{\text{col}}$) contra una población idéntica con comunicación desactivada ($Acc_{\text{iso}}$).
-- **Criterio de Emergencia:** la precisión acumulada final cumple $Acc_{\text{col}}(T) > Acc_{\text{iso}}(T)$ de forma estadísticamente significativa sobre varias semillas independientes (cada semilla corre ambos modos con idénticas condiciones iniciales). Una versión más exigente, a evaluar como análisis secundario, es $Acc_{\text{col}}(T) > \sup_t Acc_{\text{iso}}(t)$.
+- **Criterio de superávit (E2 de §3.1):** la precisión acumulada final cumple $Acc_{\text{col}}(T) > Acc_{\text{iso}}(T)$ de forma estadísticamente significativa sobre varias semillas independientes (cada semilla corre ambos modos con idénticas condiciones iniciales). Una versión más exigente, a evaluar como análisis secundario, es $Acc_{\text{col}}(T) > \sup_t Acc_{\text{iso}}(t)$.
 
 ### M3. Velocidad de Propagación ($T_{\text{prop}}(\theta)$)
 Sea $P_{\rho^*}(t)$ la prevalencia de $\rho^*$ (fracción de agentes que lo conocen válidamente), $t_0$ el primer tick con $P_{\rho^*}(t_0) > 0$ y $P_{\max} = \max_t P_{\rho^*}(t)$. Entonces $T_{\text{prop}}(\theta) = \min\{t - t_0 : P_{\rho^*}(t) \ge \theta P_{\max}\}$, y se reportan $t_{50}$ y $t_{90}$.
