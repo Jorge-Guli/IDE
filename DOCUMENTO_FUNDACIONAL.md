@@ -146,7 +146,7 @@ flowchart LR
 ### Experimento 001: Memoria y Propagación Colectiva (Hito Primario)
 
 * **Objetivo:** Establecer la **línea base funcional** de la plataforma y del método: verificar que una población con memoria individual estrictamente insuficiente adquiere, propaga, valida y retiene conocimiento del entorno sin supervisor central, **y** medir cuánto de ese desempeño se debe a cada regla diseñada.
-* **Qué puede concluir:** mientras el protocolo transmita creencias con semántica predefinida, las capacidades de **acceso, superávit y persistencia** del conocimiento compartido son **programadas por construcción** (§10): no se ponen a prueba, se declaran. La única afirmación con prueba empírica genuina es la **inmunidad colectiva a la falsedad**: ¿sobrevive si se apagan los filtros epistémicos diseñados (descuento, anti-eco, duda y olvido)? El resultado está abierto. El Exp 001 mide además cuánto aporta cada regla.
+* **Qué puede concluir:** mientras el protocolo transmita creencias con semántica predefinida, las capacidades de **acceso, superávit y persistencia** del conocimiento compartido son **programadas por construcción** (§10): no se ponen a prueba, se declaran (y si ni siquiera superan a la población aislada, se reportan como no observadas). La única afirmación con prueba empírica genuina es la **inmunidad colectiva a la falsedad**: ¿sobrevive si se apagan los filtros epistémicos diseñados (descuento, anti-eco, duda y olvido)? El resultado está abierto. El Exp 001 mide además cuánto aporta cada regla.
 * **Entorno:** Grilla 2D toroidal con recursos heterogéneos. En esta primera versión, cada recurso tiene un único atributo observable (`id`) y es benéfico o dañino. Los recursos neutrales y los patrones de varios atributos quedan para experimentos posteriores.
 * **Restricción Fundamental:** Cada agente sólo puede almacenar un subconjunto estricto de las reglas del mundo ($C_{\max} < N$; valor base: 3 de 12 patrones, es decir, el 25 %).
 * **Métricas Formales:**
@@ -229,6 +229,8 @@ Sólo se llama **emergente** a una propiedad poblacional que supera al control a
 ---
 
 ## 11. Próximos Pasos de Implementación
+
+> **Estado:** el simulador, las métricas y los protocolos 001-A a 001-D (este último, el de atribución) ya están implementados. El avance se sigue en [`tasks.md`](openspec/changes/ide-emergent-distributed-intelligence/tasks.md), que es la fuente del plan, y los resultados en [RESULTADOS.md](RESULTADOS.md). La lista se conserva como el plan original.
 
 1. **Arquitectura del Simulador Experimento 001:**
    * Motor de grilla 2D discreto con soporte de eventos por pasos temporales (ticks).

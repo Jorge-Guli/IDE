@@ -466,20 +466,32 @@ def test_ruteo_con_los_vecinos_de_la_observacion(monkeypatch: pytest.MonkeyPatch
         return replace(obs, neighbor_ids=(other,) if agent_id == target else (target,))
 
     monkeypatch.setattr(engine.env, "get_observation", redirect)
-    inbox_sizes: dict[int, int] = {}
+    emitted: list[Message] = []
+    inboxes: dict[int, list[Message]] = {}
     for aid, agent in engine.agents.items():
-        process = agent.process_incoming_messages
+        emit, process = agent.perceive_and_emit_messages, agent.process_incoming_messages
+
+        def emit_spy(obs: Observation, tick: int, _e: Any = emit) -> Any:
+            out = _e(obs, tick)
+            emitted.extend(out)
+            return out
 
         def spy(messages: list[Message], tick: int, _aid: int = aid, _p: Any = process) -> Any:
-            inbox_sizes.setdefault(_aid, len(messages))  # sólo la primera pasada
+            inboxes.setdefault(_aid, list(messages))  # sólo la primera pasada
             return _p(messages, tick)
 
+        monkeypatch.setattr(agent, "perceive_and_emit_messages", emit_spy)
         monkeypatch.setattr(agent, "process_incoming_messages", spy)
     metrics = engine.step()
     assert metrics.messages_sent > 0
-    receivers = sorted(aid for aid, size in inbox_sizes.items() if size)
+    receivers = sorted(aid for aid, inbox in inboxes.items() if inbox)
     assert set(receivers) <= {target, other}
-    assert target in receivers  # recibe los mensajes de los demás emisores
+    # El agente 0 recibe, en orden de emisión, todos los mensajes de los demás emisores, y el
+    # agente 1 todos los del agente 0 (los emitidos en la fase 1 no llevan `recipient_id`).
+    assert all(m.recipient_id is None for m in emitted)
+    assert inboxes[target] == [m for m in emitted if m.sender_id != target]
+    assert inboxes[other] == [m for m in emitted if m.sender_id == target]
+    assert inboxes[target]
 
 
 def test_ablate_discoverers_sin_retirar_el_estimulo() -> None:

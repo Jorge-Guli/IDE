@@ -1,7 +1,7 @@
 """Protocolos del Experimento 001 (001-A, 001-B, 001-C) y su CLI reproducible.
 
 Uso: `python -m ide.experiments.exp001_runner [--profile {quick,full}] [--seeds 42 43 ...]
-[--out results/] [--jobs N]`.
+[--out results/] [--jobs N] [--attribution]`. Con `--attribution` ejecuta sólo 001-D.
 """
 
 import argparse

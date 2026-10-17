@@ -24,8 +24,8 @@ Resultados tal cual se obtuvieron, positivos o negativos, **sin ajustar parámet
 ## Experimento 001-D: atribución de emergencia (bloque 10.3)
 
 - **Pre-registro:** `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE = "quick"` versionados en el commit `c05b8b3`, **antes** de implementar y ejecutar 001-D. Ningún $R_c$ se modificó a la vista de los resultados.
-- **Código:** el commit que agrega esta entrada (bloque 10 de `tasks.md`). La corrida se repitió sobre el árbol final y dio un `exp001_attribution.json` idéntico byte a byte. Tras el cambio posterior que mide C4 sólo con la ablación de descubridores (sin el nivel 0.5, que se descartaba), se volvió a correr y el JSON también fue idéntico byte a byte.
-- **Comando:** `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4` (185 corridas distintas: unos 2 min 40 s con 4 procesos en la versión original y 1 min 51 s tras el cambio de C4).
+- **Código:** el commit que agrega esta entrada (bloque 10 de `tasks.md`). La corrida se repitió sobre el árbol final y dio un `exp001_attribution.json` idéntico byte a byte. Tras el cambio posterior que mide C4 sólo con la ablación de descubridores (sin el nivel 0.5, que se descartaba), se volvió a correr y el JSON también fue idéntico byte a byte. Lo mismo tras la optimización de vecindades y en la regresión completa posterior, ambas sobre el commit `6636409`.
+- **Comando:** `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4` (185 corridas distintas: unos 2 min 40 s con 4 procesos en la versión original, 1 min 51 s tras el cambio de C4 y alrededor de 1 min tras la optimización de vecindades del commit `6636409`).
 
 ### Tabla de estados (tal cual)
 
@@ -56,10 +56,19 @@ Valores por semilla (42..46):
 
 ### Lectura
 
-- **C1 y C2: programadas por construcción, como se declaró de antemano.** La comunicación da acceso y mejores decisiones (E2), y ese efecto depende del contenido de los mensajes (E4: el control nulo no lo produce). Es la verificación de que el mecanismo diseñado funciona, no evidencia de emergencia.
+- **C1 y C2: programadas por construcción, como se declaró de antemano.** La comunicación da acceso y mejores decisiones (E2). Para C2, el efecto depende del contenido de los mensajes (E4: el control nulo no lo produce). Para C1, E4 es casi tautológico: bajo el control nulo no hay canal de consulta veraz, así que su cobertura accesible es por definición la individual. Es la verificación de que el mecanismo diseñado funciona, no evidencia de emergencia.
 - **C3: la única prueba empírica genuina da negativo para la emergencia.** La población completa extingue el rumor en las 5 semillas, pero sin los filtros diseñados (R3, R4, R6, R7) la contención deja de superar a la población aislada: dos semillas quedan peor (0.325), tres mejor (0.025 a 0.138), y p = 0.5. La inmunidad colectiva depende de las reglas epistémicas programadas para producirla.
-- **C4: no observada en el perfil `quick`.** Tras eliminar a los descubridores de `p_0` y retirar su estímulo, el conocimiento social sobrevive 100 ticks sólo en 2 de 5 semillas (en la 46, el 55 % de 11 sobrevivientes lo conserva). Al descartar los empates en cero, la prueba de signo tiene n = 2 y no alcanza significancia.
+- **C4: no observada en el perfil `quick`.** Es por construcción, pero el estado sigue el orden de la clasificación: como falla E2, es `NOT_OBSERVED` y no `PROGRAMMED`. Tras eliminar a los descubridores de `p_0` y retirar su estímulo, el conocimiento social sobrevive 100 ticks sólo en 2 de 5 semillas (en la 46, el 55 % de 11 sobrevivientes lo conserva). Al descartar los empates en cero, la prueba de signo tiene n = 2 y no alcanza significancia.
 - **Exploración ε (R10) domina el perfil de contribución:** sin ella, C1 y C2 caen unos 0.33 y el rumor de C3 no se extingue nunca (+0.98). Es la trampa de evitación de la Decisión 12: sin explorar, nadie vuelve a probar el patrón que el rumor declaró dañino.
 - **R7 (duda ante contradicción) tiene efecto exactamente nulo en las cuatro afirmaciones.** En C1, C2 y C4 no hay ninguna creencia de signo falso, así que nunca se produce una contradicción; en C3 la población llega a 0 con R7 y sin ella.
 - **La difusión espontánea (R9) reduce levemente la cobertura accesible (C1: −0.036).** Es compatible con el *thrashing* de memoria previsto en la Decisión 4.
 - **C4 tiene efectos grandes y de signo variable** con sólo 2 de 5 semillas distintas de cero. No conviene interpretarlos sin más semillas o un perfil más largo.
+
+## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
+
+Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.
+
+| Commit | Cambio | Mediana (ticks/s) |
+| :--- | :--- | ---: |
+| `e061beb` | Línea base del bloque 8 | 128.8 |
+| `6636409` | Vecindades precalculadas y vecinos reutilizados en el ruteo (Decisión 18) | 193.5 (repeticiones de 180 a 234, en el `benchmark.json` de ese commit) |

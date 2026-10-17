@@ -3,6 +3,7 @@
 import dataclasses
 
 import numpy as np
+import pytest
 
 from ide.domain.types import KnowledgeUnit, Pattern
 from ide.simulation.controls import nullify_belief
@@ -15,7 +16,7 @@ def test_signo_aleatorio_y_resto_intacto() -> None:
     assert {r.predicted_value for r in results} == {1.0, -1.0}
     for r in results:
         assert dataclasses.replace(r, predicted_value=0.2) == belief
-    assert sum(r.predicted_value > 0 for r in results) / 1000 == 0.473
+    assert sum(r.predicted_value > 0 for r in results) / 1000 == pytest.approx(0.473, abs=1e-9)
 
 
 def test_una_extraccion_por_llamada() -> None:

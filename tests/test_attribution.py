@@ -259,13 +259,16 @@ def tiny_profile(monkeypatch: pytest.MonkeyPatch) -> str:
 def test_measure_claim_001a(tiny_profile: str) -> None:
     engine = SimulationEngine(SMALL)
     last = engine.run(30)[-1]
-    assert measure_claim(EXP001_CLAIMS[0], SMALL, tiny_profile) == last.accessible_coverage_mean
-    assert measure_claim(EXP001_CLAIMS[1], SMALL, tiny_profile) == last.cumulative_decision_accuracy
+    c1 = measure_claim(EXP001_CLAIMS[0], SMALL, tiny_profile)
+    c2 = measure_claim(EXP001_CLAIMS[1], SMALL, tiny_profile)
+    assert c1 == pytest.approx(last.accessible_coverage_mean, abs=1e-9)
+    assert c2 == pytest.approx(last.cumulative_decision_accuracy, abs=1e-9)
 
 
 def test_measure_claim_001b(tiny_profile: str) -> None:
     report = run_protocol_001b_falsification(SMALL, 30, 10)
-    assert measure_claim(EXP001_CLAIMS[2], SMALL, tiny_profile) == report.final_false_prevalence
+    value = measure_claim(EXP001_CLAIMS[2], SMALL, tiny_profile)
+    assert value == pytest.approx(report.final_false_prevalence, abs=1e-9)
 
 
 def test_measure_claim_001c(tiny_profile: str, monkeypatch: pytest.MonkeyPatch) -> None:
