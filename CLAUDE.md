@@ -90,6 +90,10 @@ python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --j
 python -m ide.experiments.benchmark          # línea base de rendimiento (ticks por segundo)
 ```
 
+## Integración continua
+
+`.github/workflows/ci.yml` corre en cada PR y en cada push a `main`: `ruff check`, `ruff format --check`, `pyright`, `python -m pytest --cov=ide` (también con otro `PYTHONHASHSEED`) y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`. Si cambian los pasos de verificación de este documento, actualiza también el workflow. `/code-review` sigue siendo un paso manual.
+
 ## Git
 
 - Mensajes de commit en español: un título breve y, en el cuerpo, el porqué de los cambios.
