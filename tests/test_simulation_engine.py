@@ -543,3 +543,19 @@ def test_el_control_no_desplaza_el_generador_principal() -> None:
     # Bajo el control nulo no hay canal de consulta veraz: la cobertura accesible es la individual.
     assert b.accessible_coverage_mean == pytest.approx(b.individual_coverage_mean, abs=1e-9)
     assert replace(a, accessible_coverage_mean=0.0) == replace(b, accessible_coverage_mean=0.0)
+
+
+def test_oraculo_de_verdad_sólo_lo_invoca_el_motor() -> None:
+    """`get_reachable_true_values` (oráculo de M2) se invoca únicamente desde el motor."""
+    import ast
+
+    src = Path(__file__).resolve().parents[1] / "src" / "ide"
+    invocadores = sorted(
+        str(path.relative_to(src))
+        for path in src.rglob("*.py")
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "get_reachable_true_values"
+    )
+    assert invocadores == ["simulation/engine.py"]

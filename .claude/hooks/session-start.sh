@@ -11,11 +11,11 @@ fi
 cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 if [ -f pyproject.toml ]; then
-  # A partir del bloque 1 de tasks.md: paquete editable con el extra de desarrollo.
+  # Con pyproject.toml: paquete editable con el extra de desarrollo.
   python3 -m pip install --quiet --disable-pip-version-check --root-user-action=ignore -e ".[dev]"
 else
-  # Antes del bloque 1 todavía no existe pyproject.toml: se instalan las mismas
-  # herramientas del extra `dev` de design.md para poder escribir y verificar ese bloque.
+  # Sin pyproject.toml (lista de respaldo): se instalan las mismas
+  # herramientas del extra `dev`; mantener alineada con pyproject.toml.
   python3 -m pip install --quiet --disable-pip-version-check --root-user-action=ignore \
     "numpy>=1.26" "pytest>=8.0" "pytest-cov>=5.0" "hypothesis>=6.100" \
     "ruff>=0.6" "pyright>=1.1.380" "py-spy>=0.3" "line_profiler>=4.1"
