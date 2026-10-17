@@ -484,7 +484,7 @@ class ToroidalGrid2D:
 - **Percepción:** recursos con `distance <= perception_radius`; vecinos de comunicación: agentes con `distance <= comm_radius`, excluido el propio.
 - **Reposición:** cada recurso consumido se encola; `step_dynamics` repone los pendientes en orden de consumo, con un `resource_id` nuevo (contador monótono) en una celda elegida por `rng`, salvo que su patrón esté retirado.
 - **`retire_pattern_resources`:** elimina todas las instancias del patrón, descarta sus reposiciones pendientes y lo registra como retirado.
-- **`invert_world_rules(fraction, rng)`:** `k = round(fraction · N)` patrones elegidos con `rng.choice(sorted(patrones), k, replace=False)`; invierte su signo en la tabla del mundo y en todos los recursos presentes (y por ende futuros); devuelve los patrones invertidos ordenados.
+- **`invert_world_rules(fraction, rng)`:** lanza `ValueError` si `fraction` no está en `[0, 1]` (NaN incluido), antes de consumir `rng`; `k = round(fraction · N)` patrones elegidos con `rng.choice(sorted(patrones), k, replace=False)`; invierte su signo en la tabla del mundo y en todos los recursos presentes (y por ende futuros); devuelve los patrones invertidos ordenados.
 
 ### 6. `SimulationEngine` (`src/ide/simulation/engine.py`)
 ```python

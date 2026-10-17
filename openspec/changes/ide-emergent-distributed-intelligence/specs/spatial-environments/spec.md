@@ -66,8 +66,12 @@ Un `INTERACT` sobre un recurso de la celda del agente SHALL devolver `ActionResu
 - **THEN** ningún recurso de `p_0` aparece en el tablero ni en ninguna `Observation`.
 
 ### Requirement: Inversión de Reglas del Mundo
-`invert_world_rules(fraction, rng)` SHALL invertir el signo de `round(fraction · N)` patrones elegidos con `rng.choice` sobre la lista ordenada de patrones, en la tabla del mundo y en todos los recursos presentes y futuros, y devolver los patrones invertidos ordenados.
+`invert_world_rules(fraction, rng)` SHALL invertir el signo de `round(fraction · N)` patrones elegidos con `rng.choice` sobre la lista ordenada de patrones, en la tabla del mundo y en todos los recursos presentes y futuros, y devolver los patrones invertidos ordenados, o lanzar `ValueError` si `fraction` no está en `[0, 1]`.
 
 #### Scenario: Shock del 50 %
 - **WHEN** hay 12 patrones y se invoca `invert_world_rules(0.5, rng)`
 - **THEN** se devuelven exactamente 6 patrones y cada recurso de esos patrones tiene ahora el valor opuesto.
+
+#### Scenario: Fracción fuera de rango
+- **WHEN** se invoca `fraction` es negativo, mayor que 1, infinito o NaN (por ejemplo `invert_world_rules(1.2, rng)`)
+- **THEN** se lanza `ValueError` cuyo mensaje menciona `fraction`, sin consumir estado de `rng` ni alterar el mundo.
