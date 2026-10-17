@@ -60,5 +60,5 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 11. Cierre
 
-- [ ] 11.1 Ejecutar `ruff check`, `ruff format --check`, `pyright`, `python -m pytest -v --cov=ide`, `python -m pytest -m slow`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
-- [ ] 11.2 Crear `README.md` con instalación, ejecución, estructura, la regla de atribución y enlaces a los documentos de fundamento.
+- [x] 11.1 Ejecutar `ruff check`, `ruff format --check`, `pyright`, `python -m pytest -v --cov=ide`, `python -m pytest -m slow`, `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46` y verificar el checklist de Definition of Done de `design.md`.
+- [x] 11.2 Crear `README.md` con instalación, ejecución, estructura, la regla de atribución y enlaces a los documentos de fundamento.

@@ -4,7 +4,7 @@
 
 Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
 
-**Estado:** la especificación está completa y validada; la implementación avanza según los bloques marcados en `tasks.md`. El plan de trabajo es `openspec/changes/ide-emergent-distributed-intelligence/tasks.md`.
+**Estado:** la especificación está completa y validada, y los bloques 1 a 11 de `tasks.md` están implementados y verificados. El trabajo nuevo parte de cambios de diseño (primero los artefactos OpenSpec). El plan de trabajo es `openspec/changes/ide-emergent-distributed-intelligence/tasks.md`.
 
 ## Idioma
 

@@ -64,6 +64,17 @@ Valores por semilla (42..46):
 - **La difusión espontánea (R9) reduce levemente la cobertura accesible (C1: −0.036).** Es compatible con el *thrashing* de memoria previsto en la Decisión 4.
 - **C4 tiene efectos grandes y de signo variable** con sólo 2 de 5 semillas distintas de cero. No conviene interpretarlos sin más semillas o un perfil más largo.
 
+## Cierre del proyecto (bloque 11)
+
+Verificación sobre el código final (`360c771` más el `README.md` del bloque 11), sin ajustar parámetros:
+
+- `ruff check`, `ruff format --check` y `pyright`: sin errores ni advertencias.
+- `python -m pytest --cov=ide`: 378 pasan, 18 deseleccionados; cobertura total 98 %.
+- `python -m pytest -m slow`: 2 pasan (001-D completo con 5 semillas).
+- `python -m pytest -m empirical`: 16 de 16 pasan, repetido sobre el código final (tras la optimización de vecindades y la revisión cruzada).
+- `openspec validate --all --strict`: pasa.
+- `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --jobs 2` (perfil `full`): superávit positivo en las 5 semillas (+0.145 a +0.177), prueba de signo `p = 0.03125`, rumor final 0.000 en las 5 (inicial 0.250). La persistencia social final es 0.000 en las 5 semillas con ese perfil, coherente con C4 `NOT_OBSERVED` de 001-D.
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.
