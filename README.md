@@ -76,4 +76,4 @@ El plan de trabajo es [`tasks.md`](openspec/changes/ide-emergent-distributed-int
 
 ## Integración continua
 
-`.github/workflows/ci.yml` corre en cada PR y en cada push a `main`, con una matriz de Python 3.11, 3.12 y 3.13: `ruff check`, `ruff format --check`, `pyright`, la suite con cobertura, una segunda pasada de la suite con otro `PYTHONHASHSEED` y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`.
+`.github/workflows/ci.yml` corre en cada PR y en cada push a `main`. En Python 3.13 (job requerido `Calidad y tests`) ejecuta: `ruff check`, `ruff format --check`, `pyright`, la suite con cobertura, una segunda pasada de la suite con otro `PYTHONHASHSEED` y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`. Un segundo job, `Compatibilidad` (Python 3.11 y 3.12), corre sólo la suite para respaldar el mínimo declarado.

@@ -14,20 +14,16 @@ concurrency:
 
 jobs:
   checks:
-    name: Calidad y tests (Python ${{ matrix.python-version }})
+    # El nombre de este job es el check requerido por la protección de `main`: no lo cambies.
+    name: Calidad y tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        # Cubre el mínimo declarado en pyproject.toml (>=3.11) y la versión más reciente.
-        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"
           cache: pip
           cache-dependency-path: pyproject.toml
 
@@ -58,3 +54,27 @@ jobs:
         env:
           OPENSPEC_TELEMETRY: "0"
         run: npx -y @fission-ai/openspec@latest validate --all --strict
+
+  compat:
+    # Respalda el mínimo declarado en pyproject.toml (>=3.11): sólo la suite, sin calidad estática.
+    name: Compatibilidad (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Instalar dependencias
+        run: pip install -e ".[dev]"
+
+      - name: pytest
+        run: python -m pytest -q
