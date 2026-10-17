@@ -18,7 +18,6 @@ from ide.domain.types import (
     Message,
     Observation,
     Pattern,
-    VisibleResource,
 )
 
 
@@ -85,24 +84,29 @@ class MicroAgent:
 
     def decide_action(self, obs: Observation, tick: int, rng: np.random.Generator) -> AgentAction:
         """Consumir, explorar, navegar o caminar al azar; desempates por menor `resource_id`."""
-        reachable = [r for r in obs.visible_resources if r.is_reachable_now]
-        beneficial = self._known_beneficial(reachable)
+        beneficial: list[tuple[float, int]] = []  # (-v̂·c, resource_id)
+        unknown: list[int] = []
+        goals: list[tuple[int, int, object]] = []  # (distance, resource_id, recommended_move)
+        for res in obs.visible_resources:
+            belief = self.get_effective_belief(res.pattern)
+            known = is_known(belief, self._config)
+            if res.is_reachable_now:
+                if known and belief.predicted_value > 0:
+                    beneficial.append(
+                        (-belief.predicted_value * belief.confidence, res.resource_id)
+                    )
+                elif not known:
+                    unknown.append(res.resource_id)
+            elif self._config.enable_navigation and known and belief.predicted_value > 0:
+                goals.append((res.distance, res.resource_id, res.recommended_move))
+
         if beneficial:
-            best = min(beneficial, key=lambda item: (-item[1], item[0].resource_id))
-            return AgentAction(ActionType.INTERACT, best[0].resource_id)
-
-        unknown = [r for r in reachable if not self._is_known(r.pattern)]
+            return AgentAction(ActionType.INTERACT, min(beneficial)[1])
         if unknown and rng.random() < self._config.epsilon_explore:
-            target = min(unknown, key=lambda r: r.resource_id)
-            return AgentAction(ActionType.INTERACT, target.resource_id)
-
-        if self._config.enable_navigation:
-            distant = [r for r in obs.visible_resources if not r.is_reachable_now]
-            goals = self._known_beneficial(distant)
-            if goals:
-                goal = min(goals, key=lambda item: (item[0].distance, item[0].resource_id))
-                return AgentAction(ActionType.MOVE, goal[0].recommended_move)
-
+            return AgentAction(ActionType.INTERACT, min(unknown))
+        if goals:
+            nearest = min(goals, key=lambda g: (g[0], g[1]))
+            return AgentAction(ActionType.MOVE, nearest[2])
         if not obs.available_moves:
             return AgentAction(ActionType.IDLE)
         return AgentAction(
@@ -118,17 +122,3 @@ class MicroAgent:
 
     def decay_memory(self, tick: int) -> None:
         self._memory.decay_step(tick, self._config.passive_conf_decay, self._config.min_confidence)
-
-    def _is_known(self, pattern: Pattern) -> bool:
-        return is_known(self.get_effective_belief(pattern), self._config)
-
-    def _known_beneficial(
-        self, resources: list[VisibleResource]
-    ) -> list[tuple[VisibleResource, float]]:
-        """Recursos de patrón conocido con `v̂ > 0`, con su valor esperado `v̂·c`."""
-        result: list[tuple[VisibleResource, float]] = []
-        for res in resources:
-            belief = self.get_effective_belief(res.pattern)
-            if is_known(belief, self._config) and belief.predicted_value > 0:
-                result.append((res, belief.predicted_value * belief.confidence))
-        return result

@@ -86,3 +86,14 @@ Si los signos difieren, la creencia local no es directa y `γc_ext > 1.2·c`, la
 #### Scenario: Testimonio fuerte contra un rumor viejo
 - **WHEN** el agente tiene un rumor `v̂ = -1.0`, `c = 0.25` y recibe `v̂ = +1.0`, `c = 0.90` (`γ = 0.75`)
 - **THEN** la creencia resultante tiene `predicted_value = +1.0` y `confidence = 0.55`.
+
+### Requirement: Testimonio Acotado y Coherente
+`merge_social_belief` SHALL acotar `γ·incoming.confidence` al intervalo `[0, 1]` antes de aplicar los Escenarios A, B y C, y SHALL lanzar `ValueError` si `existing` no es `None` y su `pattern` difiere de `incoming.pattern`.
+
+#### Scenario: Factor de confianza mayor que uno
+- **WHEN** se invoca con `existing = None`, `incoming.confidence = 0.9` y `sender_trust_factor = 1.2`
+- **THEN** la confianza resultante es `1.0`.
+
+#### Scenario: Patrones distintos
+- **WHEN** `existing` es una creencia sobre $\rho_1$ e `incoming` una sobre $\rho_2$
+- **THEN** la función lanza `ValueError`.

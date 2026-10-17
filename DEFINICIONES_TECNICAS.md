@@ -217,6 +217,9 @@ sequenceDiagram
     S->>E: step_dynamics() y registro de TickMetrics
 ```
 
+### Recepción de mensajes (Fase 2)
+Cada agente responde primero todas las consultas de su bandeja con la memoria que tenía al empezar la fase, y recién después asimila los testimonios recibidos, en el orden de llegada. Como ese orden sigue la permutación del tick, responder antes de asimilar evita que el sorteo altere el contenido de una respuesta.
+
 ### Toma de decisión del agente (Fase 3)
 Una creencia es **conocida** si su confianza es $\ge c_{\text{umbral}}$. Se consulta primero la memoria y luego las creencias recibidas en el tick.
 1. **Recursos en la celda actual:**

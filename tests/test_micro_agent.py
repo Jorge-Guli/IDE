@@ -10,6 +10,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from ide.agent.epistemology import is_known
 from ide.agent.micro_agent import MicroAgent
 from ide.agent.protocol import BeliefExchangeProtocol
 from ide.config import SimulationConfig
@@ -97,18 +98,51 @@ def test_auditoria_del_protocolo() -> None:
                 assert "MessageType" not in imported, f"{path.name} importa MessageType"
 
 
+def test_auditoria_sin_alias_de_nombres_vigilados() -> None:
+    # Un alias (`import ... as x`) burlaría las auditorías por nombre.
+    watched = {"Message", "MessageType", "merge_social_belief", "types", "epistemology"}
+    for path in agent_modules():
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import | ast.ImportFrom):
+                for alias in node.names:
+                    leaf = alias.name.rsplit(".", 1)[-1]
+                    assert alias.asname is None or leaf not in watched, f"{path.name}: {alias.name}"
+
+
+def references_by_scope(tree: ast.AST, name: str) -> list[str]:
+    """Ámbito (función o lambda más interna) de cada referencia a `name`."""
+    found: list[str] = []
+
+    def visit(node: ast.AST, scope: str) -> None:
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            scope = node.name
+        elif isinstance(node, ast.Lambda):
+            scope = "<lambda>"
+        if (isinstance(node, ast.Name) and node.id == name) or (
+            isinstance(node, ast.Attribute) and node.attr == name
+        ):
+            found.append(scope)
+        for child in ast.iter_child_nodes(node):
+            visit(child, scope)
+
+    visit(tree, "<module>")
+    return found
+
+
 def test_asimilacion_social_solo_por_assimilate_testimony() -> None:
-    # Fuera de `epistemology.py`, sólo `assimilate_testimony` invoca `merge_social_belief`.
+    # Fuera de `epistemology.py`, `merge_social_belief` sólo aparece en `assimilate_testimony`,
+    # en cualquier ámbito: módulo, clase, lambda o función asíncrona.
     for path in agent_modules():
         if path.name == "epistemology.py":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        for func in ast.walk(tree):
-            if not isinstance(func, ast.FunctionDef):
-                continue
-            for node in ast.walk(func):
-                if isinstance(node, ast.Name) and node.id == "merge_social_belief":
-                    assert func.name == "assimilate_testimony", f"{path.name}:{func.name}"
+        for scope in references_by_scope(tree, "merge_social_belief"):
+            assert scope == "assimilate_testimony", f"{path.name}:{scope}"
+
+
+def test_auditoria_de_ambitos_detecta_lambda_de_modulo() -> None:
+    tree = ast.parse("f = lambda b: merge_social_belief(b)\nclass A:\n    x = merge_social_belief")
+    assert references_by_scope(tree, "merge_social_belief") == ["<lambda>", "<module>"]
 
 
 def test_protocolo_no_escribe_la_memoria_directamente() -> None:
@@ -582,3 +616,19 @@ def test_propiedad_emision_acotada_y_ordenada(
     for m in broadcasts:
         assert m.belief is not None and m.belief.confidence >= CFG.decision_conf_threshold
         assert a.memory.get(m.pattern) == m.belief
+
+    # Consultas: los patrones no conocidos de menor (distancia mínima, patrón), sin conocidos.
+    nearest: dict[Pattern, int] = {}
+    for r in resources:
+        nearest[r.pattern] = min(nearest.get(r.pattern, r.distance), r.distance)
+    unknown = sorted(
+        (d, p) for p, d in nearest.items() if not is_known(a.get_effective_belief(p), CFG)
+    )
+    assert [m.pattern for m in queries] == [p for _, p in unknown[:max_queries]]
+
+    # Broadcasts: los de mayor utilidad y luego menor patrón, entre los confiables.
+    reliable = sorted(
+        (u for u in a.memory.all_units() if is_known(u, CFG)),
+        key=lambda u: (-a.memory.compute_utility(u, 0), u.pattern),
+    )
+    assert [m.belief for m in broadcasts] == reliable[:max_broadcast]

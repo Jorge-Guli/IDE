@@ -412,7 +412,8 @@ class BoundedMemory:
      - `penalized < decision_conf_threshold` → reinicia: `(pattern, clip(real_value), initial_direct_confidence, 1)`.
      - si no → `blended = (1-α)·v̂ + α·v`; `new_val = sign(v̂) · max(0.05, |blended|)` con `sign(v̂) = 1.0 if v̂ >= 0 else -1.0`; `confidence = penalized`; `n+1`.
 2. **`merge_social_belief(existing, incoming, tick, config, sender_trust_factor=None) -> KnowledgeUnit`:**
-   - `gamma = config.gamma_social_discount if sender_trust_factor is None else sender_trust_factor`; `e = gamma · incoming.confidence`.
+   - `gamma = config.gamma_social_discount if sender_trust_factor is None else sender_trust_factor`; `e = clip(gamma · incoming.confidence, 0, 1)`. El recorte sólo actúa si un `TrustStrategyPort` devuelve un factor fuera de `[0, 1]` (Exp 002); sin él, la confianza saldría de `[0, 1]`. La cota anti-eco `max(c, e)` sólo acota la confianza de la población si el factor es `<= 1`: un emisor en quien se confía más que en uno mismo la eleva legítimamente.
+   - Si `existing` no es `None` y `existing.pattern != incoming.pattern` → `ValueError`.
    - **A** (`existing is None`) → `(incoming.pattern, incoming.predicted_value, e, 1, tick, False)`.
    - **B** (`existing.predicted_value * incoming.predicted_value >= 0`):
      - `new_val = (c·v̂ + e·v̂_ext)/(c + e)` si `c + e > 0`, si no `v̂_ext`.

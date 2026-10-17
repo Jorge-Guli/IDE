@@ -58,8 +58,10 @@ def merge_social_belief(
     sender_trust_factor: float | None = None,
 ) -> KnowledgeUnit:
     """Fusiona un testimonio ajeno con la creencia local (Escenarios A, B y C)."""
+    if existing is not None and existing.pattern != incoming.pattern:
+        raise ValueError("existing.pattern debe coincidir con incoming.pattern")
     gamma = config.gamma_social_discount if sender_trust_factor is None else sender_trust_factor
-    e = gamma * incoming.confidence
+    e = _clip(gamma * incoming.confidence, 0.0, 1.0)
     v_ext = incoming.predicted_value
     if existing is None:
         return KnowledgeUnit(incoming.pattern, v_ext, e, 1, tick, False)

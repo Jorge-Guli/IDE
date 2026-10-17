@@ -33,8 +33,10 @@ def test_adquisicion_directa_de_recurso_danino() -> None:
 
 
 def test_adquisicion_directa_recorta_el_valor() -> None:
-    assert update_from_direct_experience(None, RHO, 3.0, 0, CFG).predicted_value == 1.0
-    assert update_from_direct_experience(None, RHO, -3.0, 0, CFG).predicted_value == -1.0
+    high = update_from_direct_experience(None, RHO, 3.0, 0, CFG).predicted_value
+    low = update_from_direct_experience(None, RHO, -3.0, 0, CFG).predicted_value
+    assert high == pytest.approx(1.0, abs=1e-9)
+    assert low == pytest.approx(-1.0, abs=1e-9)
 
 
 def test_refuerzo_confirma_creencia_social() -> None:
@@ -183,7 +185,8 @@ def test_escenario_c_resistencia_de_rumor() -> None:
     # e = 0.3 no supera 1.2·0.5: resistencia con r = 1.
     k = merge_social_belief(ku(1.0, 0.5, False, tau=4), ku(-1.0, 0.4, True), 9, CFG)
     assert k.confidence == pytest.approx(0.5 - 0.2 * 0.3, abs=1e-9)
-    assert (k.predicted_value, k.last_updated_tick, k.from_direct_experience) == (1.0, 4, False)
+    assert k.predicted_value == pytest.approx(1.0, abs=1e-9)
+    assert (k.last_updated_tick, k.from_direct_experience) == (4, False)
 
 
 def test_escenario_c_sobrescritura_de_rumor_debil() -> None:
@@ -201,8 +204,29 @@ def test_escenario_c_sobrescritura_con_piso_min_confidence() -> None:
 
 def test_escenario_c_experiencia_directa_nunca_se_sobrescribe() -> None:
     k = merge_social_belief(ku(-1.0, 0.1, True), ku(1.0, 1.0, True), 1, CFG)
-    assert k.predicted_value == -1.0
+    assert k.predicted_value == pytest.approx(-1.0, abs=1e-9)
     assert k.confidence == pytest.approx(0.1 - 0.2 * 0.75 / 2.0, abs=1e-9)
+
+
+# --- Testimonio acotado y coherente ----------------------------------------------------------
+
+
+def test_factor_de_confianza_mayor_que_uno_se_acota() -> None:
+    k = merge_social_belief(None, ku(1.0, 0.9, True), 0, CFG, sender_trust_factor=1.2)
+    assert k.confidence == pytest.approx(1.0, abs=1e-9)
+
+
+def test_factor_mayor_que_uno_mantiene_el_rango() -> None:
+    a, b = ku(1.0, 0.9, False), ku(1.0, 0.9, False)
+    for t in range(1, 21):
+        a, b = merge_social_belief(a, b, t, CFG, 1.2), merge_social_belief(b, a, t, CFG, 1.2)
+        assert a.confidence <= 1.0 and b.confidence <= 1.0
+
+
+def test_patrones_distintos_lanzan_value_error() -> None:
+    other = KnowledgeUnit(Pattern((("id", "p_1"),)), 1.0, 0.5, 1, 0, True)
+    with pytest.raises(ValueError):
+        merge_social_belief(ku(1.0, 0.5, True), other, 0, CFG)
 
 
 # --- Propiedades -------------------------------------------------------------------------------
@@ -236,7 +260,13 @@ def test_propiedad_rangos_experiencia_directa(
     assert k.last_updated_tick == tick
 
 
-@given(st.none() | beliefs, beliefs, st.integers(0, 200), st.none() | confidences, st.booleans())
+@given(
+    st.none() | beliefs,
+    beliefs,
+    st.integers(0, 200),
+    st.none() | st.floats(0.0, 2.0, allow_nan=False),
+    st.booleans(),
+)
 def test_propiedad_rangos_fusion_social(
     existing: KnowledgeUnit | None,
     incoming: KnowledgeUnit,
