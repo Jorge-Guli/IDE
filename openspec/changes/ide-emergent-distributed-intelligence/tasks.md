@@ -8,9 +8,9 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 2. Contratos de Dominio y Configuración (`domain-contracts`)
 
-- [ ] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` (incluida `memory_capacity = 0` con `enforce_memory_constraint=False`, `epsilon_recheck`/`tau_policy`, y los valores por defecto de `anti_echo_enabled`, `enable_navigation` y `comm_content_null`) y la ida y vuelta por JSON de `to_dict()`.
-- [ ] 2.2 [GREEN] Implementar `src/ide/config.py`, `src/ide/domain/types.py` y `src/ide/domain/ports.py`.
-- [ ] 2.3 [REFACTOR] Docstrings y tipos; la suite sigue en verde.
+- [x] 2.1 [RED] Escribir `tests/test_domain_contracts.py`: inmutabilidad, hashabilidad y orden total de `Pattern` (incluido `label`), validación de `Message`, campos exactos de `VisibleResource`, `EnvironmentPort` con sus 10 métodos y `@runtime_checkable`, todas las validaciones de `SimulationConfig.__post_init__` (incluida `memory_capacity = 0` con `enforce_memory_constraint=False`, `epsilon_recheck`/`tau_policy`, y los valores por defecto de `anti_echo_enabled`, `enable_navigation` y `comm_content_null`) y la ida y vuelta por JSON de `to_dict()`.
+- [x] 2.2 [GREEN] Implementar `src/ide/config.py`, `src/ide/domain/types.py` y `src/ide/domain/ports.py`.
+- [x] 2.3 [REFACTOR] Docstrings y tipos; la suite sigue en verde.
 
 ## 3. Contratos de Extensión (`roadmap-extensions`)
 
