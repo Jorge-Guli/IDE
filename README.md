@@ -29,7 +29,7 @@ python -m ide.experiments.exp001_runner --profile quick --seeds 42
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --out results/ --jobs 4
 
 # Atribución de emergencia (001-D): fuerza el perfil pre-registrado (`quick`);
-# si se pasa otro `--profile`, la CLI lo ignora y avisa, para no romper el pre-registro
+# siempre usa `quick`, ignora `--profile` e imprime una nota, para no romper el pre-registro
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4
 
 # Línea base de rendimiento (ticks por segundo)
