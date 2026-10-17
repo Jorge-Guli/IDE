@@ -47,7 +47,7 @@ Al reproducirse un agente con `mutation_rate > 0` o `discrete_mutation_prob > 0`
 - **THEN** todos los coeficientes continuos permanecen en `[0.0, 1.0]` (`alpha_learning` en `[0.01, 1.0]`), `memory_capacity` permanece en `[1, max_genome_memory_capacity]` y además `< num_world_patterns` cuando `enforce_memory_constraint=True`, y los radios permanecen en `[1, (min(grid_width, grid_height) - 1) // 2]`, de modo que `SimulationConfig` acepta el genoma del hijo.
 
 ### Requirement: Herencia Cultural Vertical con Descuento Intergeneracional (R14)
-Con `enable_cultural_inheritance=True` e `inheritance_discount > 0`, el motor SHALL entregar al hijo, por `assimilate_testimony` con `sender_id = parent_id`, hasta $\min(C_{\max, \text{hijo}}, |\mathcal{M}_{\text{padre}}|)$ creencias parentales en orden descendente de $U(k, t)$, cada una con confianza `gamma_gen * k.confidence` ($\ge c_{\min}$) antes del descuento social.
+Con `enable_cultural_inheritance=True` e `inheritance_discount > 0`, el motor SHALL entregar al hijo, por `assimilate_testimony` con `sender_id = parent_id`, hasta $\min(C_{\max, \text{hijo}}, |\mathcal{M}_{\text{padre}}|)$ creencias parentales en orden descendente de $U(k, t)$, con confianza `gamma_gen * k.confidence` antes del descuento social, sólo si `gamma * gamma_gen * k.confidence >= c_min`.
 
 #### Scenario: Transferencia epigénica con invariante no empírico
 - **WHEN** un padre con creencia directa $k(\rho_1, \hat{v}=+1.0, c=0.80, n=5, \text{direct}=True)$ se reproduce en `tick = 50` con `enable_cultural_inheritance=True`, `inheritance_discount = 0.5`, `gamma_social_discount = 0.75` y confianza uniforme en el emisor

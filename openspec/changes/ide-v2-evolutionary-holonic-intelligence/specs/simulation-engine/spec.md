@@ -25,7 +25,7 @@ Con `enable_holonic_hierarchy=True` o `num_composite_patterns > 0`, el motor SHA
 - **THEN** ese agente no suma oportunidad de decisión en `decision_opportunities` de ese tick.
 
 ### Requirement: Ciclo Metabólico, Reproductivo y Holónico en Fase 5 y Poda en Perturbaciones
-En la Fase 5 de `step()`, el motor SHALL ejecutar en orden determinista: (a) causalidad descendente intra-holón ($R_{18}$), (b) costo de coordinación, fisión `SPLIT` ($R_{16}$) y fusión `BOND` ($R_{15}$), (c) cobro metabólico, muerte por inanición (podando árboles con `prune_dead_leaves`, igual que en `ablate_population` y `ablate_discoverers`) y reproducción ($R_{17}$ / $R_{12}$), y (d) registro en `evolutionary_history`.
+En la Fase 5 de `step()`, el motor SHALL ejecutar en orden determinista: (a) causalidad descendente intra-holón ($R_{18}$), (b) costo de coordinación, fisión `SPLIT` ($R_{16}$) y fusión `BOND` ($R_{15}$), (c) metabolismo, muerte (poda con `prune_dead_leaves`, como en las ablaciones) y reproducción ($R_{17}$, $R_{12}$), entre `decay_memory` y `env.step_dynamics`; y (d) tras `step_dynamics`, registro en `evolutionary_history`.
 
 #### Scenario: Sucesión generacional y formación de holones en una corrida evolutiva
 - **WHEN** se ejecuta `SimulationEngine` con `enable_evolution=True`, `enable_cultural_inheritance=True` y `enable_holonic_hierarchy=True` durante 100 ticks en un entorno con recursos abundantes

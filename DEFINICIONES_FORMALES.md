@@ -386,7 +386,7 @@ El genoma heredable es `AgentGenome` $= (\alpha, \gamma, \epsilon, \omega_{\text
 
 Con `enable_cultural_inheritance=True` y $\gamma_{\text{gen}}$ = `inheritance_discount` $> 0$ (por defecto $0.65$), al nacer el hijo en el tick $t$:
 1. Se ordena la memoria del progenitor por utilidad descendente $U(k, t)$ del progenitor (§2.2, incluida la penalización por redundancia de $R_{18}$ si está activa), con desempate por el orden canónico de $\rho$, y se toman hasta $\min(C_{\max, \text{hijo}}, |\mathcal{M}_{\text{padre}}|)$ creencias.
-2. De ellas se conservan las que cumplen $\gamma_{\text{gen}} \cdot c \ge c_{\min}$, y cada una se convierte en un testimonio parental $k' = (\rho, \hat{v}, \gamma_{\text{gen}} \cdot c, n, \tau, d)$.
+2. De ellas se conservan las que cumplen $\gamma \cdot \gamma_{\text{gen}} \cdot c \ge c_{\min}$ (con $\gamma$ = `gamma_social_discount`), y cada una se convierte en un testimonio parental $k' = (\rho, \hat{v}, \gamma_{\text{gen}} \cdot c, n, \tau, d)$.
 3. **Entrega por la puerta única del conocimiento social:** el motor entrega cada testimonio, en ese orden, con `assimilate_testimony` y `sender_id` = id del progenitor (bajo el control nulo, antes reemplaza $\hat{v}$ por $\pm 1$ al azar). Como el hijo nace con memoria vacía, se aplica el Escenario A (§2.3), y la creencia heredada queda:
 $$k_{\text{hijo}} = \left(\rho, \; \hat{v}, \; c_{\text{hijo}} = \varphi \cdot \gamma_{\text{gen}} \cdot c, \; n = 1, \; \tau = t_{\text{nac}}, \; d = 0\right)$$
    donde $\varphi$ es la confianza en el emisor (§2.3), que por defecto vale $\gamma$ = `gamma_social_discount`; es decir, $c_{\text{hijo}} = \gamma \cdot \gamma_{\text{gen}} \cdot c$.
@@ -415,7 +415,7 @@ Todo participante activo del sistema es un **Holón** (o nodo agéntico) $u$, qu
    $$\text{leaves}(U) = \bigcup_{u_j \in \text{children}(U)} \text{leaves}(u_j), \qquad |U| = |\text{leaves}(U)|$$
    Un holón con menos de 2 hijos o con hojas repetidas es inválido.
 
-3. **Identificadores:** las hojas conservan su `agent_id` $\ge 0$; cada holón compuesto recibe un `node_id` **negativo** de un contador monótono decreciente que empieza en $-1$, de modo que los identificadores de holones y de agentes nunca colisionan.
+3. **Identificadores:** las hojas conservan su `agent_id` $\ge 0$; cada holón compuesto recibe un `node_id` **negativo** de un contador monótono decreciente que empieza en $-2$ ($-1$ es el emisor sintético de la estigmergia), de modo que los identificadores de holones y de agentes nunca colisionan.
 
 > **Profundidad sin tope codificado, pero acotada por la masa:** el código no fija un nivel máximo: un holón de nivel $L$ puede volver a fusionarse en uno de nivel $L+1$. Pero `BOND` exige $|U| \le$ `max_holon_leaves` ($8$ por defecto), y cada nivel nuevo agrega al menos una hoja, así que $L(U) \le$ `max_holon_leaves` $- 1$. Que se formen niveles $L \ge 2$ es una pregunta empírica (protocolo 003-B), no una propiedad garantizada.
 
@@ -500,7 +500,7 @@ $$\mathcal{S}(l, \rho) = \left(\rho, \; s, \; I, \; \tau_{\text{rastro}}\right),
 
 - **Depósito (Fase 4):** tras una experiencia directa con un patrón **elemental** $\rho$ de valor real $v$, si $s_{\text{dep}}$ = `stigmergy_deposit_rate` $> 0$ (por defecto $0.50$), el agente deposita en su celda el rastro
   $$\left(\rho, \; s = \text{sign}(v), \; I = \min(1, \; s_{\text{dep}} \cdot c), \; \tau_{\text{rastro}} = t\right)$$
-  donde $c$ es la confianza de su creencia sobre $\rho$ después de aprender (§2.1). Si la celda ya tiene un rastro de $\rho$, se conserva el de mayor $(I, \tau_{\text{rastro}}, s)$; así, los depósitos simultáneos del mismo tick dan el mismo resultado en cualquier orden.
+  donde $c$ es la confianza de su creencia sobre $\rho$ después de aprender (§2.1). Si la celda ya tiene un rastro de $\rho$ de un tick anterior, el nuevo lo reemplaza; si es del mismo tick, se conserva el de mayor $(I, s)$, así los depósitos simultáneos dan el mismo resultado en cualquier orden.
 - **Decaimiento:** al avanzar la dinámica del entorno en el tick $t$, cada rastro que no se actualizó en el tick ($\tau_{\text{rastro}} < t$) pierde $\delta_{\text{suelo}}$ = `stigmergy_decay` ($0.02$) de intensidad, $I \leftarrow I - \delta_{\text{suelo}}$, y se elimina si $I < c_{\min}$.
 - **Lectura (Fase 1):** el motor lee los rastros de la celda del agente (no forman parte de su `Observation`) y convierte cada uno en el testimonio $(\rho, s, I, 1, \tau_{\text{rastro}}, 0)$, que entrega con `assimilate_testimony` y `sender_id` $= -1$ (bajo el control nulo, antes reemplaza el valor por $\pm 1$ al azar). Se procesa como cualquier testimonio (§2.3): recibe el descuento de confianza en el emisor del receptor ($\gamma$ por defecto) y, como $d = 0$, la protección anti-cámara de eco.
 - Los rastros sobreviven a quien los depositó mientras no decaigan: el entorno funciona como una memoria externa compartida. Que esto sostenga conocimiento a través de generaciones es lo que se pone a prueba; $R_{19}$ está diseñada para externalizar conocimiento.

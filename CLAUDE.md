@@ -79,7 +79,7 @@ Cada sesión de Claude Code en la nube arranca con un contenedor limpio. El hook
 
 ## Comandos
 
-Todos disponibles (el proyecto completó los bloques de `tasks.md`):
+Disponibles en la Fase I (los comandos de los runners 002 y 003 se agregarán al implementar la Fase II):
 
 ```bash
 pip install -e ".[dev]"                     # instalación manual (en la nube la hace el hook de inicio)

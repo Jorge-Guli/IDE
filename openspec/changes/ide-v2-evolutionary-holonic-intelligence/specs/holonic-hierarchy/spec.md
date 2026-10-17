@@ -36,7 +36,7 @@ Con `enable_holonic_hierarchy=True`, el operador `BOND` SHALL evaluar pares de n
 - **THEN** no se fusionan.
 
 ### Requirement: Costo de Coordinación y Operador de Fisión SPLIT (R16)
-En cada tick con `enable_holonic_hierarchy=True`, cada `CompositeAgent` activo $U$ SHALL descontar $c_{\text{enlace}} \cdot |U| \cdot L(U)$ repartido entre sus hojas y, si `enable_holon_splitting=True` y acumula `holon_split_patience` ticks sin superávit (definido en design D24) o su energía cae bajo $|U| \cdot E_{\text{min\_holon}}$, SHALL disolverse liberando a sus `children` directos como nodos raíz.
+En cada tick con `enable_holonic_hierarchy=True`, cada `CompositeAgent` raíz $U$ SHALL descontar, si `enable_evolution=True`, $c_{\text{enlace}} \cdot |U| \cdot L(U)$ repartido entre sus hojas y, si `enable_holon_splitting=True` y acumula `holon_split_patience` ticks sin superávit (definido en design D24) o su energía cae bajo $|U| \cdot E_{\text{min\_holon}}$, SHALL disolverse liberando a sus `children` directos como nodos raíz.
 
 #### Scenario: Fisión de holón deficitario
 - **WHEN** un `CompositeAgent` de nivel 1 supera `holon_split_patience` ticks consecutivos sin obtener superávit cooperativo con `enable_holon_splitting=True`
