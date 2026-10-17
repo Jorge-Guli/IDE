@@ -53,6 +53,10 @@ class ToroidalGrid2D:
         self._retired: set[Pattern] = set()  # patrones que no se vuelven a reponer
         self._pending: list[Pattern] = []  # patrones de recursos consumidos, en orden de consumo
         self._next_resource_id = 0
+        # Vecindades del toro precalculadas una sola vez (Decisión 18): son iguales desde
+        # cualquier celda salvo traslación, así que basta una tabla de desplazamientos.
+        self._perception_offsets = self._offsets(config.perception_radius)
+        self._comm_offsets = tuple((dx, dy) for dx, dy, _, _ in self._offsets(config.comm_radius))
 
         count = config.num_world_patterns
         self._world: dict[Pattern, float] = {}
@@ -79,20 +83,19 @@ class ToroidalGrid2D:
         self.cell_resources[cell][resource.resource_id] = resource
         self._resource_cell[resource.resource_id] = cell
 
-    def _delta(self, origin: Cell, target: Cell) -> tuple[int, int]:
-        half_w, half_h = self._width // 2, self._height // 2
-        dx = ((target[0] - origin[0] + half_w) % self._width) - half_w
-        dy = ((target[1] - origin[1] + half_h) % self._height) - half_h
-        return dx, dy
+    @staticmethod
+    def _offsets(radius: int) -> tuple[tuple[int, int, int, Cell | None], ...]:
+        """`(dx, dy, distance, recommended_move)` de cada celda a distancia <= radius.
 
-    def _cells_within(self, origin: Cell, radius: int) -> list[Cell]:
-        """Celdas a distancia <= radius; la config garantiza 2·radio < lado (sin repetidas)."""
-        cells = {
-            ((origin[0] + dx) % self._width, (origin[1] + dy) % self._height)
-            for dx in range(-radius, radius + 1)
-            for dy in range(-radius, radius + 1)
-        }
-        return sorted(cells)
+        La config garantiza 2·radio < lado, así que no hay celdas repetidas y `(dx, dy)` es el
+        desplazamiento toroidal mínimo.
+        """
+        reach = range(-radius, radius + 1)
+        return tuple(
+            (dx, dy, max(abs(dx), abs(dy)), None if dx == dy == 0 else (_sign(dx), _sign(dy)))
+            for dx in reach
+            for dy in reach
+        )
 
     def _remove_resource(self, resource_id: int) -> None:
         cell = self._resource_cell.pop(resource_id)
@@ -108,13 +111,11 @@ class ToroidalGrid2D:
         return sorted(self._agent_cell)
 
     def get_observation(self, agent_id: int, tick: int) -> Observation:
-        origin = self._agent_cell[agent_id]
+        x, y = self._agent_cell[agent_id]
+        width, height = self._width, self._height
         visible: list[VisibleResource] = []
-        for cell in self._cells_within(origin, self.config.perception_radius):
-            dx, dy = self._delta(origin, cell)
-            distance = max(abs(dx), abs(dy))
-            move = None if distance == 0 else (_sign(dx), _sign(dy))
-            for resource in self.cell_resources[cell].values():
+        for dx, dy, distance, move in self._perception_offsets:
+            for resource in self.cell_resources[((x + dx) % width, (y + dy) % height)].values():
                 visible.append(
                     VisibleResource(
                         resource.resource_id, resource.pattern, move, distance, distance == 0
@@ -130,10 +131,11 @@ class ToroidalGrid2D:
         )
 
     def get_communication_neighbors(self, agent_id: int) -> list[int]:
-        origin = self._agent_cell[agent_id]
+        x, y = self._agent_cell[agent_id]
+        width, height = self._width, self._height
         found: set[int] = set()
-        for cell in self._cells_within(origin, self.config.comm_radius):
-            found.update(self.cell_agents[cell])
+        for dx, dy in self._comm_offsets:
+            found.update(self.cell_agents[((x + dx) % width, (y + dy) % height)])
         found.discard(agent_id)
         return sorted(found)
 

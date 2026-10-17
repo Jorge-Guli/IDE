@@ -51,6 +51,13 @@ Para todo `VisibleResource` con `distance > 0`, `recommended_move` SHALL pertene
 - **WHEN** se pasa a `SimulationEngine` un objeto que implementa los diez métodos (sea `ToroidalGrid2D` o un entorno de prueba basado en grafos)
 - **THEN** `isinstance(env, EnvironmentPort)` es `True` y `MicroAgent` opera sin cambios de código.
 
+### Requirement: Vecinos de la Observación Coherentes con el Puerto
+Todo `EnvironmentPort` SHALL garantizar que `get_observation(agent_id, t).neighbor_ids == tuple(get_communication_neighbors(agent_id))` mientras no se ejecute ninguna acción ni perturbación entre ambas llamadas; el motor rutea los mensajes de la fase 2 con esos vecinos.
+
+#### Scenario: Misma instantánea
+- **WHEN** se observa a un agente y, sin acciones de por medio, se consultan sus vecinos de comunicación
+- **THEN** `obs.neighbor_ids` es igual a `tuple(env.get_communication_neighbors(agent_id))`.
+
 ### Requirement: Oráculo de Verdad Restringido a Telemetría
 `get_reachable_true_values(agent_id)` SHALL devolver un `dict[int, float]` de `resource_id` a `true_value` de los recursos alcanzables por el agente, y SHALL ser invocado únicamente por `SimulationEngine` para calcular M2, nunca entregado a un `MicroAgent`.
 
@@ -77,7 +84,7 @@ Para todo `VisibleResource` con `distance > 0`, `recommended_move` SHALL pertene
 - **THEN** se lanza `ValueError`.
 
 ### Requirement: Validación de Rangos de Hiperparámetros
-`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo si un coeficiente probabilístico sale de `[0.0, 1.0]`, si `num_agents`, `resources_per_pattern` o las dimensiones son menores que 1, si `num_world_patterns < 2`, si un radio o tasa es negativo, si `min_confidence >= decision_conf_threshold`, o si `2 * max(perception_radius, comm_radius) >= min(grid_width, grid_height)`.
+`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo si un coeficiente probabilístico sale de `[0.0, 1.0]`, si `num_agents`, `resources_per_pattern` o las dimensiones son menores que 1, si `num_world_patterns < 2`, si `seed` es negativa, si un radio o tasa es negativo, si `min_confidence >= decision_conf_threshold`, o si `2 * max(perception_radius, comm_radius) >= min(grid_width, grid_height)`.
 
 #### Scenario: Coeficiente fuera de rango
 - **WHEN** se instancia `SimulationConfig(gamma_social_discount=1.5)`

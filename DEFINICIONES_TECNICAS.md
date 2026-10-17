@@ -13,7 +13,7 @@ Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en 
 - **Dependencias del núcleo:** biblioteca estándar + `numpy` (generador reproducible `np.random.Generator(np.random.PCG64(seed))` y agregaciones).
 - **Testing y análisis:** `pytest` con `pytest-cov` (cobertura) e `hypothesis` (pruebas por propiedades con generación reproducible); exportación JSON y CSV desacoplada del motor.
 - **Calidad estática:** `ruff` (lint y formato) y `pyright` en modo estricto sobre `src/`. Un bloque de trabajo sólo se cierra con las cuatro verificaciones en verde.
-- **Rendimiento:** paralelismo entre corridas independientes (`--jobs N`, con salida idéntica para cualquier `N`), una línea base medida (`ide.experiments.benchmark`) y perfiladores instalados (`py-spy`, `line_profiler`). No se vectoriza el bucle de agentes sin una medición que lo justifique: cambiaría la arquitectura que permite ablacionar reglas.
+- **Rendimiento:** paralelismo entre corridas independientes (`--jobs N`, con salida idéntica para cualquier `N`), una línea base medida (`ide.experiments.benchmark`) y perfiladores instalados (`py-spy`, `line_profiler`). No se vectoriza el bucle de agentes sin una medición que lo justifique: cambiaría la arquitectura que permite ablacionar reglas. Sin cambiar la semántica, la grilla precalcula una tabla de desplazamientos por vecindad, de percepción y de comunicación (cada una válida desde cualquier celda del toro, así que no crece con el tablero) y el motor reutiliza los vecinos de la observación para rutear los mensajes; una prueba exige historiales idénticos a los de la implementación previa.
 - **Arquitectura hexagonal:** el paquete `agent` **tiene prohibido** importar `environments`, `simulation` o `experiments`. Toda interacción pasa por estructuras agnósticas (`Observation`, `AgentAction`, `Message`).
 - **Determinismo entre procesos:** Python aleatoriza el hash de `str` por proceso, así que está prohibido iterar un `set` sin `sorted(...)` y toda selección aleatoria opera sobre listas ordenadas.
 - **Atribución verificable:** cada regla de diseño del agente se puede desactivar desde `SimulationConfig`, y la plataforma clasifica cada afirmación como programada o emergente (ver §7, protocolo 001-D, y [Definiciones Formales](DEFINICIONES_FORMALES.md) §3.1).
@@ -50,12 +50,13 @@ IDE/
 │       │   └── grid2d.py            # ToroidalGrid2D
 │       ├── simulation/
 │       │   ├── __init__.py
-│       │   └── engine.py            # SimulationEngine (pipeline de 5 fases)
+│       │   ├── engine.py            # SimulationEngine (pipeline de 5 fases)
+│       │   └── controls.py          # nullify_belief (control nulo de contenido, E4)
 │       └── experiments/
 │           ├── __init__.py
 │           ├── metrics.py           # TickMetrics, MetricsCollector, M1–M7
 │           ├── benchmark.py         # Línea base de rendimiento (ticks por segundo)
-│           ├── attribution.py       # Reglas de diseño, afirmaciones, ablación, control nulo y 001-D
+│           ├── attribution.py       # Reglas de diseño, afirmaciones, ablación, clasificación y 001-D
 │           └── exp001_runner.py     # Protocolos 001-A, 001-B, 001-C y CLI
 └── tests/
     ├── test_domain_contracts.py
@@ -68,6 +69,10 @@ IDE/
     ├── test_metrics.py
     ├── test_exp001_suite.py
     ├── test_attribution.py
+    ├── test_controls.py
+    ├── test_benchmark.py
+    ├── test_performance_equivalence.py  # Huellas del oráculo (Decisión 18)
+    ├── test_suite_markers.py    # La corrida por defecto excluye `empirical` y `slow`
     ├── test_empirical.py            # @pytest.mark.empirical (excluido por defecto)
     └── conftest.py                  # Perfil `ci` de Hypothesis (derandomize=True)
 ```
@@ -237,7 +242,7 @@ Centralizados en `SimulationConfig` (inmutable, validado en `__post_init__`, ser
 
 | Parámetro | Nombre en código | Valor base (Exp 001) | Descripción |
 | :--- | :--- | :---: | :--- |
-| Semilla | `seed` | `42` | Reproducibilidad exacta. |
+| Semilla | `seed` | `42` | Reproducibilidad exacta. Entero `>= 0`. |
 | Dimensiones | `grid_width`, `grid_height` | `40, 40` | 1.600 celdas toroidales. |
 | Población ($M$) | `num_agents` | `80` | Densidad de 5 %. |
 | Patrones ($N$) | `num_world_patterns` | `12` | 6 benéficos ($+1.0$) y 6 dañinos ($-1.0$). |
@@ -287,7 +292,7 @@ Las demás reglas se ablacionan con valores existentes: R3 `passive_conf_decay=0
 2. **001-B (Falsificación):** inyecta en el 25 % de la población un rumor plantado ($c = 0.95$, `from_direct_experience=False`) que afirma que el patrón benéfico `p_0` es dañino, y mide su prevalencia inicial, pico y final y el tiempo hasta su extinción.
 3. **001-C (Daño y persistencia):** ablación del 10, 30, 50 y 70 % en corridas independientes (retención y tiempo de recuperación $T_{\text{rec}}$), y una corrida que elimina al 100 % de los descubridores de `p_0` y retira el estímulo físico, para medir la persistencia puramente social.
 
-4. **001-D (Atribución de emergencia):** para cada afirmación pre-registrada (C1 acceso a conocimiento ajeno, C2 superávit de decisión, C3 inmunidad a la falsedad, C4 persistencia extra-individual) mide la métrica en cuatro variantes (completa, aislada, sin las reglas diseñadas para producirla y control nulo) y la clasifica como `PROGRAMMED`, `EMERGENT`, `ACTIVITY_ARTIFACT`, `NOT_OBSERVED` o `INSUFFICIENT_EVIDENCE`. También mide el aporte de cada regla apagándolas de a una. Se ejecuta con `--attribution`, siempre con el perfil pre-registrado `quick`, y requiere al menos 5 semillas. C1, C2 y C4 son programadas **por construcción** (sus reglas de propósito incluyen toda la comunicación); C3 es la única con prueba empírica genuina.
+4. **001-D (Atribución de emergencia):** para cada afirmación pre-registrada (C1 acceso a conocimiento ajeno, C2 superávit de decisión, C3 inmunidad a la falsedad, C4 persistencia extra-individual) mide la métrica en cuatro variantes (completa, aislada, sin las reglas diseñadas para producirla y control nulo) y la clasifica como `PROGRAMMED`, `ACTIVITY_ARTIFACT`, `NOT_OBSERVED`, `INSUFFICIENT_EVIDENCE` o, si cumple E1–E4, `EMERGENT_PENDING_ROBUSTNESS` (sin la prueba de robustez E5 al esquema asíncrono), `SCHEDULING_ARTIFACT` (falla E5) o `EMERGENT` (la cumple). También mide el aporte de cada regla apagándolas de a una. Se ejecuta con `--attribution`, que corre **sólo** 001-D (no los protocolos 001-A/B/C), siempre con el perfil pre-registrado `quick`. Con menos de 5 semillas avisa en consola y todos los estados son `INSUFFICIENT_EVIDENCE`. C1, C2 y C4 son programadas **por construcción** (sus reglas de propósito incluyen toda la comunicación), así que E3 no se prueba; si además falla E2 su estado es `NOT_OBSERVED` (le ocurrió a C4). C3 es la única con prueba empírica genuina.
 
 La CLI acepta varias semillas y reporta media y desvío de cada métrica. Las expectativas funcionales (`python -m pytest -m empirical`) usan las semillas 42 a 46 y una prueba de signo unilateral: con 5 de 5 a favor, p = 1/32.
 

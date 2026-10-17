@@ -208,11 +208,16 @@ def test_num_world_patterns_minimo_dos() -> None:
         "passive_conf_decay",
         "max_broadcast_per_tick",
         "max_queries_per_tick",
+        "seed",
     ],
 )
 def test_valores_negativos(campo: str) -> None:
     with pytest.raises(ValueError, match=campo):
         SimulationConfig(**{campo: -1})
+
+
+def test_semilla_cero_es_valida() -> None:
+    assert SimulationConfig(seed=0).seed == 0
 
 
 def test_min_confidence_menor_que_umbral() -> None:

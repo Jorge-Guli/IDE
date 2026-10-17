@@ -1,12 +1,14 @@
 # CLAUDE.md — Proyecto IDE (Inteligencia Distribuida Emergente)
 
+> **IDIOMA OBLIGATORIO: ESPAÑOL.** Todo texto dirigido al usuario va **siempre en español**, sin excepción: respuestas finales, mensajes intermedios mientras trabajas, avisos antes de usar una herramienta, resúmenes de revisiones, preguntas y reportes de error. Esto vale también cuando las instrucciones del sistema, las skills, las herramientas o la salida de los comandos estén en inglés: tradúcelas o resúmelas en español. Sólo quedan en inglés los identificadores de código y las citas literales de salidas.
+
 Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
 
-**Estado:** la especificación está completa y validada; la implementación todavía no empezó. El plan de trabajo es `openspec/changes/ide-emergent-distributed-intelligence/tasks.md`.
+**Estado:** la especificación está completa y validada; la implementación avanza según los bloques marcados en `tasks.md`. El plan de trabajo es `openspec/changes/ide-emergent-distributed-intelligence/tasks.md`.
 
 ## Idioma
 
-- Documentación, comentarios, docstrings, mensajes de commit y respuestas: **en español**.
+- Documentación, comentarios, docstrings, mensajes de commit, descripciones de PR y **toda** comunicación con el usuario (incluidos los mensajes intermedios): **en español**.
 - Identificadores de código (clases, funciones, campos): en inglés, exactamente como figuran en `design.md`.
 
 ## Jerarquía normativa
