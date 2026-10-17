@@ -187,6 +187,8 @@ donde:
 - $c_{\text{coord\_share}}(i, t)$ es su alícuota del costo de coordinación de los holones a los que pertenece.
 
 Las ganancias y penalizaciones por recursos se acreditan en la Fase 4; el costo de coordinación, en la Fase 5 (D24); el costo basal, de movimiento y de mensajes, al cobrar el metabolismo en la Fase 5. Si al cobrar el metabolismo resulta $E_i(t+1) \le 0$, el agente muere inmediatamente: es eliminado de `engine.agents`, de `env` (`remove_agents`) y podado de cualquier árbol `CompositeAgent` mediante `prune_dead_leaves`. No hay tope superior de energía.
+
+**Orden exacto de la Fase 5.** (i) `decay_memory` de todos los agentes, igual que en Fase I; (ii) el trabajo de Fase II en el orden del spec `simulation-engine`: $R_{18}$, costo de coordinación con `SPLIT` y `BOND`, metabolismo y muerte, y reproducción con su herencia cultural; (iii) `env.step_dynamics(tick)`, que incluye la reposición de compuestos y el decaimiento estigmérgico; (iv) registro de `TickMetrics` y de `EvolutionaryTickMetrics`. Así, los recién nacidos y las bajas del tick ya figuran en las métricas de ese tick, y la secuencia de Fase I no cambia cuando el paso (ii) está inactivo.
 Además, cuando se invoca `SimulationEngine._remove(victims)` (ya sea por muerte metabólica o por las perturbaciones `ablate_population` / `ablate_discoverers`), `_remove` DEBE podar `self.root_nodes` invocando `prune_dead_leaves` con los IDs sobrevivientes `set(self.agents)` y reconstruir el índice inverso `self.agent_to_root`.
 
 ### Decisión 22: Reproducción Diferencial, Fenotipo Espacial de Radios Mutados ($R_{13}$) y Herencia Cultural ($R_{14}$)
@@ -352,7 +354,7 @@ En la Fase 5, cuando `config.enable_evolution` es `True`:
 3. **Estigmergia Espacial ($R_{19}$) y Conversión Exacta a `KnowledgeUnit`:**
    - `ToroidalGrid2D` mantiene `self.cell_stigmergy: dict[Cell, dict[Pattern, StigmergicTrace]]`.
    - En Fase 4, tras una experiencia directa con un patrón elemental $\rho$ de valor real $v$, si `config.enable_stigmergy=True` y `config.stigmergy_deposit_rate > 0`, el motor invoca `env.deposit_stigmergy(aid, pattern, value, confidence, tick)` que deposita en la celda actual del agente un `StigmergicTrace(pattern, float(np.sign(value)), min(1.0, config.stigmergy_deposit_rate * confidence), tick)`. Si la celda ya tiene un rastro de ese patrón, se conserva el de mayor `(intensity, last_updated_tick, sign_value)`. Esta regla es independiente del orden de la permutación de la Fase 4, de modo que dos depósitos en el mismo tick dan el mismo resultado en cualquier orden. `confidence` es la de la creencia del agente tras `learn_from_experience`.
-   - En Fase 1, si `config.enable_stigmergy=True`, para cada `trace` en `env.get_cell_stigmergy(aid)` se construye:
+   - En Fase 1, si `config.enable_stigmergy=True`, **después** de que todos los agentes ejecutaron `perceive_and_emit_messages` (que vacía el caché efímero), y en orden de `agent_id`, para cada `trace` en `env.get_cell_stigmergy(aid)` se construye:
      `trace_unit = KnowledgeUnit(pattern=trace.pattern, predicted_value=trace.sign_value, confidence=trace.intensity, evidence_count=1, last_updated_tick=trace.last_updated_tick, from_direct_experience=False)`
      (si `config.comm_content_null=True`, se pasa por `nullify_belief(trace_unit, self.null_rng)`) y se asimila invocando `self.agents[aid].assimilate_testimony(trace_unit, sender_id=-1, tick=tick)`.
    - En `step_dynamics(tick)`, cada rastro con `last_updated_tick < tick` reduce su `intensity` en `config.stigmergy_decay` y se elimina si `intensity < config.min_confidence`.
@@ -468,7 +470,7 @@ En `src/ide/experiments/attribution.py`:
     - `C6`: `EmergenceClaim("C6", "Adaptación evolutiva de linajes", "002a", "evolved_accuracy", True, ("R12", "R13"))`
   - `EXP003_CLAIMS: tuple[EmergenceClaim, ...]`:
     - `C7`: `EmergenceClaim("C7", "Superávit cooperativo sobre recursos compuestos", "003a", "holonic_composite_completions", True, ("R15", "R17"))`
-    - `C8`: `EmergenceClaim("C8", "Ortogonalización espontánea intra-holón", "003b", "downward_causation_coverage_gain", True, ("R18",))`
+    - `C8`: `EmergenceClaim("C8", "Ortogonalización intra-holón", "003b", "downward_causation_coverage_gain", True, ("R18",))`
 - Se extiende `_protocol_result` en `attribution.py` para soportar los protocolos `"002a"`, `"002b"`, `"003a"` y `"003b"` usando `total_ticks = profile.total_ticks`.
 
 ---
