@@ -25,8 +25,8 @@ Convenciones: cada bloque sigue TDD (RED → GREEN → REFACTOR). Las firmas, f�
 
 ## 5. Motor Epistemológico (`epistemic-engine`)
 
-- [ ] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo (refresca `τ`), anti-cámara de eco en 100 intercambios (no refresca `τ`), resistencia del Escenario C (incluido que `last_updated_tick` no cambie), sobrescritura de rumor débil y ablación de la protección anti-eco (`anti_echo_enabled=False`), y propiedades con Hypothesis: rangos `[-1, 1]` y `[0, 1]` para entradas válidas arbitrarias, y cota anti-eco en intercambios arbitrarios.
-- [ ] 5.2 [GREEN] Implementar `update_from_direct_experience` y `merge_social_belief` en `src/ide/agent/epistemology.py`.
+- [x] 5.1 [RED] Escribir `tests/test_epistemology.py` con los valores numéricos exactos de las specs: adquisición directa, refuerzo, ambas ramas de refutación, Escenario A (cadena y `sender_trust_factor`), Escenario B con emisor directo (refresca `τ`), anti-cámara de eco en 100 intercambios (no refresca `τ`), resistencia del Escenario C (incluido que `last_updated_tick` no cambie), sobrescritura de rumor débil y ablación de la protección anti-eco (`anti_echo_enabled=False`), y propiedades con Hypothesis: rangos `[-1, 1]` y `[0, 1]` para entradas válidas arbitrarias, y cota anti-eco en intercambios arbitrarios.
+- [x] 5.2 [GREEN] Implementar `update_from_direct_experience` y `merge_social_belief` en `src/ide/agent/epistemology.py`.
 
 ## 6. Micro-Agente (`micro-agent`)
 
