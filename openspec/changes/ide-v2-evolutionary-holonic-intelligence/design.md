@@ -29,7 +29,7 @@ El diseño de la Fase II introduce metabolismo, selección natural, herencia gen
 - Implementar la Herencia Dual Intergeneracional: mutación genética acotada sobre `AgentGenome` ($R_{13}$) y transferencia cultural vertical de creencias madre-hijo con descuento $\gamma_{\text{gen}}$ ($R_{14}$).
 - Implementar la Arquitectura Holónica Recursiva Ilimitada mediante el patrón *Composite* (`AgentNode` y `CompositeAgent` para niveles $L = 0, 1, 2, \dots, K$), con operadores dinámicos `BOND` ($R_{15}$) y `SPLIT` ($R_{16}$).
 - Incorporar los tres pilares de la Síntesis Evolutiva Extendida: Endosimbiosis Reproductiva Holónica ($R_{17}$), Causalidad Descendente / Particionamiento Epigenético Intra-Holón ($R_{18}$) y Estigmergia Espacial ($R_{19}$).
-- Introducir Recursos Compuestos Graduados (`CompositeRule` de orden $m \ge 2$) en `ToroidalGrid2D`, las métricas `M8` a `M12` en `EvolutionaryTickMetrics`, las reglas `R12`–`R19` y afirmaciones `C5`–`C8` en `attribution.py`, y los ejecutores `exp002_runner.py` y `exp003_runner.py`.
+- Introducir Recursos Compuestos Graduados (`CompositeRule` de orden $m \ge 2$) en `ToroidalGrid2D`, las métricas `M8` a `M13` en `EvolutionaryTickMetrics`, las reglas `R12`–`R23` y afirmaciones `C5`–`C8` en `attribution.py`, y los ejecutores `exp002_runner.py` y `exp003_runner.py`.
 - Garantizar compatibilidad regresiva bit a bit con la Fase I cuando los mecanismos de Fase II están en su valor por defecto (inactivos).
 
 **Non-Goals:**
@@ -47,10 +47,10 @@ Para garantizar que los 6 hashes SHA-256 de `tests/test_performance_equivalence.
 2. `SimulationEngine.__init__` instancia un generador dedicado `self.evo_rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(2,))))`.
 3. Toda operación estocástica nueva de Fase II usa un generador derivado de la semilla con `SeedSequence(seed, spawn_key=(k,))`, nunca `engine.rng`:
    - `spawn_key=(1,)`: `null_rng`, el control nulo de contenido (ya existe en Fase I).
-   - `spawn_key=(2,)`: `evo_rng` del motor, para la mutación genética (`mutate_genome`) y la selección de celda en `spawn_agent_near`.
+   - `spawn_key=(2,)`: `evo_rng` del motor, para la mutación genética (`mutate_genome`), la selección de celda en `spawn_agent_near` y la elección de progenitores en la reproducción neutral (D26, caso 3).
    - `spawn_key=(3,)`: `_comp_rng` de `ToroidalGrid2D`, para la ubicación inicial y la reposición de recursos compuestos.
    - `spawn_key=(4,)`: `shuffle_rng` del `EvolutionaryMetricsCollector`, sólo para el control de pertenencia barajada de C8 (D28). Se usa únicamente en la medición: no altera la dinámica.
-   Cada generador sólo se consume cuando su mecanismo está activo (`enable_evolution=True`, `num_composite_patterns > 0`). Esta lista de generadores derivados es una excepción declarada a la regla "un único generador por motor" de CLAUDE.md, que se actualiza en consecuencia.
+   Cada generador sólo se consume cuando su mecanismo está activo: `evo_rng` con `enable_evolution=True`, `_comp_rng` con `num_composite_patterns > 0` y `shuffle_rng` en los ticks con al menos un holón raíz. Esta lista de generadores derivados es una excepción declarada a la regla "un único generador por motor" de CLAUDE.md, que se actualiza en consecuencia.
 4. `TickMetrics` mantiene exactamente sus 14 campos de Fase I; la telemetría de Fase II se almacena en `EvolutionaryTickMetrics` dentro de `engine.evolutionary_history: list[EvolutionaryTickMetrics]`.
 
 ### Decisión 20: Extensión de Contratos de Dominio y Tabla Exacta de `SimulationConfig`
@@ -334,7 +334,7 @@ En la Fase 5, cuando `config.enable_evolution` es `True`:
     - Para cada `aid` en `sorted(self.agents)` que **no** pertenezca a `reproduced_this_tick`, si `agent.energy >= config.reproduction_threshold` y `len(self.agents) < config.max_population`:
       - Engendra un `MicroAgent` hijo con `child_id = self.next_agent_id` (`self.next_agent_id += 1`), lo ubica con `env.spawn_agent_near(child.agent_id, aid, evo_rng, child.genome.perception_radius, child.genome.comm_radius)`, lo registra como nodo raíz de nivel 0 en `self.root_nodes` y añade `aid` y `child.agent_id` a `reproduced_this_tick`.
 
-  - **Caso 3: Reproducción neutral (`reproduction_mode="neutral"`, ablación de $R_{12}$ y control de deriva de C6).** Conserva la tasa de nacimientos pero quita su dependencia de la energía. Se cuenta $n_b$, la cantidad de agentes que se reproducirían en el Caso 2 en este tick (no reproducidos, con `energy >= reproduction_threshold`, respetando el cupo). Después se eligen $n_b$ progenitores con `evo_rng.choice(candidatos, size=n_b, replace=False)` sobre la lista ordenada de todos los agentes no reproducidos en el tick, y cada uno engendra con la misma partición de energía del Caso 2. La reproducción holónica ($R_{17}$) no cambia.
+  - **Caso 3: Reproducción neutral (`reproduction_mode="neutral"`, ablación de $R_{12}$ y control de deriva de C6).** Conserva la tasa de nacimientos pero quita su dependencia de la energía. Se cuenta $n_b$, la cantidad de agentes que se reproducirían en el Caso 2 en este tick (no reproducidos, con `energy >= reproduction_threshold`, respetando el cupo). Si $n_b = 0$, no se llama a `evo_rng`. Si no, se eligen $n_b$ progenitores con `evo_rng.choice(candidatos, size=n_b, replace=False)` sobre la lista ordenada de todos los agentes no reproducidos en el tick, y cada uno engendra con la misma partición de energía del Caso 2. Consecuencia declarada: un progenitor con poca energía deja un hijo con poca energía, que puede morir pronto; eso forma parte del control. La reproducción holónica ($R_{17}$) no cambia.
 
 ### Decisión 27: Inserción Espacial Exacta, Recursos Compuestos y Estigmergia ($R_{19}$) en `ToroidalGrid2D`
 1. **Algoritmo Exacto de `spawn_agent_near`:**
@@ -358,7 +358,7 @@ En la Fase 5, cuando `config.enable_evolution` es `True`:
        - `env.execute_action` consume el recurso físico (y lo encola en `_pending_composite` para reposición en `step_dynamics`) devolviendo `ActionResult(ActionType.INTERACT, comp_pat, rule.composite_value)`. El agente nunca ve ese valor.
        - En Fase 4, el motor intercepta `result.interacted_pattern in composite_rules`:
          - Sea $\mathcal{K}_{\text{eff}}$ el conjunto de patrones $\rho$ para los que alguna hoja $\ell$ en alcance local de `aid` dentro de su nodo raíz $U$ (o sólo `aid`, si no pertenece a un holón) tiene `ell.own_belief(ρ)` con `predicted_value > 0` y `confidence >= decision_conf_threshold`. `own_belief` incluye el caché efímero propio, así que cuenta lo que cada hoja obtuvo de sus vecinos en ese tick. La resolución usa los conocimientos de las hojas aunque $R_{22}$ esté apagada: es física declarada del entorno ("el recurso se libera si el grupo local conoce los fragmentos"), no un canal de conocimiento hacia el agente. El motor verifica si `rule.evaluate(K_eff) is not None`.
-         - **Si tiene éxito:** el agente aprende `learn_from_experience(comp_pat, +1.0, tick)`. Además, se incrementa `self.composite_completions`; si $U$ es `CompositeAgent`, se incrementa `U.cooperative_completions` y se reinicia `U.ticks_without_surplus = 0`. Si `enable_evolution=True`, la ganancia energética `config.energy_gain_scale * rule.composite_value` se reparte en partes iguales entre las hojas en alcance local de $U$ ($R_{23}$); con `holon_energy_sharing=False`, o fuera de un holón, va entera a `aid`. `aid` no se agrega a `self.direct_discoverers`, que rastrea sólo patrones elementales, y no se deposita rastro estigmérgico.
+         - **Si tiene éxito:** el agente aprende `learn_from_experience(comp_pat, +1.0, tick)`. La creencia y la energía van por separado: la creencia guarda el signo y la magnitud acotada a $[-1, 1]$, y la energía recibe la recompensa superlineal. Además, se incrementa `self.composite_completions`; si $U$ es `CompositeAgent`, se incrementa `U.cooperative_completions` y se reinicia `U.ticks_without_surplus = 0`. Si `enable_evolution=True`, la ganancia energética `config.energy_gain_scale * rule.composite_value` se reparte en partes iguales entre las hojas en alcance local de $U$ ($R_{23}$); con `holon_energy_sharing=False`, o fuera de un holón, va entera a `aid`. `aid` no se agrega a `self.direct_discoverers`, que rastrea sólo patrones elementales, y no se deposita rastro estigmérgico.
          - **Si fracasa:** el agente aprende `learn_from_experience(comp_pat, -config.composite_failure_penalty, tick)`. Si `enable_evolution=True`, ese valor experimentado le cuesta `config.energy_gain_scale * config.composite_failure_penalty` de energía según la fórmula de D21. No registra éxito compuesto.
 3. **Estigmergia Espacial ($R_{19}$) y Conversión Exacta a `KnowledgeUnit`:**
    - `ToroidalGrid2D` mantiene `self.cell_stigmergy: dict[Cell, dict[Pattern, StigmergicTrace]]`.
@@ -368,7 +368,7 @@ En la Fase 5, cuando `config.enable_evolution` es `True`:
      (si `config.comm_content_null=True`, se pasa por `nullify_belief(trace_unit, self.null_rng)`) y se asimila invocando `self.agents[aid].assimilate_testimony(trace_unit, sender_id=-1, tick=tick)`.
    - En `step_dynamics(tick)`, cada rastro con `last_updated_tick < tick` reduce su `intensity` en `config.stigmergy_decay` y se elimina si `intensity < config.min_confidence`.
 
-### Decisión 28: Telemetría de Fase II (`EvolutionaryTickMetrics`), Fórmulas Exactas de M8–M12 y Esquemas de Reportes (`002` y `003`)
+### Decisión 28: Telemetría de Fase II (`EvolutionaryTickMetrics`), Fórmulas Exactas de M8–M13 y Esquemas de Reportes (`002` y `003`)
 En `src/ide/experiments/metrics.py` se define:
 
 ```python
@@ -392,7 +392,7 @@ class EvolutionaryTickMetrics:
     stigmergy_active_cells: int
 ```
 
-**Fórmulas exactas para casos borde en `EvolutionaryMetricsCollector`:**
+**Fórmulas exactas para casos borde en `EvolutionaryMetricsCollector`.** En M9, M11 y M13, una creencia **válida** es una de la memoria con `confidence >= decision_conf_threshold`, sin importar si su signo es correcto: las métricas describen qué se retiene, no si es verdad.
 - **`mean_generation`, `max_generation`, `mean_energy` (M8):** Si `active_agents == 0`, valen `0.0`, `0` y `0.0` respectivamente.
 - **`offspring_social_ratio` (M9):** Sobre los agentes activos con `generation >= 1`, sea $V_{\text{total}}$ el número total de creencias válidas en `BoundedMemory` y $V_{\text{social}}$ aquellas con `from_direct_experience == False`. Si $V_{\text{total}} == 0$, vale `0.0`; de lo contrario, `V_social / V_total`. Es **descriptiva**: cuenta también los testimonios horizontales, así que no mide sola la herencia. La contribución de la herencia se mide comparando contra la ablación de $R_{14}$ en 002-B (`social_ratio_gain` del reporte).
 - **`holon_count_by_level`, `max_holon_level`, `mean_holon_size` (M10):** Recorriendo todos los nodos `CompositeAgent` activos ($L \ge 1$) del bosque holónico, cuenta cuántos hay en cada nivel $L$ (como tupla de pares `(L, conteo)` ordenada por $L$, para que el dataclass congelado sea realmente inmutable y hasheable), el máximo $L$ (o `0` si no hay `CompositeAgent`) y el tamaño medio en hojas $|\text{leaf\_agents}|$ de los `CompositeAgent` raíz (o `0.0` si no hay ninguno).
@@ -540,8 +540,8 @@ src/ide/
 ├── simulation/
 │   └── engine.py                 # MODIFICADO: +evo_rng, resolución compuesta Fase 4, ciclo Fase 5
 └── experiments/
-    ├── metrics.py                # MODIFICADO: +EvolutionaryTickMetrics (M8-M12), +EvolutionaryMetricsCollector
-    ├── attribution.py            # MODIFICADO: +PHASE2_DESIGN_RULES (R12-R19), +EXP002_CLAIMS, +EXP003_CLAIMS
+    ├── metrics.py                # MODIFICADO: +EvolutionaryTickMetrics (M8-M13), +EvolutionaryMetricsCollector
+    ├── attribution.py            # MODIFICADO: +PHASE2_DESIGN_RULES (R12-R23), +PHASE2_CLAIM_CHANNELS, perfil phase2, +EXP002_CLAIMS, +EXP003_CLAIMS
     ├── exp002_runner.py          # NUEVO: Protocolos 002-A y 002-B + CLI
     └── exp003_runner.py          # NUEVO: Protocolos 003-A y 003-B + CLI
 ```
@@ -551,7 +551,7 @@ src/ide/
 ## Risks / Trade-offs
 
 - **Riesgo 1: Alterar accidentalmente el estado de `engine.rng` o `repr(TickMetrics)` y romper `tests/test_performance_equivalence.py`.**
-  - *Mitigación:* Uso exclusivo de `evo_rng` (`spawn_key=(2,)`) y `_comp_rng` (`spawn_key=(3,)`) para todo muestreo nuevo, guardas booleanas estrictas cuando las flags de Fase II son `False`, y separación entre `TickMetrics` (14 campos fijos) y `EvolutionaryTickMetrics`.
+  - *Mitigación:* Uso exclusivo de los generadores derivados de D19 (`evo_rng`, `_comp_rng` y `shuffle_rng`) para todo muestreo nuevo, guardas booleanas estrictas cuando las flags de Fase II son `False`, y separación entre `TickMetrics` (14 campos fijos) y `EvolutionaryTickMetrics`.
 - **Riesgo 2: Violar las auditorías AST de `tests/test_micro_agent.py` al añadir `evolution.py` y `holon.py` en `src/ide/agent/`.**
   - *Mitigación:* `evolution.py` sólo importa `ide.domain`, `ide.config`, `ide.agent.memory`, `numpy` y la biblioteca estándar (no importa `micro_agent.py`, para evitar el ciclo). `holon.py` puede importar además `ide.agent.micro_agent`. Ninguno referencia `Message`, `MessageType`, `merge_social_belief` ni `nullify_belief`, ni usa alias `import ... as ...` sobre nombres vigilados.
 - **Riesgo 3: Explosión poblacional o extinción prematura bajo `enable_evolution=True`.**

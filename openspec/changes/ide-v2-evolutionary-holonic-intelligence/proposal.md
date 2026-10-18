@@ -31,7 +31,7 @@ Para investigar si una inteligencia distribuida abierta (*open-ended evolution*)
   - Recursos compuestos (`CompositeRule`, que ya existe como contrato en `domain/extensions.py`) de orden $m \in \{2, 3, \dots\}$ que exigen que el nodo consumidor (individuo u holón) conozca simultáneamente los $m$ patrones constituyentes para liberar un retorno energético superlineal $m^{\kappa_{\text{comp}}}$ (escalado por $\eta_E$), proveyendo la presión selectiva ecológica para escalar a niveles $L=1, 2, \dots, K$.
   - Nuevas métricas poblacionales y multinivel `M8` a `M13` en `EvolutionaryTickMetrics`, extensión del catálogo de atribución a `R12`–`R23` y afirmaciones `C5`–`C8`, y runners reproducibles `exp002_runner.py` y `exp003_runner.py`.
 - **Compatibilidad Regresiva Absoluta con Fase I:**
-  - Todas las banderas de activación de Fase II tienen valor por defecto `False` y `num_composite_patterns = 0` en `SimulationConfig` (`enable_holon_splitting` vale `True`, pero sólo modula a `enable_holonic_hierarchy`). Con esos valores, el motor, la grilla, los tipos de dominio, `TickMetrics` y el generador `rng` se comportan bit a bit igual que en la Fase I, preservando los 397 tests existentes y los hashes SHA-256 dorados.
+  - Todas las banderas de activación de Fase II tienen valor por defecto `False` y `num_composite_patterns = 0` en `SimulationConfig` (`enable_holon_splitting`, `enable_holon_view` y `holon_energy_sharing` valen `True`, pero sólo modulan a `enable_holonic_hierarchy`). Con esos valores, el motor, la grilla, los tipos de dominio, `TickMetrics` y el generador `rng` se comportan bit a bit igual que en la Fase I, preservando los 397 tests existentes y los hashes SHA-256 dorados.
 
 ## Capabilities
 

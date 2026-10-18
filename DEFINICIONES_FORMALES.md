@@ -61,9 +61,12 @@ y cada uno se instancia en `composite_resources_per_pattern` recursos físicos u
 - **Valor superlineal:** el valor del recurso compuesto es
   $$v(\rho^{c}_k) = m^{\kappa_{\text{comp}}}, \qquad \kappa_{\text{comp}} = \texttt{composite\_reward\_exponent} \;(1.5 \text{ por defecto})$$
   sin factor de escala adicional; en la energía se multiplica por $\eta_E$ (§6.1). Las creencias siguen viviendo en $\hat{v} \in [-1, 1]$: el valor superlineal sólo se refleja en la energía. Los órdenes posibles en un mundo dado son los $m$ con $2 \le m \le N/2$.
-- **Condición de resolución:** cuando la hoja $a$ ejecuta `INTERACT` sobre un recurso compuesto, sea $\mathcal{K}_{\text{eff}}$ el conjunto de patrones $\rho$ para los que alguna hoja en alcance local de $a$ dentro de su holón raíz $U$ (§7.2), o sólo $a$ si no pertenece a un holón, sostiene (en memoria o en su caché efímero del tick) una creencia con $\hat{v} > 0$ y $c \ge c_{\text{umbral}}$. El intento tiene éxito si y sólo si $\Sigma_k \subseteq \mathcal{K}_{\text{eff}}$. El éxito incrementa el contador M12 y, con evolución activa, reparte $\eta_E \cdot m^{\kappa_{\text{comp}}}$ en partes iguales entre las hojas localmente conectadas de $U$. El fracaso no registra éxito y, con evolución activa, cuesta energía sólo a $a$: su valor experimentado es $r = -$`composite_failure_penalty` ($\in [-1, 0]$; penalización por defecto $0.20$; §6.1).
+- **Condición de resolución (física del entorno):** cuando la hoja $a$ ejecuta `INTERACT` sobre un recurso compuesto, sea $\mathcal{K}_{\text{eff}}$ el conjunto de patrones $\rho$ para los que alguna hoja en alcance local de $a$ dentro de su holón raíz $U$ (§7.2), o sólo $a$ si no pertenece a un holón, sostiene como creencia propia (`own_belief`: su memoria o su caché efímero del tick, que incluye lo que obtuvo de sus vecinos) una creencia con $\hat{v} > 0$ y $c \ge c_{\text{umbral}}$. El intento tiene éxito si y sólo si $\Sigma_k \subseteq \mathcal{K}_{\text{eff}}$. Esta condición se aplica aunque la vista compartida del holón ($R_{22}$, §7.2) esté apagada: es una propiedad declarada del entorno diseñado ("el recurso se libera si el grupo local conoce los fragmentos"), como `true_value`, y no un canal de conocimiento hacia el agente. Por eso no tiene regla en el inventario (§3.1): el agente no la recibe, la aprende.
+  - **Éxito:** el agente aprende el patrón compuesto con valor experimentado $+1.0$ (§2.1) y se incrementa el contador M12; si $U$ es un holón compuesto, registra superávit en el tick (§7.2). Con evolución activa, la ganancia $\eta_E \cdot m^{\kappa_{\text{comp}}}$ se reparte en partes iguales entre las hojas de $U$ en alcance local ($R_{23}$, §7.2); con `holon_energy_sharing=False`, o fuera de un holón, va entera a $a$. El éxito no convierte a $a$ en descubridor directo (que sólo rastrea patrones elementales) ni deposita rastro estigmérgico.
+  - **Fracaso:** el agente aprende el patrón compuesto con valor experimentado $r = -$`composite_failure_penalty` ($\in [-1, 0]$; penalización por defecto $0.20$) y no se registra éxito. Con evolución activa, ese valor le cuesta energía sólo a $a$ (§6.1).
 - **Límite individual para $m > C_{\max}$:** un agente sin holón sólo cuenta con su memoria ($\le C_{\max}$ creencias) y con lo que obtuvo en el caché efímero de ese tick. Sin holón ni consultas en el tick, no puede resolver un recurso compuesto de orden $m > C_{\max}$.
-- **Pendiente (decisión abierta P2):** cómo llega el agente a conocer el patrón compuesto para decidir interactuar con él (inyección de un patrón "desbloqueado" por el motor, que funciona como oráculo parcial, o aprendizaje por experiencia). Por objetividad, los recursos compuestos **no entran** en M2, que se calcula sólo sobre recursos elementales (§8).
+- **Aprendizaje por experiencia:** el motor **no** le entrega al agente ningún patrón compuesto ni lee la estructura de `CompositeRule` para informarlo. Para el agente, un recurso compuesto es un recurso más, con su propio patrón $\rho^{c}_k$: lo percibe como `VisibleResource`, lo explora con $\epsilon$ como a cualquier patrón desconocido, lo consulta y lo difunde con el protocolo, y aprende su valor por experiencia directa. Sólo el motor conoce `CompositeRule`, y sólo para resolver la interacción en la Fase 4. El valor que aprende el agente **no es estacionario**: el mismo recurso paga o castiga según lo que sepa su grupo local en ese tick. Es una propiedad declarada del entorno, no un defecto: un individuo solo tenderá a aprender que $\rho^{c}_k$ es dañino, y si los holones superan esa trampa es parte de lo que se mide.
+- **M2:** por objetividad, los recursos compuestos **no entran** en M2, que se calcula sólo sobre recursos elementales (§8).
 
 ---
 
@@ -87,7 +90,7 @@ Donde:
 Cada agente elemental $a_i$ posee una memoria local $\mathcal{M}_i$ compuesta por una lista de creencias:
 $$\mathcal{M}_i(t) = \{k_1, k_2, \dots, k_m\}, \quad \text{con } m \le C_{\max, i}$$
 
-- **$C_{\max, i}$ (Capacidad de Memoria Individual):** Número máximo de creencias que el agente $a_i$ puede almacenar simultáneamente (en Fase I es constante $C_{\max}$ para todos; en Fase II puede mutar entre generaciones, sujeto a un costo metabólico cuadrático en $C_{\max, i}$, §6.1).
+- **$C_{\max, i}$ (Capacidad de Memoria Individual):** Número máximo de creencias que el agente $a_i$ puede almacenar simultáneamente (en Fase I es constante $C_{\max}$ para todos; en Fase II puede mutar entre generaciones, sujeto a un costo metabólico cuadrático en $C_{\max, i}$, regla $R_{21}$, §6.1).
 - **Restricción Crítica del Proyecto:**
   $$C_{\max, i} \ll N$$
   Donde $N$ es la cantidad total de patrones del mundo $\mathcal{P}_{\text{mundo}}$.
@@ -104,7 +107,7 @@ $$a_i(t) = \langle \text{id}_i, l_i(t), E_i(t), \mathcal{M}_i(t), \Theta_i, \mat
 3. **Estado Interno / Energía ($E_i(t) \in \mathbb{R}$):** Nivel de energía metabólica acumulada. Si un agente consume recursos beneficiosos, $E_i$ sube; si consume recursos dañinos o paga costos metabólicos, $E_i$ baja. *En el Experimento 001 (Fase I) $E_i$ no se modela: no afecta la supervivencia ni la decisión, y el desempeño se mide sólo con la calidad de las decisiones (M2). En la Fase II (§6), $E_i(t)$ gobierna la supervivencia (el agente muere si $E_i \le 0$ tras el cobro metabólico) y la reproducción ($E_i \ge E_{\text{reprod}}$); no tiene tope superior.*
 4. **Memoria Local ($\mathcal{M}_i(t)$):** Sujeta a $|\mathcal{M}_i(t)| \le C_{\max, i}$.
 5. **Parámetros Cognitivos Locales ($\Theta_i$):** Tasas de aprendizaje ($\alpha_i$), factor de descuento de confianza social ($\gamma_i$), tasa de exploración ($\epsilon_i$), propensión a cooperar/fusionarse ($\omega_{\text{bond}, i}$).
-6. **Capacidades Físicas ($\mathcal{G}_i$):** Tupla $(C_{\max, i}, r_{\text{perc}, i}, r_{\text{com}, i})$. En Fase I son homogéneas para toda la población; en Fase II forman parte del genoma heredable (`AgentGenome`) con costo metabólico cuadrático (§6.1).
+6. **Capacidades Físicas ($\mathcal{G}_i$):** Tupla $(C_{\max, i}, r_{\text{perc}, i}, r_{\text{com}, i})$. En Fase I son homogéneas para toda la población; en Fase II forman parte del genoma heredable (`AgentGenome`) con costo metabólico cuadrático ($R_{21}$, §6.1).
 7. **Registro de Linaje ($\mathcal{H}_i$):** Par $(\text{parent\_id}_i, g_i)$ que registra el progenitor (`None` en los fundadores) y el número de generación $g_i \in \mathbb{N}_0$. (El design de Fase II no almacena el tick de nacimiento $t_{\text{nac}, i}$ en el agente.)
 
 ---
@@ -212,14 +215,14 @@ Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada f
 | **Superávit Cognitivo Colectivo ($\Delta_{\text{col}}$)** | Diferencia entre el rendimiento (precisión $Acc$, M2) de la población conectada y el de una población idéntica sin comunicación, con las mismas condiciones iniciales: $\Delta_{\text{col}} = Acc_{\text{col}} - Acc_{\text{iso}}$. Un $\Delta_{\text{col}} > 0$ consistente entre semillas demuestra que la población supera el límite de sus partes; si ese superávit es emergente o programado lo decide §3.1. La cota teórica individual $C_{\max}/N$ se usa en cambio para la cobertura (M1). |
 | **Epistemología Distribuida (Inmunidad a Falsedad)** | Capacidad de la red para hacer que la prevalencia de una creencia falsa inyectada ($F(\rho) \neq \hat{v}_{\text{falso}}$) tienda a $0$ cuando $t \to \infty$ sin intervención externa. |
 | **Memoria Colectiva Persistente** | Condición en la cual una creencia verdadera descubierta en $t_0$ por un subconjunto de agentes $S_0$ sigue activa en la población en $t_1 \gg t_0$ después de que el $100\%$ de los agentes originales de $S_0$ han sido eliminados o han olvidado el dato. |
-| **Adaptación Evolutiva Intergeneracional (Fase II)** | Diferencia de precisión acumulada (M2) entre una población con mutación genética activa y otra idéntica con el genoma congelado (protocolo 002-A, `adaptation_gain` = `evolved_accuracy` − `frozen_genome_accuracy`), con las mismas condiciones iniciales. |
-| **Holón / Meta-Agente de Nivel $L$ (Fase II)** | Nodo `CompositeAgent` formado por la regla `BOND` (R15) a partir de $\ge 2$ sub-nodos de nivel $\le L-1$ con hojas disjuntas. Sus hojas reparten el costo de coordinación y las ganancias de los recursos compuestos que resuelven, y su capacidad efectiva es $C_{\text{eff}}(U) = \sum_{\ell \in \text{leaves}(U)} C_{\max, \ell}$ (§7). |
+| **Adaptación Evolutiva Intergeneracional (Fase II)** | Diferencia de precisión acumulada (M2) entre una población con mutación genética activa y otra idéntica con el genoma congelado (protocolo 002-A, `adaptation_gain` = `evolved_accuracy` − `frozen_genome_accuracy`), con las mismas condiciones iniciales. La parte atribuible a la selección se separa de la deriva con el control de reproducción neutral (`selection_gain` = `evolved_accuracy` − `drift_accuracy`, §6.1 y §8). |
+| **Holón / Meta-Agente de Nivel $L$ (Fase II)** | Nodo `CompositeAgent` formado por la regla `BOND` ($R_{15}$) a partir de $\ge 2$ sub-nodos de nivel $\le L-1$ con hojas disjuntas. Sus hojas reparten el costo de coordinación y las ganancias de los recursos compuestos que resuelven ($R_{23}$), ven el conocimiento de las hojas cercanas del holón ($R_{22}$), y su capacidad efectiva es $C_{\text{eff}}(U) = \sum_{\ell \in \text{leaves}(U)} C_{\max, \ell}$ (§7). |
 
 ### 3.1. Atribución de Emergencia
 
 **Regla central:** *toda propiedad que se afirme como emergente debe poder distinguirse de una capacidad programada explícitamente en el agente.*
 
-**Presupuestos de diseño (Fase I: $R_1 \dots R_{11}$; Fase II añade $R_{12} \dots R_{19}$).** Sea $\mathcal{R}$ el conjunto de reglas diseñadas del agente, cada una con un **propósito declarado**. Las reglas $R_1$ y $R_2$ son nucleares: no se ablacionan.
+**Presupuestos de diseño (Fase I: $R_1 \dots R_{11}$; Fase II añade $R_{12} \dots R_{23}$).** Sea $\mathcal{R}$ el conjunto de reglas diseñadas del agente, cada una con un **propósito declarado**. Las reglas $R_1$ y $R_2$ son nucleares: no se ablacionan (en la Fase II, también $R_{20}$).
 
 | Regla | Fase | Descripción | Propósito declarado |
 | :--- | :---: | :--- | :--- |
@@ -235,24 +238,28 @@ Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada f
 | $R_{10}$ | I | Exploración $\epsilon$ | Descubrir lo desconocido |
 | $R_{11}$ | I | Navegación hacia benéficos conocidos | Buscar alimento |
 
-**Inventario de Fase II (`PHASE2_DESIGN_RULES`, design D29).** Cada regla lleva su propósito declarado (la capacidad que se diseñó para producir) y su ablación (los parámetros de `SimulationConfig` que la desactivan). `DESIGN_RULES` conserva sólo $R_1 \dots R_{11}$; `ALL_DESIGN_RULES = DESIGN_RULES + PHASE2_DESIGN_RULES`.
+**Inventario de Fase II (`PHASE2_DESIGN_RULES`, design D29, pre-registro versionado).** Cada regla lleva su propósito declarado (la capacidad que se diseñó para producir) y su ablación (los parámetros de `SimulationConfig` que la desactivan; `()` marca una regla nuclear, como $R_1$ y $R_2$). `DESIGN_RULES` conserva sólo $R_1 \dots R_{11}$; `ALL_DESIGN_RULES = DESIGN_RULES + PHASE2_DESIGN_RULES`, y `ablate()` opera sobre cualquier regla ablacionable de `ALL_DESIGN_RULES`.
 
 | Regla | Descripción (`name`) | Propósito declarado (`purpose`) | Ablación (`ablation`) |
 | :--- | :--- | :--- | :--- |
-| $R_{12}$ | Reproducción diferencial por umbral energético (§6.1) | Que los agentes con más energía dejen más descendencia (selección). | `(("reproduction_threshold", 1e9),)` |
+| $R_{12}$ | Reproducción diferencial por energía (§6.1) | Que los agentes con más energía dejen más descendencia (selección). | `(("reproduction_mode", "neutral"),)`: misma tasa de nacimientos, progenitor al azar (§6.1, reproducción neutral). Es también el control de deriva de C6. |
 | $R_{13}$ | Mutación genética acotada (§6.2) | Variación heredable sobre la que actúa la selección. | `(("mutation_rate", 0.0), ("discrete_mutation_prob", 0.0))` |
 | $R_{14}$ | Herencia cultural vertical (§6.3) | Transmitir conocimiento de padres a hijos. | `(("enable_cultural_inheritance", False), ("inheritance_discount", 0.0))` |
-| $R_{15}$ | Fusión holónica (BOND) (§7.3) | Asociar nodos complementarios en unidades de nivel superior. | `(("enable_holonic_hierarchy", False),)` |
+| $R_{15}$ | Fusión holónica (BOND) (§7.3) | Asociar nodos complementarios en unidades de nivel superior. | `(("enable_holonic_hierarchy", False),)`. Apagarla deja inertes $R_{16}$, $R_{17}$, $R_{18}$, $R_{22}$ y $R_{23}$. |
 | $R_{16}$ | Fisión holónica (SPLIT) (§7.3) | Disolver holones sin superávit. | `(("enable_holon_splitting", False),)` |
 | $R_{17}$ | Reproducción de holón completo (§7.4) | Transmitir la estructura simbiótica a la descendencia. | `(("enable_holon_reproduction", False),)` |
 | $R_{18}$ | Causalidad descendente intra-holón (§7.5) | Reducir la redundancia de memoria entre hojas de un holón (ortogonalización). | `(("enable_downward_causation", False), ("redundancy_penalty", 1.0))` |
 | $R_{19}$ | Estigmergia (§7.6) | Externalizar conocimiento en el entorno. | `(("enable_stigmergy", False), ("stigmergy_deposit_rate", 0.0))` |
+| $R_{20}$ | Física metabólica (§6.1) | Vida y muerte por energía: costo basal fijo, de movimiento y de emisión, muerte con $E \le 0$ y capacidad de carga. Sin ella no hay selección. | `()` (nuclear) |
+| $R_{21}$ | Costo cuadrático de cerebro y sentidos (§6.1) | Encarecer la hipertrofia individual ($C_{\max}^2$, radios²). Sesga a favor de cooperar; se declara como sesgo. | `(("memory_capacity_cost", 0.0), ("sensory_radius_cost", 0.0))` |
+| $R_{22}$ | Vista compartida del holón (§7.2) | Dar a cada hoja acceso efímero al conocimiento de las hojas cercanas de su holón. | `(("enable_holon_view", False),)` |
+| $R_{23}$ | Coordinación y reparto energético del holón (§7.2) | Que pertenecer a un holón tenga un costo y un beneficio energético compartido. | `(("holon_coord_cost", 0.0), ("holon_energy_sharing", False))` |
 
-> **Pendiente de aprobación (decisión abierta P3).** El inventario $R_{12} \dots R_{19}$, las afirmaciones C5–C8 y sus variantes de comparación son **pre-registro** y todavía no están aprobados: lo que figura aquí es la propuesta del design D29, que debe revisarse y versionarse antes de mirar cualquier resultado. Además, hay mecanismos diseñados que aún **no tienen regla** en el inventario: el metabolismo y la muerte por agotamiento (§6.1), el costo de coordinación del holón (§7.2), el pozo de energía compartido (reparto de ganancias compuestas y de costos entre hojas, §7.2) y la vista compartida del holón (decisión abierta P1, §7.2). Mientras no se declaren con propósito y ablación, ninguna afirmación que dependa de ellos puede clasificarse como emergente.
+**Física del entorno sin regla.** Cómo paga un recurso compuesto (éxito si el grupo local conoce los fragmentos, fracaso si no; §1.3.2) es una propiedad del entorno diseñado, como `true_value`: el agente no la recibe, la aprende. Por eso no figura en el inventario.
 
 **Afirmación pre-registrada.** Una afirmación $C$ consiste en una métrica poblacional $m_C$, su dirección de mejora y el conjunto $R_C \subseteq \mathcal{R}$ de reglas cuyo propósito declarado la produce. Se declara antes de ejecutar el experimento, junto con el perfil de corrida. *Principio conservador acotado:* toda afirmación sobre **disponibilidad o transmisión** de conocimiento incluye en $R_C$ las reglas de comunicación $R_8$ y $R_9$; una afirmación sobre **cómo se procesa** lo transmitido incluye las reglas diseñadas para ese procesamiento.
 
-**Variantes.** Para cada semilla se mide $m_C$ en: la población **completa**; la **aislada** (sin comunicación); la población **sin $R_C$** (todas las reglas de $R_C$ desactivadas a la vez); y el **control nulo** (mismas reglas de emisión, recepción y ruteo, pero cada creencia entregada llega con $\hat{v}$ reemplazado por $\pm 1$ al azar, extraído de un generador propio). El control no fija el volumen de mensajes, que depende de las creencias; cada variante reporta el suyo.
+**Variantes.** Para cada semilla se mide $m_C$ en: la población **completa**; la **aislada** (sin comunicación); la población **sin $R_C$** (todas las reglas de $R_C$ desactivadas a la vez); y el **control nulo** (mismas reglas de emisión, recepción y ruteo, pero cada creencia entregada llega con $\hat{v}$ reemplazado por $\pm 1$ al azar, extraído de un generador propio). El control no fija el volumen de mensajes, que depende de las creencias; cada variante reporta el suyo. (En la Fase II, la variante aislada de cada afirmación se define aparte; ver "Variantes de Fase II".)
 
 **Criterios.** Con $n \ge 5$ semillas y una prueba de signo unilateral con $\alpha = 0.05$:
 - **E1 Localidad:** $m_C$ es poblacional y ningún agente la computa ni la recibe.
@@ -263,20 +270,38 @@ Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada f
 
 **Programada por construcción.** Si quitar $R_C$ deja a la población sin ningún canal de emisión, la población sin $R_C$ *es* la aislada, y E3 deja de ser una prueba para ser una tautología. La afirmación se declara entonces *programada por construcción*, sin presentarlo como resultado empírico.
 
+**Criterio ampliado para la Fase II.** Cada afirmación de Fase II declara además su **canal**: las reglas sin las cuales el mecanismo que se pone a prueba no existe (`PHASE2_CLAIM_CHANNELS`). Una afirmación de Fase II es *programada por construcción* si su canal no es vacío y está contenido en $R_C$: quitar $R_C$ elimina el mecanismo que se pone a prueba, y E3 sería una tautología. Para las afirmaciones de Fase I el criterio no cambia.
+
 **Clasificación.** *No observada* si falla E2; *programada* si cumple E2 y además es programada por construcción o falla E3; *artefacto de actividad* si cumple E2 y E3 y falla E4; si cumple E1–E4: *emergente pendiente de robustez* mientras E5 no pueda evaluarse, *artefacto del reloj* si falla E5 y **emergente** si la cumple. Con menos de 5 semillas el estado es *evidencia insuficiente*.
 
 **Consecuencia para el Experimento 001.** Las afirmaciones de acceso (C1), superávit de decisión (C2) y persistencia extra-individual (C4) tienen $R_8, R_9 \in R_C$; quitar ambas reglas aísla la población, así que son **programadas por construcción**. No es una predicción: es lo que establece la regla mientras el canal transmita creencias con semántica de fábrica. "Por construcción" es una marca (`by_construction`: E3 no se prueba); el estado sigue el orden de la clasificación, así que si falla E2 es `NOT_OBSERVED` aunque la afirmación sea por construcción (le ocurrió a C4 en la corrida pre-registrada; ver `RESULTADOS.md`). La inmunidad colectiva a la falsedad (C3) tiene $R_C = \{R_3, R_4, R_6, R_7\}$ (los filtros epistémicos y el olvido) y es la única con una prueba empírica genuina: ¿la contención del rumor sobrevive sólo con transmisión y aprendizaje directo? El resultado está abierto. Además se mide el aporte de cada regla, apagándolas de a una. Las candidatas genuinas a emergencia en este nivel son las propiedades que ninguna regla persigue, por ejemplo transiciones abruptas de la cobertura accesible o de la persistencia al variar la densidad de agentes o el radio de comunicación. Las preguntas siguientes se plantean con la evolución intergeneracional y la jerarquía holónica (Experimentos 002–003) y con la des-programación del protocolo (Experimento 006), sometidas al mismo criterio.
 
-**Afirmaciones propuestas de Fase II (C5–C8, design D29; pendientes de P3).** Se evalúan con el mismo marco (E1–E5 y la clasificación anterior):
+**Afirmaciones pre-registradas de Fase II (`EXP002_CLAIMS` y `EXP003_CLAIMS`, design D29).** Se evalúan con el mismo marco (E1–E5 y la clasificación anterior), con el criterio ampliado de "por construcción":
 
-| Afirmación | Protocolo | Métrica $m_C$ (mayor es mejor) | $R_C$ propuesto |
-| :--- | :---: | :--- | :--- |
-| C5: aceleración cultural intergeneracional | 002-B | `cultural_accuracy` | $\{R_{14}\}$ |
-| C6: adaptación evolutiva de linajes | 002-A | `evolved_accuracy` | $\{R_{12}, R_{13}\}$ |
-| C7: superávit cooperativo sobre recursos compuestos | 003-A | `holonic_composite_completions` | $\{R_{15}, R_{17}\}$ |
-| C8: ortogonalización intra-holón | 003-B | `downward_causation_coverage_gain` | $\{R_{18}\}$ |
+| Afirmación | Protocolo | Métrica $m_C$ (dirección) | $R_C$ | Canal | Variante **aislada** | Clasificación esperable |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| C5: aceleración cultural intergeneracional | 002-B | `cultural_accuracy` (mayor es mejor) | $\{R_{14}\}$ | $(R_{14})$ | `ablate(config, ["R14"])`: sin herencia, con comunicación horizontal | Programada por construcción. |
+| C6: adaptación evolutiva por selección | 002-A | `evolved_accuracy` (mayor es mejor) | $\{R_{12}, R_{13}\}$ | $(R_{12})$ | `ablate(config, ["R12"])`: el control de deriva (reproducción neutral) | Programada por construcción: adaptarse por selección es el propósito de $R_{12}$ y $R_{13}$. |
+| C7: superávit cooperativo sobre recursos compuestos | 003-A | `holonic_composite_completions` (mayor es mejor) | $\{R_{15}, R_{17}\}$ | $(R_{15})$ | `ablate(config, ["R15"])`: sin holones, con comunicación | Programada por construcción: el entorno impide por diseño que un individuo con $C_{\max} < m$ y sin ayuda resuelva el recurso. |
+| C8: ortogonalización sin causalidad descendente | 003-B | `mean_intra_holon_redundancy` (**menor** es mejor) | $\emptyset$ | $()$ | El **control de pertenencia barajada** de la misma corrida (`mean_shuffled_redundancy`, M13 en §8) | Abierta: ninguna regla la persigue (la condición base lleva $R_{18}$ apagada). Es la única afirmación de Fase II con prueba genuina. |
 
-Para C5–C8, la variante **aislada** desactiva además los canales colectivos de Fase II (`comm_enabled=False`, `enable_cultural_inheritance=False`, `enable_holonic_hierarchy=False`, `enable_stigmergy=False`), y el **control nulo** aplica el reemplazo de $\hat{v}$ también a la herencia cultural ($R_{14}$), a la estigmergia ($R_{19}$) y a la vista compartida del holón. *Advertencia de atribución:* $R_{18}$ está diseñada para ortogonalizar, de modo que la ortogonalización que produzca es **programada**, no espontánea (el nombre provisional del design, "Ortogonalización espontánea intra-holón", no se usa aquí por esa razón). Lo mismo vale, con sus propósitos, para C5 frente a $R_{14}$ y para C7 frente a $R_{15}$ y $R_{17}$. En su forma actual, C7 y C8 podrían quedar clasificadas como emergentes aunque una regla diseñada las persiga: es uno de los puntos que P3 debe resolver antes de versionar el pre-registro.
+- **Observación exploratoria (C6).** Qué rasgos evolucionan (`final_mean_memory_capacity`, `final_mean_bond_affinity` del reporte de 002-A) se registra como **observación exploratoria**, no como afirmación.
+- **C8 y $R_{18}$.** $R_{18}$ está diseñada para ortogonalizar (§7.5): con ella activa, la ortogonalización sería **programada**. Por eso C8 se mide con $R_{18}$ apagada y pregunta si las hojas de un holón tienen menos redundancia de memoria que grupos del mismo tamaño formados al azar con las mismas hojas. El efecto de $R_{18}$ se mide aparte, como cualquier regla, con su ablación (`rule_effects`).
+
+**Variantes de Fase II.**
+- **Aislada:** la indicada en la tabla. Para C8, el valor aislado de cada semilla es `mean_shuffled_redundancy` de la corrida completa de esa semilla (variante pareada, sin corrida aparte).
+- **Sin $R_C$:** `ablate(config, R_C)`, sólo si $R_C$ no es vacío y la afirmación no es por construcción (con lo anterior, no se corre para ninguna de C5–C8).
+- **Control nulo:** `comm_content_null=True`; el motor aplica el reemplazo de $\hat{v}$ por $\pm 1$ al ruteo horizontal, a la herencia cultural ($R_{14}$), a la estigmergia ($R_{19}$) y a la vista del holón ($R_{22}$).
+- **Efecto de cada regla:** una variante sin cada regla ablacionable de `ALL_DESIGN_RULES`.
+
+Para C1–C4 las variantes no cambian, y cuando todas las afirmaciones evaluadas son de Fase I el reporte de atribución sigue usando sólo `DESIGN_RULES` (si no, `ALL_DESIGN_RULES`).
+
+**Perfil pre-registrado de la Fase II.** `PHASE2_ATTRIBUTION_PROFILE = "phase2"`, con 2000 ticks (`total_ticks`, el único campo del perfil que usan los protocolos 002 y 003), y `PHASE2_SEEDS` = semillas 42 a 51 (10 semillas: la prueba de signo unilateral puede llegar a $p = 1/1024$). Las configuraciones de cada protocolo quedan congeladas en `PHASE2_PROTOCOL_CONFIGS`, sobre los valores por defecto de `SimulationConfig`:
+- `"002a"`: `enable_evolution=True`.
+- `"002b"`: `enable_evolution=True`, `enable_cultural_inheritance=True`.
+- `"003a"` y `"003b"`: `enable_evolution=True`, `enable_holonic_hierarchy=True`, `enable_holon_reproduction=True`, `num_composite_patterns=3`, `composite_order=4` ($> C_{\max} = 3$). En `"003b"`, `enable_downward_causation=False` es parte de la condición base de C8.
+
+Ningún parámetro de este perfil se cambia a la vista de los resultados. Si la población se extingue o no llega a varias generaciones, eso se reporta como resultado. Antes de implementar los runners se corre una prueba de humo que sólo comprueba que la corrida termina y registra la generación máxima, sin calcular ni mirar las métricas de las afirmaciones.
 
 ---
 
@@ -333,17 +358,17 @@ Antes de implementar, la arquitectura en Python se compromete a separar estricta
 4. **`Environment` (Interfaz Abstracta del Mundo):**
    - Implementación 1: `ToroidalGrid2D` (Experimento 001, con soporte de recursos compuestos en Fase II).
    - Implementaciones futuras: `SpatialGraph`, `ContinuousSpace2D`.
-5. **`ExperimentRunner` y `MetricsCollector`:** Ejecuta los protocolos con semillas reproducibles (`seed`) y calcula las métricas M1–M7 (Fase I) y M8–M12 (Fase II).
+5. **`ExperimentRunner` y `MetricsCollector`:** Ejecuta los protocolos con semillas reproducibles (`seed`) y calcula las métricas M1–M7 (Fase I) y M8–M13 (Fase II).
 6. **Atribución:** Inventario de reglas con propósito declarado, ablaciones, control nulo, registro pre-declarado de afirmaciones y clasificación según §3.1.
 
 ---
 
 ## 6. Dinámica Evolutiva Intergeneracional (Fase II — Experimento 002)
 
-En la Fase I, la población es estática e inmortal. En la Fase II, con `enable_evolution=True`, los agentes están sujetos a **metabolismo energético, muerte por agotamiento y reproducción diferencial con herencia dual**. Con los valores por defecto (todas las banderas de Fase II en `False`), el sistema se comporta bit a bit como en la Fase I. Esta sección resume las decisiones D21, D22 y D26 del design de Fase II, que rige ante cualquier discrepancia. Toda operación estocástica de esta sección usa el generador dedicado `evo_rng` (`SeedSequence(seed, spawn_key=(2,))`), nunca el generador del motor.
+En la Fase I, la población es estática e inmortal. En la Fase II, con `enable_evolution=True`, los agentes están sujetos a **metabolismo energético, muerte por agotamiento y reproducción diferencial con herencia dual**. Con los valores por defecto (todas las banderas de Fase II en `False`), el sistema se comporta bit a bit como en la Fase I. Esta sección resume las decisiones D21, D22 y D26 del design de Fase II, que rige ante cualquier discrepancia. Toda operación estocástica de esta sección usa el generador dedicado `evo_rng` (`SeedSequence(seed, spawn_key=(2,))`), nunca el generador del motor. Las reglas que intervienen son $R_{20}$ (física metabólica, nuclear), $R_{21}$ (costo cuadrático), $R_{12}$ (reproducción diferencial), $R_{13}$ (mutación) y $R_{14}$ (herencia cultural).
 
-### 6.1. Metabolismo Energético, Muerte y Reproducción ($R_{12}$)
-Cada agente elemental $a_i$ mantiene una energía $E_i(t) \in \mathbb{R}$, inicializada en $E_0$ = `initial_energy` ($1.50$), **sin tope superior**. Su costo basal por tick depende del genoma y es cuadrático en la capacidad de memoria y en los radios:
+### 6.1. Metabolismo Energético ($R_{20}$, $R_{21}$), Muerte y Reproducción ($R_{12}$)
+Cada agente elemental $a_i$ mantiene una energía $E_i(t) \in \mathbb{R}$, inicializada en $E_0$ = `initial_energy` ($1.50$), **sin tope superior**. Su costo basal por tick depende del genoma y es cuadrático en la capacidad de memoria y en los radios (el término fijo es parte de $R_{20}$; los términos cuadráticos son $R_{21}$):
 $$c_{\text{base}}(i) = c_{\text{fijo}} + c_{\text{mem}} \cdot C_{\max, i}^2 + c_{\text{sens}} \cdot \left(r_{\text{perc}, i}^2 + r_{\text{com}, i}^2\right)$$
 con $c_{\text{fijo}}$ = `metabolic_base_cost` ($0.01$), $c_{\text{mem}}$ = `memory_capacity_cost` ($0.002$) y un **único** coeficiente sensorial $c_{\text{sens}}$ = `sensory_radius_cost` ($0.0005$) para ambos radios. El balance del tick es:
 $$E_i(t+1) = E_i(t) + \eta_E \cdot r_i(t) - c_{\text{base}}(i) - c_{\text{move}} \cdot \mathbb{I}(\text{mov}_i(t)) - c_{\text{msg}} \cdot m_i(t) - c_{\text{coord\_share}}(i, t)$$
@@ -351,13 +376,14 @@ donde:
 1. **Retorno de interacción:** $\eta_E$ = `energy_gain_scale` ($0.45$) y $r_i(t)$ es el valor real experimentado: $v(r)$ de un recurso elemental; $-$`composite_failure_penalty` en un intento compuesto fallido; o la fracción que le toca de un recurso compuesto resuelto por su holón (§1.3.2). Se acredita en la Fase 4.
 2. **Movimiento:** $\mathbb{I}(\text{mov}_i(t)) = 1$ si el agente ejecutó un `MOVE` válido; $c_{\text{move}}$ = `move_cost` ($0.005$).
 3. **Mensajes:** $m_i(t)$ es la cantidad de mensajes que emitió en las Fases 1 y 2; $c_{\text{msg}}$ = `message_cost` ($0.001$).
-4. **Coordinación:** $c_{\text{coord\_share}}(i, t) = c_{\text{coord}}(U)/|U|$ si $a_i$ es hoja del holón raíz $U$ (§7.2), y $0$ si no pertenece a ningún holón. Se cobra en la Fase 5.
+4. **Coordinación ($R_{23}$):** $c_{\text{coord\_share}}(i, t) = c_{\text{coord}}(U)/|U|$ si $a_i$ es hoja del holón raíz $U$ (§7.2), y $0$ si no pertenece a ningún holón. Se cobra en la Fase 5.
 
-*(El costo cuadrático es una **decisión de diseño declarada**: encarece la hipertrofia individual de $C_{\max, i}$ y de los radios, preserva la restricción $C_{\max, i} \ll N$ y, por lo tanto, sesga a favor de la cooperación. No es un resultado.)*
+*(El costo cuadrático es una **decisión de diseño declarada**, la regla $R_{21}$: encarece la hipertrofia individual de $C_{\max, i}$ y de los radios, preserva la restricción $C_{\max, i} \ll N$ y, por lo tanto, sesga a favor de la cooperación. No es un resultado. Su ablación anula $c_{\text{mem}}$ y $c_{\text{sens}}$. El resto del balance (costo fijo, de movimiento y de emisión, la muerte con $E \le 0$ y la capacidad de carga) es la física metabólica $R_{20}$, nuclear: sin ella no hay selección.)*
 
 - **Muerte:** si al cobrar el metabolismo en la Fase 5 resulta $E_i(t+1) \le 0$, el agente muere en ese mismo tick: se retira del motor y del entorno y se poda de cualquier árbol holónico (`prune_dead_leaves`, §7.3).
-- **Reproducción individual:** en la Fase 5, después de la reproducción holónica (§7.4), cada agente sobreviviente, en orden ascendente de `agent_id`, que todavía no se haya reproducido en el tick, con $E_i \ge E_{\text{reprod}}$ = `reproduction_threshold` ($2.20$) y con cupo ($|\mathcal{A}| < N_{\max}$, donde $N_{\max}$ = `max_population` $= 160$ es la capacidad de carga y $\mathcal{A}$ la población activa) engendra **un** hijo. No hay costo de gestación: la energía se parte de forma conservativa con $\kappa_{\text{part}}$ = `offspring_energy_share` ($0 < \kappa_{\text{part}} < 1$, por defecto $0.50$):
+- **Reproducción individual diferencial ($R_{12}$, `reproduction_mode="energy"`, valor por defecto):** en la Fase 5, después de la reproducción holónica (§7.4), cada agente sobreviviente, en orden ascendente de `agent_id`, que todavía no se haya reproducido en el tick, con $E_i \ge E_{\text{reprod}}$ = `reproduction_threshold` ($2.20$) y con cupo ($|\mathcal{A}| < N_{\max}$, donde $N_{\max}$ = `max_population` $= 160$ es la capacidad de carga y $\mathcal{A}$ la población activa) engendra **un** hijo. No hay costo de gestación: la energía se parte de forma conservativa con $\kappa_{\text{part}}$ = `offspring_energy_share` ($0 < \kappa_{\text{part}} < 1$, por defecto $0.50$):
   $$E_{\text{hijo}} = \kappa_{\text{part}} \cdot E_i, \qquad E_i \leftarrow (1 - \kappa_{\text{part}}) \cdot E_i$$
+- **Reproducción neutral (`reproduction_mode="neutral"`, ablación de $R_{12}$ y control de deriva de C6; design D26, caso 3):** conserva la tasa de nacimientos pero quita su dependencia de la energía. Se cuenta $n_b$, la cantidad de agentes que se reproducirían en el tick con la regla anterior (no reproducidos, con $E_i \ge E_{\text{reprod}}$, respetando el cupo). Después se eligen $n_b$ progenitores sin reemplazo con `evo_rng.choice(candidatos, size=n_b, replace=False)` sobre la lista ordenada de **todos** los agentes no reproducidos en el tick, sin mirar su energía, y cada uno engendra con la misma partición de energía. La reproducción holónica ($R_{17}$, §7.4) no cambia. Comparar contra este control separa el efecto de la selección del de la deriva genética (`selection_gain`, §8).
 - **A lo sumo un evento reproductivo por agente y por tick:** un agente que ya se reprodujo como hoja de un holón (§7.4) no vuelve a reproducirse individualmente en el mismo tick.
 - **Linaje y ubicación:** el hijo recibe un `agent_id` nuevo de un contador monótono, `parent_id` $= \text{id}_i$ y $g_{\text{hijo}} = g_i + 1$. Se ubica en la celda menos ocupada de la vecindad de Moore del progenitor (incluida la propia), sorteando con `evo_rng` entre las empatadas.
 
@@ -417,7 +443,7 @@ Todo participante activo del sistema es un **Holón** (o nodo agéntico) $u$, qu
 
 3. **Identificadores:** las hojas conservan su `agent_id` $\ge 0$; cada holón compuesto recibe un `node_id` **negativo** de un contador monótono decreciente que empieza en $-2$ ($-1$ es el emisor sintético de la estigmergia), de modo que los identificadores de holones y de agentes nunca colisionan.
 
-> **Profundidad sin tope codificado, pero acotada por la masa:** el código no fija un nivel máximo: un holón de nivel $L$ puede volver a fusionarse en uno de nivel $L+1$. Pero `BOND` exige $|U| \le$ `max_holon_leaves` ($8$ por defecto), y cada nivel nuevo agrega al menos una hoja, así que $L(U) \le$ `max_holon_leaves` $- 1$. Que se formen niveles $L \ge 2$ es una pregunta empírica (protocolo 003-B), no una propiedad garantizada.
+> **Profundidad sin tope codificado, pero acotada por la masa:** el código no fija un nivel máximo: un holón de nivel $L$ puede volver a fusionarse en uno de nivel $L+1$. Pero `BOND` exige $|U| \le$ `max_holon_leaves` ($8$ por defecto), y cada nivel nuevo agrega al menos una hoja, así que $L(U) \le$ `max_holon_leaves` $- 1$. Que se formen niveles $L \ge 2$ es una pregunta empírica (se registra con M10 en los protocolos 003-A y 003-B), no una propiedad garantizada.
 
 ---
 
@@ -430,11 +456,14 @@ Un holón compuesto $U$ tiene las siguientes propiedades, derivadas de sus hojas
    $$\left(c_\ell(\rho), \; \tau_\ell(\rho), \; -\text{id}_\ell\right)$$
    es decir, la de mayor confianza, luego la más reciente y luego la de la hoja de menor `agent_id`. No hay promedio ni consenso entre hojas.
    - **Capacidad efectiva:** $C_{\text{eff}}(U) = \sum_{\ell \in \text{leaves}(U)} C_{\max, \ell}$ (`effective_capacity`), y siempre $|\mathcal{M}_{\text{holón}}(U)| \le C_{\text{eff}}(U)$. Cada hoja conserva su límite $C_{\max, \ell}$. La ganancia de cobertura del holón sobre sus hojas se mide con M11 (§8).
-   - **Vista compartida del holón (decisión abierta P1):** el design describe una variante en la que, en las Fases 1 y 2, cada hoja recibe en un caché efímero propio del holón las creencias de las hojas en su alcance local, que sólo usan la decisión y el protocolo de emisión (nunca el aprendizaje directo ni la asimilación de testimonios). Ese canal no pasa por `assimilate_testimony`, en contra del invariante vigente, y no se implementa hasta resolver P1.
+   - **Vista compartida del holón ($R_{22}$, design D25):** es un canal de conocimiento social **efímero y declarado**: cada hoja ve en el tick lo que saben las hojas de su holón raíz en alcance local, sin copiarlo a su memoria. Es la **única excepción** a la regla de que el conocimiento social entra sólo por `assimilate_testimony`, y se justifica porque no persiste, no pasa por la fusión epistémica (§2.3) y se puede apagar con `enable_holon_view=False` (por defecto `True`; sólo actúa con `enable_holonic_hierarchy=True`). Sin ella, los holones siguen existiendo (`BOND`, `SPLIT`, energía y resolución compuesta), pero sus miembros no ven el conocimiento ajeno.
+     - *Contenido:* para cada patrón, la creencia de mayor $(c, \tau, -\text{id})$ entre las hojas del holón raíz en alcance local de la hoja, sin contarla a ella. Bajo el control nulo, el motor reemplaza antes $\hat{v}$ por $\pm 1$ al azar.
+     - *Separación entre creencia propia y vista:* la vista vive en un caché efímero aparte (`_holon_tick_beliefs`). La creencia efectiva que usa la decisión (y la decisión de consultar del protocolo) sigue el orden memoria → caché efímero propio → vista del holón. El aprendizaje directo (§2.1) y la asimilación de testimonios (§2.3) parten sólo de la creencia propia (`own_belief`: memoria → caché efímero propio), para que nunca se fusionen con la creencia de un compañero. Las respuestas a consultas y las difusiones salen sólo de la memoria propia: nadie retransmite la vista del holón. Con la vista vacía, el comportamiento coincide bit a bit con la Fase I.
+     - *Sincronización en dos tiempos, sin efectos de orden:* el motor calcula primero la vista de todas las hojas y recién después la inyecta, en orden de `agent_id`. **Tiempo 1** (Fase 1, antes de emitir mensajes): lee las memorias de las hojas, de modo que el protocolo no gasta consultas en lo que el holón ya sabe. **Tiempo 2** (al final de la Fase 2, antes de decidir): lee la creencia propia de las hojas (memoria más caché del tick en curso), para que la decisión de la Fase 3 aproveche lo que cada hoja obtuvo de sus vecinos.
 
-3. **Energía y costo de coordinación:** la energía del holón es $E(U, t) = \sum_{\ell \in \text{leaves}(U)} E_\ell(t)$ (`total_energy`). Las ganancias de un recurso compuesto resuelto se reparten en partes iguales entre las hojas en alcance local de la hoja que lo resolvió (§1.3.2). Mantener el holón cuesta por tick
+3. **Energía, costo de coordinación y reparto ($R_{23}$):** la energía del holón es $E(U, t) = \sum_{\ell \in \text{leaves}(U)} E_\ell(t)$ (`total_energy`). Con `holon_energy_sharing=True` (por defecto), las ganancias de un recurso compuesto resuelto se reparten en partes iguales entre las hojas de $U$ en alcance local (§1.3.2); con `holon_energy_sharing=False` van enteras a la hoja que lo resolvió. Mantener el holón cuesta por tick
    $$c_{\text{coord}}(U) = c_{\text{enlace}} \cdot |U| \cdot L(U), \qquad c_{\text{enlace}} = \texttt{holon\_coord\_cost} \; (0.002)$$
-   que se cobra **sólo a los holones raíz** (los sub-holones no pagan aparte, porque $L(U)$ ya pondera la profundidad) y, con evolución activa, se descuenta en partes iguales, $c_{\text{coord}}(U)/|U|$, de cada hoja (§6.1).
+   que se cobra **sólo a los holones raíz** (los sub-holones no pagan aparte, porque $L(U)$ ya pondera la profundidad) y, con evolución activa, se descuenta en partes iguales, $c_{\text{coord}}(U)/|U|$, de cada hoja (§6.1). El costo de coordinación y el reparto de la ganancia compuesta forman la regla $R_{23}$, diseñada para que pertenecer a un holón tenga un costo y un beneficio energético compartido; su ablación es `holon_coord_cost=0` y `holon_energy_sharing=False`.
    - *Fuera del alcance de la Fase II actual:* un campo perceptual unificado del holón (cada hoja percibe con sus propios radios) y el reparto de ganancias proporcional a la contribución epistémica.
    - Se pone a prueba si, con recursos compuestos disponibles, las ganancias compuestas compensan el costo de coordinación y sostienen holones; sin compuestos, el costo de coordinación sólo resta energía. Ninguna de las dos cosas se presupone.
 
@@ -489,7 +518,7 @@ $$\ell^*(\rho) = \arg\max_{\ell' \in \text{loc}(\ell),\; \rho \in \mathcal{M}_{\
 $$U_{\text{red}}(k, t) = \begin{cases} U(k, t) \cdot \psi_{\text{red}} & \text{si } \rho_k \in \text{Red}(\ell) \\ U(k, t) & \text{si no} \end{cases} \qquad \psi_{\text{red}} = \texttt{redundancy\_penalty} \in (0, 1], \text{ por defecto } 0.25$$
 donde $\psi_{\text{red}} = 1$ equivale a no tener efecto. La modulación afecta a todo uso de la utilidad: el desalojo (§2.2), el orden de difusión espontánea y el orden de la herencia cultural (§6.3). Para las hojas fuera de todo holón, o con la regla desactivada, $\text{Red}(\ell) = \emptyset$ y el factor es $1$.
 
-- **Atribución:** $R_{18}$ está **diseñada para ortogonalizar** las memorias de las hojas ($\mathcal{M}_i \cap \mathcal{M}_j \to \emptyset$) y acercar $|\mathcal{M}_{\text{holón}}(U)|$ a $C_{\text{eff}}(U)$. La ortogonalización que produzca es, por definición, **programada**, no espontánea. Lo que se pone a prueba (protocolo 003-B) es cuánto aumenta la cobertura holónica (M11) frente a holones sin la regla.
+- **Atribución:** $R_{18}$ está **diseñada para ortogonalizar** las memorias de las hojas ($\mathcal{M}_i \cap \mathcal{M}_j \to \emptyset$) y acercar $|\mathcal{M}_{\text{holón}}(U)|$ a $C_{\text{eff}}(U)$. La ortogonalización que produzca es, por definición, **programada**. Su efecto se mide como el de cualquier otra regla, con su ablación. La afirmación C8 (§3.1) pregunta otra cosa: si hay ortogonalización **sin** $R_{18}$; por eso el protocolo 003-B corre con la regla apagada y compara la redundancia intra-holón (M13) con la de grupos barajados.
 - *Fuera del alcance de la Fase II actual:* la modulación de la tasa de exploración $\epsilon_{\text{eff}}$ de las hojas por parte del holón.
 
 ---
@@ -507,19 +536,19 @@ $$\mathcal{S}(l, \rho) = \left(\rho, \; s, \; I, \; \tau_{\text{rastro}}\right),
 
 ---
 
-## 8. Métricas Formales de Evolución y Jerarquía Holónica (Fase II: M8–M12)
+## 8. Métricas Formales de Evolución y Jerarquía Holónica (Fase II: M8–M13)
 
-Además de las métricas M1–M7 (§4), la Fase II registra por tick, en `EvolutionaryTickMetrics` (design D28; `TickMetrics` conserva sus 14 campos de Fase I), cinco métricas. Sea $\mathcal{A}(t)$ la población activa y $\mathcal{U}_{\text{root}}(t)$ el conjunto de holones raíz compuestos ($L \ge 1$).
+Además de las métricas M1–M7 (§4), la Fase II registra por tick, en `EvolutionaryTickMetrics` (design D28; `TickMetrics` conserva sus 14 campos de Fase I), seis métricas. Sea $\mathcal{A}(t)$ la población activa y $\mathcal{U}_{\text{root}}(t)$ el conjunto de holones raíz compuestos ($L \ge 1$).
 
-- **M2 en Fase II:** la precisión de decisión se calcula **sólo sobre recursos elementales**, exactamente como en la Fase I. Los recursos compuestos no entran en la verdad que juzga la decisión: si, quitándolos, una celda queda sin recursos, o si la acción del agente es `INTERACT` sobre un recurso compuesto, ese agente no suma oportunidad de decisión en el tick. El desempeño sobre compuestos lo mide M12. (Esta elección está ligada a la decisión abierta P2.)
+- **M2 en Fase II:** la precisión de decisión se calcula **sólo sobre recursos elementales**, exactamente como en la Fase I. Los recursos compuestos no entran en la verdad que juzga la decisión: si, quitándolos, una celda queda sin recursos, o si la acción del agente es `INTERACT` sobre un recurso compuesto, ese agente no suma oportunidad de decisión en el tick. El desempeño sobre compuestos lo mide M12.
 
 ### M8. Dinámica Generacional
 Generación media (`mean_generation`) y máxima (`max_generation`) de $\mathcal{A}(t)$, nacimientos (`births_this_tick`) y muertes (`deaths_this_tick`) del tick, y energía media (`mean_energy`). Si $\mathcal{A}(t) = \emptyset$, valen $0.0$, $0$ y $0.0$.
 
-### M9. Cobertura Heredada (`inherited_coverage_ratio`)
+### M9. Proporción Social de los Descendientes (`offspring_social_ratio`, descriptiva)
 Sobre los agentes activos con $g \ge 1$, sea $V_{\text{total}}$ el número total de creencias válidas en sus memorias y $V_{\text{social}}$ las que tienen $d = 0$:
 $$M9(t) = \frac{V_{\text{social}}}{V_{\text{total}}} \quad (0.0 \text{ si } V_{\text{total}} = 0)$$
-*(Cuenta toda creencia de origen social, sea heredada o recibida por testimonio horizontal: no distingue entre ambos canales.)*
+Es **descriptiva**: cuenta toda creencia de origen social, sea heredada o recibida por testimonio horizontal, así que no mide sola la herencia. La contribución de la herencia cultural se mide comparando contra la ablación de $R_{14}$ en 002-B (`social_ratio_gain`).
 
 ### M10. Estructura Holónica por Nivel
 - `holon_count_by_level`: pares $(L, \text{conteo})$ con el número de holones compuestos activos de cada nivel $L \ge 1$, ordenados por $L$.
@@ -534,8 +563,18 @@ y $M11(t) = 1.0$ si no hay holones raíz compuestos.
 ### M12. Recursos Compuestos Resueltos (`composite_completions`)
 Contador **acumulado** de resoluciones compuestas exitosas desde el inicio de la corrida (§1.3.2).
 
+### M13. Redundancia Intra-Holón y Control de Pertenencia Barajada (`intra_holon_redundancy`, `shuffled_holon_redundancy`; métrica de C8)
+Para cada $U \in \mathcal{U}_{\text{root}}(t)$, sea $K(\ell)$ el conjunto de patrones de la memoria de la hoja $\ell$ con $c \ge c_{\text{umbral}}$ y $S(U) = \sum_{\ell \in \text{leaves}(U)} |K(\ell)|$. Si $S(U) > 0$:
+$$\text{red}(U) = \frac{S(U) - \left|\bigcup_{\ell \in \text{leaves}(U)} K(\ell)\right|}{S(U)}$$
+que vale $0$ si las memorias de las hojas son disjuntas y crece con la duplicación.
+- `intra_holon_redundancy` es la media de $\text{red}(U)$ sobre los holones raíz con $S(U) > 0$, o `None` si no hay ninguno.
+- **Control de pertenencia barajada:** en el mismo tick, se toman las hojas de todos los holones raíz (en orden de `agent_id`), se permutan con `shuffle_rng` (`SeedSequence(seed, spawn_key=(4,))`, generador del colector de métricas) y se reparten en grupos con los mismos tamaños que los holones (en orden de `node_id`). `shuffled_holon_redundancy` es la misma media sobre esos grupos (o `None`). Mide cuánta redundancia habría si los grupos fueran arbitrarios; se calcula sólo para medir y no altera la dinámica.
+- *Ejemplo:* un holón con hojas $K = \{\rho_0, \rho_1\}$ y $K = \{\rho_2\}$ tiene $\text{red} = 0$; otro con $K = \{\rho_0\}$ y $K = \{\rho_0\}$ tiene $\text{red} = 0.5$; `intra_holon_redundancy` $= 0.25$.
+
 Además se registra `stigmergy_active_cells` (celdas con al menos un rastro estigmérgico), como telemetría sin número de métrica.
 
-**Protocolos y reportes (design D28).** 002-A compara mutación activa contra genoma congelado (`AdaptationReport`, con `adaptation_gain` = `evolved_accuracy` − `frozen_genome_accuracy`); 002-B compara herencia cultural contra *tabula rasa* (`CulturalInheritanceReport`, con `cultural_accuracy_surplus` y los ticks de convergencia: el menor tick con oportunidades de decisión y precisión acumulada $\ge 0.70$, o ninguno); 003-A compara jerarquía holónica contra individualismo ante recursos compuestos (`HolonicTransitionReport`); 003-B compara holones con y sin causalidad descendente (`MultilevelScalingReport`, con `orthogonalization_advantage` = diferencia de M11).
-
-> **Pendiente de la decisión P3 (no es una métrica numerada):** un indicador de deriva neutral frente a selección, que compare la evolución de la media y la varianza de cada rasgo del genoma con un control en el que la reproducción no dependa de la energía. Sin ese control, un cambio en los rasgos heredables (C6) no puede distinguirse de la deriva genética. El design actual no lo define.
+**Protocolos y reportes (design D28).** Cada protocolo corre sus condiciones con la misma semilla; las precisiones (`*_accuracy`) son la precisión acumulada M2 del último tick.
+- **002-A** (`run_protocol_002a_adaptation`, `AdaptationReport`): tres condiciones, la evolutiva (`evolved_accuracy`), el genoma congelado (ablación de $R_{13}$, `frozen_genome_accuracy`) y el **control de deriva** (ablación de $R_{12}$, reproducción neutral con mutación, `drift_accuracy`). Reporta `adaptation_gain` = `evolved_accuracy` − `frozen_genome_accuracy` y `selection_gain` = `evolved_accuracy` − `drift_accuracy`: sin el control de deriva, un cambio en los rasgos heredables no podría distinguirse de la deriva genética. Registra además, como observación exploratoria, los rasgos medios finales `final_mean_memory_capacity` y `final_mean_bond_affinity`, junto con la generación máxima, la energía media y los nacimientos y muertes totales.
+- **002-B** (`run_protocol_002b_cultural_inheritance`, `CulturalInheritanceReport`): herencia cultural frente a *tabula rasa* (ablación de $R_{14}$), con `cultural_accuracy_surplus`, la M9 final de ambas condiciones y su diferencia `social_ratio_gain`, y los ticks de convergencia (el menor tick con oportunidades de decisión y precisión acumulada $\ge 0.70$, o ninguno).
+- **003-A** (`run_protocol_003a_holonic_transition`, `HolonicTransitionReport`): jerarquía holónica frente a individuos (ablación de $R_{15}$) ante recursos compuestos de orden $m > C_{\max}$, con las completaciones compuestas de ambas condiciones y su diferencia, la precisión de ambas, `max_holon_level` y el pico de M11.
+- **003-B** (`run_protocol_003b_orthogonalization`, `OrthogonalizationReport`): una sola corrida con $R_{18}$ apagada. Reporta `mean_intra_holon_redundancy` y `mean_shuffled_redundancy` (medias de M13 sobre los ticks con valor), `orthogonalization_advantage` = `mean_shuffled_redundancy` − `mean_intra_holon_redundancy`, `ticks_with_holons` (si es $0$, las dos medias valen $0.0$: empate), `max_holon_level` y el pico de conteos por nivel. El control barajado sale de la misma corrida.
