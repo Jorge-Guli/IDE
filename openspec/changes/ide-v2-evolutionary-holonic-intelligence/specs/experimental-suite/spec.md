@@ -32,4 +32,4 @@
 
 #### Scenario: Ortogonalización con y sin la vista del holón en 003-B
 - **WHEN** se ejecuta `run_protocol_003b_orthogonalization` con `total_ticks=40` y `enable_downward_causation=False`
-- **THEN** el `OrthogonalizationReport` contiene `mean_acquired_orthogonalization`, `mean_acquired_orthogonalization_without_view`, `orthogonalization_advantage` igual a su diferencia, y `ticks_with_holons`.
+- **THEN** el `OrthogonalizationReport` contiene `mean_acquired_orthogonalization`, `mean_acquired_orthogonalization_without_view`, `orthogonalization_advantage` igual a su diferencia, `ticks_with_holons` y `ticks_with_holons_without_view`.

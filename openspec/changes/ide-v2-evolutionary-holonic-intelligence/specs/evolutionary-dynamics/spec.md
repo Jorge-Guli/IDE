@@ -36,7 +36,7 @@ En la Fase 5 con `enable_evolution=True`, todo `MicroAgent` sobreviviente no rep
 - **THEN** no nace ningún descendiente y el agente conserva su energía íntegra.
 
 ### Requirement: Reproducción Neutral como Ablación de R12 y Control de Deriva
-Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL reproducirse con la misma partición de energía, ubicación, linaje y herencia cultural, pero el genoma de cada hijo SHALL mutarse a partir del de un donante sorteado con `evo_rng` entre los agentes vivos al empezar la reproducción del tick.
+Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL reproducirse con la misma partición de energía, ubicación, linaje y herencia cultural, pero el genoma de cada hijo SHALL mutarse a partir del de un donante sorteado con `donor_rng` (`spawn_key=(4,)`) entre los agentes vivos al empezar la reproducción del tick.
 
 #### Scenario: Misma demografía, genoma independiente del éxito
 - **WHEN** se corren dos motores con la misma semilla y `reproduction_mode` `"energy"` y `"neutral"`, con `mutation_rate = 0`, `discrete_mutation_prob = 0` y genomas fundadores distintos
