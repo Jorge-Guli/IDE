@@ -17,12 +17,12 @@
 - **THEN** `EnvironmentPort` declara exactamente los diez métodos canónicos de Fase I y `ToroidalGrid2D` cumple tanto `EnvironmentPort` como `EvolutionaryEnvironmentPort`.
 
 ### Requirement: Banderas e Hiperparámetros de Fase II con Retrocompatibilidad por Defecto
-`SimulationConfig` SHALL incluir las banderas de Fase II (`enable_evolution`, `enable_cultural_inheritance`, `enable_holonic_hierarchy`, `enable_holon_splitting`, `enable_holon_reproduction`, `enable_downward_causation`, `enable_stigmergy`) y sus hiperparámetros metabólicos, genéticos, holónicos y compuestos de `design.md`, validando rangos en `__post_init__` y serializándolos en `to_dict()`.
+`SimulationConfig` SHALL incluir las banderas de Fase II (`enable_evolution`, `enable_cultural_inheritance`, `enable_holonic_hierarchy`, `enable_holon_splitting`, `enable_holon_view`, `holon_energy_sharing`, `enable_holon_reproduction`, `enable_downward_causation`, `enable_stigmergy`), `reproduction_mode` y sus hiperparámetros metabólicos, genéticos, holónicos y compuestos de `design.md`, validando rangos en `__post_init__` y serializándolos en `to_dict()`.
 
 #### Scenario: Configuración por defecto inalterada para Fase I
 - **WHEN** se instancia `SimulationConfig()` sin argumentos
 - **THEN** todas las banderas de activación de Fase II (`enable_evolution`, `enable_cultural_inheritance`, `enable_holonic_hierarchy`, `enable_holon_reproduction`, `enable_downward_causation`, `enable_stigmergy`) son `False` y `SimulationConfig(**json.loads(json.dumps(cfg.to_dict()))) == cfg`.
 
 #### Scenario: Validación de hiperparámetros evolutivos y compuestos fuera de rango
-- **WHEN** se instancia `SimulationConfig(initial_energy=0.0)` o `SimulationConfig(offspring_energy_share=1.0)` o `SimulationConfig(inheritance_discount=1.5)` o `SimulationConfig(redundancy_penalty=0.0)` o `SimulationConfig(num_world_patterns=6, num_composite_patterns=1, composite_order=4)`
+- **WHEN** se instancia `SimulationConfig(initial_energy=0.0)` o `SimulationConfig(offspring_energy_share=1.0)` o `SimulationConfig(inheritance_discount=1.5)` o `SimulationConfig(redundancy_penalty=0.0)` o `SimulationConfig(reproduction_mode="random")` o `SimulationConfig(num_world_patterns=6, num_composite_patterns=1, composite_order=4)`
 - **THEN** se lanza `ValueError` cuyo mensaje nombra el campo inválido (incluyendo `composite_order <= num_world_patterns // 2` cuando `num_composite_patterns > 0`).

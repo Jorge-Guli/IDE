@@ -43,12 +43,13 @@ El diseño de la Fase II introduce metabolismo, selección natural, herencia gen
 
 ### Decisión 19: Aislamiento de Generadores Pseudoaleatorios (`evo_rng`) y Preservación de Hashes Dorados
 Para garantizar que los 6 hashes SHA-256 de `tests/test_performance_equivalence.py` permanezcan intactos:
-1. Todas las banderas de **activación** de Fase II en `SimulationConfig` tienen valor por defecto `False` y `num_composite_patterns` vale `0`. La única bandera con valor `True` es `enable_holon_splitting`, que sólo modula a `enable_holonic_hierarchy` y no tiene efecto mientras ésta sea `False`.
+1. Todas las banderas de **activación** de Fase II en `SimulationConfig` tienen valor por defecto `False` y `num_composite_patterns` vale `0`. Las únicas banderas con valor `True` son `enable_holon_splitting`, `enable_holon_view` y `holon_energy_sharing`, que sólo modulan a `enable_holonic_hierarchy` y no tienen efecto mientras ésta sea `False`.
 2. `SimulationEngine.__init__` instancia un generador dedicado `self.evo_rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(2,))))`.
 3. Toda operación estocástica nueva de Fase II usa un generador derivado de la semilla con `SeedSequence(seed, spawn_key=(k,))`, nunca `engine.rng`:
    - `spawn_key=(1,)`: `null_rng`, el control nulo de contenido (ya existe en Fase I).
    - `spawn_key=(2,)`: `evo_rng` del motor, para la mutación genética (`mutate_genome`) y la selección de celda en `spawn_agent_near`.
    - `spawn_key=(3,)`: `_comp_rng` de `ToroidalGrid2D`, para la ubicación inicial y la reposición de recursos compuestos.
+   - `spawn_key=(4,)`: `shuffle_rng` del `EvolutionaryMetricsCollector`, sólo para el control de pertenencia barajada de C8 (D28). Se usa únicamente en la medición: no altera la dinámica.
    Cada generador sólo se consume cuando su mecanismo está activo (`enable_evolution=True`, `num_composite_patterns > 0`). Esta lista de generadores derivados es una excepción declarada a la regla "un único generador por motor" de CLAUDE.md, que se actualiza en consecuencia.
 4. `TickMetrics` mantiene exactamente sus 14 campos de Fase I; la telemetría de Fase II se almacena en `EvolutionaryTickMetrics` dentro de `engine.evolutionary_history: list[EvolutionaryTickMetrics]`.
 
@@ -115,6 +116,7 @@ En `src/ide/config.py`, `SimulationConfig` incorpora los siguientes campos al fi
     enable_evolution: bool = False
     initial_energy: float = 1.50
     reproduction_threshold: float = 2.20
+    reproduction_mode: str = "energy"  # "energy" (R12) | "neutral" (ablación de R12 y control de deriva)
     offspring_energy_share: float = 0.50
     max_population: int = 160
     metabolic_base_cost: float = 0.01
@@ -136,6 +138,8 @@ En `src/ide/config.py`, `SimulationConfig` incorpora los siguientes campos al fi
     max_holon_leaves: int = 8
     holon_coord_cost: float = 0.002
     enable_holon_splitting: bool = True
+    enable_holon_view: bool = True  # R22; sólo actúa con enable_holonic_hierarchy=True
+    holon_energy_sharing: bool = True  # parte de R23; sólo actúa con enable_holonic_hierarchy=True
     holon_split_patience: int = 25
     holon_min_energy_per_leaf: float = 0.30
     enable_holon_reproduction: bool = False
@@ -161,6 +165,7 @@ En `src/ide/config.py`, `SimulationConfig` incorpora los siguientes campos al fi
 - No negativos (`>= 0.0`): `metabolic_base_cost`, `memory_capacity_cost`, `sensory_radius_cost`, `move_cost`, `message_cost`, `mutation_rate`, `holon_coord_cost`, `holon_min_energy_per_leaf`, `composite_failure_penalty`, `num_composite_patterns`.
 - `composite_failure_penalty <= 1.0`, para que el valor experimentado de un fracaso compuesto quede en `[-1, 0]`.
 - Enteros mínimos: `max_population >= 1`, `max_genome_memory_capacity >= memory_capacity`, `max_holon_leaves >= 2`, `holon_split_patience >= 1`, `composite_order >= 2`, `composite_resources_per_pattern >= 1`.
+- `reproduction_mode` en `{"energy", "neutral"}`; si no, `ValueError` que menciona `"reproduction_mode"`.
 - Validación de orden compuesto frente a patrones benéficos disponibles: si `num_composite_patterns > 0` y `composite_order > num_world_patterns // 2`, lanza `ValueError` cuyo mensaje menciona `"composite_order"`.
 
 **Reglas de Blindaje de Auditorías AST de Fase I:**
@@ -174,7 +179,7 @@ En `src/ide/config.py`, `SimulationConfig` incorpora los siguientes campos al fi
 4. `nullify_belief` vive en `ide.simulation.controls`, que `src/ide/agent/` no puede importar. Por eso **sólo el motor** aplica el control nulo de contenido, también a los canales de Fase II (herencia cultural, estigmergia y vista del holón), antes de entregar la creencia al agente.
 5. Sin importaciones circulares: `micro_agent.py` importa `evolution.py`, y `evolution.py` no importa `micro_agent.py` (opera sobre `BoundedMemory`, `AgentGenome` y `SimulationConfig`).
 
-### Decisión 21: Metabolismo Energético con Costo Cerebral y Sensorial Cuadrático ($R_{12}$)
+### Decisión 21: Metabolismo Energético ($R_{20}$) con Costo Cerebral y Sensorial Cuadrático ($R_{21}$)
 Para impedir el "atajo evolutivo trivial" (que la selección natural incremente ilimitadamente $C_{\max, i} \to N$ o los radios $r_{\text{perc}}, r_{\text{com}}$ creando un súper-individuo omnisciente), el costo metabólico basal por tick es cuadrático en la capacidad de memoria y en los radios sensoriales/comunicativos del genoma:
 $$c_{\text{base}}(i) = c_{\text{fijo}} + c_{\text{mem}} \cdot C_{\max, i}^2 + c_{\text{sens}} \cdot \left(r_{\text{perc}, i}^2 + r_{\text{com}, i}^2\right)$$
 donde `metabolic_base_cost` ($c_{\text{fijo}} = 0.01$), `memory_capacity_cost` ($c_{\text{mem}} = 0.002$) y `sensory_radius_cost` ($c_{\text{sens}} = 0.0005$).
@@ -284,7 +289,7 @@ El motor mantiene un registro de nodos raíz activos `self.root_nodes: dict[int,
    - Cuando una hoja `aid` consulta la memoria colectiva de su holón raíz $U$ o intenta resolver un recurso compuesto en la Fase 4, sólo participan las hojas de $U$ en alcance local de `aid` (`local_ids = {l.agent_id for l in U.leaf_agents if env.get_agent_distance(aid, l.agent_id) <= max(aid_comm, l.genome.comm_radius) + 1}`).
 2. **Costo de coordinación y `SPLIT` ($R_{16}$):**
    - Para cada `CompositeAgent` raíz $U$ (en orden ascendente de `node_id`):
-     - Calcula $c_{\text{coord}}(U) = \text{config.holon\_coord\_cost} \cdot |U| \cdot L(U)$, donde $|U|$ = `len(U.leaf_agents)`, y, si `enable_evolution=True`, descuenta $c_{\text{coord}}(U) / |U|$ de la energía de cada hoja $\ell \in \text{leaves}(U)$. El costo se cobra sólo al holón raíz: los sub-holones no pagan aparte, porque el factor $L(U)$ ya pondera la profundidad.
+     - Calcula $c_{\text{coord}}(U) = \text{config.holon\_coord\_cost} \cdot |U| \cdot L(U)$, donde $|U|$ = `len(U.leaf_agents)`, y, si `enable_evolution=True`, descuenta $c_{\text{coord}}(U) / |U|$ de la energía de cada hoja $\ell \in \text{leaves}(U)$. El costo se cobra sólo al holón raíz: los sub-holones no pagan aparte, porque el factor $L(U)$ ya pondera la profundidad. Este costo y el reparto de la ganancia compuesta (D27) forman la regla $R_{23}$.
      - **Superávit del tick.** El holón tuvo superávit en el tick $t$ si y sólo si (a) registró al menos una resolución compuesta exitosa en la Fase 4 de $t$, o (b) $|\mathcal{K}_{\text{loc}}(U)| > \max_{\ell} |\mathcal{K}(\ell)|$, donde $\mathcal{K}(\ell)$ son los patrones de la memoria de $\ell$ con `confidence >= decision_conf_threshold` y $\mathcal{K}_{\text{loc}}(U)$ es la unión de $\mathcal{K}(\ell)$ sobre la **componente conexa más grande** del grafo de alcance local entre las hojas de $U$ (arista si $\ell_a, \ell_b$ están en alcance local según el punto 1; desempate de componentes del mismo tamaño por menor `agent_id` mínimo). Con superávit, `U.ticks_without_surplus = 0`; sin superávit, `U.ticks_without_surplus += 1`.
      - Si `config.enable_holon_splitting` es `True` y (`U.ticks_without_surplus >= config.holon_split_patience` o `U.total_energy < len(U.leaf_agents) * config.holon_min_energy_per_leaf`), el holón $U$ se disuelve: se elimina `U.node_id` de `root_nodes` y cada hijo directo $c \in U.\text{children}$ pasa a ser un nodo raíz en `root_nodes[c.node_id] = c` (preservando sub-holones intermedios si $L(U) \ge 2$).
 3. **Evaluación de `BOND` ($R_{15}$):**
@@ -296,7 +301,7 @@ El motor mantiene un registro de nodos raíz activos `self.root_nodes: dict[int,
      donde $\mathcal{K}_a, \mathcal{K}_b$ son los patrones con `confidence >= config.decision_conf_threshold` en las memorias colectivas de $U_a$ y $U_b$, y $\mathcal{S}_{\text{comp}}(\mathcal{K}_a, \mathcal{K}_b) = |\mathcal{K}_a \triangle \mathcal{K}_b| / |\mathcal{K}_a \cup \mathcal{K}_b|$ (o `0.0` si $\mathcal{K}_a \cup \mathcal{K}_b = \emptyset$).
    - Los pares candidatos con `score >= config.holon_bond_threshold` se ordenan por `(-score, a, b)` y se fusionan codiciosamente (*greedy matching* sin solapamiento en el mismo tick): cada par seleccionado $(U_a, U_b)$ se retira de `root_nodes` y es reemplazado por un nuevo `CompositeAgent(node_id=next_holon_id, children=(U_a, U_b), created_tick=tick)`.
 
-### Decisión 25: Causalidad Descendente Intra-Holón ($R_{18}$) y Sincronización Efímera en Dos Tiempos (Fase 1 y Fase 2)
+### Decisión 25: Causalidad Descendente ($R_{18}$), Vista Compartida del Holón ($R_{22}$) y Recursos Compuestos Aprendidos
 Cuando dos o más agentes forman parte de un mismo `CompositeAgent` raíz $U$:
 1. **Particionamiento Epigenético de Memoria (`apply_downward_causation`):**
    - Si `config.enable_downward_causation` es `True`, para cada `CompositeAgent` raíz $U$:
@@ -304,17 +309,18 @@ Cuando dos o más agentes forman parte de un mismo `CompositeAgent` raíz $U$:
      - El conjunto de patrones redundantes de $\ell$ es $\{\rho \in \mathcal{M}_\ell \mid \ell \neq \ell^*(\rho)\}$ (en empate de confianza conserva el patrón la hoja de menor `agent_id`), y se invoca `leaf.memory.set_redundant_patterns(redundant, config.redundancy_penalty)`.
      - La penalización afecta a todo uso de `compute_utility`: desalojo, orden de difusión de `BROADCAST_BELIEF` y orden de la herencia cultural. Es un efecto declarado de $R_{18}$.
      - Para los `MicroAgent` que no pertenecen a ningún holón (o cuando `enable_downward_causation=False`), `leaf.memory.set_redundant_patterns(frozenset(), 1.0)`.
-2. **Sincronización Efímera en Dos Tiempos (`inject_ephemeral_belief` sobre `_holon_tick_beliefs`) sin Desperdiciar Consultas en Fase 1 y Verdad Efectiva en Fase 3:**
-   - > **Decisión abierta P1 (canal de conocimiento del holón).** La vista compartida del holón es un canal de conocimiento social que **no** pasa por `assimilate_testimony`, en contra del invariante vigente de CLAUDE.md y de `openspec/specs/micro-agent/spec.md`. No se implementa hasta que se elija entre: (a) declararlo como canal efímero excepcional, con regla propia y ablación; o (b) reemplazarlo por mensajes ordinarios entre miembros del holón. El texto siguiente describe la variante (a). Las opciones están en el reporte de revisión que acompaña a este cambio.
-   - Como `MicroAgent.perceive_and_emit_messages(obs, tick)` vacía `self._ephemeral_tick_beliefs` al empezar (`micro_agent.py:80`; lo verifica por comportamiento `test_creencia_solo_en_cache_vive_un_tick`), `MicroAgent` mantiene un segundo diccionario efímero `self._holon_tick_beliefs: dict[Pattern, KnowledgeUnit] = {}`, con los métodos `clear_holon_beliefs(self) -> None` e `inject_ephemeral_belief(self, unit: KnowledgeUnit) -> None` (que escribe `self._holon_tick_beliefs[unit.pattern] = unit`).
-   - **Separación entre creencia propia y vista del holón.** `get_effective_belief(pattern)` sigue el orden memoria → caché efímero propio → vista del holón, y sólo la usan la decisión (`decide_action`) y el protocolo de emisión. `learn_from_experience` y `assimilate_testimony` parten de un nuevo método público `own_belief(pattern)` (memoria → caché efímero propio, exactamente la `get_effective_belief` de Fase I), para que la experiencia directa y los testimonios nunca se fusionen con la creencia de un compañero. Con `_holon_tick_beliefs` vacío, ambos métodos coinciden bit a bit con Fase I. Es una modificación del requisito "Creencia Efectiva y Caché Efímero" de `micro-agent` y se declara como `MODIFIED` en el spec delta.
-   - **Tiempo 1 (En Fase 1, antes de `perceive_and_emit_messages`):** En `SimulationEngine.step()`, cuando `enable_holonic_hierarchy=True` o `num_composite_patterns > 0`, se ejecuta `_sync_holon_and_composite_beliefs(aid, tick)`:
-     - Llama a `agent.clear_holon_beliefs()`.
-     - Si `aid` pertenece a un `CompositeAgent` raíz $U$, inyecta vía `inject_ephemeral_belief` las creencias de las hojas localmente conectadas de $U$ (aplicando `nullify_belief` con `self.null_rng` si `config.comm_content_null=True`). En el Tiempo 1 se leen las **memorias** (`BoundedMemory`) de las hojas, no su caché efímero, que todavía es del tick anterior; en el Tiempo 2 se lee `own_belief` (memoria más caché del tick en curso).
-     - > **Decisión abierta P2 (cómo conoce el agente un recurso compuesto).** Hay dos variantes: (a) la inyección por el motor, descrita aquí, y (b) el aprendizaje por experiencia. En la variante (a), el motor lee la estructura verdadera de las reglas en `env.get_composite_rules()` y le inyecta al agente el patrón compuesto "desbloqueado". Funciona como un oráculo parcial, similar al que CLAUDE.md prohíbe para `true_value`. En la variante (b), el agente aprende el valor del patrón compuesto por experiencia, como cualquier otro patrón. No se implementa hasta elegir.
-     - Si existen reglas en `env.get_composite_rules()`, para cada `(comp_pattern, rule)` cuyos `required_patterns` sean todos conocidos como benéficos (`predicted_value > 0` y `confidence >= config.decision_conf_threshold`) por `aid` (en el Tiempo 1, su memoria más la vista del holón recién inyectada; en el Tiempo 2, `get_effective_belief`), inyecta `KnowledgeUnit(pattern=comp_pattern, predicted_value=1.0, confidence=min_conf, evidence_count=1, last_updated_tick=tick, from_direct_experience=False)`, con `min_conf` la menor confianza de los fragmentos requeridos. `predicted_value` vale `1.0`, y no `rule.composite_value`, porque las creencias viven en $\hat{v} \in [-1, 1]$; la recompensa superlineal sólo se refleja en la energía (D27). Así, en la Fase 1 `BeliefExchangeProtocol.emit` reconoce `comp_pattern` y los patrones del holón como conocidos y **no desperdicia `QUERY_PATTERN` sobre ellos**, sin que `self._ephemeral_tick_beliefs.clear()` los borre.
-   - **Tiempo 2 (al final de la Fase 2, tras asimilar respuestas de vecinos y antes de la Fase 3 de decisión):** Si `num_composite_patterns > 0` o `enable_holonic_hierarchy=True`, se vuelve a invocar `_sync_holon_and_composite_beliefs(aid, tick)` para que cualquier fragmento aprendido socialmente en la Fase 2 habilite de inmediato la decisión sobre recursos compuestos en la Fase 3. Para no introducir efectos de orden, cada tiempo tiene dos pasadas en orden de `agent_id`: primero se calcula e inyecta la vista del holón de **todos** los agentes, leyendo las creencias tal como quedaron al terminar la fase anterior para toda la población; después se calculan e inyectan los patrones compuestos desbloqueados. Ningún cálculo lee una inyección de otro agente hecha en la misma pasada. Lo mismo vale para el Tiempo 1.
-   - **M2 sobre recursos compuestos.** Para que M2 siga siendo objetiva (la verdad no puede depender de lo que cree el agente juzgado), los recursos compuestos **no entran** en el `truth` de `judge_decision`. M2 se calcula sólo sobre recursos elementales, exactamente como en Fase I: el motor quita de `get_reachable_true_values(aid)` (un `dict[resource_id, true_value]` sin patrón) los `resource_id` de las entradas de `observations[aid].visible_resources` cuyo `pattern` está en `env.get_composite_rules()`; si el resultado queda vacío, o si la acción de `aid` es `INTERACT` sobre un recurso compuesto, ese agente no suma oportunidad de decisión en el tick. El desempeño sobre compuestos se mide con M12 (`composite_completions`). Esta elección está ligada a la decisión abierta P2 y puede revisarse con ella.
+2. **Vista compartida del holón ($R_{22}$, decisión P1 resuelta por la variante (a)):**
+   - **Qué es.** Es un canal de conocimiento social **efímero y declarado**: cada hoja ve en el tick lo que saben las hojas de su holón en alcance local, sin copiarlo a su memoria. Es la única excepción a la regla de CLAUDE.md de que el conocimiento social entra sólo por `assimilate_testimony`. Se justifica porque no persiste, no pasa por la fusión epistémica y se puede apagar: es la regla $R_{22}$, con la bandera `enable_holon_view` (por defecto `True`; sólo actúa con `enable_holonic_hierarchy=True`). Con `enable_holon_view=False`, los holones siguen existiendo (BOND, SPLIT, energía y resolución compuesta), pero sus miembros no ven el conocimiento ajeno.
+   - **Estado del agente.** Como `MicroAgent.perceive_and_emit_messages(obs, tick)` vacía `self._ephemeral_tick_beliefs` al empezar (`micro_agent.py:80`; lo verifica por comportamiento `test_creencia_solo_en_cache_vive_un_tick`), `MicroAgent` mantiene un segundo diccionario efímero `self._holon_tick_beliefs: dict[Pattern, KnowledgeUnit] = {}`, con los métodos `clear_holon_beliefs(self) -> None` e `inject_ephemeral_belief(self, unit: KnowledgeUnit) -> None` (que escribe `self._holon_tick_beliefs[unit.pattern] = unit`).
+   - **Separación entre creencia propia y vista del holón.** `get_effective_belief(pattern)` sigue el orden memoria → caché efímero propio → vista del holón, y sólo la usan la decisión (`decide_action`) y la decisión de consultar del protocolo. `learn_from_experience` y `assimilate_testimony` parten del nuevo método público `own_belief(pattern)` (memoria → caché efímero propio, exactamente la `get_effective_belief` de Fase I), para que la experiencia directa y los testimonios nunca se fusionen con la creencia de un compañero. Las respuestas a consultas y los broadcasts siguen saliendo sólo de la memoria propia (`protocol.py`): nadie retransmite la vista del holón. Con `_holon_tick_beliefs` vacío, ambos métodos coinciden bit a bit con Fase I. Es una modificación de requisitos vigentes de `micro-agent`, declarada como `MODIFIED` en el spec delta.
+   - **Sincronización en dos tiempos (`_sync_holon_view`).** Sólo actúa con `enable_holonic_hierarchy=True` y `enable_holon_view=True`. En cada tiempo, el motor primero calcula la vista de **todos** los agentes y recién después llama, en orden de `agent_id`, a `clear_holon_beliefs()` y a `inject_ephemeral_belief` de cada uno. Así, ningún cálculo lee una inyección del mismo tiempo y no hay efectos de orden.
+     - La vista de `aid` contiene, para cada patrón, la creencia de mayor `(confidence, last_updated_tick, -agent_id)` entre las hojas de su holón raíz en alcance local (D24, punto 1), sin contar a `aid`. Si `config.comm_content_null=True`, el motor la pasa por `nullify_belief(unit, self.null_rng)` antes de inyectarla.
+     - **Tiempo 1** (Fase 1, antes de `perceive_and_emit_messages`): lee las **memorias** (`BoundedMemory`) de las hojas, no su caché efímero, que todavía es del tick anterior. Así, el protocolo no gasta `QUERY_PATTERN` en lo que el holón ya sabe.
+     - **Tiempo 2** (al final de la Fase 2, antes de decidir): lee `own_belief` de las hojas (memoria más caché del tick en curso), para que la decisión de la Fase 3 aproveche lo que cada hoja obtuvo de sus vecinos.
+3. **Recursos compuestos aprendidos por experiencia (decisión P2 resuelta por la variante (b)):**
+   - El motor **no** inyecta patrones compuestos "desbloqueados" ni lee la estructura de las reglas para informar al agente. Para el agente, un recurso compuesto es un recurso más, con su propio patrón `c_k`: lo ve como `VisibleResource`, lo explora con $\epsilon$ como a cualquier desconocido, lo consulta y lo difunde con el protocolo, y aprende su valor con `learn_from_experience` (D27, punto 2). Sólo el motor conoce `CompositeRule`, y sólo para resolver la interacción en la Fase 4, igual que conoce `true_value`.
+   - El valor que aprende el agente no es estacionario: el mismo recurso paga o castiga según lo que sepa su grupo local en ese tick. Es una propiedad declarada del entorno, no un defecto. Un individuo solo tenderá a aprender que `c_k` es dañino; si los holones superan esa trampa es parte de lo que se mide.
+   - **M2 sobre recursos compuestos.** Para que M2 siga siendo objetiva, los recursos compuestos **no entran** en el `truth` de `judge_decision`. M2 se calcula sólo sobre recursos elementales, exactamente como en Fase I. El motor quita de `get_reachable_true_values(aid)` (un `dict[resource_id, true_value]` sin patrón) los `resource_id` de las entradas de `observations[aid].visible_resources` cuyo `pattern` está en `env.get_composite_rules()`. Si el resultado queda vacío, o si la acción de `aid` es `INTERACT` sobre un recurso compuesto, ese agente no suma oportunidad de decisión en el tick. El desempeño sobre compuestos se mide con M12 (`composite_completions`).
 
 ### Decisión 26: Endosimbiosis Reproductiva Holónica ($R_{17}$) y Límite de Un Evento Reproductivo por Tick
 En la Fase 5, cuando `config.enable_evolution` es `True`:
@@ -324,9 +330,11 @@ En la Fase 5, cuando `config.enable_evolution` es `True`:
   - **Caso 1: `node` es un `CompositeAgent` en `sorted(self.root_nodes)` y `config.enable_holon_reproduction` es `True`:**
     - Si ninguna hoja de `node` está en `reproduced_this_tick`, `node.total_energy >= len(node.leaf_agents) * config.reproduction_threshold` y `len(self.agents) + len(node.leaf_agents) <= config.max_population`:
       - El motor procesa las hojas $\ell \in \text{node.leaf\_agents}$ en orden de `agent_id`. Para cada una toma `child_id = self.next_agent_id` (y hace `self.next_agent_id += 1`), crea la hoja hija $\ell'$ con `ell.create_offspring(child_id, tick, evo_rng)` y le entrega su herencia cultural antes de pasar a la hoja siguiente. Recién con todos los hijos creados llama a `reproduce_holon(node, offspring, ...)`, que sólo replica el árbol. Cada hoja hija ubicada en el entorno con `env.spawn_agent_near(ell'.agent_id, ell.agent_id, evo_rng, ell'.genome.perception_radius, ell'.genome.comm_radius)`, se añade `ell.agent_id` (y `ell'.agent_id`) a `reproduced_this_tick`, y se replica la topología arbórea en un nuevo `CompositeAgent` raíz $U_{\text{hijo}}$.
-  - **Caso 2: Reproducción individual de hojas (`MicroAgent`, $R_{12}$):**
+  - **Caso 2: Reproducción individual de hojas (`MicroAgent`, $R_{12}$), con `reproduction_mode="energy"`:**
     - Para cada `aid` en `sorted(self.agents)` que **no** pertenezca a `reproduced_this_tick`, si `agent.energy >= config.reproduction_threshold` y `len(self.agents) < config.max_population`:
       - Engendra un `MicroAgent` hijo con `child_id = self.next_agent_id` (`self.next_agent_id += 1`), lo ubica con `env.spawn_agent_near(child.agent_id, aid, evo_rng, child.genome.perception_radius, child.genome.comm_radius)`, lo registra como nodo raíz de nivel 0 en `self.root_nodes` y añade `aid` y `child.agent_id` a `reproduced_this_tick`.
+
+  - **Caso 3: Reproducción neutral (`reproduction_mode="neutral"`, ablación de $R_{12}$ y control de deriva de C6).** Conserva la tasa de nacimientos pero quita su dependencia de la energía. Se cuenta $n_b$, la cantidad de agentes que se reproducirían en el Caso 2 en este tick (no reproducidos, con `energy >= reproduction_threshold`, respetando el cupo). Después se eligen $n_b$ progenitores con `evo_rng.choice(candidatos, size=n_b, replace=False)` sobre la lista ordenada de todos los agentes no reproducidos en el tick, y cada uno engendra con la misma partición de energía del Caso 2. La reproducción holónica ($R_{17}$) no cambia.
 
 ### Decisión 27: Inserción Espacial Exacta, Recursos Compuestos y Estigmergia ($R_{19}$) en `ToroidalGrid2D`
 1. **Algoritmo Exacto de `spawn_agent_near`:**
@@ -347,11 +355,11 @@ En la Fase 5, cuando `config.enable_evolution` es `True`:
      - Se guarda `self._composite_rules[comp_pat] = CompositeRule(req, val)` y se generan `config.composite_resources_per_pattern` instancias de `Resource(resource_id, comp_pat, val)` en celdas sorteadas con `self._comp_rng` (y cuando se consumen, se encolan en `self._pending_composite` y se reponen en `step_dynamics` usando `self._comp_rng`).
    - **Semántica exacta de interacción en Fase 4:**
      - Cuando `aid` ejecuta `INTERACT` sobre un recurso en su celda cuyo patrón `comp_pat` pertenece a `env.get_composite_rules()`:
-       - `env.execute_action` consume el recurso físico (y lo encola en `_pending_composite` para reposición en `step_dynamics`) devolviendo `ActionResult(ActionType.INTERACT, comp_pat, rule.composite_value)`.
+       - `env.execute_action` consume el recurso físico (y lo encola en `_pending_composite` para reposición en `step_dynamics`) devolviendo `ActionResult(ActionType.INTERACT, comp_pat, rule.composite_value)`. El agente nunca ve ese valor.
        - En Fase 4, el motor intercepta `result.interacted_pattern in composite_rules`:
-         - Sea $\mathcal{K}_{\text{eff}}$ el conjunto de patrones $\rho$ para los que alguna hoja $\ell$ en alcance local de `aid` dentro de su nodo raíz $U$ (o sólo `aid`, si no pertenece a un holón) tiene `ell.own_belief(ρ)` con `predicted_value > 0` y `confidence >= decision_conf_threshold`. `own_belief` incluye el caché efímero propio, así que cuenta lo que cada hoja obtuvo de sus vecinos en ese tick, igual que en la Fase 3. El motor verifica si `rule.evaluate(K_eff) is not None`.
-         - **Si tiene éxito:** incrementa `self.composite_completions += 1`; si $U$ es `CompositeAgent`, incrementa `U.cooperative_completions += 1` y reinicia `U.ticks_without_surplus = 0`; y si `enable_evolution=True`, reparte la ganancia energética `config.energy_gain_scale * rule.composite_value` en partes iguales entre las hojas localmente conectadas de $U$. (No se inserta `comp_pat` en `BoundedMemory` individual ni se añade `aid` a `self.direct_discoverers`, ya que `direct_discoverers` rastrea exclusivamente patrones elementales `p_0 .. p_{P-1}`).
-         - **Si fracasa:** si `enable_evolution=True`, el agente `aid` experimenta $r_i = -$`config.composite_failure_penalty`, que según la fórmula de D21 le cuesta `config.energy_gain_scale * config.composite_failure_penalty` de energía (la misma escala $\eta_E$ que las ganancias), y no registra éxito compuesto.
+         - Sea $\mathcal{K}_{\text{eff}}$ el conjunto de patrones $\rho$ para los que alguna hoja $\ell$ en alcance local de `aid` dentro de su nodo raíz $U$ (o sólo `aid`, si no pertenece a un holón) tiene `ell.own_belief(ρ)` con `predicted_value > 0` y `confidence >= decision_conf_threshold`. `own_belief` incluye el caché efímero propio, así que cuenta lo que cada hoja obtuvo de sus vecinos en ese tick. La resolución usa los conocimientos de las hojas aunque $R_{22}$ esté apagada: es física declarada del entorno ("el recurso se libera si el grupo local conoce los fragmentos"), no un canal de conocimiento hacia el agente. El motor verifica si `rule.evaluate(K_eff) is not None`.
+         - **Si tiene éxito:** el agente aprende `learn_from_experience(comp_pat, +1.0, tick)`. Además, se incrementa `self.composite_completions`; si $U$ es `CompositeAgent`, se incrementa `U.cooperative_completions` y se reinicia `U.ticks_without_surplus = 0`. Si `enable_evolution=True`, la ganancia energética `config.energy_gain_scale * rule.composite_value` se reparte en partes iguales entre las hojas en alcance local de $U$ ($R_{23}$); con `holon_energy_sharing=False`, o fuera de un holón, va entera a `aid`. `aid` no se agrega a `self.direct_discoverers`, que rastrea sólo patrones elementales, y no se deposita rastro estigmérgico.
+         - **Si fracasa:** el agente aprende `learn_from_experience(comp_pat, -config.composite_failure_penalty, tick)`. Si `enable_evolution=True`, ese valor experimentado le cuesta `config.energy_gain_scale * config.composite_failure_penalty` de energía según la fórmula de D21. No registra éxito compuesto.
 3. **Estigmergia Espacial ($R_{19}$) y Conversión Exacta a `KnowledgeUnit`:**
    - `ToroidalGrid2D` mantiene `self.cell_stigmergy: dict[Cell, dict[Pattern, StigmergicTrace]]`.
    - En Fase 4, tras una experiencia directa con un patrón elemental $\rho$ de valor real $v$, si `config.enable_stigmergy=True` y `config.stigmergy_deposit_rate > 0`, el motor invoca `env.deposit_stigmergy(aid, pattern, value, confidence, tick)` que deposita en la celda actual del agente un `StigmergicTrace(pattern, float(np.sign(value)), min(1.0, config.stigmergy_deposit_rate * confidence), tick)`. Si la celda ya tiene un rastro de ese patrón con `last_updated_tick < tick`, el depósito nuevo lo **reemplaza** (la experiencia más reciente prevalece y refresca el decaimiento). Si el rastro existente es del mismo tick, se conserva el de mayor `(intensity, sign_value)`, de modo que dos depósitos del mismo tick dan el mismo resultado en cualquier orden de la permutación de la Fase 4. `confidence` es la de la creencia del agente tras `learn_from_experience`.
@@ -373,20 +381,23 @@ class EvolutionaryTickMetrics:
     births_this_tick: int  # M8
     deaths_this_tick: int  # M8
     mean_energy: float  # M8
-    inherited_coverage_ratio: float  # M9
+    offspring_social_ratio: float  # M9 (descriptiva: incluye testimonios horizontales)
     holon_count_by_level: tuple[tuple[int, int], ...]  # M10: pares (L, conteo) para L >= 1, ordenados por L
     max_holon_level: int  # M10
     mean_holon_size: float  # M10 (0.0 si no hay holones L >= 1)
     holonic_coverage_gain: float  # M11 (1.0 si no hay holones L >= 1)
     composite_completions: int  # M12 (acumulado de recursos compuestos resueltos)
+    intra_holon_redundancy: float | None  # M13 (None si ningún holón raíz tiene creencias válidas)
+    shuffled_holon_redundancy: float | None  # M13, control de pertenencia barajada
     stigmergy_active_cells: int
 ```
 
 **Fórmulas exactas para casos borde en `EvolutionaryMetricsCollector`:**
 - **`mean_generation`, `max_generation`, `mean_energy` (M8):** Si `active_agents == 0`, valen `0.0`, `0` y `0.0` respectivamente.
-- **`inherited_coverage_ratio` (M9):** Sobre los agentes activos con `generation >= 1`, sea $V_{\text{total}}$ el número total de creencias válidas en `BoundedMemory` y $V_{\text{social}}$ aquellas con `from_direct_experience == False`. Si $V_{\text{total}} == 0$, vale `0.0`; de lo contrario, `V_social / V_total`.
+- **`offspring_social_ratio` (M9):** Sobre los agentes activos con `generation >= 1`, sea $V_{\text{total}}$ el número total de creencias válidas en `BoundedMemory` y $V_{\text{social}}$ aquellas con `from_direct_experience == False`. Si $V_{\text{total}} == 0$, vale `0.0`; de lo contrario, `V_social / V_total`. Es **descriptiva**: cuenta también los testimonios horizontales, así que no mide sola la herencia. La contribución de la herencia se mide comparando contra la ablación de $R_{14}$ en 002-B (`social_ratio_gain` del reporte).
 - **`holon_count_by_level`, `max_holon_level`, `mean_holon_size` (M10):** Recorriendo todos los nodos `CompositeAgent` activos ($L \ge 1$) del bosque holónico, cuenta cuántos hay en cada nivel $L$ (como tupla de pares `(L, conteo)` ordenada por $L$, para que el dataclass congelado sea realmente inmutable y hasheable), el máximo $L$ (o `0` si no hay `CompositeAgent`) y el tamaño medio en hojas $|\text{leaf\_agents}|$ de los `CompositeAgent` raíz (o `0.0` si no hay ninguno).
 - **`holonic_coverage_gain` (M11):** Para cada `CompositeAgent` raíz $U$, sea $|\mathcal{K}(U)|$ la cantidad de patrones válidos en `U.collective_memory()` y sea $\overline{|\mathcal{K}_{\text{leaf}}(U)|}$ el promedio de patrones válidos en la memoria individual de sus hojas. La razón de ganancia de $U$ es $|\mathcal{K}(U)| / \overline{|\mathcal{K}_{\text{leaf}}(U)|}$ si $\overline{|\mathcal{K}_{\text{leaf}}(U)|} > 0$, o `1.0` en caso contrario. `holonic_coverage_gain` es la media sobre todos los `CompositeAgent` raíz activos (o `1.0` si no existe ninguno).
+- **`intra_holon_redundancy` y `shuffled_holon_redundancy` (M13, métrica de C8):** Para cada `CompositeAgent` raíz $U$, sea $K(\ell)$ el conjunto de patrones de la memoria de la hoja $\ell$ con `confidence >= decision_conf_threshold`, $S(U) = \sum_{\ell} |K(\ell)|$ y $\text{red}(U) = (S(U) - |\bigcup_{\ell} K(\ell)|) / S(U)$, que vale 0 si las memorias son disjuntas y crece con la duplicación. `intra_holon_redundancy` es la media de $\text{red}(U)$ sobre los holones raíz con $S(U) > 0$ (o `None` si no hay ninguno). El **control de pertenencia barajada** toma, en el mismo tick, las hojas de todos los holones raíz (en orden de `agent_id`), las permuta con `shuffle_rng.permutation` y las reparte en grupos con los mismos tamaños que los holones (en orden de `node_id`). `shuffled_holon_redundancy` es la misma media sobre esos grupos. El control mide cuánta redundancia habría si los grupos fueran arbitrarios; se calcula sólo para medir y no cambia la dinámica.
 - **`cultural_convergence_tick` y `tabula_rasa_convergence_tick` en `CulturalInheritanceReport` (`002-B`):** Se define exactamente como el menor `m.tick` en `engine.history` tal que `m.decision_opportunities > 0` y `m.cumulative_decision_accuracy >= 0.70` (o `None` si ningún tick de la corrida alcanza ese umbral).
 
 En `src/ide/experiments/exp002_runner.py` se definen los reportes inmutables:
@@ -398,7 +409,11 @@ class AdaptationReport:
     total_ticks: int
     evolved_accuracy: float
     frozen_genome_accuracy: float
+    drift_accuracy: float  # reproduction_mode="neutral" con mutación (control de deriva)
     adaptation_gain: float  # evolved_accuracy - frozen_genome_accuracy
+    selection_gain: float  # evolved_accuracy - drift_accuracy
+    final_mean_memory_capacity: float  # exploratorio: qué rasgos evolucionan
+    final_mean_bond_affinity: float  # exploratorio
     evolved_max_generation: int
     evolved_mean_energy: float
     total_births: int
@@ -411,7 +426,9 @@ class CulturalInheritanceReport:
     cultural_accuracy: float
     tabula_rasa_accuracy: float
     cultural_accuracy_surplus: float  # cultural_accuracy - tabula_rasa_accuracy
-    final_inherited_coverage_ratio: float
+    final_offspring_social_ratio: float
+    final_offspring_social_ratio_tabula_rasa: float
+    social_ratio_gain: float  # final_offspring_social_ratio - final_offspring_social_ratio_tabula_rasa
     cultural_convergence_tick: int | None
     tabula_rasa_convergence_tick: int | None
 ```
@@ -433,46 +450,74 @@ class HolonicTransitionReport:
     peak_holonic_coverage_gain: float
 
 @dataclass(frozen=True)
-class MultilevelScalingReport:
+class OrthogonalizationReport:
     seed: int
     total_ticks: int
-    downward_causation_coverage_gain: float
-    unmodulated_coverage_gain: float
-    orthogonalization_advantage: float  # downward_causation_coverage_gain - unmodulated_coverage_gain
+    mean_intra_holon_redundancy: float  # media de M13 sobre los ticks con valor; R18 apagada
+    mean_shuffled_redundancy: float  # misma media para el control barajado
+    orthogonalization_advantage: float  # mean_shuffled_redundancy - mean_intra_holon_redundancy
+    ticks_with_holons: int  # ticks con intra_holon_redundancy distinto de None; si es 0, las dos medias valen 0.0 (empate)
     max_holon_level: int
     level_counts_peak: tuple[tuple[int, int], ...]  # pares (L, conteo) ordenados por L
 ```
 
-### Decisión 29: Extensión del Marco de Atribución (`R12`–`R19` y `C5`–`C8`) y Semántica de Variantes E2/E4 en Fase II
+**Funciones de los runners** (cada una corre sus condiciones con la misma semilla y devuelve su reporte):
+- `run_protocol_002a_adaptation(config, total_ticks) -> AdaptationReport`: `evolved` = `config`, `frozen_genome` = `ablate(config, ["R13"])`, `drift` = `ablate(config, ["R12"])`.
+- `run_protocol_002b_cultural_inheritance(config, total_ticks) -> CulturalInheritanceReport`: `cultural` = `config`, `tabula_rasa` = `ablate(config, ["R14"])`.
+- `run_protocol_003a_holonic_transition(config, total_ticks) -> HolonicTransitionReport`: `holonic` = `config`, `individual` = `ablate(config, ["R15"])`.
+- `run_protocol_003b_orthogonalization(config, total_ticks) -> OrthogonalizationReport`: una sola corrida de `config` (con `R18` apagada); el control barajado sale de la misma corrida.
+
+Las precisiones (`*_accuracy`) son la `cumulative_decision_accuracy` del último tick (M2, sólo recursos elementales).
+
+### Decisión 29: Pre-Registro de la Fase II: Reglas `R12`–`R23`, Afirmaciones `C5`–`C8`, Variantes y Perfil
+Esta decisión es **pre-registro** (decisión P3, resuelta). Se versiona antes de implementar los runners y de mirar resultados, y cambiarla después exige un commit que lo justifique.
+
 En `src/ide/experiments/attribution.py`:
-- `DESIGN_RULES` permanece intacto con las 11 reglas `R1`..`R11` para preservar todos los tests de `tests/test_attribution.py`.
-- Se define `PHASE2_DESIGN_RULES: tuple[DesignRule, ...]`. Cada `DesignRule` lleva sus cuatro campos (`rule_id`, `name`, `purpose`, `ablation`); `test_attribution.py` exige `purpose` no vacío:
+- `DESIGN_RULES` permanece intacto con las 11 reglas `R1`..`R11`, para preservar los tests de `tests/test_attribution.py`.
+- Se define `PHASE2_DESIGN_RULES: tuple[DesignRule, ...]`. Cada `DesignRule` lleva sus cuatro campos (`rule_id`, `name`, `purpose`, `ablation`); `test_attribution.py` exige `purpose` no vacío. `ablation = ()` marca una regla nuclear, como `R1` y `R2` en Fase I:
 
 | Regla | `name` | `purpose` (capacidad que se diseñó para producir) | `ablation` |
 | :--- | :--- | :--- | :--- |
-| `R12` | Reproducción diferencial por umbral energético | Que los agentes con más energía dejen más descendencia (selección). | `(("reproduction_threshold", 1e9),)` |
+| `R12` | Reproducción diferencial por energía | Que los agentes con más energía dejen más descendencia (selección). | `(("reproduction_mode", "neutral"),)`: misma tasa de nacimientos, progenitor al azar (D26, caso 3). Es también el control de deriva de C6. |
 | `R13` | Mutación genética acotada | Variación heredable sobre la que actúa la selección. | `(("mutation_rate", 0.0), ("discrete_mutation_prob", 0.0))` |
 | `R14` | Herencia cultural vertical | Transmitir conocimiento de padres a hijos. | `(("enable_cultural_inheritance", False), ("inheritance_discount", 0.0))` |
-| `R15` | Fusión holónica (BOND) | Asociar nodos complementarios en unidades de nivel superior. | `(("enable_holonic_hierarchy", False),)` |
+| `R15` | Fusión holónica (BOND) | Asociar nodos complementarios en unidades de nivel superior. | `(("enable_holonic_hierarchy", False),)`. Apagarla deja inertes `R16`, `R17`, `R18`, `R22` y `R23`. |
 | `R16` | Fisión holónica (SPLIT) | Disolver holones sin superávit. | `(("enable_holon_splitting", False),)` |
 | `R17` | Reproducción de holón completo | Transmitir la estructura simbiótica a la descendencia. | `(("enable_holon_reproduction", False),)` |
 | `R18` | Causalidad descendente intra-holón | Reducir la redundancia de memoria entre hojas de un holón (ortogonalización). | `(("enable_downward_causation", False), ("redundancy_penalty", 1.0))` |
 | `R19` | Estigmergia | Externalizar conocimiento en el entorno. | `(("enable_stigmergy", False), ("stigmergy_deposit_rate", 0.0))` |
+| `R20` | Física metabólica | Vida y muerte por energía: costo basal fijo, de movimiento y de emisión, muerte con $E \le 0$ y capacidad de carga. Sin ella no hay selección. | `()` (nuclear) |
+| `R21` | Costo cuadrático de cerebro y sentidos | Encarecer la hipertrofia individual ($C_{\max}^2$, radios²). Sesga a favor de cooperar; se declara como sesgo. | `(("memory_capacity_cost", 0.0), ("sensory_radius_cost", 0.0))` |
+| `R22` | Vista compartida del holón | Dar a cada hoja acceso efímero al conocimiento de las hojas cercanas de su holón (D25). | `(("enable_holon_view", False),)` |
+| `R23` | Coordinación y reparto energético del holón | Que pertenecer a un holón tenga un costo y un beneficio energético compartido. | `(("holon_coord_cost", 0.0), ("holon_energy_sharing", False))` |
 
-  > **Pendiente de aprobación (decisión abierta P3).** El inventario de reglas, las afirmaciones C5–C8 y sus variantes de comparación son **pre-registro**. Lo que sigue es la propuesta original. Hay que revisarla antes de versionarla, porque en su forma actual C7 y C8 pueden quedar clasificadas como emergentes cuando una regla diseñada las persigue. Las opciones están en el reporte de revisión. Tampoco hay todavía reglas para mecanismos diseñados como el metabolismo y la muerte, el costo de coordinación, el pozo de energía compartido y la vista compartida del holón (P1).
-- Se define `ALL_DESIGN_RULES: tuple[DesignRule, ...] = DESIGN_RULES + PHASE2_DESIGN_RULES`, y `ablate()` busca en `_ALL_RULES_BY_ID = {r.rule_id: r for r in ALL_DESIGN_RULES}`.
-- **Regla de compatibilidad con `test_001d_con_pocas_semillas` y semántica de `isolated`/`null_content`:**
-  - La firma actual es `run_protocol_001d_attribution(config, seeds, claims=EXP001_CLAIMS, jobs=1)` y devuelve `AttributionReport(..., DESIGN_RULES, ...)` fijo. Se extiende a `run_protocol_001d_attribution(config, seeds, claims=EXP001_CLAIMS, jobs=1, rules=None)`. Si `rules is None`, se selecciona `DESIGN_RULES` cuando todas las afirmaciones pertenecen a `EXP001_CLAIMS`, y `ALL_DESIGN_RULES` cuando se evalúan afirmaciones de Fase II. `AttributionReport.rules` es la tupla seleccionada. Así se siguen cumpliendo exactamente `report.rules == DESIGN_RULES` y `list(evaluation.rule_effects) == [f"R{i}" for i in range(3, 12)]` en los tests de Fase I.
-  - Para las afirmaciones de Fase I (`C1`–`C4`), `_variants` mantiene exactamente `isolated = replace(config, comm_enabled=False)` y `null_content = replace(config, comm_content_null=True)`.
-  - Para las afirmaciones de Fase II (`C5`–`C8`), `isolated` desactiva además los canales colectivos de Fase II (`comm_enabled=False`, `enable_cultural_inheritance=False`, `enable_holonic_hierarchy=False`, `enable_stigmergy=False`) y `null_content` (`comm_content_null=True`) aplica `nullify_belief(..., self.null_rng)` tanto al ruteo horizontal como a la herencia cultural vertical ($R_{14}$), la estigmergia ($R_{19}$) y la compartición holónica ($R_{15}$).
-- Se pre-registran las afirmaciones de Fase II:
-  - `EXP002_CLAIMS: tuple[EmergenceClaim, ...]`:
-    - `C5`: `EmergenceClaim("C5", "Aceleración cultural intergeneracional", "002b", "cultural_accuracy", True, ("R14",))`
-    - `C6`: `EmergenceClaim("C6", "Adaptación evolutiva de linajes", "002a", "evolved_accuracy", True, ("R12", "R13"))`
-  - `EXP003_CLAIMS: tuple[EmergenceClaim, ...]`:
-    - `C7`: `EmergenceClaim("C7", "Superávit cooperativo sobre recursos compuestos", "003a", "holonic_composite_completions", True, ("R15", "R17"))`
-    - `C8`: `EmergenceClaim("C8", "Ortogonalización intra-holón", "003b", "downward_causation_coverage_gain", True, ("R18",))`
-- Se extiende `_protocol_result` en `attribution.py` para soportar los protocolos `"002a"`, `"002b"`, `"003a"` y `"003b"` usando `total_ticks = profile.total_ticks`.
+  **Física del entorno sin regla:** cómo paga un recurso compuesto (éxito si el grupo local conoce los fragmentos, fracaso si no, D27). Es una propiedad del entorno diseñado, como `true_value`; el agente no la recibe, la aprende.
+- `ALL_DESIGN_RULES: tuple[DesignRule, ...] = DESIGN_RULES + PHASE2_DESIGN_RULES`, y `ablate()` busca en `_ALL_RULES_BY_ID = {r.rule_id: r for r in ALL_DESIGN_RULES}`.
+- **Afirmaciones de Fase II.** `EmergenceClaim` no cambia. Cada afirmación declara además su **canal**: las reglas sin las cuales el mecanismo que se pone a prueba no existe. El canal se guarda en `PHASE2_CLAIM_CHANNELS: dict[str, tuple[str, ...]]`:
+
+| Afirmación | `EmergenceClaim(...)` | Canal | Variante `isolated` | Clasificación esperable |
+| :--- | :--- | :--- | :--- | :--- |
+| `C5` | `("C5", "Aceleración cultural intergeneracional", "002b", "cultural_accuracy", True, ("R14",))` | `("R14",)` | `ablate(config, ["R14"])`: sin herencia, con comunicación horizontal | Programada por construcción. |
+| `C6` | `("C6", "Adaptación evolutiva por selección", "002a", "evolved_accuracy", True, ("R12", "R13"))` | `("R12",)` | `ablate(config, ["R12"])`: el control de deriva | Programada por construcción: adaptarse por selección es el propósito de R12 y R13. Qué rasgos evolucionan (`final_mean_memory_capacity`, `final_mean_bond_affinity`) se registra como **observación exploratoria**, no como afirmación. |
+| `C7` | `("C7", "Superávit cooperativo sobre recursos compuestos", "003a", "holonic_composite_completions", True, ("R15", "R17"))` | `("R15",)` | `ablate(config, ["R15"])`: sin holones, con comunicación | Programada por construcción: el entorno impide por diseño que un individuo con $C_{\max} < m$ y sin ayuda resuelva el recurso. |
+| `C8` | `("C8", "Ortogonalización sin causalidad descendente", "003b", "mean_intra_holon_redundancy", False, ())` | `()` | El **control de pertenencia barajada** de la misma corrida (`mean_shuffled_redundancy`, D28) | Abierta: ninguna regla la persigue (la condición base lleva `R18` apagada). Es la única afirmación de Fase II con prueba genuina. |
+
+- **Criterio "por construcción" ampliado.** Para las afirmaciones de Fase I, `is_by_construction` no cambia (quitar $R_C$ deja a la población sin comunicación). Para las de Fase II, una afirmación es por construcción si su canal no es vacío y está contenido en $R_C$: quitar $R_C$ elimina el mecanismo que se pone a prueba, y E3 sería una tautología. Con este criterio, C5, C6 y C7 salen por construcción y C8 no.
+- **Variantes de Fase II** (`_variants`):
+  - `isolated`: la indicada en la tabla. Para C8, el valor de `isolated` de cada semilla es `mean_shuffled_redundancy` de la corrida `full` de esa semilla (variante pareada, sin corrida aparte).
+  - `purpose_ablated`: `ablate(config, R_C)`, sólo si $R_C$ no es vacío y la afirmación no es por construcción.
+  - `null_content`: `replace(config, comm_content_null=True)`. Con él, el motor aplica `nullify_belief` al ruteo horizontal, a la herencia cultural ($R_{14}$), a la estigmergia ($R_{19}$) y a la vista del holón ($R_{22}$).
+  - `rule_effects`: una variante sin cada regla ablacionable de `ALL_DESIGN_RULES`.
+- **Compatibilidad con Fase I.** `run_protocol_001d_attribution(config, seeds, claims=EXP001_CLAIMS, jobs=1, rules=None)`: si `rules is None`, usa `DESIGN_RULES` cuando todas las afirmaciones son de `EXP001_CLAIMS` y `ALL_DESIGN_RULES` en otro caso. `AttributionReport.rules` es la tupla usada. Así siguen valiendo exactamente `report.rules == DESIGN_RULES` y `list(evaluation.rule_effects) == [f"R{i}" for i in range(3, 12)]` en los tests de Fase I. Para C1–C4, `_variants` no cambia.
+- **Perfil pre-registrado de la Fase II:**
+  - `PHASE2_ATTRIBUTION_PROFILE = "phase2"`, con `PROFILES["phase2"] = Profile(total_ticks=2000, injection_tick=80, warmup_ticks=150, post_ablation_ticks=100)`. Sólo `total_ticks` se usa en los protocolos 002 y 003.
+  - `PHASE2_SEEDS = tuple(range(42, 52))`: 10 semillas. La prueba de signo unilateral puede llegar a $p = 1/1024$.
+  - `PHASE2_PROTOCOL_CONFIGS: dict[str, SimulationConfig]`, sobre los valores por defecto de `SimulationConfig`:
+    - `"002a"`: `enable_evolution=True`.
+    - `"002b"`: `enable_evolution=True`, `enable_cultural_inheritance=True`.
+    - `"003a"` y `"003b"`: `enable_evolution=True`, `enable_holonic_hierarchy=True`, `enable_holon_reproduction=True`, `num_composite_patterns=3`, `composite_order=4` (> `memory_capacity = 3`). En `"003b"`, `enable_downward_causation=False` es parte de la condición base de C8.
+  - Ningún parámetro de este perfil se cambia a la vista de los resultados. Si la población se extingue o no llega a varias generaciones, eso se reporta como resultado. Antes de implementar los runners se corre una prueba de humo que sólo comprueba que la corrida termina y registra la generación máxima, **sin calcular ni mirar las métricas de las afirmaciones**.
+- `_protocol_result` se extiende a los protocolos `"002a"`, `"002b"`, `"003a"` y `"003b"`, con `total_ticks = profile.total_ticks`.
 
 ---
 

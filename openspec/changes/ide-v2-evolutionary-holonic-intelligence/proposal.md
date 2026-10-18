@@ -22,13 +22,14 @@ Para investigar si una inteligencia distribuida abierta (*open-ended evolution*)
 - **Arquitectura Holónica y Jerarquía Recursiva Ilimitada ($L = 0, 1, 2, \dots, K$):**
   - **Protocolo `AgentNode` y clase `CompositeAgent` (Patrón *Composite*):** Tanto `MicroAgent` ($L=0$) como `CompositeAgent` ($L \ge 1$) implementan `AgentNode`. Un `CompositeAgent` agrupa un conjunto arbitrario de nodos hijos (`MicroAgent` o `CompositeAgent` de niveles inferiores), definiendo recursivamente su nivel $L(U) = 1 + \max_{c \in \text{children}(U)} L(c)$, su masa $|U| = \sum_c |c|$ y su memoria colectiva $\mathcal{M}_{\text{holon}}(U) = \bigcup_{\ell \in \text{leaves}(U)} \mathcal{M}_\ell$ sin límite de profundidad jerárquica.
   - **Fusión Simbiótica `BOND` ($R_{15}$) y Fisión `SPLIT` ($R_{16}$):** Operadores dinámicos en la Fase 5 del motor que ensamblan pares de nodos co-localizados cuya complementariedad epistémica de Jaccard y propensión $\omega_{\text{bond}}$ superan el umbral $\theta_{\text{sinergia}}$, y disuelven holones cuyo costo metabólico de coordinación $c_{\text{coord}}(U) = c_{\text{enlace}} \cdot |U| \cdot L(U)$ excede su superávit cooperativo o cuya energía agregada cae por debajo del umbral de viabilidad.
+- **Mecanismos declarados además (design D29):** física metabólica nuclear ($R_{20}$), costo cuadrático de cerebro y sentidos ($R_{21}$), vista compartida del holón ($R_{22}$) y coordinación y reparto energético del holón ($R_{23}$).
 - **Pilares de la Síntesis Evolutiva Extendida:**
   - **Endosimbiosis Reproductiva Holónica ($R_{17}$, Margulis):** Reproducción directa de un `CompositeAgent` exitoso ($E_{\text{holon}}(U) \ge |U| \cdot E_{\text{reprod}}$) como unidad simbiótica ya ensamblada (`reproduce_holon`), clonando con mutación cada hoja y replicando la topología arbórea en un holón hijo $U_{\text{hijo}}$.
   - **Causalidad Descendente y Particionamiento Epigenético Intra-Holón ($R_{18}$, Noble):** Modulación descendente de la función de utilidad de memoria $U(k, t)$ de las hojas de un holón mediante el factor multiplicativo de redundancia $\psi_{\text{red}} \in (0, 1]$ cuando otro miembro del holón en alcance local ya posee el patrón $\rho$ con mayor confianza. Esta regla está **diseñada para ortogonalizar** las memorias ($\mathcal{M}_i \cap \mathcal{M}_j \to \emptyset$). Por eso la ortogonalización que produzca es, por definición, programada, no espontánea.
   - **Construcción de Nicho y Estigmergia Espacial ($R_{19}$):** Depósito y lectura de rastros epistémicos `StigmergicTrace` en las celdas de `ToroidalGrid2D` con decaimiento ambiental $\delta_{\text{suelo}}$ por tick.
 - **Recursos Compuestos Graduados y Nuevos Protocolos Experimentales (002 y 003):**
   - Recursos compuestos (`CompositeRule`, que ya existe como contrato en `domain/extensions.py`) de orden $m \in \{2, 3, \dots\}$ que exigen que el nodo consumidor (individuo u holón) conozca simultáneamente los $m$ patrones constituyentes para liberar un retorno energético superlineal $m^{\kappa_{\text{comp}}}$ (escalado por $\eta_E$), proveyendo la presión selectiva ecológica para escalar a niveles $L=1, 2, \dots, K$.
-  - Nuevas métricas poblacionales y multinivel `M8` a `M12` en `EvolutionaryTickMetrics`, extensión del catálogo de atribución a `R12`–`R19` y afirmaciones `C5`–`C8`, y runners reproducibles `exp002_runner.py` y `exp003_runner.py`.
+  - Nuevas métricas poblacionales y multinivel `M8` a `M13` en `EvolutionaryTickMetrics`, extensión del catálogo de atribución a `R12`–`R23` y afirmaciones `C5`–`C8`, y runners reproducibles `exp002_runner.py` y `exp003_runner.py`.
 - **Compatibilidad Regresiva Absoluta con Fase I:**
   - Todas las banderas de activación de Fase II tienen valor por defecto `False` y `num_composite_patterns = 0` en `SimulationConfig` (`enable_holon_splitting` vale `True`, pero sólo modula a `enable_holonic_hierarchy`). Con esos valores, el motor, la grilla, los tipos de dominio, `TickMetrics` y el generador `rng` se comportan bit a bit igual que en la Fase I, preservando los 397 tests existentes y los hashes SHA-256 dorados.
 
@@ -45,14 +46,23 @@ Para investigar si una inteligencia distribuida abierta (*open-ended evolution*)
 - `micro-agent`: Implementación del protocolo `AgentNode` ($L=0$), estado energético y de linaje (`energy`, `generation`, `parent_id`, `genome`), consumo de parámetros desde `genome` cuando la evolución está activa, método `create_offspring` (energía y genoma; la herencia cultural la entrega el motor por `assimilate_testimony`) y separación entre `own_belief` y la creencia efectiva (requisito `MODIFIED`).
 - `spatial-environments`: Implementación de `EvolutionaryEnvironmentPort` en `ToroidalGrid2D` con soporte para inserción de descendientes (`spawn_agent_near`), recursos compuestos (`CompositeRule` de orden $m \ge 2$) y rastros estigmérgicos por celda (`StigmergicTrace`, $R_{19}$).
 - `simulation-engine`: Extensión de la Fase 4 (resolución cooperativa de recursos compuestos por holones y depósito estigmérgico) y Fase 5 (metabolismo, causalidad descendente, `BOND`, `SPLIT`, muerte y reproducción individual/holónica usando `evo_rng` dedicado).
-- `experimental-suite`: Nuevas métricas `M8` a `M12` en `EvolutionaryTickMetrics`, runners `exp002_runner.py` (Protocolos `002-A` y `002-B`) y `exp003_runner.py` (Protocolos `003-A` y `003-B`).
-- `emergence-attribution`: Extensión del pre-registro con `PHASE2_DESIGN_RULES` (`R12`–`R19`), `ALL_DESIGN_RULES` y las afirmaciones de emergencia evolutiva y holónica `C5`–`C8` (`EXP002_CLAIMS` y `EXP003_CLAIMS`).
+- `experimental-suite`: Nuevas métricas `M8` a `M13` en `EvolutionaryTickMetrics`, runners `exp002_runner.py` (Protocolos `002-A` y `002-B`) y `exp003_runner.py` (Protocolos `003-A` y `003-B`).
+- `emergence-attribution`: Extensión del pre-registro con `PHASE2_DESIGN_RULES` (`R12`–`R23`), `ALL_DESIGN_RULES`, `PHASE2_CLAIM_CHANNELS`, el perfil `phase2` y las afirmaciones evolutivas y holónicas `C5`–`C8` (`EXP002_CLAIMS` y `EXP003_CLAIMS`).
 
-## Decisiones abiertas (bloquean la implementación de los bloques afectados)
+## Decisiones tomadas (2026-10-18)
 
-- **P1, canal de conocimiento del holón:** cómo comparten conocimiento las hojas de un holón sin violar que el conocimiento social entra sólo por `assimilate_testimony`: (a) un canal efímero declarado, con regla y ablación propias, o (b) mensajes ordinarios entre miembros (design D25). Bloquea los bloques 3 y 5.
-- **P2, conocimiento de recursos compuestos:** si (a) el motor inyecta el patrón compuesto "desbloqueado" (oráculo parcial) o (b) el agente lo aprende por experiencia (design D25 y D27). Bloquea los bloques 4 y 5.
-- **P3, pre-registro de Fase II:** las reglas responsables de C5–C8, las variantes de comparación, el control de deriva neutral para C6, las reglas que faltan para mecanismos diseñados y el perfil de corrida (design D29). Bloquea el bloque 6, y debe commitearse antes de mirar cualquier resultado.
+- **P1, canal de conocimiento del holón → (a):** vista compartida efímera, declarada como única excepción a la regla de que el conocimiento social entra por `assimilate_testimony`, con regla propia y ablación ($R_{22}$, `enable_holon_view`). Design D25.
+- **P2, conocimiento de recursos compuestos → (b):** el agente aprende el valor de cada patrón compuesto por experiencia, como cualquier otro patrón. El motor no le inyecta nada. Design D25 y D27.
+- **P3, pre-registro de la Fase II:** design D29.
+  - **Reglas.** Inventario `R12`–`R23`:
+    - `R12` se ablaciona con reproducción neutral, que es también el control de deriva.
+    - Reglas nuevas: `R20`, física metabólica nuclear; `R21`, costo cuadrático; `R22`, vista del holón; `R23`, coordinación y reparto energético.
+  - **Afirmaciones.**
+    - C5, C6 y C7 se declaran programadas por construcción, con un criterio ampliado: el canal de la afirmación está entre sus reglas responsables.
+    - C8 pasa a ser "ortogonalización **sin** causalidad descendente", medida contra un control de pertenencia barajada; es la única afirmación de Fase II con prueba genuina.
+    - Qué rasgos evolucionan se registra como observación exploratoria.
+  - **Perfil.** 10 semillas (42–51), 2000 ticks y configuraciones por protocolo congeladas.
+  - **Métricas.** M9 pasa a ser descriptiva (proporción social de los descendientes), y la contribución de la herencia se mide contra la ablación de `R14`. Se agrega M13 (redundancia intra-holón y su control barajado).
 
 ## Impact
 

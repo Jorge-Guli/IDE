@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Implementación del Protocolo AgentNode de Nivel Cero y Estado de Linaje
-`MicroAgent` SHALL conservar sus 8 firmas y 4 propiedades de Fase I y exponer `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level` (`0`), `leaf_agents` (`(self,)`), `effective_capacity`, `collective_memory()`, `own_belief(pattern)`, `apply_energy_delta(delta)`, `clear_holon_beliefs()`, `inject_ephemeral_belief(unit)` y `MicroAgent.from_lineage(...)`. Los dos métodos de la vista del holón (`clear_*`, `inject_*`) dependen de P1.
+`MicroAgent` SHALL conservar sus 8 firmas y 4 propiedades de Fase I y exponer `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level` (`0`), `leaf_agents` (`(self,)`), `effective_capacity`, `collective_memory()`, `own_belief(pattern)`, `apply_energy_delta(delta)`, `clear_holon_beliefs()`, `inject_ephemeral_belief(unit)` y `MicroAgent.from_lineage(...)`.
 
 #### Scenario: Compatibilidad de firmas canónicas e implementación de AgentNode
 - **WHEN** se instancia `a = MicroAgent(7, SimulationConfig())`
@@ -19,7 +19,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Creencia Efectiva y Caché Efímero
-`own_belief(p)` SHALL devolver la creencia de `BoundedMemory` si existe y, si no, la del caché efímero del tick; `get_effective_belief(p)` SHALL devolver `own_belief(p)` o, si es `None`, la vista del holón del tick. `assimilate_testimony` SHALL partir de `own_belief`. El caché propio SHALL vaciarse al inicio de `perceive_and_emit_messages`, y la vista con `clear_holon_beliefs` (vista: variante (a) de P1).
+`own_belief(p)` SHALL devolver la creencia de `BoundedMemory` si existe y, si no, la del caché efímero del tick; `get_effective_belief(p)` SHALL devolver `own_belief(p)` o, si es `None`, la vista del holón del tick. `assimilate_testimony` SHALL partir de `own_belief`. El caché propio SHALL vaciarse al inicio de `perceive_and_emit_messages`,, y la vista del holón ($R_{22}$) con `clear_holon_beliefs`.
 
 #### Scenario: Creencia sólo en caché
 - **WHEN** una respuesta asimilada en el tick fue rechazada por la memoria llena
