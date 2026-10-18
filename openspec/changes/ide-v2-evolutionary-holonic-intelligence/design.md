@@ -49,8 +49,7 @@ Para garantizar que los 6 hashes SHA-256 de `tests/test_performance_equivalence.
    - `spawn_key=(1,)`: `null_rng`, el control nulo de contenido (ya existe en Fase I).
    - `spawn_key=(2,)`: `evo_rng` del motor, para la mutación genética (`mutate_genome`), la selección de celda en `spawn_agent_near` y la elección de progenitores en la reproducción neutral (D26, caso 3).
    - `spawn_key=(3,)`: `_comp_rng` de `ToroidalGrid2D`, para la ubicación inicial y la reposición de recursos compuestos.
-   - `spawn_key=(4,)`: `shuffle_rng` del `EvolutionaryMetricsCollector`, sólo para el control de pertenencia barajada de C8 (D28). Se usa únicamente en la medición: no altera la dinámica.
-   Cada generador sólo se consume cuando su mecanismo está activo: `evo_rng` con `enable_evolution=True`, `_comp_rng` con `num_composite_patterns > 0` y `shuffle_rng` en los ticks con al menos un holón raíz. Esta lista de generadores derivados es una excepción declarada a la regla "un único generador por motor" de CLAUDE.md, que se actualiza en consecuencia.
+   Cada generador sólo se consume cuando su mecanismo está activo: `evo_rng` con `enable_evolution=True` y `_comp_rng` con `num_composite_patterns > 0`. Esta lista de generadores derivados es una excepción declarada a la regla "un único generador por motor" de CLAUDE.md, que se actualiza en consecuencia.
 4. `TickMetrics` mantiene exactamente sus 14 campos de Fase I; la telemetría de Fase II se almacena en `EvolutionaryTickMetrics` dentro de `engine.evolutionary_history: list[EvolutionaryTickMetrics]`.
 
 ### Decisión 20: Extensión de Contratos de Dominio y Tabla Exacta de `SimulationConfig`
@@ -240,6 +239,7 @@ class AgentNode(Protocol):
   - `created_tick: int`.
   - `ticks_without_surplus: int = 0` (contador para evaluar `SPLIT`).
   - `cooperative_completions: int = 0`.
+  - `formation_redundancy: float = 0.0` (redundancia al formarse, la fija el motor; D28, M13).
 - **Propiedades derivadas recursivamente:**
   - `holon_level: int`: $1 + \max_{c \in \text{children}} c.\text{holon\_level}$.
   - `leaf_agents: tuple[MicroAgent, ...]`: concatenación ordenada por `agent_id` de las hojas de todos sus hijos (en `__init__` se verifica que no existan hojas repetidas entre hijos y que `len(children) >= 2`, lanzando `ValueError` en caso contrario).
@@ -325,7 +325,7 @@ Cuando dos o más agentes forman parte de un mismo `CompositeAgent` raíz $U$:
 ### Decisión 26: Endosimbiosis Reproductiva Holónica ($R_{17}$) y Límite de Un Evento Reproductivo por Tick
 En la Fase 5, cuando `config.enable_evolution` es `True`:
 - El motor lleva un contador monótono `self.next_agent_id: int` inicializado en `max(env.get_active_agent_ids()) + 1` (o `0` si no hay agentes), porque el motor admite entornos externos cuyos IDs no son necesariamente `0 .. num_agents - 1`.
-- `MicroAgent.create_offspring(self, child_id: int, tick: int, rng: np.random.Generator) -> MicroAgent` hace sólo lo que es del agente: parte la energía (`offspring_energy_share`), muta el genoma con `mutate_genome(self.genome, self.config, rng)` y construye el hijo con `MicroAgent.from_lineage`, pasándole la misma `trust_strategy` y el mismo `protocol` del progenitor, para que una estrategia inyectada en el motor no se pierda en la descendencia. **No** transfiere creencias: la herencia cultural la entrega después el motor con `transfer_cultural_heritage` y `assimilate_testimony` (D22, punto 3), en el mismo tick y antes de procesar al siguiente progenitor.
+- `MicroAgent.create_offspring(self, child_id: int, tick: int, rng: np.random.Generator, genome_source: AgentGenome | None = None) -> MicroAgent` hace sólo lo que es del agente: parte la energía (`offspring_energy_share`), muta el genoma con `mutate_genome(genome_source or self.genome, self.config, rng)` (`genome_source` sólo lo pasa el modo neutral, Caso 3) y construye el hijo con `MicroAgent.from_lineage`, pasándole la misma `trust_strategy` y el mismo `protocol` del progenitor, para que una estrategia inyectada en el motor no se pierda en la descendencia. **No** transfiere creencias: la herencia cultural la entrega después el motor con `transfer_cultural_heritage` y `assimilate_testimony` (D22, punto 3), en el mismo tick y antes de procesar al siguiente progenitor.
 - En cada tick se instancia un conjunto `reproduced_this_tick: set[int] = set()` para garantizar que **ningún `MicroAgent` pueda reproducirse más de una vez en el mismo tick** (ni engendrar como parte de un holón y luego volver a engendrar individualmente):
   - **Caso 1: `node` es un `CompositeAgent` en `sorted(self.root_nodes)` y `config.enable_holon_reproduction` es `True`:**
     - Si ninguna hoja de `node` está en `reproduced_this_tick`, `node.total_energy >= len(node.leaf_agents) * config.reproduction_threshold` y `len(self.agents) + len(node.leaf_agents) <= config.max_population`:
@@ -334,7 +334,7 @@ En la Fase 5, cuando `config.enable_evolution` es `True`:
     - Para cada `aid` en `sorted(self.agents)` que **no** pertenezca a `reproduced_this_tick`, si `agent.energy >= config.reproduction_threshold` y `len(self.agents) < config.max_population`:
       - Engendra un `MicroAgent` hijo con `child_id = self.next_agent_id` (`self.next_agent_id += 1`), lo ubica con `env.spawn_agent_near(child.agent_id, aid, evo_rng, child.genome.perception_radius, child.genome.comm_radius)`, lo registra como nodo raíz de nivel 0 en `self.root_nodes` y añade `aid` y `child.agent_id` a `reproduced_this_tick`.
 
-  - **Caso 3: Reproducción neutral (`reproduction_mode="neutral"`, ablación de $R_{12}$ y control de deriva de C6).** Conserva la tasa de nacimientos pero quita su dependencia de la energía. Se cuenta $n_b$, la cantidad de agentes que se reproducirían en el Caso 2 en este tick (no reproducidos, con `energy >= reproduction_threshold`, respetando el cupo). Si $n_b = 0$, no se llama a `evo_rng`. Si no, se eligen $n_b$ progenitores con `evo_rng.choice(candidatos, size=n_b, replace=False)` sobre la lista ordenada de todos los agentes no reproducidos en el tick, y cada uno engendra con la misma partición de energía del Caso 2. Consecuencia declarada: un progenitor con poca energía deja un hijo con poca energía, que puede morir pronto; eso forma parte del control. La reproducción holónica ($R_{17}$) no cambia.
+  - **Caso 3: Reproducción neutral (`reproduction_mode="neutral"`, ablación de $R_{12}$ y control de deriva de C6).** Quita el vínculo entre éxito y herencia **sin cambiar la demografía**. Los mismos agentes que en el Caso 2 (no reproducidos, con `energy >= reproduction_threshold`, en orden de `agent_id`, respetando el cupo) se reproducen exactamente igual: misma partición de energía, misma ubicación junto a ellos, mismo `parent_id`, misma `generation` y misma herencia cultural. Lo único que cambia es el **genoma** del hijo: antes de cada nacimiento se sortea un donante con `donors[int(evo_rng.integers(len(donors)))]`, donde `donors` es la lista ordenada por `agent_id` de los agentes vivos al empezar la fase de reproducción del tick, y el hijo recibe `mutate_genome(donante.genome, ...)` en vez del genoma de su progenitor. Así, la cantidad de nacimientos, la energía y las posiciones coinciden con las del modo `"energy"` en cada tick, y sólo se rompe la herencia de los rasgos de los exitosos. La reproducción holónica ($R_{17}$) no cambia.
 
 ### Decisión 27: Inserción Espacial Exacta, Recursos Compuestos y Estigmergia ($R_{19}$) en `ToroidalGrid2D`
 1. **Algoritmo Exacto de `spawn_agent_near`:**
@@ -387,8 +387,7 @@ class EvolutionaryTickMetrics:
     mean_holon_size: float  # M10 (0.0 si no hay holones L >= 1)
     holonic_coverage_gain: float  # M11 (1.0 si no hay holones L >= 1)
     composite_completions: int  # M12 (acumulado de recursos compuestos resueltos)
-    intra_holon_redundancy: float | None  # M13 (None si ningún holón raíz tiene creencias válidas)
-    shuffled_holon_redundancy: float | None  # M13, control de pertenencia barajada
+    acquired_orthogonalization: float  # M13 (0.0 si no hay holones raíz con edad >= 1)
     stigmergy_active_cells: int
 ```
 
@@ -397,7 +396,11 @@ class EvolutionaryTickMetrics:
 - **`offspring_social_ratio` (M9):** Sobre los agentes activos con `generation >= 1`, sea $V_{\text{total}}$ el número total de creencias válidas en `BoundedMemory` y $V_{\text{social}}$ aquellas con `from_direct_experience == False`. Si $V_{\text{total}} == 0$, vale `0.0`; de lo contrario, `V_social / V_total`. Es **descriptiva**: cuenta también los testimonios horizontales, así que no mide sola la herencia. La contribución de la herencia se mide comparando contra la ablación de $R_{14}$ en 002-B (`social_ratio_gain` del reporte).
 - **`holon_count_by_level`, `max_holon_level`, `mean_holon_size` (M10):** Recorriendo todos los nodos `CompositeAgent` activos ($L \ge 1$) del bosque holónico, cuenta cuántos hay en cada nivel $L$ (como tupla de pares `(L, conteo)` ordenada por $L$, para que el dataclass congelado sea realmente inmutable y hasheable), el máximo $L$ (o `0` si no hay `CompositeAgent`) y el tamaño medio en hojas $|\text{leaf\_agents}|$ de los `CompositeAgent` raíz (o `0.0` si no hay ninguno).
 - **`holonic_coverage_gain` (M11):** Para cada `CompositeAgent` raíz $U$, sea $|\mathcal{K}(U)|$ la cantidad de patrones válidos en `U.collective_memory()` y sea $\overline{|\mathcal{K}_{\text{leaf}}(U)|}$ el promedio de patrones válidos en la memoria individual de sus hojas. La razón de ganancia de $U$ es $|\mathcal{K}(U)| / \overline{|\mathcal{K}_{\text{leaf}}(U)|}$ si $\overline{|\mathcal{K}_{\text{leaf}}(U)|} > 0$, o `1.0` en caso contrario. `holonic_coverage_gain` es la media sobre todos los `CompositeAgent` raíz activos (o `1.0` si no existe ninguno).
-- **`intra_holon_redundancy` y `shuffled_holon_redundancy` (M13, métrica de C8):** Para cada `CompositeAgent` raíz $U$, sea $K(\ell)$ el conjunto de patrones de la memoria de la hoja $\ell$ con `confidence >= decision_conf_threshold`, $S(U) = \sum_{\ell} |K(\ell)|$ y $\text{red}(U) = (S(U) - |\bigcup_{\ell} K(\ell)|) / S(U)$, que vale 0 si las memorias son disjuntas y crece con la duplicación. `intra_holon_redundancy` es la media de $\text{red}(U)$ sobre los holones raíz con $S(U) > 0$ (o `None` si no hay ninguno). El **control de pertenencia barajada** toma, en el mismo tick, las hojas de todos los holones raíz (en orden de `agent_id`), las permuta con `shuffle_rng.permutation` y las reparte en grupos con los mismos tamaños que los holones (en orden de `node_id`). `shuffled_holon_redundancy` es la misma media sobre esos grupos. El control mide cuánta redundancia habría si los grupos fueran arbitrarios; se calcula sólo para medir y no cambia la dinámica.
+- **`acquired_orthogonalization` (M13, métrica de C8):** mide cuánto bajó la redundancia de memoria de cada holón **desde que se formó**, para que el sesgo de `BOND` ($R_{15}$), que ya junta memorias distintas al fusionar, no cuente.
+  - **Creencias que cuentan.** Para una hoja $\ell$, $K(\ell)$ es el conjunto de patrones **elementales** de su memoria con `confidence >= decision_conf_threshold` **y signo correcto** ($\text{sign}(\hat{v}) = \text{sign}(v)$ del patrón en el mundo). El colector conoce la verdad del mundo, como para M1 y M2; el agente no.
+  - **Redundancia.** Con $S(U) = \sum_{\ell} |K(\ell)|$, $\text{red}(U) = (S(U) - |\bigcup_{\ell} K(\ell)|) / S(U)$ si $S(U) > 0$ y $0$ si no. Vale 0 si las memorias son disjuntas y crece con la duplicación.
+  - **Redundancia de formación.** Cada `CompositeAgent` guarda `formation_redundancy: float`, que el motor fija al crearlo (por `BOND` o por $R_{17}$) con $\text{red}(U)$ en ese momento. Un sub-holón que pasa a raíz por `SPLIT` conserva la suya, y la poda por muerte no la recalcula (afecta igual a las dos condiciones de C8).
+  - **Valor del tick.** `acquired_orthogonalization` es la media de `formation_redundancy(U) - red(U)` sobre los holones raíz con `tick - created_tick >= 1`. Es positiva si los miembros pasaron a recordar cosas más distintas que al juntarse. Si no hay ninguno, vale `0.0`, que significa "ninguna ortogonalización" y nunca es un valor ventajoso.
 - **`cultural_convergence_tick` y `tabula_rasa_convergence_tick` en `CulturalInheritanceReport` (`002-B`):** Se define exactamente como el menor `m.tick` en `engine.history` tal que `m.decision_opportunities > 0` y `m.cumulative_decision_accuracy >= 0.70` (o `None` si ningún tick de la corrida alcanza ese umbral).
 
 En `src/ide/experiments/exp002_runner.py` se definen los reportes inmutables:
@@ -453,10 +456,10 @@ class HolonicTransitionReport:
 class OrthogonalizationReport:
     seed: int
     total_ticks: int
-    mean_intra_holon_redundancy: float  # media de M13 sobre los ticks con valor; R18 apagada
-    mean_shuffled_redundancy: float  # misma media para el control barajado
-    orthogonalization_advantage: float  # mean_shuffled_redundancy - mean_intra_holon_redundancy
-    ticks_with_holons: int  # ticks con intra_holon_redundancy distinto de None; si es 0, las dos medias valen 0.0 (empate)
+    mean_acquired_orthogonalization: float  # media de M13 sobre todos los ticks; R18 apagada, R22 activa
+    mean_acquired_orthogonalization_without_view: float  # misma media con R22 apagada
+    orthogonalization_advantage: float  # diferencia de las dos anteriores (con vista - sin vista)
+    ticks_with_holons: int  # ticks de la condición con vista con al menos un holón raíz de edad >= 1
     max_holon_level: int
     level_counts_peak: tuple[tuple[int, int], ...]  # pares (L, conteo) ordenados por L
 ```
@@ -465,7 +468,7 @@ class OrthogonalizationReport:
 - `run_protocol_002a_adaptation(config, total_ticks) -> AdaptationReport`: `evolved` = `config`, `frozen_genome` = `ablate(config, ["R13"])`, `drift` = `ablate(config, ["R12"])`.
 - `run_protocol_002b_cultural_inheritance(config, total_ticks) -> CulturalInheritanceReport`: `cultural` = `config`, `tabula_rasa` = `ablate(config, ["R14"])`.
 - `run_protocol_003a_holonic_transition(config, total_ticks) -> HolonicTransitionReport`: `holonic` = `config`, `individual` = `ablate(config, ["R15"])`.
-- `run_protocol_003b_orthogonalization(config, total_ticks) -> OrthogonalizationReport`: una sola corrida de `config` (con `R18` apagada); el control barajado sale de la misma corrida.
+- `run_protocol_003b_orthogonalization(config, total_ticks) -> OrthogonalizationReport`: `with_view` = `config` (con `R18` apagada), `without_view` = `ablate(config, ["R22"])`.
 
 Las precisiones (`*_accuracy`) son la `cumulative_decision_accuracy` del último tick (M2, sólo recursos elementales).
 
@@ -500,14 +503,17 @@ En `src/ide/experiments/attribution.py`:
 | `C5` | `("C5", "Aceleración cultural intergeneracional", "002b", "cultural_accuracy", True, ("R14",))` | `("R14",)` | `ablate(config, ["R14"])`: sin herencia, con comunicación horizontal | Programada por construcción. |
 | `C6` | `("C6", "Adaptación evolutiva por selección", "002a", "evolved_accuracy", True, ("R12", "R13"))` | `("R12",)` | `ablate(config, ["R12"])`: el control de deriva | Programada por construcción: adaptarse por selección es el propósito de R12 y R13. Qué rasgos evolucionan (`final_mean_memory_capacity`, `final_mean_bond_affinity`) se registra como **observación exploratoria**, no como afirmación. |
 | `C7` | `("C7", "Superávit cooperativo sobre recursos compuestos", "003a", "holonic_composite_completions", True, ("R15", "R17"))` | `("R15",)` | `ablate(config, ["R15"])`: sin holones, con comunicación | Programada por construcción: el entorno impide por diseño que un individuo con $C_{\max} < m$ y sin ayuda resuelva el recurso. |
-| `C8` | `("C8", "Ortogonalización sin causalidad descendente", "003b", "mean_intra_holon_redundancy", False, ())` | `()` | El **control de pertenencia barajada** de la misma corrida (`mean_shuffled_redundancy`, D28) | Abierta: ninguna regla la persigue (la condición base lleva `R18` apagada). Es la única afirmación de Fase II con prueba genuina. |
+| `C8` | `("C8", "Ortogonalización adquirida sin causalidad descendente", "003b", "mean_acquired_orthogonalization", True, ())` | `()` | `ablate(config, ["R22"])`: los mismos holones, formados por la misma regla `BOND`, pero sin la vista compartida | Abierta. Ninguna regla la persigue: `R18` está apagada en la condición base, y el sesgo de `BOND` se cancela porque las dos condiciones forman holones igual y M13 mide el cambio desde la formación. `R22` se diseñó para dar acceso, no para ortogonalizar. Es la única afirmación de Fase II con prueba genuina. Si E4 sale negativo (`ACTIVITY_ARTIFACT`), significa que la ortogonalización viene de que la vista exista, no de su contenido. |
 
 - **Criterio "por construcción" ampliado.** Para las afirmaciones de Fase I, `is_by_construction` no cambia (quitar $R_C$ deja a la población sin comunicación). Para las de Fase II, una afirmación es por construcción si su canal no es vacío y está contenido en $R_C$: quitar $R_C$ elimina el mecanismo que se pone a prueba, y E3 sería una tautología. Con este criterio, C5, C6 y C7 salen por construcción y C8 no.
 - **Variantes de Fase II** (`_variants`):
-  - `isolated`: la indicada en la tabla. Para C8, el valor de `isolated` de cada semilla es `mean_shuffled_redundancy` de la corrida `full` de esa semilla (variante pareada, sin corrida aparte).
+  - `isolated`: la indicada en la tabla.
   - `purpose_ablated`: `ablate(config, R_C)`, sólo si $R_C$ no es vacío y la afirmación no es por construcción.
   - `null_content`: `replace(config, comm_content_null=True)`. Con él, el motor aplica `nullify_belief` al ruteo horizontal, a la herencia cultural ($R_{14}$), a la estigmergia ($R_{19}$) y a la vista del holón ($R_{22}$).
-  - `rule_effects`: una variante sin cada regla ablacionable de `ALL_DESIGN_RULES`.
+  - `rule_effects`: una variante sin cada regla ablacionable de `ALL_DESIGN_RULES`, **salvo las inactivas** en el protocolo de la afirmación. Para ellas, quitar la regla no cambia nada, y un efecto 0 se leería como "no influye". Las inactivas se declaran en `PHASE2_INACTIVE_RULES: dict[str, tuple[str, ...]]` y no reciben variante ni efecto:
+    - `"002a"`: `R14`, `R15`, `R16`, `R17`, `R18`, `R19`, `R22`, `R23` (sin herencia cultural, sin holones, sin estigmergia).
+    - `"002b"`: `R15`, `R16`, `R17`, `R18`, `R19`, `R22`, `R23`.
+    - `"003a"` y `"003b"`: `R14`, `R18`, `R19`.
 - **Compatibilidad con Fase I.** `run_protocol_001d_attribution(config, seeds, claims=EXP001_CLAIMS, jobs=1)` no cambia: sigue usando `DESIGN_RULES` y el perfil `ATTRIBUTION_PROFILE`, y sólo acepta afirmaciones de Fase I. Así siguen valiendo exactamente `report.rules == DESIGN_RULES` y `list(evaluation.rule_effects) == [f"R{i}" for i in range(3, 12)]` en los tests de Fase I. Para C1–C4, `_variants` no cambia.
 - **Perfil pre-registrado de la Fase II:**
   - `PHASE2_ATTRIBUTION_PROFILE = "phase2"`, con `PROFILES["phase2"] = Profile(total_ticks=2000, injection_tick=80, warmup_ticks=150, post_ablation_ticks=100)`. Sólo `total_ticks` se usa en los protocolos 002 y 003.
@@ -518,7 +524,7 @@ En `src/ide/experiments/attribution.py`:
     - `"003a"` y `"003b"`: `enable_evolution=True`, `enable_holonic_hierarchy=True`, `enable_holon_reproduction=True`, `num_composite_patterns=3`, `composite_order=4` (> `memory_capacity = 3`). En `"003b"`, `enable_downward_causation=False` es parte de la condición base de C8.
   - Ningún parámetro de este perfil se cambia a la vista de los resultados. Si la población se extingue o no llega a varias generaciones, eso se reporta como resultado. Antes de implementar los runners se corre una prueba de humo que sólo comprueba que la corrida termina y registra la generación máxima, **sin calcular ni mirar las métricas de las afirmaciones**.
 - **Ejecución del pre-registro de Fase II.** Se agrega `run_phase2_attribution(seeds=PHASE2_SEEDS, claims=EXP002_CLAIMS + EXP003_CLAIMS, jobs=1) -> AttributionReport`. Para cada afirmación usa `PHASE2_PROTOCOL_CONFIGS[claim.protocol]` como `full` y `PROFILES[PHASE2_ATTRIBUTION_PROFILE]` como perfil, y devuelve `AttributionReport(profile="phase2", rules=ALL_DESIGN_RULES, ...)`. `run_protocol_001d_attribution` queda para la Fase I y no recibe afirmaciones de Fase II.
-- **Una sola condición por variante.** `_protocol_result` se extiende a `"002a"`, `"002b"`, `"003a"` y `"003b"` con `total_ticks = profile.total_ticks`, pero para medir una afirmación corre **sólo** la condición base del protocolo sobre la configuración de la variante, sin las condiciones de comparación del runner (genoma congelado, deriva, tabula rasa o individuos). Las comparaciones ya las hacen las variantes. Para `"003b"`, la única corrida da a la vez `mean_intra_holon_redundancy` (`full`) y `mean_shuffled_redundancy` (`isolated` pareado). Los runners completos (D28) siguen corriendo todas sus condiciones para sus reportes.
+- **Una sola condición por variante.** `_protocol_result` se extiende a `"002a"`, `"002b"`, `"003a"` y `"003b"` con `total_ticks = profile.total_ticks`, pero para medir una afirmación corre **sólo** la condición base del protocolo sobre la configuración de la variante, sin las condiciones de comparación del runner (genoma congelado, deriva, tabula rasa o individuos). Las comparaciones ya las hacen las variantes. Los runners completos (D28) siguen corriendo todas sus condiciones para sus reportes.
 
 ---
 
@@ -552,7 +558,7 @@ src/ide/
 ## Risks / Trade-offs
 
 - **Riesgo 1: Alterar accidentalmente el estado de `engine.rng` o `repr(TickMetrics)` y romper `tests/test_performance_equivalence.py`.**
-  - *Mitigación:* Uso exclusivo de los generadores derivados de D19 (`evo_rng`, `_comp_rng` y `shuffle_rng`) para todo muestreo nuevo, guardas booleanas estrictas cuando las flags de Fase II son `False`, y separación entre `TickMetrics` (14 campos fijos) y `EvolutionaryTickMetrics`.
+  - *Mitigación:* Uso exclusivo de los generadores derivados de D19 (`evo_rng` y `_comp_rng`) para todo muestreo nuevo, guardas booleanas estrictas cuando las flags de Fase II son `False`, y separación entre `TickMetrics` (14 campos fijos) y `EvolutionaryTickMetrics`.
 - **Riesgo 2: Violar las auditorías AST de `tests/test_micro_agent.py` al añadir `evolution.py` y `holon.py` en `src/ide/agent/`.**
   - *Mitigación:* `evolution.py` sólo importa `ide.domain`, `ide.config`, `ide.agent.memory`, `numpy` y la biblioteca estándar (no importa `micro_agent.py`, para evitar el ciclo). `holon.py` puede importar además `ide.agent.micro_agent`. Ninguno referencia `Message`, `MessageType`, `merge_social_belief` ni `nullify_belief`, ni usa alias `import ... as ...` sobre nombres vigilados.
 - **Riesgo 3: Explosión poblacional o extinción prematura bajo `enable_evolution=True`.**

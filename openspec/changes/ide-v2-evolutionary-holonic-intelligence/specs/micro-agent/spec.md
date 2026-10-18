@@ -10,7 +10,7 @@
 - **THEN** `a.node_id == 7`, `a.holon_level == 0`, `a.leaf_agents == (a,)`, `a.generation == 0`, `a.parent_id is None`, `a.energy == a.config.initial_energy`, `inject_ephemeral_belief` alimenta `_holon_tick_beliefs` sin ser borrado por `perceive_and_emit_messages`, y las firmas de los 8 métodos de Fase I permanecen inalteradas.
 
 ### Requirement: Creación de Descendiente con Herencia Genética
-`MicroAgent.create_offspring(child_id: int, tick: int, rng: np.random.Generator) -> MicroAgent` SHALL particionar la energía con `offspring_energy_share`, asignar `generation = self.generation + 1` y `parent_id = self.agent_id` y mutar el `AgentGenome` con `mutate_genome`, sin transferir creencias: la herencia cultural la entrega el motor por `assimilate_testimony`.
+`MicroAgent.create_offspring(child_id, tick, rng, genome_source=None) -> MicroAgent` SHALL particionar la energía con `offspring_energy_share`, asignar `generation = self.generation + 1` y `parent_id = self.agent_id` y mutar con `mutate_genome` el genoma de `genome_source` o, si es `None`, el propio, sin transferir creencias: la herencia cultural la entrega el motor por `assimilate_testimony`.
 
 #### Scenario: Creación de descendiente con conservación de energía
 - **WHEN** un `MicroAgent` con `energy = 2.0` y `generation = 1` invoca `create_offspring(child_id=99, tick=25, rng=rng)` con `offspring_energy_share = 0.5`

@@ -51,7 +51,7 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 
 ## Determinismo
 
-- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. Las únicas excepciones son generadores derivados de la semilla con `np.random.SeedSequence(seed, spawn_key=(k,))`, cada uno con un uso declarado: `(1,)` control nulo de contenido, `(2,)` dinámica evolutiva del motor (`evo_rng`), `(3,)` recursos compuestos del entorno y `(4,)` control de pertenencia barajada de las métricas (sólo mide, no altera la dinámica). Sólo se consumen cuando su mecanismo está activo. Un generador nuevo exige declararlo aquí y en `design.md`.
+- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. Las únicas excepciones son generadores derivados de la semilla con `np.random.SeedSequence(seed, spawn_key=(k,))`, cada uno con un uso declarado: `(1,)` control nulo de contenido, `(2,)` dinámica evolutiva del motor (`evo_rng`) y `(3,)` recursos compuestos del entorno. Sólo se consumen cuando su mecanismo está activo. Un generador nuevo exige declararlo aquí y en `design.md`.
 - **Prohibido** iterar un `set`, o el resultado de una operación de conjuntos, sin `sorted(...)`. Python aleatoriza el hash de `str` por proceso. `Pattern` tiene `order=True` y es la clave canónica de orden.
 - Toda selección aleatoria (`rng.choice`, `rng.permutation`) opera sobre listas ya ordenadas.
 - Simultaneidad: percepción, comunicación y decisión son sincrónicas; sólo los conflictos físicos se resuelven por la permutación del tick, que funciona como un sorteo. No introduzcas efectos de orden en otras fases.

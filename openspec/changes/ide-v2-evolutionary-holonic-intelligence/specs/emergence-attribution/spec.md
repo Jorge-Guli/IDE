@@ -14,10 +14,10 @@
 
 #### Scenario: Medición de afirmaciones C5 a C8
 - **WHEN** se invoca `measure_claim` para cada afirmación de `EXP002_CLAIMS + EXP003_CLAIMS` con un perfil de prueba corto
-- **THEN** cada afirmación devuelve un `float` de su métrica pre-registrada (`cultural_accuracy`, `evolved_accuracy`, `holonic_composite_completions`, `mean_intra_holon_redundancy`).
+- **THEN** cada afirmación devuelve un `float` de su métrica pre-registrada (`cultural_accuracy`, `evolved_accuracy`, `holonic_composite_completions`, `mean_acquired_orthogonalization`).
 
 ### Requirement: Criterio Ampliado de Afirmación por Construcción
-Para una afirmación de Fase II, `is_by_construction` SHALL ser verdadero si su canal (`PHASE2_CLAIM_CHANNELS`) no es vacío y está contenido en sus `purpose_rules`. La variante `isolated` SHALL ser la ablación de su canal; para `C8`, el control de pertenencia barajada de la misma corrida.
+Para una afirmación de Fase II, `is_by_construction` SHALL ser verdadero si su canal (`PHASE2_CLAIM_CHANNELS`) no es vacío y está contenido en sus `purpose_rules`. La variante `isolated` SHALL ser la ablación de su canal; para `C8`, la ablación de `R22`. Las reglas de `PHASE2_INACTIVE_RULES` del protocolo SHALL quedar fuera de `rule_effects`.
 
 #### Scenario: Clasificación de C5 a C8 por construcción
 - **WHEN** se evalúa `is_by_construction` sobre `C5`, `C6`, `C7` y `C8` con sus configuraciones de `PHASE2_PROTOCOL_CONFIGS`

@@ -36,11 +36,11 @@ En la Fase 5 con `enable_evolution=True`, todo `MicroAgent` sobreviviente no rep
 - **THEN** no nace ningún descendiente y el agente conserva su energía íntegra.
 
 ### Requirement: Reproducción Neutral como Ablación de R12 y Control de Deriva
-Con `reproduction_mode="neutral"`, el motor SHALL engendrar en cada tick tantos hijos individuales como habría con `"energy"`, pero eligiendo a los progenitores con `evo_rng.choice(..., replace=False)` sobre la lista ordenada de agentes no reproducidos, sin mirar su energía, y con la misma partición de energía.
+Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL reproducirse con la misma partición de energía, ubicación, linaje y herencia cultural, pero el genoma de cada hijo SHALL mutarse a partir del de un donante sorteado con `evo_rng` entre los agentes vivos al empezar la reproducción del tick.
 
-#### Scenario: Misma tasa, progenitores independientes de la energía
-- **WHEN** en un tick 3 agentes superan `reproduction_threshold`, hay cupo y `reproduction_mode="neutral"`
-- **THEN** nacen exactamente 3 hijos, sus progenitores salen de un sorteo sobre todos los agentes no reproducidos (no necesariamente los 3 de más energía), y con la misma semilla el sorteo es idéntico entre corridas.
+#### Scenario: Misma demografía, genoma independiente del éxito
+- **WHEN** se corren dos motores con la misma semilla y `reproduction_mode` `"energy"` y `"neutral"`, con `mutation_rate = 0`, `discrete_mutation_prob = 0` y genomas fundadores distintos
+- **THEN** en el primer tick con nacimientos las dos corridas tienen los mismos `parent_id`, energías y posiciones de los hijos, y en `"neutral"` el genoma de cada hijo es el de su donante sorteado, no necesariamente el de su progenitor.
 
 ### Requirement: Herencia Genética con Mutación Acotada (R13)
 Al reproducirse un agente con `mutation_rate > 0` o `discrete_mutation_prob > 0`, el `AgentGenome` del hijo SHALL derivarse del parental aplicando ruido normal $\mathcal{N}(0, \sigma_{\text{mut}}^2)$ a los rasgos continuos y saltos en $\{-1, 0, +1\}$ a los discretos dentro de sus cotas válidas; si ambos son `0.0`, SHALL clonarse sin consumir extracciones del RNG.
