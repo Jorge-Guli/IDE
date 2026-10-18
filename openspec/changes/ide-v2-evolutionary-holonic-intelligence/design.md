@@ -47,7 +47,7 @@ Para garantizar que los 6 hashes SHA-256 de `tests/test_performance_equivalence.
 2. `SimulationEngine.__init__` instancia un generador dedicado `self.evo_rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(2,))))`.
 3. Toda operación estocástica nueva de Fase II usa un generador derivado de la semilla con `SeedSequence(seed, spawn_key=(k,))`, nunca `engine.rng`:
    - `spawn_key=(1,)`: `null_rng`, el control nulo de contenido (ya existe en Fase I).
-   - `spawn_key=(2,)`: `evo_rng` del motor, para la mutación genética (`mutate_genome`), la selección de celda en `spawn_agent_near` y la elección de progenitores en la reproducción neutral (D26, caso 3).
+   - `spawn_key=(2,)`: `evo_rng` del motor, para la mutación genética (`mutate_genome`), la selección de celda en `spawn_agent_near` y el sorteo del donante de genoma en la reproducción neutral (D26, caso 3).
    - `spawn_key=(3,)`: `_comp_rng` de `ToroidalGrid2D`, para la ubicación inicial y la reposición de recursos compuestos.
    Cada generador sólo se consume cuando su mecanismo está activo: `evo_rng` con `enable_evolution=True` y `_comp_rng` con `num_composite_patterns > 0`. Esta lista de generadores derivados es una excepción declarada a la regla "un único generador por motor" de CLAUDE.md, que se actualiza en consecuencia.
 4. `TickMetrics` mantiene exactamente sus 14 campos de Fase I; la telemetría de Fase II se almacena en `EvolutionaryTickMetrics` dentro de `engine.evolutionary_history: list[EvolutionaryTickMetrics]`.
@@ -481,7 +481,7 @@ En `src/ide/experiments/attribution.py`:
 
 | Regla | `name` | `purpose` (capacidad que se diseñó para producir) | `ablation` |
 | :--- | :--- | :--- | :--- |
-| `R12` | Reproducción diferencial por energía | Que los agentes con más energía dejen más descendencia (selección). | `(("reproduction_mode", "neutral"),)`: misma tasa de nacimientos, progenitor al azar (D26, caso 3). Es también el control de deriva de C6. |
+| `R12` | Reproducción diferencial por energía | Que los agentes con más energía dejen más descendencia (selección). | `(("reproduction_mode", "neutral"),)`: misma demografía, genoma del hijo tomado de un donante al azar (D26, caso 3). Es también el control de deriva de C6. |
 | `R13` | Mutación genética acotada | Variación heredable sobre la que actúa la selección. | `(("mutation_rate", 0.0), ("discrete_mutation_prob", 0.0))` |
 | `R14` | Herencia cultural vertical | Transmitir conocimiento de padres a hijos. | `(("enable_cultural_inheritance", False), ("inheritance_discount", 0.0))` |
 | `R15` | Fusión holónica (BOND) | Asociar nodos complementarios en unidades de nivel superior. | `(("enable_holonic_hierarchy", False),)`. Apagarla deja inertes `R16`, `R17`, `R18`, `R22` y `R23`. |
