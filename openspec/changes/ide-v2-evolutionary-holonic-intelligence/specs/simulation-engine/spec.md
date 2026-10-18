@@ -13,7 +13,7 @@
 Con `enable_holonic_hierarchy=True` y `enable_holon_view=True`, el motor SHALL inyectar en `_holon_tick_beliefs` de cada hoja, antes de `perceive_and_emit_messages` (leyendo memorias) y al final de la Fase 2 (leyendo `own_belief`), la mejor creencia de las hojas de su holón en alcance local, calculando primero la vista de todos y luego inyectando.
 
 #### Scenario: El holón evita consultas sobre lo que ya sabe
-- **WHEN** los agentes 1 y 2 forman un holón en alcance local, el agente 2 conoce válidamente $\rho_1$ en su memoria (`confidence >= decision_conf_threshold`) y el agente 1 ve un recurso de patrón $\rho_1$ en el tick
+- **WHEN** con `max_broadcast_per_tick=0` (sin difusión espontánea) los agentes 1 y 2 forman un holón en alcance local, el agente 2 conoce válidamente $\rho_1$ en su memoria (`confidence >= decision_conf_threshold`) y el agente 1 ve un recurso de patrón $\rho_1$ en el tick
 - **THEN** el agente 1 no emite `QUERY_PATTERN` sobre $\rho_1$ en ese tick y su `own_belief(ρ_1)` sigue siendo `None`.
 
 #### Scenario: Ablación de la vista del holón

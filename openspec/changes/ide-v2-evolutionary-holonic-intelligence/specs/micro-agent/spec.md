@@ -19,7 +19,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Creencia Efectiva y Caché Efímero
-`own_belief(p)` SHALL devolver la creencia de `BoundedMemory` si existe y, si no, la del caché efímero del tick; `get_effective_belief(p)` SHALL devolver `own_belief(p)` o, si es `None`, la vista del holón del tick. `assimilate_testimony` SHALL partir de `own_belief`. El caché propio SHALL vaciarse al inicio de `perceive_and_emit_messages`,, y la vista del holón ($R_{22}$) con `clear_holon_beliefs`.
+`own_belief(p)` SHALL devolver la creencia de `BoundedMemory` si existe y, si no, la del caché efímero del tick; `get_effective_belief(p)` SHALL devolver `own_belief(p)` o, si es `None`, la vista del holón del tick. `assimilate_testimony` SHALL partir de `own_belief`. El caché propio SHALL vaciarse al inicio de `perceive_and_emit_messages`, y la vista del holón ($R_{22}$) con `clear_holon_beliefs`.
 
 #### Scenario: Creencia sólo en caché
 - **WHEN** una respuesta asimilada en el tick fue rechazada por la memoria llena

@@ -10,7 +10,7 @@
 - **THEN** `DESIGN_RULES` conserva `R1`..`R11`, `PHASE2_DESIGN_RULES` contiene `R12`..`R23` en orden, y la configuración resultante tiene `reproduction_mode == "neutral"`, `enable_holon_view == False`, `holon_coord_cost == 0.0` y `holon_energy_sharing == False`.
 
 ### Requirement: Pre-Registro de Afirmaciones de Fase II (C5 a C8)
-`attribution.py` SHALL definir `EXP002_CLAIMS` (`C5` en `002b`, `C6` en `002a`), `EXP003_CLAIMS` (`C7` en `003a`, `C8` en `003b`) y `PHASE2_CLAIM_CHANNELS` exactamente como en design D29, y medirlas con `measure_claim` y `run_protocol_001d_attribution`.
+`attribution.py` SHALL definir `EXP002_CLAIMS` (`C5` en `002b`, `C6` en `002a`), `EXP003_CLAIMS` (`C7` en `003a`, `C8` en `003b`) y `PHASE2_CLAIM_CHANNELS` exactamente como en design D29, y medirlas con `measure_claim` y `run_phase2_attribution`, que usa la configuración congelada de cada protocolo y el perfil `phase2`.
 
 #### Scenario: Medición de afirmaciones C5 a C8
 - **WHEN** se invoca `measure_claim` para cada afirmación de `EXP002_CLAIMS + EXP003_CLAIMS` con un perfil de prueba corto

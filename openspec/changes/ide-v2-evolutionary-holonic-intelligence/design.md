@@ -508,7 +508,7 @@ En `src/ide/experiments/attribution.py`:
   - `purpose_ablated`: `ablate(config, R_C)`, sólo si $R_C$ no es vacío y la afirmación no es por construcción.
   - `null_content`: `replace(config, comm_content_null=True)`. Con él, el motor aplica `nullify_belief` al ruteo horizontal, a la herencia cultural ($R_{14}$), a la estigmergia ($R_{19}$) y a la vista del holón ($R_{22}$).
   - `rule_effects`: una variante sin cada regla ablacionable de `ALL_DESIGN_RULES`.
-- **Compatibilidad con Fase I.** `run_protocol_001d_attribution(config, seeds, claims=EXP001_CLAIMS, jobs=1, rules=None)`: si `rules is None`, usa `DESIGN_RULES` cuando todas las afirmaciones son de `EXP001_CLAIMS` y `ALL_DESIGN_RULES` en otro caso. `AttributionReport.rules` es la tupla usada. Así siguen valiendo exactamente `report.rules == DESIGN_RULES` y `list(evaluation.rule_effects) == [f"R{i}" for i in range(3, 12)]` en los tests de Fase I. Para C1–C4, `_variants` no cambia.
+- **Compatibilidad con Fase I.** `run_protocol_001d_attribution(config, seeds, claims=EXP001_CLAIMS, jobs=1)` no cambia: sigue usando `DESIGN_RULES` y el perfil `ATTRIBUTION_PROFILE`, y sólo acepta afirmaciones de Fase I. Así siguen valiendo exactamente `report.rules == DESIGN_RULES` y `list(evaluation.rule_effects) == [f"R{i}" for i in range(3, 12)]` en los tests de Fase I. Para C1–C4, `_variants` no cambia.
 - **Perfil pre-registrado de la Fase II:**
   - `PHASE2_ATTRIBUTION_PROFILE = "phase2"`, con `PROFILES["phase2"] = Profile(total_ticks=2000, injection_tick=80, warmup_ticks=150, post_ablation_ticks=100)`. Sólo `total_ticks` se usa en los protocolos 002 y 003.
   - `PHASE2_SEEDS = tuple(range(42, 52))`: 10 semillas. La prueba de signo unilateral puede llegar a $p = 1/1024$.
@@ -517,7 +517,8 @@ En `src/ide/experiments/attribution.py`:
     - `"002b"`: `enable_evolution=True`, `enable_cultural_inheritance=True`.
     - `"003a"` y `"003b"`: `enable_evolution=True`, `enable_holonic_hierarchy=True`, `enable_holon_reproduction=True`, `num_composite_patterns=3`, `composite_order=4` (> `memory_capacity = 3`). En `"003b"`, `enable_downward_causation=False` es parte de la condición base de C8.
   - Ningún parámetro de este perfil se cambia a la vista de los resultados. Si la población se extingue o no llega a varias generaciones, eso se reporta como resultado. Antes de implementar los runners se corre una prueba de humo que sólo comprueba que la corrida termina y registra la generación máxima, **sin calcular ni mirar las métricas de las afirmaciones**.
-- `_protocol_result` se extiende a los protocolos `"002a"`, `"002b"`, `"003a"` y `"003b"`, con `total_ticks = profile.total_ticks`.
+- **Ejecución del pre-registro de Fase II.** Se agrega `run_phase2_attribution(seeds=PHASE2_SEEDS, claims=EXP002_CLAIMS + EXP003_CLAIMS, jobs=1) -> AttributionReport`. Para cada afirmación usa `PHASE2_PROTOCOL_CONFIGS[claim.protocol]` como `full` y `PROFILES[PHASE2_ATTRIBUTION_PROFILE]` como perfil, y devuelve `AttributionReport(profile="phase2", rules=ALL_DESIGN_RULES, ...)`. `run_protocol_001d_attribution` queda para la Fase I y no recibe afirmaciones de Fase II.
+- **Una sola condición por variante.** `_protocol_result` se extiende a `"002a"`, `"002b"`, `"003a"` y `"003b"` con `total_ticks = profile.total_ticks`, pero para medir una afirmación corre **sólo** la condición base del protocolo sobre la configuración de la variante, sin las condiciones de comparación del runner (genoma congelado, deriva, tabula rasa o individuos). Las comparaciones ya las hacen las variantes. Para `"003b"`, la única corrida da a la vez `mean_intra_holon_redundancy` (`full`) y `mean_shuffled_redundancy` (`isolated` pareado). Los runners completos (D28) siguen corriendo todas sus condiciones para sus reportes.
 
 ---
 
