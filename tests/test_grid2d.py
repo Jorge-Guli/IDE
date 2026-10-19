@@ -900,12 +900,16 @@ def test_deposito_bajo_el_umbral_en_celda_vacia_no_crea_nada() -> None:
     grid = stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05)
     grid.deposit_stigmergy(1, pat(0), 1.0, 0.0, 4)
     assert grid.get_active_stigmergy_cells() == 0
+    assert grid.get_cell_stigmergy(1) == ()
+    assert grid.cell_stigmergy == {}
 
 
-def test_deposito_bajo_el_umbral_no_altera_un_rastro_del_mismo_tick() -> None:
+@pytest.mark.parametrize("strong_first", [True, False])
+def test_deposito_bajo_el_umbral_no_altera_un_rastro_del_mismo_tick(strong_first: bool) -> None:
     grid = stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05)
-    grid.deposit_stigmergy(1, pat(0), 1.0, 0.9, 4)
-    grid.deposit_stigmergy(1, pat(0), -1.0, 0.06, 4)
+    deposits = [(1.0, 0.9), (-1.0, 0.06)]
+    for value, conf in deposits if strong_first else deposits[::-1]:
+        grid.deposit_stigmergy(1, pat(0), value, conf, 4)
     (trace,) = grid.get_cell_stigmergy(1)
     assert (trace.sign_value, trace.last_updated_tick) == (1.0, 4)
     assert trace.intensity == pytest.approx(0.45, abs=1e-9)
@@ -921,20 +925,23 @@ def test_deposito_bajo_el_umbral_no_altera_un_rastro_del_mismo_tick() -> None:
         ),
         max_size=12,
     ),
+    seeded=st.sets(st.integers(0, 3)),
     data=st.data(),
 )
 def test_depositos_con_rastros_previos_y_bajo_umbral_no_dependen_del_orden(
-    deposits: list[tuple[int, int, float, float]], data: st.DataObject
+    deposits: list[tuple[int, int, float, float]], seeded: set[int], data: st.DataObject
 ) -> None:
     shuffled = data.draw(st.permutations(deposits))
     grids = [stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05) for _ in range(2)]
     for grid, batch in zip(grids, (deposits, shuffled), strict=True):
-        for agent in range(3):
-            place(grid, agent, (2, 2))
-        for p in range(4):
-            grid.deposit_stigmergy(0, pat(p), 1.0, 0.9, 6)  # rastros previos
+        place(grid, 0, (2, 2))
+        place(grid, 1, (2, 2))
+        place(grid, 2, (7, 7))  # una segunda celda, sin rastros previos
+        for p in sorted(seeded):
+            grid.deposit_stigmergy(0, pat(p), 1.0, 0.9, 6)  # rastros previos opcionales
         for agent, pattern, value, conf in batch:
             grid.deposit_stigmergy(agent, pat(pattern), value, conf, 7)
+        assert all(traces for traces in grid.cell_stigmergy.values())  # sin celdas vacías
         assert all(
             t.intensity >= 0.05 for traces in grid.cell_stigmergy.values() for t in traces.values()
         )

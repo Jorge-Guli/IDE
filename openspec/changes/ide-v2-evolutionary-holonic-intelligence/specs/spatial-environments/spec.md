@@ -30,3 +30,7 @@ Cuando `num_composite_patterns > 0`, `ToroidalGrid2D` SHALL generar determiníst
 #### Scenario: Depósito bajo el umbral de confianza mínima
 - **WHEN** con `stigmergy_deposit_rate=0.5` y `min_confidence=0.05` la celda tiene un rastro de `p_0` depositado en `tick=3` y el agente 1 deposita en `tick=4` un rastro de `p_0` con `confidence=0.06` (intensidad `0.03`)
 - **THEN** `get_cell_stigmergy` no devuelve ningún rastro de `p_0` y la celda no cuenta en `get_active_stigmergy_cells()`.
+
+#### Scenario: Depósito bajo el umbral frente a un rastro del mismo tick
+- **WHEN** con `stigmergy_deposit_rate=0.5` y `min_confidence=0.05` el agente 1 deposita en `tick=4` un rastro de `p_0` con `confidence=0.9` y otro agente de la misma celda deposita en `tick=4` un rastro de `p_0` con `confidence=0.06`, en cualquier orden
+- **THEN** `get_cell_stigmergy` devuelve un único rastro de `p_0` con `intensity == 0.45` (con tolerancia `1e-9`).
