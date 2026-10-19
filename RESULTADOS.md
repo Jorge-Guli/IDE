@@ -2,6 +2,8 @@
 
 Resultados tal cual se obtuvieron, positivos o negativos, **sin ajustar parámetros** a la vista de los datos (Decisión 10 de `design.md`). Cada entrada indica el commit del código que la produjo.
 
+> Las referencias a `design.md` y `tasks.md` de las entradas del Experimento 001 apuntan a los artefactos de la Fase I, hoy archivados en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`.
+
 ## Experimento 001: expectativas funcionales (bloque 9.5)
 
 - **Código:** el commit que agrega esta entrada (bloque 9 de `tasks.md`; `git log -- RESULTADOS.md`).

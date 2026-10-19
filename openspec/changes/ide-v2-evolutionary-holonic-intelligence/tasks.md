@@ -1,37 +1,99 @@
 # Tasks: Fase II (v2.0) — Evolución Abierta, Herencia Dual y Arquitectura Holónica Recursiva
 
+> **Verificación de cada bloque (CLAUDE.md).** Un bloque sólo está completo cuando pasan `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide`, y después `/code-review` sobre el cambio del bloque. Si el bloque toca specs, también `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict`. Un commit por bloque.
+>
+> **Decisiones P1–P3:** resueltas el 2026-10-18 (ver `proposal.md`). El pre-registro de la Fase II es design D29. Las constantes de `attribution.py` del bloque 6 deben coincidir **exactamente** con él; cambiar una exige un commit que lo justifique.
+
+## 0. Decisiones y pre-registro
+
+- [x] 0.1 Resolver P1 (canal de conocimiento del holón) y P2 (conocimiento de recursos compuestos). Actualizar `design.md` (D25 y D27), los specs delta, `DEFINICIONES_FORMALES.md`, `DEFINICIONES_TECNICAS.md` y, si cambia un invariante, `CLAUDE.md`.
+- [x] 0.2 Resolver P3 y commitear el pre-registro de Fase II **antes** de implementar los runners y de mirar resultados: `PHASE2_DESIGN_RULES` (con `purpose`), `EXP002_CLAIMS`, `EXP003_CLAIMS`, variantes de comparación y perfil de corrida, reflejados en `DEFINICIONES_FORMALES.md` §3.1.
+
 ## 1. Contratos de Dominio, Configuración y Extensiones (`domain-contracts`, `roadmap-extensions`)
 
-- [ ] 1.1 **[RED]** Escribir tests unitarios en `tests/test_domain_contracts.py` y `tests/test_roadmap_extensions.py` para los nuevos tipos inmutables (`AgentGenome`, `StigmergicTrace`, `HolonSnapshot`), el sub-puerto `EvolutionaryEnvironmentPort`, los nuevos hiperparámetros y validaciones de Fase II en `SimulationConfig`, `mutate_genome` y `compute_epistemic_synergy`, verificando que los tests fallen inicialmente y que `VisibleResource` y `EnvironmentPort` conserven sus campos/métodos exactos de Fase I.
-- [ ] 1.2 **[GREEN]** Implementar `AgentGenome`, `StigmergicTrace` y `HolonSnapshot` en `src/ide/domain/types.py`, `EvolutionaryEnvironmentPort` en `src/ide/domain/ports.py`, los campos y validaciones de Fase II en `src/ide/config.py`, y las funciones `mutate_genome` y `compute_epistemic_synergy` en `src/ide/domain/extensions.py`.
-- [ ] 1.3 **[REFACTOR]** Verificar tipado estático con `.venv\Scripts\python.exe -m pyright`, formato con `ruff check` y paso íntegro de `.venv\Scripts\python.exe -m pytest tests/test_domain_contracts.py tests/test_roadmap_extensions.py`.
+- [ ] 1.1 **[RED]** Escribir tests en `tests/test_domain_contracts.py` y `tests/test_roadmap_extensions.py` para:
+  - los nuevos tipos inmutables `AgentGenome`, `StigmergicTrace` y `HolonSnapshot`;
+  - el sub-puerto `EvolutionaryEnvironmentPort`;
+  - los hiperparámetros y validaciones de Fase II en `SimulationConfig`, incluidos `reproduction_mode`, `enable_holon_view` y `holon_energy_sharing`;
+  - `mutate_genome` y `compute_epistemic_synergy`.
 
-## 2. Memoria con Penalización de Redundancia Intra-Holón y Dinámica Evolutiva (`bounded-memory`, `evolutionary-dynamics`, `micro-agent`)
+  Verificar que fallan, y que `VisibleResource`, `EnvironmentPort` y `CompositeRule` conservan sus campos y métodos de Fase I.
+- [ ] 1.2 **[GREEN]** Implementar:
+  - `AgentGenome`, `StigmergicTrace` y `HolonSnapshot` en `src/ide/domain/types.py`;
+  - `EvolutionaryEnvironmentPort` en `src/ide/domain/ports.py`;
+  - los campos y validaciones de Fase II en `src/ide/config.py`;
+  - `mutate_genome` y `compute_epistemic_synergy` en `src/ide/domain/extensions.py`.
 
-- [ ] 2.1 **[RED]** Crear `tests/test_evolutionary_dynamics.py` y ampliar `tests/test_bounded_memory.py` y `tests/test_micro_agent.py` con tests para: (a) `set_redundant_patterns` y modulación de utilidad por `redundancy_penalty` ($\psi_{\text{red}}$, $R_{18}$) en `BoundedMemory`; (b) cálculo de costo metabólico basal cuadrático $c_{\text{fijo}} + c_{\text{mem}} \cdot C_{\max}^2$ y mutación genética acotada ($R_{13}$) en `src/ide/agent/evolution.py`; (c) transferencia cultural vertical con descuento $\gamma_{\text{gen}}$ e invariante `from_direct_experience=False` ($R_{14}$); y (d) propiedades de `AgentNode` ($L=0$), estado energético, linaje y `create_offspring` en `MicroAgent`, manteniendo intactas las 8 firmas canónicas de Fase I.
-- [ ] 2.2 **[GREEN]** Implementar `set_redundant_patterns` en `src/ide/agent/memory.py`, crear `src/ide/agent/evolution.py` (`genome_from_config`, `compute_metabolic_cost`, `transfer_cultural_heritage`) y extender `MicroAgent` en `src/ide/agent/micro_agent.py` (`energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level`, `leaf_agents`, `effective_capacity`, `collective_memory`, `from_lineage`, `create_offspring`, `apply_metabolic_cost`).
-- [ ] 2.3 **[REFACTOR]** Ejecutar las auditorías AST de `tests/test_micro_agent.py`, pruebas basadas en propiedades con `hypothesis` sobre `mutate_genome` y `transfer_cultural_heritage`, `pyright` y `ruff`.
+  Actualizar los docstrings con la numeración de experimentos v2.
+- [ ] 1.3 **[REFACTOR]** Verificación del bloque.
 
-## 3. Jerarquía Holónica Recursiva Ilimitada (`holonic-hierarchy`)
+## 2. Memoria con Penalización de Redundancia y Dinámica Evolutiva (`bounded-memory`, `evolutionary-dynamics`, `micro-agent`)
 
-- [ ] 3.1 **[RED]** Crear `tests/test_holonic_hierarchy.py` con tests exhaustivos para: (a) protocolo `AgentNode` y construcción recursiva de `CompositeAgent` en niveles arbitrarios $L = 1, 2, 3, 4$; (b) rechazo con `ValueError` de holones con menos de 2 hijos o con hojas `MicroAgent` duplicadas; (c) unión de memoria colectiva `collective_memory()` con desempate determinista; (d) evaluación de fusión simbiótica `BOND` ($R_{15}$) entre especialistas complementarios vs. rechazo de clones redundantes; (e) fisión `SPLIT` ($R_{16}$) tras superar `holon_split_patience` o umbral mínimo de energía; (f) particionamiento epigenético por causalidad descendente `apply_downward_causation` ($R_{18}$); y (g) reproducción simbiótica de holón completo `reproduce_holon` ($R_{17}$) preservando la estructura arbórea.
-- [ ] 3.2 **[GREEN]** Implementar `src/ide/agent/holon.py` con `AgentNode`, `CompositeAgent`, `evaluate_bond_candidates`, `should_split_holon`, `apply_downward_causation`, `prune_dead_leaves_from_holon` y `reproduce_holon`, respetando todas las restricciones de importación y AST de `src/ide/agent/`.
-- [ ] 3.3 **[REFACTOR]** Verificar con `pytest tests/test_holonic_hierarchy.py tests/test_micro_agent.py`, `pyright` y `ruff`.
+- [ ] 2.1 **[RED]** Crear `tests/test_evolutionary_dynamics.py` y ampliar `tests/test_memory.py` y `tests/test_micro_agent.py` con tests para:
+  - (a) `set_redundant_patterns` y la modulación de utilidad por `redundancy_penalty` ($\psi_{\text{red}}$, $R_{18}$) en `BoundedMemory`;
+  - (b) `genome_from_config` y `compute_metabolic_cost` en `src/ide/agent/evolution.py`;
+  - (c) `transfer_cultural_heritage` como función pura con descuento $\gamma_{\text{gen}}$ ($R_{14}$);
+  - (d) las propiedades de `AgentNode` ($L=0$), el estado energético, el linaje, `own_belief`, `apply_energy_delta`, `from_lineage` y `create_offspring` en `MicroAgent`, sin modificar las 8 firmas canónicas de Fase I;
+  - (e) que `evolution.py` no importa `micro_agent.py` y que ningún archivo de `src/ide/agent/` referencia `nullify_belief`.
+- [ ] 2.2 **[GREEN]** Implementar:
+  - `set_redundant_patterns` en `src/ide/agent/memory.py`;
+  - `src/ide/agent/evolution.py` (`genome_from_config`, `compute_metabolic_cost`, `transfer_cultural_heritage`);
+  - en `MicroAgent`: `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level`, `leaf_agents`, `effective_capacity`, `collective_memory`, `own_belief`, `apply_energy_delta`, `from_lineage` y `create_offspring`;
+  - `clear_holon_beliefs` e `inject_ephemeral_belief` (vista del holón, $R_{22}$), con los requisitos `MODIFIED` de `micro-agent`.
+- [ ] 2.3 **[REFACTOR]** Pruebas por propiedades con Hypothesis (perfil `ci`) sobre `mutate_genome` (cotas y aceptación por `SimulationConfig`) y `transfer_cultural_heritage`; auditorías AST de `tests/test_micro_agent.py`; verificación del bloque.
 
-## 4. Entorno Espacial Evolutivo: Inserción Parental, Radios por Agente, Recursos Compuestos y Estigmergia (`spatial-environments`)
+## 3. Jerarquía Holónica Recursiva (`holonic-hierarchy`)
 
-- [ ] 4.1 **[RED]** Ampliar `tests/test_spatial_environments.py` con tests para: (a) `spawn_agent_near` seleccionando entre las celdas de menor ocupación en `((0, 0), *MOORE_MOVES)` y registrando radios individuales (`set_agent_radii`, `get_agent_distance`); (b) generación determinista cíclica y reposición de recursos compuestos (`CompositeRule` de orden $m \ge 2$) usando `_comp_rng` (`spawn_key=(3,)`) sin desplazar el `rng` de Fase I cuando `num_composite_patterns == 0`; y (c) depósito, consulta y decaimiento de rastros estigmérgicos `StigmergicTrace` ($R_{19}$) por celda.
-- [ ] 4.2 **[GREEN]** Implementar `spawn_agent_near`, `set_agent_radii`, `get_agent_distance`, `get_composite_rules`, `deposit_stigmergy`, `get_cell_stigmergy`, `get_active_stigmergy_cells` y el decaimiento estigmérgico en `src/ide/environments/grid2d.py`.
-- [ ] 4.3 **[REFACTOR]** Ejecutar `pytest tests/test_spatial_environments.py tests/test_performance_equivalence.py`, comprobando que los hashes SHA-256 de Fase I permanecen intactos.
+- [ ] 3.1 **[RED]** Crear `tests/test_holonic_hierarchy.py` con tests para:
+  - (a) el protocolo `AgentNode` y la construcción recursiva de `CompositeAgent` en $L = 1, 2, 3, 4$;
+  - (b) `ValueError` con menos de 2 hijos o con hojas duplicadas;
+  - (c) `collective_memory()` con desempate determinista;
+  - (d) `evaluate_bond_candidates` ($R_{15}$) entre especialistas complementarios, y el rechazo de clones;
+  - (e) `should_split_holon` ($R_{16}$) por paciencia o por energía mínima;
+  - (f) `apply_downward_causation` ($R_{18}$) con alcance local;
+  - (g) `reproduce_holon` ($R_{17}$) preservando la topología, con `formed_by_bond = False` y `formation_tick = tick` en todos los nodos replicados;
+  - (h) `prune_dead_leaves` con colapso de sub-holones.
+- [ ] 3.2 **[GREEN]** Implementar `src/ide/agent/holon.py` con `AgentNode`, `CompositeAgent`, `prune_dead_leaves`, `evaluate_bond_candidates`, `should_split_holon`, `apply_downward_causation` y `reproduce_holon`, según las firmas de design D23.
+- [ ] 3.3 **[REFACTOR]** Verificación del bloque.
+
+## 4. Entorno Espacial Evolutivo (`spatial-environments`)
+
+- [ ] 4.1 **[RED]** Ampliar `tests/test_grid2d.py` con tests para:
+  - (a) `spawn_agent_near` (celdas de menor ocupación en `((0, 0), *MOORE_MOVES)`), `set_agent_radii` y `get_agent_distance`;
+  - (b) la generación cíclica y la reposición de recursos compuestos con `_comp_rng` (`spawn_key=(3,)`), sin consumir el `rng` de Fase I cuando `num_composite_patterns == 0`;
+  - (c) el depósito independiente del orden, la consulta y el decaimiento de `StigmergicTrace` ($R_{19}$).
+- [ ] 4.2 **[GREEN]** Implementar en `src/ide/environments/grid2d.py`:
+  - `spawn_agent_near`, `set_agent_radii` y `get_agent_distance`;
+  - `get_composite_rules`;
+  - `deposit_stigmergy`, `get_cell_stigmergy` y `get_active_stigmergy_cells`;
+  - el decaimiento estigmérgico.
+- [ ] 4.3 **[REFACTOR]** `python -m pytest tests/test_grid2d.py tests/test_performance_equivalence.py` (hashes de Fase I intactos) y verificación del bloque.
 
 ## 5. Motor de Simulación Evolutivo y Holónico (`simulation-engine`)
 
-- [ ] 5.1 **[RED]** Ampliar `tests/test_simulation_engine.py` con tests para: (a) aislamiento del generador `evo_rng` (`spawn_key=(2,)`); (b) sincronización efímera en dos tiempos (`_sync_holon_and_composite_beliefs` en Fase 1 y Fase 2) sin emitir `QUERY_PATTERN` inútiles sobre patrones compuestos y respetando localidad espacial intra-holón en Fase 4; (c) ciclo de Fase 5 con metabolismo energético, muerte por agotamiento ($E_i \le 0$), poda de holones en `_remove`, límite de a lo sumo 1 reproducción por agente por tick (`reproduced_this_tick` entre $R_{17}$ y $R_{12}$), causalidad descendente ($R_{18}$), fusión `BOND` ($R_{15}$) y fisión `SPLIT` ($R_{16}$); y (d) registro de `EvolutionaryTickMetrics` en `engine.evolutionary_history`.
-- [ ] 5.2 **[GREEN]** Extender `SimulationEngine` en `src/ide/simulation/engine.py` y `EvolutionaryMetricsCollector` en `src/ide/experiments/metrics.py` para orquestar las dinámicas de Fase II manteniendo bit a bit el comportamiento de Fase I cuando las banderas están en `False`.
-- [ ] 5.3 **[REFACTOR]** Ejecutar `pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py`, `pyright` y `ruff`.
+- [ ] 5.1 **[RED]** Ampliar `tests/test_simulation_engine.py` con tests para:
+  - (a) el aislamiento de `evo_rng` (`spawn_key=(2,)`);
+  - (b) la vista del holón en dos tiempos sin efectos de orden y su ablación (`enable_holon_view`, $R_{22}$); los recursos compuestos aprendidos por experiencia, sin inyección, con reparto de energía y su ablación (`holon_energy_sharing`, $R_{23}$); y la exclusión de compuestos en M2;
+  - (c) la Fase 5: metabolismo, muerte ($E_i \le 0$), poda en `_remove` (incluidas las ablaciones), a lo sumo una reproducción por agente y por tick, reproducción neutral (`reproduction_mode="neutral"`, $R_{12}$), herencia cultural por `assimilate_testimony` (con control nulo aplicado por el motor), $R_{18}$, `SPLIT` y `BOND`;
+  - (d) `engine.evolutionary_history`, y que el motor completa `formation_knowledge` al crear un holón y reinicia el estado de formación (con `formation_tick`) cuando un holón pierde un miembro, también desde `ablate_population`;
+  - (e) igualdad de historiales entre procesos con distinto `PYTHONHASHSEED` con todas las banderas de Fase II activas.
+- [ ] 5.2 **[GREEN]** Extender `SimulationEngine` en `src/ide/simulation/engine.py` y agregar `EvolutionaryMetricsCollector` en `src/ide/experiments/metrics.py`, manteniendo bit a bit la Fase I con los valores por defecto.
+- [ ] 5.3 **[REFACTOR]** `python -m pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py`, `python -m ide.experiments.benchmark` (comparar ticks por segundo con la línea base) y verificación del bloque.
 
-## 6. Telemetría M8–M12, Protocolos Experimentales 002/003 y Atribución R12–R19 (`experimental-suite`, `emergence-attribution`)
+## 6. Telemetría M8–M13, Protocolos 002/003 y Atribución R12–R23 (`experimental-suite`, `emergence-attribution`)
 
-- [ ] 6.1 **[RED]** Crear `tests/test_exp002_exp003.py` y ampliar `tests/test_metrics.py` y `tests/test_attribution.py` con tests para: (a) cálculo exacto de `EvolutionaryTickMetrics` (M8 a M12) sin alterar los 14 campos de `TickMetrics`; (b) catálogo `PHASE2_DESIGN_RULES` (`R12`..`R19`), `ALL_DESIGN_RULES`, variantes `isolated`/`null_content` extendidas para afirmaciones `EXP002_CLAIMS` (`C5`, `C6`) y `EXP003_CLAIMS` (`C7`, `C8`) en `attribution.py` preservando `rule_effects == R3..R11` para `EXP001_CLAIMS`; y (c) ejecución y serialización JSON/CLI de `run_protocol_002a_adaptation`, `run_protocol_002b_cultural_inheritance`, `run_protocol_003a_holonic_transition` y `run_protocol_003b_multilevel_scaling`.
-- [ ] 6.2 **[GREEN]** Implementar `EvolutionaryTickMetrics` y `EvolutionaryMetricsCollector` en `src/ide/experiments/metrics.py`, extender `src/ide/experiments/attribution.py`, y crear `src/ide/experiments/exp002_runner.py` y `src/ide/experiments/exp003_runner.py`.
-- [ ] 6.3 **[REFACTOR]** Ejecutar la suite completa de calidad y cobertura: `.venv\Scripts\python.exe -m ruff check src tests`, `.venv\Scripts\python.exe -m ruff format --check src tests`, `.venv\Scripts\python.exe -m pyright` y `.venv\Scripts\python.exe -m pytest --cov=ide`.
+- [ ] 6.1 **[RED]** Crear `tests/test_exp002_exp003.py` y ampliar `tests/test_metrics.py` y `tests/test_attribution.py` con tests para:
+  - (a) `EvolutionaryTickMetrics` (M8–M13, incluida la cobertura colectiva adquirida (y la reducción de redundancia descriptiva) con `formation_knowledge`, holones elegibles por `BOND`, reinicio del estado de formación con `formation_tick` cuando el holón pierde un miembro y media por par tick-holón) sin alterar los 14 campos de `TickMetrics`;
+  - (b) `PHASE2_DESIGN_RULES` (`R12`–`R23`) con `purpose`, `ALL_DESIGN_RULES`, `PHASE2_CLAIM_CHANNELS`, el criterio ampliado de `is_by_construction`, el perfil `phase2`, `PHASE2_SEEDS`, `PHASE2_PROTOCOL_CONFIGS`, `run_phase2_attribution` (una sola condición por variante) y las variantes pre-registradas para `EXP002_CLAIMS` y `EXP003_CLAIMS` (para C8, la ablación de `R22`) y `PHASE2_INACTIVE_RULES` fuera de `rule_effects` (con el test que la contrasta con `PHASE2_PROTOCOL_CONFIGS`), preservando `report.rules == DESIGN_RULES` y `rule_effects == R3..R11` para `EXP001_CLAIMS`;
+  - (c) la ejecución y la serialización JSON/CLI de los cuatro protocolos 002 y 003.
+- [ ] 6.2 **[GREEN]** Antes de los runners, correr la prueba de humo de design D29 (sólo termina y generación máxima, sin mirar las métricas de las afirmaciones) y registrar su salida. Implementar las métricas en `src/ide/experiments/metrics.py`, extender `src/ide/experiments/attribution.py` y crear `src/ide/experiments/exp002_runner.py` y `src/ide/experiments/exp003_runner.py`.
+- [ ] 6.3 **[REFACTOR]** Verificación completa:
+  - `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide` (cobertura $\ge 90\%$);
+  - `python -m pytest -m slow`;
+  - `openspec validate --all --strict`;
+  - actualizar `.github/workflows/ci.yml` si cambian los pasos de verificación.
+
+## 7. Corridas y registro
+
+- [ ] 7.1 Correr los protocolos 002 y 003 con el perfil pre-registrado y registrar los resultados, incluidos los negativos, en `RESULTADOS.md`, sin tocar el pre-registro.
+- [ ] 7.2 Actualizar `CLAUDE.md` (estado y comandos nuevos) y `README.md`.

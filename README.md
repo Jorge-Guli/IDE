@@ -67,12 +67,12 @@ Los resultados vigentes están en [`RESULTADOS.md`](RESULTADOS.md).
 
 Orden de jerarquía normativa ante cualquier discrepancia:
 
-1. [`openspec/changes/ide-emergent-distributed-intelligence/specs/`](openspec/changes/ide-emergent-distributed-intelligence/specs): requisitos verificables.
-2. [`design.md`](openspec/changes/ide-emergent-distributed-intelligence/design.md): firmas, fórmulas, desempates y checklist de aceptación.
+1. Requisitos verificables: los vigentes de la Fase I en [`openspec/specs/`](openspec/specs/), más los specs delta del cambio en curso de la Fase II en [`openspec/changes/ide-v2-evolutionary-holonic-intelligence/specs/`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/specs).
+2. Firmas, fórmulas, desempates y checklist de aceptación: el [`design.md` de la Fase I](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md) (archivado, Decisiones D1–D18) y el [`design.md` de la Fase II](openspec/changes/ide-v2-evolutionary-holonic-intelligence/design.md) (D19–D29).
 3. [`DEFINICIONES_TECNICAS.md`](DEFINICIONES_TECNICAS.md) y [`DEFINICIONES_FORMALES.md`](DEFINICIONES_FORMALES.md): fundamento.
 4. [`DOCUMENTO_FUNDACIONAL.md`](DOCUMENTO_FUNDACIONAL.md): visión y principios.
 
-El plan de trabajo es [`tasks.md`](openspec/changes/ide-emergent-distributed-intelligence/tasks.md). Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
+El plan de la Fase I está completo ([`tasks.md` archivado](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)). El plan de la Fase II es [`tasks.md`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/tasks.md); tiene decisiones abiertas que bloquean parte de su implementación (ver su `proposal.md`). Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
 
 ## Integración continua
 

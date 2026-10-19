@@ -4,7 +4,7 @@
 
 Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
 
-**Estado:** la especificación está completa y validada, y los bloques 1 a 11 de `tasks.md` están implementados y verificados. El trabajo nuevo parte de cambios de diseño (primero los artefactos OpenSpec). El plan de trabajo es `openspec/changes/ide-emergent-distributed-intelligence/tasks.md`.
+**Estado:** la Fase I (Experimento 001) está completa: sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`, con los requisitos vigentes sincronizados en `openspec/specs/`. La Fase II está en diseño en `openspec/changes/ide-v2-evolutionary-holonic-intelligence/`. Su plan es el `tasks.md` de ese cambio. Sus decisiones P1–P3 están resueltas (ver su `proposal.md`) y su pre-registro es la Decisión 29 del `design.md`.
 
 ## Idioma
 
@@ -15,8 +15,8 @@ Plataforma de simulación en Python para investigar si una población de micro-a
 
 Ante una discrepancia entre documentos, rige este orden:
 
-1. `openspec/changes/ide-emergent-distributed-intelligence/specs/*/spec.md`: requisitos verificables.
-2. `openspec/changes/ide-emergent-distributed-intelligence/design.md`: firmas, fórmulas y desempates exactos.
+1. Requisitos verificables: `openspec/specs/*/spec.md` (vigentes) y los specs delta del cambio activo, `openspec/changes/ide-v2-evolutionary-holonic-intelligence/specs/*/spec.md`.
+2. Firmas, fórmulas y desempates exactos: el `design.md` del cambio activo para la Fase II (D19 en adelante) y el `design.md` archivado de la Fase I (`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md`, D1–D18).
 3. `DEFINICIONES_TECNICAS.md` y `DEFINICIONES_FORMALES.md`: fundamento.
 4. `DOCUMENTO_FUNDACIONAL.md`: visión y principios.
 
@@ -38,20 +38,20 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 - Antes de marcar una tarea `[x]` o hacer commit, corre las verificaciones y muestra su salida (`superpowers:verification-before-completion`).
 - Ante un test que falla o un resultado inesperado, usa `superpowers:systematic-debugging`. En este proyecto un resultado raro puede ser un bug **o** un hallazgo científico: no los confundas.
 - Un bloque sólo está completo si pasan `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide`, y después la revisión automática que sigue.
-- **Revisión automática, sin preguntar:** después de **cada** cambio (un bloque o una tanda de correcciones pedida por el usuario), corre `/code-review` sobre ese cambio. Aplica los hallazgos que se sostienen, descarta con motivo los que no, y revisa sólo las correcciones aplicadas. Las correcciones que surgen de una revisión no son un cambio nuevo: cuentan como rondas del cambio original. Termina cuando una revisión no deja hallazgos accionables nuevos (los ya descartados con motivo no reabren el ciclo) o tras **3 rondas** sobre el mismo cambio; en ese caso, reporta lo pendiente en lugar de seguir. **Excepción:** un hallazgo que cambie el diseño de forma no obvia, o que toque el pre-registro (`DESIGN_RULES`, `EXP001_CLAIMS`, `ATTRIBUTION_PROFILE`), no se aplica sin consultar. Presenta los resultados en español y en lenguaje claro.
+- **Revisión automática, sin preguntar:** después de **cada** cambio (un bloque o una tanda de correcciones pedida por el usuario), corre `/code-review` sobre ese cambio. Aplica los hallazgos que se sostienen, descarta con motivo los que no, y revisa sólo las correcciones aplicadas. Las correcciones que surgen de una revisión no son un cambio nuevo: cuentan como rondas del cambio original. Termina cuando una revisión no deja hallazgos accionables nuevos (los ya descartados con motivo no reabren el ciclo) o tras **3 rondas** sobre el mismo cambio; en ese caso, reporta lo pendiente en lugar de seguir. **Excepción:** un hallazgo que cambie el diseño de forma no obvia, o que toque el pre-registro (`DESIGN_RULES`, `EXP001_CLAIMS`, `ATTRIBUTION_PROFILE` y sus equivalentes de la Fase II), no se aplica sin consultar. Presenta los resultados en español y en lenguaje claro.
 - Además de los escenarios de las specs, verifica los invariantes con pruebas por propiedades (Hypothesis, perfil `ci` con `derandomize=True`).
 
 ## Reglas de arquitectura (invariantes)
 
 - `src/ide/agent/` **no importa** `ide.environments`, `ide.simulation` ni `ide.experiments`. Un test lo verifica sobre el AST.
-- Dentro de `src/ide/agent/`, **sólo `protocol.py`** construye `Message` o referencia `MessageType`. El conocimiento social entra únicamente por `MicroAgent.assimilate_testimony`.
+- Dentro de `src/ide/agent/`, **sólo `protocol.py`** construye `Message` o referencia `MessageType`. El conocimiento social entra únicamente por `MicroAgent.assimilate_testimony`. La **única excepción** es la vista compartida del holón de la Fase II (regla `R22`, ablacionable con `enable_holon_view`): es efímera, nunca se escribe en la memoria y no la usan ni `learn_from_experience` ni `assimilate_testimony`, que parten de `own_belief`.
 - El agente nunca ve `Resource.true_value`: percibe `VisibleResource`. `get_reachable_true_values` es un oráculo exclusivo del motor para la métrica M2.
 - Los agentes no conocen coordenadas: navegan con `recommended_move` y `distance`.
 - Las entidades de dominio son `@dataclass(frozen=True)`.
 
 ## Determinismo
 
-- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. El control nulo usa su propio generador.
+- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. Las únicas excepciones son generadores derivados de la semilla con `np.random.SeedSequence(seed, spawn_key=(k,))`, cada uno con un uso declarado: `(1,)` control nulo de contenido, `(2,)` dinámica evolutiva del motor (`evo_rng`), `(3,)` recursos compuestos del entorno y `(4,)` sorteo del donante de genoma en la reproducción neutral (`donor_rng`). Sólo se consumen cuando su mecanismo está activo. Un generador nuevo exige declararlo aquí y en `design.md`.
 - **Prohibido** iterar un `set`, o el resultado de una operación de conjuntos, sin `sorted(...)`. Python aleatoriza el hash de `str` por proceso. `Pattern` tiene `order=True` y es la clave canónica de orden.
 - Toda selección aleatoria (`rng.choice`, `rng.permutation`) opera sobre listas ya ordenadas.
 - Simultaneidad: percepción, comunicación y decisión son sincrónicas; sólo los conflictos físicos se resuelven por la permutación del tick, que funciona como un sorteo. No introduzcas efectos de orden en otras fases.
@@ -64,8 +64,8 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 > **Toda propiedad que se afirme como emergente debe poder distinguirse de una capacidad programada explícitamente en el agente.**
 
 - No llames "emergente" a una capacidad que una regla diseñada persigue. El superávit de 001-A es **funcional** (`SurplusReport`, `collective_surplus`).
-- Toda regla nueva del agente se agrega al inventario `DESIGN_RULES`, con su propósito declarado y una ablación, y se documenta en `DEFINICIONES_FORMALES.md` §3.1.
-- `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` son un **pre-registro**: se versionan antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
+- Toda regla nueva del agente se agrega al inventario de reglas (`DESIGN_RULES` en la Fase I; `PHASE2_DESIGN_RULES` en la Fase II, que conserva intacto `DESIGN_RULES`), con su propósito declarado y una ablación, y se documenta en `DEFINICIONES_FORMALES.md` §3.1.
+- `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` (y en la Fase II `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil de corrida) son un **pre-registro**: se versionan antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
 - Si quitar las reglas de una afirmación deja a la población sin comunicación, la afirmación es *programada por construcción*. Se declara así; no se presenta como resultado.
 - **Nunca ajustes parámetros para que una hipótesis "pase".** Un resultado negativo se reporta tal cual: es un hallazgo.
 - Principio de mínima maquinaria: no agregues reglas "inteligentes" al agente sin justificarlas, declararlas y hacerlas ablacionables.
@@ -79,7 +79,7 @@ Cada sesión de Claude Code en la nube arranca con un contenedor limpio. El hook
 
 ## Comandos
 
-Todos disponibles (el proyecto completó los bloques de `tasks.md`):
+Disponibles en la Fase I (los comandos de los runners 002 y 003 se agregarán al implementar la Fase II):
 
 ```bash
 pip install -e ".[dev]"                     # instalación manual (en la nube la hace el hook de inicio)
