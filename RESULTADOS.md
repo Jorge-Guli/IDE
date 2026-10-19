@@ -78,6 +78,23 @@ Verificación con `src/` idéntico al del commit `360c771`; `tests/` también, s
 - `python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --jobs 2` (perfil `full`): superávit positivo en las 5 semillas (+0.145 a +0.177), prueba de signo `p = 0.03125`, rumor final 0.000 en las 5 (inicial 0.250). La persistencia social final de este protocolo (001-C del perfil `full`) es 0.000 en las 5 semillas. Es otra medición que la de 001-D (perfil `quick`, ablación de descubridores con retiro del estímulo, donde 2 de 5 semillas conservan conocimiento social); no se comparan ni se usan como confirmación mutua.
 - Invariantes del checklist cubiertos por la suite de software: aislamiento de capas y protocolo aislado (`test_auditoria_de_importaciones` y `test_auditoria_del_protocolo` en `tests/test_micro_agent.py`), ausencia de `true_value` en lo visible (`test_campos_exactos_de_visible_resource` en `tests/test_domain_contracts.py`; que sólo `SimulationEngine` invoque `get_reachable_true_values` lo cubre `test_oraculo_de_verdad_nadie_fuera_del_motor_lo_referencia` en `tests/test_simulation_engine.py`, agregado en la revisión del cierre), invariante de memoria y determinismo intra e inter-proceso (`tests/test_simulation_engine.py`), anti-eco (`tests/test_epistemology.py`), y paralelismo inocuo y determinismo de la CLI con `PYTHONHASHSEED` 0 y 1 y `--jobs 1` frente a `--jobs 2` (`tests/test_exp001_suite.py`). Todos pasan en la corrida de arriba.
 
+## Fase II: prueba de humo del perfil pre-registrado (design D29, tarea 6.2)
+
+- **Pre-registro:** `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y el perfil de corrida versionados en el commit `7375a8c`, **antes** de implementar los runners 002 y 003.
+- **Código:** `7375a8c` (motor del bloque 5, sin los runners).
+- **Qué se mide:** sólo que la corrida termina y la generación máxima (`max(m.max_generation)` sobre `engine.evolutionary_history`), como fija D29. **No** se calcularon ni se miraron las métricas de las afirmaciones C5 a C8.
+- **Comando:** para cada protocolo `p` de `PHASE2_PROTOCOL_CONFIGS` y cada semilla `s` de `PHASE2_SEEDS`, `SimulationEngine(replace(PHASE2_PROTOCOL_CONFIGS[p], seed=s))` durante `PROFILES["phase2"].total_ticks = 2000` ticks.
+
+| Protocolo | Termina (2000 ticks) | Gen. máx. 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 |
+| :--- | :---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `002a` | sí | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 0 |
+| `002b` | sí | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 0 |
+| `003a` | sí | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| `003b` | sí | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+
+- **Resultado:** las 40 corridas terminan. La generación máxima es 0 o 1 en todas: con el perfil pre-registrado la población **no llega a varias generaciones**. Cada corrida de 2000 ticks tardó alrededor de 1 s, mucho menos que una población activa, lo que sugiere una extinción temprana; no se verificó, porque D29 limita la prueba de humo a estas dos observaciones.
+- **Lectura, sin ajustar parámetros:** D29 prohíbe cambiar el perfil a la vista de los resultados y pide reportar la extinción o la falta de generaciones como resultado. Es coherente con la física declarada (D21): con los valores por defecto, el costo basal de un fundador es $0.01 + 0.002 \cdot 3^2 + 0.0005 \cdot (2^2 + 2^2) = 0.032$ por tick, y con `initial_energy = 1.5` un agente que no come muere en unos 47 ticks. Con este perfil, las afirmaciones C5 a C8, que dependen de la sucesión generacional, de los holones o de ambas, difícilmente tengan con qué medirse. Cambiar el perfil sería modificar el pre-registro: exige una decisión explícita y un commit que la justifique.
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.
