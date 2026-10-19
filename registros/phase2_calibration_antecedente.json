@@ -1,0 +1,567 @@
+{
+  "chosen": 20,
+  "parameter": "resources_per_pattern",
+  "runs": [
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 2,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 2,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 2,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 2,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 2,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 2,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 1,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 10
+    },
+    {
+      "final_agents": 0,
+      "max_generation": 0,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 10
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 9,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 9,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 20
+    },
+    {
+      "final_agents": 151,
+      "max_generation": 30,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 20,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 20
+    },
+    {
+      "final_agents": 108,
+      "max_generation": 26,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 20
+    },
+    {
+      "final_agents": 96,
+      "max_generation": 22,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 20
+    },
+    {
+      "final_agents": 151,
+      "max_generation": 30,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 20,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 20
+    },
+    {
+      "final_agents": 108,
+      "max_generation": 26,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 20
+    },
+    {
+      "final_agents": 96,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 20
+    },
+    {
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 20
+    }
+  ],
+  "total_ticks": 2000
+}

@@ -1,0 +1,15 @@
+resources_per_pattern=10 002a: viables 0/10, vivas 0/10, generación máxima por semilla: 0 1 1 1 1 2 1 1 0 1
+resources_per_pattern=10 002b: viables 0/10, vivas 0/10, generación máxima por semilla: 0 1 1 1 1 2 1 1 0 4
+resources_per_pattern=10 003a: viables 0/10, vivas 0/10, generación máxima por semilla: 1 0 2 2 1 1 0 1 0 0
+resources_per_pattern=10 003b: viables 0/10, vivas 0/10, generación máxima por semilla: 1 0 2 2 1 1 0 1 0 0
+resources_per_pattern=20 002a: viables 10/10, vivas 10/10, generación máxima por semilla: 7 7 8 11 8 8 12 11 12 10
+resources_per_pattern=20 002b: viables 10/10, vivas 10/10, generación máxima por semilla: 9 8 8 9 6 10 8 8 8 7
+resources_per_pattern=20 003a: viables 10/10, vivas 10/10, generación máxima por semilla: 30 19 23 20 23 26 22 21 21 22
+resources_per_pattern=20 003b: viables 10/10, vivas 10/10, generación máxima por semilla: 30 19 23 20 23 26 22 21 21 22
+Resultado: resources_per_pattern = 20
+
+real	5m52.414s
+user	21m13.549s
+sys	0m1.040s
+
+[exited with code 0]

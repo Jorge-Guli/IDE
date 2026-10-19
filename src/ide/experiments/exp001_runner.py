@@ -93,6 +93,10 @@ PROFILES: dict[str, Profile] = {
     "full": Profile(
         total_ticks=1000, injection_tick=200, warmup_ticks=500, post_ablation_ticks=200
     ),
+    # Pre-registro de la Fase II (design D29): los protocolos 002 y 003 sólo usan `total_ticks`.
+    "phase2": Profile(
+        total_ticks=2000, injection_tick=80, warmup_ticks=150, post_ablation_ticks=100
+    ),
 }
 
 
@@ -297,19 +301,19 @@ def report_to_dict(report: Any) -> Any:
     return report
 
 
-def _aggregate_values(values: list[Any]) -> Any:
+def aggregate_values(values: list[Any]) -> Any:
     present = [v for v in values if v is not None]
     if present and all(isinstance(v, bool) for v in present):
         return sum(present) / len(present)
     if present and all(isinstance(v, dict) for v in present):
         dicts = cast(list[dict[str, Any]], present)
         keys = sorted({k for d in dicts for k in d})
-        return {k: _aggregate_values([d.get(k) for d in dicts]) for k in keys}
+        return {k: aggregate_values([d.get(k) for d in dicts]) for k in keys}
     if present and all(isinstance(v, list) for v in present):
         lists = cast(list[list[Any]], present)
         width = max(len(v) for v in lists)
         return [
-            _aggregate_values([v[i] if i < len(v) else None for v in lists]) for i in range(width)
+            aggregate_values([v[i] if i < len(v) else None for v in lists]) for i in range(width)
         ]
     if present and all(isinstance(v, str) for v in present):
         return present[0] if len(set(present)) == 1 else sorted(set(present))
@@ -329,7 +333,7 @@ def aggregate_reports(reports: Sequence[Any]) -> dict[str, Any]:
     """
     dicts = [cast(dict[str, Any], report_to_dict(r)) for r in reports]
     fields = list(dicts[0]) if dicts else []
-    result = {name: _aggregate_values([d[name] for d in dicts]) for name in fields}
+    result = {name: aggregate_values([d[name] for d in dicts]) for name in fields}
     if reports and all(isinstance(r, SurplusReport) for r in reports):
         surplus = cast(Sequence[SurplusReport], reports)
         result["surplus_sign_test_p"] = sign_test_p_value([r.collective_surplus for r in surplus])
@@ -403,7 +407,7 @@ def run_tasks(
     return {args[2]: result for args, result in zip(jobs_args, results, strict=True)}
 
 
-def _write_json(path: Path, data: Any) -> None:
+def write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
@@ -433,7 +437,7 @@ def _write_timeseries(
                 )
 
 
-def _positive_int(text: str) -> int:
+def positive_int(text: str) -> int:
     try:
         value = int(text)
     except ValueError:
@@ -443,7 +447,7 @@ def _positive_int(text: str) -> int:
     return value
 
 
-def _non_negative_int(text: str) -> int:
+def non_negative_int(text: str) -> int:
     try:
         value = int(text)
     except ValueError:
@@ -456,9 +460,9 @@ def _non_negative_int(text: str) -> int:
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Experimento 001: protocolos 001-A, 001-B y 001-C")
     parser.add_argument("--profile", choices=sorted(PROFILES), default="full")
-    parser.add_argument("--seeds", type=_non_negative_int, nargs="+", default=[42])
+    parser.add_argument("--seeds", type=non_negative_int, nargs="+", default=[42])
     parser.add_argument("--out", type=Path, default=Path("results/"))
-    parser.add_argument("--jobs", type=_positive_int, default=1)
+    parser.add_argument("--jobs", type=positive_int, default=1)
     parser.add_argument(
         "--attribution",
         action="store_true",
@@ -506,7 +510,7 @@ def main(argv: list[str] | None = None) -> int:
         reports = {"001a": surplus, "001b": falsification, "001c": resilience}
         for key, report in reports.items():
             per_protocol[key].append(report)
-        _write_json(
+        write_json(
             out / f"exp001_seed{seed}.json",
             {
                 "config": configs[seed].to_dict(),
@@ -525,7 +529,7 @@ def main(argv: list[str] | None = None) -> int:
         aggregate: dict[str, Any] = {"seeds": seeds, "profile": profile_name}
         for key, reports_list in per_protocol.items():
             aggregate[f"protocol_{key}"] = aggregate_reports(reports_list)
-        _write_json(out / "exp001_aggregate.json", aggregate)
+        write_json(out / "exp001_aggregate.json", aggregate)
         p_value = aggregate["protocol_001a"]["surplus_sign_test_p"]
         print(f"prueba de signo del superávit ({len(seeds)} semillas): p = {p_value:.5f}")
     return 0
@@ -549,7 +553,7 @@ def _main_attribution(seeds: list[int], out: Path, jobs: int) -> int:
             "todos los estados serán INSUFFICIENT_EVIDENCE."
         )
     report = run_protocol_001d_attribution(SimulationConfig(), seeds, jobs=jobs)
-    _write_json(out / "exp001_attribution.json", report_to_dict(report))
+    write_json(out / "exp001_attribution.json", report_to_dict(report))
 
     def fmt(p: float | None) -> str:
         return "—" if p is None else f"{p:.5f}"
