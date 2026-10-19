@@ -44,7 +44,7 @@
 
 ## 3. Jerarquía Holónica Recursiva (`holonic-hierarchy`)
 
-- [ ] 3.1 **[RED]** Crear `tests/test_holonic_hierarchy.py` con tests para:
+- [x] 3.1 **[RED]** Crear `tests/test_holonic_hierarchy.py` con tests para:
   - (a) el protocolo `AgentNode` y la construcción recursiva de `CompositeAgent` en $L = 1, 2, 3, 4$;
   - (b) `ValueError` con menos de 2 hijos o con hojas duplicadas;
   - (c) `collective_memory()` con desempate determinista;
@@ -53,8 +53,8 @@
   - (f) `apply_downward_causation` ($R_{18}$) con alcance local;
   - (g) `reproduce_holon` ($R_{17}$) preservando la topología, con `formed_by_bond = False` y `formation_tick = tick` en todos los nodos replicados;
   - (h) `prune_dead_leaves` con colapso de sub-holones.
-- [ ] 3.2 **[GREEN]** Implementar `src/ide/agent/holon.py` con `AgentNode`, `CompositeAgent`, `prune_dead_leaves`, `evaluate_bond_candidates`, `should_split_holon`, `apply_downward_causation` y `reproduce_holon`, según las firmas de design D23.
-- [ ] 3.3 **[REFACTOR]** Verificación del bloque.
+- [x] 3.2 **[GREEN]** Implementar `src/ide/agent/holon.py` con `AgentNode`, `CompositeAgent`, `prune_dead_leaves`, `evaluate_bond_candidates`, `should_split_holon`, `apply_downward_causation` y `reproduce_holon`, según las firmas de design D23.
+- [x] 3.3 **[REFACTOR]** Verificación del bloque.
 
 ## 4. Entorno Espacial Evolutivo (`spatial-environments`)
 
