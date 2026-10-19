@@ -291,6 +291,8 @@ def test_causalidad_descendente_valida_el_alcance_local() -> None:
         apply_downward_causation(u, {1: [1, 2]}, R18)  # falta la hoja 2
     with pytest.raises(ValueError, match="local_reach"):
         apply_downward_causation(u, {1: [1, 2], 2: [2, 7]}, R18)  # 7 no es hoja del holón
+    with pytest.raises(ValueError, match="local_reach"):
+        apply_downward_causation(u, {1: [1], 2: [2], 99: [1]}, R18)  # clave sobrante
     with pytest.raises(ValueError, match="local_reach"):  # también con la regla apagada
         apply_downward_causation(u, {1: [1, 2]}, replace(R18, enable_downward_causation=False))
 

@@ -3,9 +3,7 @@
 La demografía del motor (muerte, reproducción por tick, modo neutral) se prueba en el bloque 5.
 """
 
-import ast
 from dataclasses import replace
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -23,7 +21,6 @@ from ide.config import SimulationConfig
 from ide.domain.extensions import mutate_genome
 from ide.domain.types import AgentGenome, KnowledgeUnit, Pattern
 
-AGENT_DIR = Path(__file__).resolve().parents[1] / "src" / "ide" / "agent"
 CFG = SimulationConfig()
 INHERIT = replace(CFG, enable_cultural_inheritance=True)
 
@@ -172,35 +169,6 @@ def test_transferencia_epigenica_por_la_puerta_social() -> None:
     assert inherited.from_direct_experience is False
 
 
-# --- Auditorías sobre el AST -------------------------------------------------------------------
-
-
-def imported_modules(path: Path) -> list[str]:
-    names: list[str] = []
-    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-        if isinstance(node, ast.Import):
-            names += [alias.name for alias in node.names]
-        elif isinstance(node, ast.ImportFrom):
-            names.append(node.module or "")
-    return names
-
-
-def test_evolution_no_importa_micro_agent() -> None:
-    # Sin ciclo: `micro_agent.py` importa `evolution.py`, nunca al revés (D20, regla 5).
-    names = imported_modules(AGENT_DIR / "evolution.py")
-    assert not any("micro_agent" in name for name in names), names
-
-
-def test_ningun_modulo_del_agente_referencia_nullify_belief() -> None:
-    # El control nulo de contenido lo aplica sólo el motor (D20, regla 4).
-    for path in sorted(AGENT_DIR.rglob("*.py")):
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            name = getattr(node, "id", None) or getattr(node, "attr", None)
-            if isinstance(node, ast.alias):
-                name = node.name
-            assert name != "nullify_belief", path.relative_to(AGENT_DIR)
-
-
 # --- Propiedades (Hypothesis) ------------------------------------------------------------------
 
 
@@ -322,6 +290,8 @@ def test_propiedad_transferencia_cultural(
     assert len(out) <= min(child_capacity, len(before))
 
 
-def test_transferencia_rechaza_capacidad_negativa() -> None:
+@pytest.mark.parametrize("cfg", [INHERIT, CFG])
+def test_transferencia_rechaza_capacidad_negativa(cfg: SimulationConfig) -> None:
+    # También con la herencia apagada: la ablación no oculta un error del motor.
     with pytest.raises(ValueError, match="child_capacity"):
-        transfer_cultural_heritage(memory_with(ku(0)), -1, 0, INHERIT)
+        transfer_cultural_heritage(memory_with(ku(0)), -1, 0, cfg)

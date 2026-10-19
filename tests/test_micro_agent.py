@@ -190,6 +190,33 @@ def test_protocolo_no_escribe_la_memoria_directamente() -> None:
             assert not node.attr.startswith("_"), f"protocol.py accede a {node.attr}"
 
 
+def imported_modules(path: Path) -> list[str]:
+    names: list[str] = []
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Import):
+            names += [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            # También los nombres: `from . import micro_agent` no deja rastro en `module`.
+            names += [node.module or ""] + [alias.name for alias in node.names]
+    return names
+
+
+def test_evolution_no_importa_micro_agent() -> None:
+    # Sin ciclo: `micro_agent.py` importa `evolution.py`, nunca al revés (D20, regla 5).
+    names = imported_modules(AGENT_DIR / "evolution.py")
+    assert not any("micro_agent" in name for name in names), names
+
+
+def test_ningun_modulo_del_agente_referencia_nullify_belief() -> None:
+    # El control nulo de contenido lo aplica sólo el motor (D20, regla 4).
+    for path in agent_modules():
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            name = getattr(node, "id", None) or getattr(node, "attr", None)
+            if isinstance(node, ast.alias):
+                name = node.name
+            assert name != "nullify_belief", path.relative_to(AGENT_DIR)
+
+
 # --- Interfaz ----------------------------------------------------------------------------------
 
 

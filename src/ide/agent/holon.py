@@ -188,8 +188,10 @@ def apply_downward_causation(
     by_id = {leaf.agent_id: leaf for leaf in leaves}
     nearby_ids: dict[int, list[int]] = {}
     # Se valida aun con la regla apagada, para que la ablación no oculte un error del motor.
+    if local_reach.keys() != by_id.keys():
+        raise ValueError(f"local_reach debe tener exactamente una clave por hoja: {sorted(by_id)}")
     for aid in by_id:
-        if aid not in local_reach or not set(local_reach[aid]) <= by_id.keys():
+        if not set(local_reach[aid]) <= by_id.keys():
             raise ValueError(f"local_reach debe dar, para la hoja {aid}, sólo hojas del holón")
         nearby_ids[aid] = sorted({*local_reach[aid], aid})
     if not config.enable_downward_causation:
