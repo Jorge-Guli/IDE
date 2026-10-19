@@ -350,6 +350,7 @@ En la Fase 5, cuando `config.enable_evolution` es `True`:
    - Sea `beneficial = [Pattern((("id", f"p_{i}"),)) for i in range(config.num_world_patterns // 2)]`.
    - Para cada $k \in \{0, \dots, \text{num\_composite\_patterns} - 1\}$:
      - El patrón compuesto es `comp_pat = Pattern((("id", f"c_{k}"), ("order", str(m))))` donde $m = \text{config.composite\_order}$.
+     - **Alcance frente al shock (2026-10-19):** `composite_value` es fijo. `invert_world_rules` sólo toca `_world` (patrones elementales), así que un compuesto no sigue las inversiones de sus fragmentos requeridos. Combinar compuestos con el shock ambiental (Exp 005) queda fuera del alcance de los Exp 002 y 003; si el 005 lo necesita, se decide en su propio cambio.
      - Los patrones requeridos se eligen cíclicamente y se ordenan:
        `req = tuple(sorted(beneficial[(k + j) % len(beneficial)] for j in range(m)))`
      - El valor compuesto es `val = float(m ** config.composite_reward_exponent)`.
