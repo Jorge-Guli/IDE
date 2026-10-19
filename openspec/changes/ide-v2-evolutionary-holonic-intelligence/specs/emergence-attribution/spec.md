@@ -14,7 +14,7 @@
 
 #### Scenario: Medición de afirmaciones C5 a C8
 - **WHEN** se invoca `measure_claim` para cada afirmación de `EXP002_CLAIMS + EXP003_CLAIMS` con un perfil de prueba corto
-- **THEN** cada afirmación devuelve un `float` de su métrica pre-registrada (`cultural_accuracy`, `evolved_accuracy`, `holonic_composite_completions`, `mean_acquired_orthogonalization`).
+- **THEN** cada afirmación devuelve un `float` de su métrica pre-registrada (o `None` en C8 si no hubo holones elegibles) (`cultural_accuracy`, `evolved_accuracy`, `holonic_composite_completions`, `mean_acquired_coverage`).
 
 ### Requirement: Criterio Ampliado de Afirmación por Construcción
 Para una afirmación de Fase II, `is_by_construction` SHALL ser verdadero si su canal (`PHASE2_CLAIM_CHANNELS`) no es vacío y está contenido en sus `purpose_rules`. La variante `isolated` SHALL ser la ablación de su canal; para `C8`, la ablación de `R22`. Las reglas de `PHASE2_INACTIVE_RULES` del protocolo SHALL quedar fuera de `rule_effects`.
@@ -31,7 +31,7 @@ Para una afirmación de Fase II, `is_by_construction` SHALL ser verdadero si su 
 - **THEN** `total_ticks == 2000`, hay 10 semillas de 42 a 51, y la configuración de `003a` tiene `num_composite_patterns == 3` y `composite_order == 4 > memory_capacity`.
 
 ### Requirement: Semillas sin Medición en C8
-En una comparación de C8, una semilla sin `mean_acquired_orthogonalization` en alguna de las dos variantes SHALL contar como empate y listarse; con menos de `MIN_SEEDS` semillas medidas en E2, C8 SHALL ser `INSUFFICIENT_EVIDENCE`; un efecto de regla sin semillas medidas SHALL valer `None`.
+En una comparación de C8, una semilla sin `mean_acquired_coverage` en alguna de las dos variantes SHALL contar como empate y listarse; con menos de `MIN_SEEDS` semillas medidas en E2, C8 SHALL ser `INSUFFICIENT_EVIDENCE`; un efecto de regla sin semillas medidas SHALL valer `None`.
 
 #### Scenario: C8 sin holones
 - **WHEN** en las 10 semillas de `phase2` ninguna corrida `full` de 003-B forma holones elegibles
