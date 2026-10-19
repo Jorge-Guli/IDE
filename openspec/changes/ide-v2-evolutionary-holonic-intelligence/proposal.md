@@ -59,14 +59,14 @@ Para investigar si una inteligencia distribuida abierta (*open-ended evolution*)
     - Reglas nuevas: `R20`, física metabólica nuclear; `R21`, costo cuadrático; `R22`, vista del holón; `R23`, coordinación y reparto energético.
   - **Afirmaciones.**
     - C5, C6 y C7 se declaran programadas por construcción, con un criterio ampliado: el canal de la afirmación está entre sus reglas responsables.
-    - C8 pasa a ser "cobertura colectiva adquirida **sin** causalidad descendente": cuántos patrones correctos distintos gana un holón desde que se formó, por miembro, comparada con la misma regla de formación sin la vista compartida ($R_{22}$). Es la única afirmación de Fase II con prueba genuina.
+    - C8 pasa a ser "cobertura colectiva adquirida **sin** causalidad descendente": cuántos patrones correctos distintos gana un holón desde que se formó, por miembro, comparada con la misma regla de formación sin la vista compartida ($R_{22}$). Por el principio conservador, es una afirmación sobre disponibilidad de conocimiento y se declara **programada por construcción** por $R_{22}$. **La Fase II no tiene ninguna prueba genuina pre-registrada**, y eso se declara como resultado del diseño.
     - Qué rasgos evolucionan se registra como observación exploratoria.
   - **Perfil.** 10 semillas (42–51), 2000 ticks y configuraciones por protocolo congeladas.
   - **Métricas.** M9 pasa a ser descriptiva (proporción social de los descendientes), y la contribución de la herencia se mide contra la ablación de `R14`. Se agrega M13 (cobertura colectiva adquirida desde la formación, sobre creencias de signo correcto; la reducción de redundancia queda como dato descriptivo).
   - **Corrección del pre-registro (2026-10-18, antes de mirar resultados).** Tras la revisión del pre-registro se cambiaron, con aprobación:
     - C8, para que el sesgo de `BOND` no cuente: ahora mide el cambio desde la formación, contra la ablación de `R22`, en lugar de un control barajado.
-    - M13: sólo cuenta creencias de signo correcto; sólo entran holones formados por `BOND`; la redundancia de formación se recalcula sobre las hojas vivas; se promedia por par (tick, holón), y sin holones no hay medición (la semilla cuenta como empate).
-    - C8 declara de antemano su mecanismo esperado (la vista suprime consultas a lo que el holón ya sabe). E4 no lo distingue, porque el control nulo conserva la confianza: si ése es el mecanismo, el veredicto esperable es `ACTIVITY_ARTIFACT`, y se reporta tal cual.
+    - M13: sólo cuenta creencias de signo correcto; sólo entran holones formados por `BOND`; el estado de formación se reinicia cuando el holón pierde un miembro; se promedia por par (tick, holón), y sin holones no hay medición (la semilla cuenta como empate).
+    - El mecanismo hipotético (la vista suprime consultas a lo que el holón ya sabe) se declara de antemano, sin pre-registrar un veredicto esperado. E4 anula el contenido de todos los canales, así que pone a prueba si importa el contenido de toda la comunicación.
     - M13 mide cobertura colectiva adquirida en lugar de reducción de redundancia, que premiaba olvidar.
     - La reproducción neutral: conserva exactamente la demografía y sólo sortea el genoma.
     - Las reglas inactivas de cada protocolo se excluyen de `rule_effects`.

@@ -14,14 +14,14 @@
 
 #### Scenario: Medición de afirmaciones C5 a C8
 - **WHEN** se invoca `measure_claim` para cada afirmación de `EXP002_CLAIMS + EXP003_CLAIMS` con un perfil de prueba corto
-- **THEN** cada afirmación devuelve un `float` de su métrica pre-registrada (o `None` en C8 si no hubo holones elegibles) (`cultural_accuracy`, `evolved_accuracy`, `holonic_composite_completions`, `mean_acquired_coverage`).
+- **THEN** cada afirmación devuelve el valor de su métrica pre-registrada: un `float`, salvo en C8, que devuelve `float | None` (`None` si no hubo holones elegibles; la clasificación lo trata según el requisito de semillas sin medición) (`cultural_accuracy`, `evolved_accuracy`, `holonic_composite_completions`, `mean_acquired_coverage`).
 
 ### Requirement: Criterio Ampliado de Afirmación por Construcción
 Para una afirmación de Fase II, `is_by_construction` SHALL ser verdadero si su canal (`PHASE2_CLAIM_CHANNELS`) no es vacío y está contenido en sus `purpose_rules`. La variante `isolated` SHALL ser la ablación de su canal; para `C8`, la ablación de `R22`. Las reglas de `PHASE2_INACTIVE_RULES` del protocolo SHALL quedar fuera de `rule_effects`.
 
 #### Scenario: Clasificación de C5 a C8 por construcción
 - **WHEN** se evalúa `is_by_construction` sobre `C5`, `C6`, `C7` y `C8` con sus configuraciones de `PHASE2_PROTOCOL_CONFIGS`
-- **THEN** es verdadero para `C5`, `C6` y `C7` y falso para `C8`, y las afirmaciones de Fase I conservan su clasificación previa.
+- **THEN** es verdadero para `C5`, `C6`, `C7` y `C8` (cuyo canal y $R_C$ son `("R22",)`), y las afirmaciones de Fase I conservan su clasificación previa.
 
 ### Requirement: Perfil Pre-Registrado de la Fase II
 `attribution.py` SHALL definir `PHASE2_ATTRIBUTION_PROFILE = "phase2"` (`total_ticks = 2000`), `PHASE2_SEEDS = tuple(range(42, 52))` y `PHASE2_PROTOCOL_CONFIGS` con las configuraciones de design D29, versionados antes de implementar los runners 002 y 003.
