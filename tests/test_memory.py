@@ -209,3 +209,56 @@ def test_propiedad_capacidad_y_confianza_minima(capacity: int, ops: list[tuple])
         assert len(m) <= capacity
         patrones = [u.pattern for u in m.all_units()]
         assert len(patrones) == len(set(patrones))
+
+
+# --- Fase II: penalización de redundancia (ψ_red, R18) -----------------------------------------
+
+
+def test_capacidad_expuesta() -> None:
+    assert BoundedMemory(capacity=4).capacity == 4
+
+
+def test_utilidad_modulada_para_patron_redundante() -> None:
+    m = BoundedMemory(capacity=3)
+    k0, k1 = ku(0, conf=0.8, tau=10), ku(1, conf=0.8, tau=10)
+    sin_penalizar = (m.compute_utility(k0, 10), m.compute_utility(k1, 10))
+    assert sin_penalizar == (pytest.approx(0.80, abs=1e-12), pytest.approx(0.80, abs=1e-12))
+    m.set_redundant_patterns(frozenset({pat(0)}), penalty=0.25)
+    assert m.compute_utility(k0, 10) == pytest.approx(0.20, abs=1e-12)
+    assert m.compute_utility(k1, 10) == pytest.approx(0.80, abs=1e-12)
+
+
+def test_sin_patrones_redundantes_la_utilidad_es_bit_a_bit_la_de_fase_i() -> None:
+    m, referencia = BoundedMemory(capacity=3), BoundedMemory(capacity=3)
+    m.set_redundant_patterns(frozenset({pat(5)}), penalty=0.3)
+    unit = ku(0, conf=0.37, value=-0.61, tau=3)
+    assert m.compute_utility(unit, 17) == referencia.compute_utility(unit, 17)
+    assert m.compute_utility(unit, 17) == pytest.approx(
+        0.37 * 0.61 * math.exp(-0.005 * 14), abs=1e-9
+    )
+
+
+def test_cada_llamada_reemplaza_a_la_anterior() -> None:
+    m = BoundedMemory(capacity=3)
+    m.set_redundant_patterns(frozenset({pat(0)}), penalty=0.5)
+    m.set_redundant_patterns(frozenset({pat(1)}))
+    assert m.compute_utility(ku(0), 0) == pytest.approx(0.9, abs=1e-12)
+    assert m.compute_utility(ku(1), 0) == pytest.approx(0.9, abs=1e-12)  # penalty=1.0
+    m.set_redundant_patterns(frozenset({pat(1)}), penalty=0.5)
+    m.set_redundant_patterns(frozenset())
+    assert m.compute_utility(ku(1), 0) == pytest.approx(0.9, abs=1e-12)
+
+
+@pytest.mark.parametrize("penalty", [0.0, -0.1, 1.01, float("nan")])
+def test_penalizacion_fuera_de_rango(penalty: float) -> None:
+    with pytest.raises(ValueError, match="penalty"):
+        BoundedMemory(capacity=3).set_redundant_patterns(frozenset({pat(0)}), penalty)
+
+
+def test_la_penalizacion_decide_el_desalojo() -> None:
+    m = BoundedMemory(capacity=2)
+    m.upsert(ku(0, conf=0.9), 0)
+    m.upsert(ku(1, conf=0.5), 0)
+    m.set_redundant_patterns(frozenset({pat(0)}), penalty=0.2)
+    assert m.upsert(ku(2, conf=0.6), 0) is True
+    assert sorted(u.pattern for u in m.all_units()) == [pat(1), pat(2)]

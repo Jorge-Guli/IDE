@@ -12,13 +12,15 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from ide.agent.epistemology import is_known
+from ide.agent.evolution import genome_from_config
 from ide.agent.micro_agent import MicroAgent
 from ide.agent.protocol import BeliefExchangeProtocol
 from ide.config import SimulationConfig
-from ide.domain.extensions import AgentCapabilities
+from ide.domain.extensions import AgentCapabilities, mutate_genome
 from ide.domain.types import (
     ActionType,
     AgentAction,
+    AgentGenome,
     KnowledgeUnit,
     Message,
     MessageType,
@@ -186,6 +188,33 @@ def test_protocolo_no_escribe_la_memoria_directamente() -> None:
         if isinstance(node, ast.Attribute):
             assert node.attr not in forbidden, f"protocol.py usa {node.attr}"
             assert not node.attr.startswith("_"), f"protocol.py accede a {node.attr}"
+
+
+def imported_modules(path: Path) -> list[str]:
+    names: list[str] = []
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Import):
+            names += [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            # También los nombres: `from . import micro_agent` no deja rastro en `module`.
+            names += [node.module or ""] + [alias.name for alias in node.names]
+    return names
+
+
+def test_evolution_no_importa_micro_agent() -> None:
+    # Sin ciclo: `micro_agent.py` importa `evolution.py`, nunca al revés (D20, regla 5).
+    names = imported_modules(AGENT_DIR / "evolution.py")
+    assert not any("micro_agent" in name for name in names), names
+
+
+def test_ningun_modulo_del_agente_referencia_nullify_belief() -> None:
+    # El control nulo de contenido lo aplica sólo el motor (D20, regla 4).
+    for path in agent_modules():
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            name = getattr(node, "id", None) or getattr(node, "attr", None)
+            if isinstance(node, ast.alias):
+                name = node.name
+            assert name != "nullify_belief", path.relative_to(AGENT_DIR)
 
 
 # --- Interfaz ----------------------------------------------------------------------------------
@@ -700,3 +729,186 @@ def test_propiedad_emision_acotada_y_ordenada(
         assert sorted(u.pattern for u in sent) == sorted(u.pattern for u in reliable)
     for omitted in (u for u in reliable if u not in sent):
         assert all((-utility(omitted), omitted.pattern) > (-utility(x), x.pattern) for x in sent)
+
+
+# --- Fase II: nodo holónico de nivel cero, energía y linaje ------------------------------------
+
+
+def test_nodo_de_nivel_cero_y_estado_de_linaje() -> None:
+    a = MicroAgent(7, CFG)
+    assert a.node_id == 7
+    assert a.holon_level == 0
+    assert a.leaf_agents == (a,)
+    assert a.generation == 0
+    assert a.parent_id is None
+    assert a.energy == CFG.initial_energy
+    assert a.genome == genome_from_config(CFG)
+    assert a.config is CFG  # sin `replace`: idéntico a la Fase I
+    for name in (
+        "energy",
+        "generation",
+        "parent_id",
+        "genome",
+        "node_id",
+        "holon_level",
+        "leaf_agents",
+        "effective_capacity",
+    ):
+        assert isinstance(inspect.getattr_static(MicroAgent, name), property), name
+
+
+def test_capacidad_efectiva_y_memoria_colectiva_de_una_hoja() -> None:
+    a = agent(memory_capacity=2)
+    a.memory.upsert(ku(3), 0)
+    a.memory.upsert(ku(1, conf=0.4), 0)
+    assert a.effective_capacity == 2
+    assert a.collective_memory() == {pat(1): ku(1, conf=0.4), pat(3): ku(3)}
+    assert list(a.collective_memory()) == [pat(1), pat(3)]
+
+
+def test_apply_energy_delta_suma_y_resta() -> None:
+    a = agent()
+    a.apply_energy_delta(0.45)
+    assert a.energy == pytest.approx(CFG.initial_energy + 0.45, abs=1e-9)
+    a.apply_energy_delta(-2.5)
+    assert a.energy == pytest.approx(CFG.initial_energy - 2.05, abs=1e-9)
+
+
+def test_from_lineage_expresa_el_genoma_en_la_configuracion() -> None:
+    genome = AgentGenome(0.2, 0.5, 0.3, 0.9, 5, 1, 3)
+    trust, protocol = RecordingTrust(0.5, []), SilentProtocol()
+    child = MicroAgent.from_lineage(
+        11, CFG, genome, 0.8, 3, 4, trust_strategy=trust, protocol=protocol
+    )
+    assert (child.agent_id, child.energy, child.generation, child.parent_id) == (11, 0.8, 3, 4)
+    assert child.genome == genome
+    assert child.config == replace(
+        CFG,
+        alpha_learning=0.2,
+        gamma_social_discount=0.5,
+        epsilon_explore=0.3,
+        memory_capacity=5,
+        perception_radius=1,
+        comm_radius=3,
+    )
+    assert child.memory.capacity == 5 and child.effective_capacity == 5
+    assert child.perceive_and_emit_messages(obs((vis(10, 5),), neighbors=(2,)), 0) == []
+    child.assimilate_testimony(ku(0, conf=0.8), sender_id=2, tick=0)
+    assert trust.calls == [(11, 2, 0.5)]
+
+
+def test_creacion_de_descendiente_con_conservacion_de_energia() -> None:
+    parent = MicroAgent.from_lineage(5, CFG, genome_from_config(CFG), 2.0, 1, None)
+    parent.memory.upsert(ku(0), 0)
+    child = parent.create_offspring(child_id=99, tick=25, rng=rng())
+    assert parent.energy == pytest.approx(1.0, abs=1e-9)
+    assert (child.agent_id, child.parent_id, child.generation) == (99, 5, 2)
+    assert child.energy == pytest.approx(1.0, abs=1e-9)
+    assert len(child.memory) == 0
+
+
+def test_particion_exacta_de_energia_y_linaje() -> None:
+    parent = MicroAgent.from_lineage(4, CFG, genome_from_config(CFG), 2.4, 2, 1)
+    child = parent.create_offspring(child_id=30, tick=0, rng=rng())
+    assert (child.parent_id, child.generation) == (4, 3)
+    assert child.energy == pytest.approx(1.2, abs=1e-9)
+    assert parent.energy == pytest.approx(1.2, abs=1e-9)
+    assert parent.energy + child.energy == pytest.approx(2.4, abs=1e-12)
+
+
+def test_descendiente_hereda_estrategia_de_confianza_y_protocolo() -> None:
+    trust = RecordingTrust(0.5, [])
+    parent = MicroAgent(1, CFG, trust_strategy=trust, protocol=SilentProtocol())
+    child = parent.create_offspring(child_id=2, tick=0, rng=rng())
+    assert child.perceive_and_emit_messages(obs((vis(10, 5),), neighbors=(3,)), 0) == []
+    child.assimilate_testimony(ku(0), sender_id=1, tick=0)
+    assert trust.calls == [(2, 1, child.config.gamma_social_discount)]
+
+
+def test_clonacion_exacta_bajo_ablacion_de_mutacion() -> None:
+    cfg = replace(CFG, mutation_rate=0.0, discrete_mutation_prob=0.0)
+    parent = MicroAgent(1, cfg)
+    generator, reference = rng(3), rng(3)
+    child = parent.create_offspring(child_id=2, tick=0, rng=generator)
+    assert child.genome == parent.genome
+    assert generator.bit_generator.state == reference.bit_generator.state
+
+
+def test_descendiente_muta_con_mutate_genome() -> None:
+    cfg = replace(CFG, mutation_rate=0.2, discrete_mutation_prob=1.0)
+    parent = MicroAgent(1, cfg)
+    child = parent.create_offspring(child_id=2, tick=0, rng=rng(8))
+    assert child.genome == mutate_genome(parent.genome, cfg, rng(8))
+    assert child.config.memory_capacity == child.genome.memory_capacity
+
+
+def test_descendiente_toma_el_genoma_del_donante() -> None:
+    cfg = replace(CFG, mutation_rate=0.0, discrete_mutation_prob=0.0)
+    donor = AgentGenome(memory_capacity=5, bond_affinity=0.1)
+    child = MicroAgent(1, cfg).create_offspring(2, 0, rng(), genome_source=donor)
+    assert child.genome == donor
+    assert child.memory.capacity == 5
+
+
+# --- Fase II: creencia propia y vista del holón (R22) -------------------------------------------
+
+
+def test_own_belief_es_memoria_y_luego_cache_propio() -> None:
+    a = full_agent()
+    cached = a.assimilate_testimony(ku(9, conf=0.5), sender_id=2, tick=0)
+    assert a.own_belief(pat(9)) == cached
+    assert a.own_belief(pat(0)) == a.memory.get(pat(0))
+    assert a.own_belief(pat(8)) is None
+
+
+def test_vista_del_holon_sobrevive_a_la_percepcion_y_se_borra_con_clear() -> None:
+    a = agent()
+    view = ku(4, value=-1.0, conf=0.9)
+    a.inject_ephemeral_belief(view)
+    assert a.get_effective_belief(pat(4)) == view
+    assert a.own_belief(pat(4)) is None
+    a.perceive_and_emit_messages(obs(), 1)
+    assert a.get_effective_belief(pat(4)) == view
+    a.clear_holon_beliefs()
+    assert a.get_effective_belief(pat(4)) is None
+
+
+def test_creencia_propia_tiene_prioridad_sobre_la_vista_del_holon() -> None:
+    a = full_agent()
+    a.inject_ephemeral_belief(ku(0, value=-1.0, conf=0.95))
+    a.inject_ephemeral_belief(ku(9, value=-1.0, conf=0.95))
+    cached = a.assimilate_testimony(ku(9, conf=0.6), sender_id=2, tick=0)
+    assert a.get_effective_belief(pat(0)) == a.memory.get(pat(0))
+    assert a.get_effective_belief(pat(9)) == cached
+
+
+def test_la_vista_del_holon_no_contamina_el_aprendizaje_propio() -> None:
+    a, reference = agent(), agent()
+    a.inject_ephemeral_belief(ku(0, value=-1.0, conf=0.9))
+    a.learn_from_experience(pat(0), 1.0, 3)
+    reference.learn_from_experience(pat(0), 1.0, 3)
+    assert a.memory.get(pat(0)) == reference.memory.get(pat(0))
+    assert a.own_belief(pat(0)) == reference.own_belief(pat(0))
+
+
+def test_la_vista_del_holon_no_entra_en_la_asimilacion_social() -> None:
+    a, reference = agent(), agent()
+    a.inject_ephemeral_belief(ku(0, value=1.0, conf=0.9))
+    merged = a.assimilate_testimony(ku(0, value=1.0, conf=0.8), sender_id=2, tick=0)
+    assert merged == reference.assimilate_testimony(ku(0, value=1.0, conf=0.8), 2, 0)
+    assert merged.evidence_count == 1
+
+
+def test_la_vista_del_holon_guia_la_decision_y_evita_la_consulta() -> None:
+    a = agent(max_broadcast_per_tick=0)
+    a.inject_ephemeral_belief(ku(5, conf=0.9))
+    assert a.perceive_and_emit_messages(obs((vis(10, 5),), neighbors=(2,)), 0) == []
+    assert a.decide_action(obs((vis(10, 5),)), 0, rng()) == AgentAction(ActionType.INTERACT, 10)
+
+
+def test_no_se_responde_ni_difunde_desde_la_vista_del_holon() -> None:
+    a = agent(2, max_broadcast_per_tick=3)
+    a.inject_ephemeral_belief(ku(5, conf=0.9))
+    query = Message(MessageType.QUERY_PATTERN, 1, None, pat(5))
+    assert a.process_incoming_messages([query], 0) == []
+    assert a.perceive_and_emit_messages(obs(neighbors=(1,)), 0) == []

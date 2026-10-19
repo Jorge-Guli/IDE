@@ -17,6 +17,13 @@ class BoundedMemory:
         self._capacity = capacity
         self._lambda_decay = lambda_decay
         self._units: dict[Pattern, KnowledgeUnit] = {}
+        # Penalización de redundancia ψ_red (R18): por defecto ningún patrón es redundante.
+        self._redundant: frozenset[Pattern] = frozenset()
+        self._redundancy_penalty = 1.0
+
+    @property
+    def capacity(self) -> int:
+        return self._capacity
 
     def __len__(self) -> int:
         return len(self._units)
@@ -31,11 +38,22 @@ class BoundedMemory:
         """Creencias ordenadas por `pattern`, sin depender del orden de inserción."""
         return [self._units[p] for p in sorted(self._units)]
 
+    def set_redundant_patterns(self, patterns: frozenset[Pattern], penalty: float = 1.0) -> None:
+        """Patrones redundantes en el holón (R18); cada llamada reemplaza a la anterior."""
+        if not 0.0 < penalty <= 1.0:  # `not` también rechaza NaN
+            raise ValueError(f"penalty debe estar en (0, 1], recibido {penalty}")
+        self._redundant = patterns
+        self._redundancy_penalty = penalty
+
     def compute_utility(self, unit: KnowledgeUnit, current_tick: int) -> float:
-        """U(k, t) = c · max(|v̂|, 0.1) · exp(-λ · max(0, t - τ))."""
+        """U(k, t) = ψ · c · max(|v̂|, 0.1) · exp(-λ · max(0, t - τ)); ψ = 1 si no es redundante."""
         age = max(0, current_tick - unit.last_updated_tick)
         relevance = max(abs(unit.predicted_value), _RELEVANCE_FLOOR)
-        return unit.confidence * relevance * math.exp(-self._lambda_decay * age)
+        utility = unit.confidence * relevance * math.exp(-self._lambda_decay * age)
+        if self._redundant and unit.pattern in self._redundant:
+            # Se multiplica aparte para que, sin redundancia, U sea bit a bit la de Fase I.
+            utility *= self._redundancy_penalty
+        return utility
 
     def upsert(self, unit: KnowledgeUnit, current_tick: int, force: bool = False) -> bool:
         """Inserta o reemplaza una creencia; con la memoria llena compite por utilidad."""
