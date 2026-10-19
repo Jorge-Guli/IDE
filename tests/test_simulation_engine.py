@@ -16,6 +16,9 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from ide.agent.evolution import compute_metabolic_cost
+from ide.agent.holon import CompositeAgent
+from ide.agent.memory import BoundedMemory
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
 from ide.domain.extensions import AgentCapabilities
@@ -23,6 +26,7 @@ from ide.domain.types import (
     ActionResult,
     ActionType,
     AgentAction,
+    AgentGenome,
     KnowledgeUnit,
     Message,
     Observation,
@@ -571,3 +575,820 @@ def test_oraculo_de_verdad_nadie_fuera_del_motor_lo_referencia() -> None:
         or (isinstance(node, ast.alias) and node.name == nombre)
     }
     assert referencian <= {"simulation/engine.py"}
+
+
+# --- Fase II: generadores, vista del holón, compuestos y Fase 5 (bloque 5) ---------------------
+
+COMP2 = Pattern((("id", "c_0"), ("order", "2")))
+COMP3 = Pattern((("id", "c_0"), ("order", "3")))
+IDLE = AgentAction(ActionType.IDLE)
+
+
+def quiet(**overrides: Any) -> SimulationConfig:
+    """Configuración chica sin costos energéticos ni reproducción, salvo que se pidan."""
+    costs: dict[str, Any] = {
+        "metabolic_base_cost": 0.0,
+        "memory_capacity_cost": 0.0,
+        "sensory_radius_cost": 0.0,
+        "move_cost": 0.0,
+        "message_cost": 0.0,
+        "holon_coord_cost": 0.0,
+        "reproduction_threshold": 100.0,
+    }
+    return small_config(**{**costs, **overrides})
+
+
+def act(
+    monkeypatch: pytest.MonkeyPatch,
+    engine: SimulationEngine,
+    actions: dict[int, AgentAction] | None = None,
+) -> None:
+    """Fija la acción de cada agente actual: la de `actions` o `IDLE`."""
+    actions = actions or {}
+    for aid, agent in engine.agents.items():
+        action = actions.get(aid, IDLE)
+        monkeypatch.setattr(agent, "decide_action", lambda *_args, a=action: a)
+
+
+def make_holon(engine: SimulationEngine, ids: list[int]) -> CompositeAgent:
+    """Agrupa en un holón raíz nuevo los nodos raíz de las hojas `ids`."""
+    children = tuple(engine.root_nodes.pop(engine.agent_to_root[aid]) for aid in ids)
+    holon = CompositeAgent(engine.next_holon_id, children, engine.next_tick, True)
+    engine.next_holon_id -= 1
+    engine.root_nodes[holon.node_id] = holon
+    for leaf in holon.leaf_agents:
+        engine.agent_to_root[leaf.agent_id] = holon.node_id
+    return holon
+
+
+def replace_agent(
+    engine: SimulationEngine,
+    aid: int,
+    genome: AgentGenome,
+    energy: float = 1.5,
+    generation: int = 0,
+) -> MicroAgent:
+    """Sustituye un agente fundador por uno con genoma y linaje dados, en la misma celda."""
+    agent = MicroAgent.from_lineage(aid, engine.config, genome, energy, generation, None)
+    engine.agents[aid] = agent
+    engine.root_nodes[aid] = agent
+    return agent
+
+
+def shifted(cell: Cell, dx: int = 1, side: int = 10) -> Cell:
+    return ((cell[0] + dx) % side, cell[1])
+
+
+def test_generadores_derivados_de_la_semilla() -> None:
+    engine = SimulationEngine(small_config(seed=9))
+    for key, generator in ((2, engine.evo_rng), (4, engine.donor_rng)):
+        ref = np.random.Generator(np.random.PCG64(np.random.SeedSequence(9, spawn_key=(key,))))
+        assert generator.bit_generator.state == ref.bit_generator.state
+
+
+def test_un_nacimiento_consume_evo_rng_y_no_el_generador_principal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = quiet(enable_evolution=True, reproduction_threshold=5.0)
+    a, b = SimulationEngine(config), SimulationEngine(config)
+    fresh = copy.deepcopy(b.evo_rng.bit_generator.state)
+    a.agents[0].apply_energy_delta(10.0)
+    a.step()
+    b.step()
+    assert len(a.agents) == len(b.agents) + 1
+    assert a.rng.bit_generator.state == b.rng.bit_generator.state
+    assert a.evo_rng.bit_generator.state != fresh
+    assert b.evo_rng.bit_generator.state == fresh
+
+
+def test_evolucion_sin_nacimientos_ni_muertes_conserva_la_secuencia_de_fase_i() -> None:
+    base = small_config(seed=3)
+    evo = replace(base, enable_evolution=True, initial_energy=100.0, reproduction_threshold=1e9)
+    a, b = SimulationEngine(base), SimulationEngine(evo)
+    a.run(30)
+    b.run(30)
+    assert _state(a) == _state(b)
+
+
+def test_estado_holonico_inicial() -> None:
+    engine = SimulationEngine(small_config())
+    assert engine.root_nodes == engine.agents
+    assert engine.agent_to_root == {aid: aid for aid in engine.agents}
+    assert engine.next_holon_id == -2
+    assert engine.next_agent_id == 10
+    assert engine.composite_completions == 0
+    assert engine.evolutionary_history == []
+
+
+def _holon_view_setup(**overrides: Any) -> SimulationEngine:
+    """Agentes 1 y 2 en un holón, junto a un recurso de ρ_1 que sólo el agente 2 conoce."""
+    config = small_config(
+        num_agents=3,
+        resources_per_pattern=1,
+        max_broadcast_per_tick=0,
+        enable_holonic_hierarchy=True,
+        **overrides,
+    )
+    engine = SimulationEngine(config)
+    grid = grid_of(engine)
+    cell, _ = first_resource_of(grid, pat(1))
+    walk_to(grid, 1, shifted(cell))
+    walk_to(grid, 2, shifted(cell))
+    engine.agents[2].memory.upsert(direct(pat(1), 1.0), 0)
+    make_holon(engine, [1, 2])
+    return engine
+
+
+def _queried(calls: list[tuple[Any, ...]]) -> list[Pattern]:
+    return [m.pattern for m in calls[0][-1] if m.msg_type.name == "QUERY_PATTERN"]
+
+
+def test_el_holon_evita_consultas_sobre_lo_que_ya_sabe(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _holon_view_setup()
+    emitted = record_calls(monkeypatch, engine.agents[1], "perceive_and_emit_messages")
+    engine.step()
+    assert pat(1) not in _queried(emitted)
+    assert engine.agents[1].own_belief(pat(1)) is None
+
+
+def test_ablacion_de_la_vista_del_holon(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _holon_view_setup(enable_holon_view=False)
+    emitted = record_calls(monkeypatch, engine.agents[1], "perceive_and_emit_messages")
+    engine.step()
+    assert pat(1) in _queried(emitted)
+    assert engine.agents[1]._holon_tick_beliefs == {}
+
+
+def test_la_vista_del_tiempo_2_lee_lo_obtenido_en_la_fase_2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = _holon_view_setup()
+    agent2 = engine.agents[2]
+    learned = KnowledgeUnit(pat(3), 1.0, 0.8, 1, 0, False)
+    original = agent2.process_incoming_messages
+
+    def spy(messages: list[Message], tick: int) -> list[Message]:
+        out = original(messages, tick)
+        agent2._ephemeral_tick_beliefs[learned.pattern] = learned  # sólo en el caché del tick
+        return out
+
+    monkeypatch.setattr(agent2, "process_incoming_messages", spy)
+    engine.step()
+    assert engine.agents[1]._holon_tick_beliefs.get(pat(3)) == learned
+
+
+def test_la_vista_no_incluye_hojas_fuera_de_alcance_local() -> None:
+    engine = _holon_view_setup(comm_radius=0)
+    grid = grid_of(engine)
+    walk_to(grid, 2, shifted(grid.get_agent_position(1), 3))
+    engine.step()
+    assert pat(1) not in engine.agents[1]._holon_tick_beliefs
+
+
+def test_el_control_nulo_alcanza_a_la_vista_del_holon(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _holon_view_setup(comm_content_null=True)
+    calls = record_calls(monkeypatch, engine_module, "nullify_belief")
+    engine.step()
+    assert any(call[0].pattern == pat(1) for call in calls)
+    assert engine.agents[1]._holon_tick_beliefs[pat(1)].predicted_value in (-1.0, 1.0)
+
+
+def _composite_setup(
+    monkeypatch: pytest.MonkeyPatch, **overrides: Any
+) -> tuple[SimulationEngine, CompositeAgent, Resource]:
+    """Holón (1, 2) en celdas vecinas que conoce los fragmentos de `c_0`; el 1 lo consume."""
+    settings_: dict[str, Any] = {
+        "num_agents": 3,
+        "num_composite_patterns": 1,
+        "enable_holonic_hierarchy": True,
+        **overrides,
+    }
+    engine = SimulationEngine(quiet(**settings_))
+    grid = grid_of(engine)
+    cell, resource = first_resource_of(grid, COMP2)
+    walk_to(grid, 1, cell)
+    walk_to(grid, 2, shifted(cell))
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    engine.agents[2].memory.upsert(direct(pat(1), 1.0), 0)
+    holon = make_holon(engine, [1, 2])
+    act(monkeypatch, engine, {1: AgentAction(ActionType.INTERACT, resource.resource_id)})
+    return engine, holon, resource
+
+
+def test_holon_con_memorias_complementarias_resuelve_el_compuesto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine, holon, _ = _composite_setup(monkeypatch, enable_stigmergy=True)
+    engine.step()
+    assert engine.composite_completions == 1
+    assert engine.evolutionary_history[-1].composite_completions == 1
+    assert COMP2 not in engine.direct_discoverers
+    learned = engine.agents[1].memory.get(COMP2)
+    assert learned is not None and learned.from_direct_experience
+    assert learned.predicted_value > 0
+    assert holon.cooperative_completions == 1
+    assert holon.ticks_without_surplus == 0
+    traces = grid_of(engine).cell_stigmergy.values()
+    assert all(COMP2 not in cell for cell in traces)
+
+
+def test_la_resolucion_compuesta_no_depende_del_orden_de_la_fase_4(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """El agente 2 se aleja en la Fase 4; cuenta el alcance local al empezar la fase."""
+    orders: set[bool] = set()
+    for seed in range(8):
+        with monkeypatch.context() as patch:
+            engine, _, resource = _composite_setup(patch, seed=seed, comm_radius=0)
+            act(
+                patch,
+                engine,
+                {
+                    1: AgentAction(ActionType.INTERACT, resource.resource_id),
+                    2: AgentAction(ActionType.MOVE, (1, 0)),
+                },
+            )
+            order = [int(a) for a in copy.deepcopy(engine.rng).permutation(sorted(engine.agents))]
+            orders.add(order.index(2) < order.index(1))
+            engine.step()
+            assert engine.composite_completions == 1
+    assert orders == {True, False}
+
+
+def test_individuo_solitario_no_cubre_todos_los_fragmentos(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = quiet(
+        num_agents=1,
+        memory_capacity=2,
+        num_composite_patterns=1,
+        composite_order=3,
+        enable_evolution=True,
+    )
+    engine = SimulationEngine(config)
+    grid = grid_of(engine)
+    cell, resource = first_resource_of(grid, COMP3)
+    walk_to(grid, 0, cell)
+    agent = engine.agents[0]
+    agent.memory.upsert(direct(pat(0), 1.0), 0)
+    agent.memory.upsert(direct(pat(1), 1.0), 0)
+    act(monkeypatch, engine, {0: AgentAction(ActionType.INTERACT, resource.resource_id)})
+    engine.step()
+    assert engine.composite_completions == 0
+    learned = agent.memory.get(COMP3)
+    assert learned is not None
+    assert learned.predicted_value == pytest.approx(-config.composite_failure_penalty, abs=1e-9)
+    expected = config.initial_energy - config.energy_gain_scale * config.composite_failure_penalty
+    assert agent.energy == pytest.approx(expected, abs=1e-9)
+
+
+@pytest.mark.parametrize("sharing", [True, False])
+def test_reparto_de_la_ganancia_compuesta(monkeypatch: pytest.MonkeyPatch, sharing: bool) -> None:
+    engine, _, _ = _composite_setup(
+        monkeypatch, enable_evolution=True, holon_energy_sharing=sharing
+    )
+    config = engine.config
+    gain = config.energy_gain_scale * 2**config.composite_reward_exponent
+    engine.step()
+    first, second = (gain / 2, gain / 2) if sharing else (gain, 0.0)
+    assert engine.agents[1].energy == pytest.approx(config.initial_energy + first, abs=1e-9)
+    assert engine.agents[2].energy == pytest.approx(config.initial_energy + second, abs=1e-9)
+
+
+@pytest.mark.parametrize(
+    ("interact", "with_elemental", "expected"),
+    [(True, True, 0), (False, False, 0), (False, True, 1)],
+)
+def test_m2_se_mide_solo_sobre_recursos_elementales(
+    monkeypatch: pytest.MonkeyPatch, interact: bool, with_elemental: bool, expected: int
+) -> None:
+    engine, _, resource = _composite_setup(monkeypatch)
+    if not interact:
+        act(monkeypatch, engine)
+    truth = {resource.resource_id: resource.true_value}
+    if with_elemental:
+        truth[10**6] = 1.0
+    monkeypatch.setattr(
+        engine.env, "get_reachable_true_values", lambda aid: dict(truth) if aid == 1 else {}
+    )
+    engine.step()
+    assert engine.history[-1].decision_opportunities == expected
+
+
+def test_penalizacion_cuadratica_del_cerebro_individual(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = small_config(
+        num_agents=2,
+        comm_enabled=False,
+        enable_evolution=True,
+        metabolic_base_cost=0.02,
+        memory_capacity_cost=0.005,
+        sensory_radius_cost=0.0,
+        reproduction_threshold=100.0,
+    )
+    engine = SimulationEngine(config)
+    replace_agent(engine, 1, replace(engine.agents[1].genome, memory_capacity=6))
+    act(monkeypatch, engine)
+    engine.step()
+    assert engine.agents[0].energy == pytest.approx(1.5 - 0.065, abs=1e-9)
+    assert engine.agents[1].energy == pytest.approx(1.5 - 0.200, abs=1e-9)
+
+
+def test_metabolismo_cobra_movimiento_y_mensajes(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = small_config(
+        num_agents=4,
+        enable_evolution=True,
+        move_cost=0.01,
+        message_cost=0.003,
+        reproduction_threshold=100.0,
+    )
+    engine = SimulationEngine(config)
+    act(monkeypatch, engine, {0: AgentAction(ActionType.MOVE, (1, 0))})
+    emitted = {
+        a: record_calls(monkeypatch, engine.agents[a], "perceive_and_emit_messages")
+        for a in engine.agents
+    }
+    answered = {
+        a: record_calls(monkeypatch, engine.agents[a], "process_incoming_messages")
+        for a in engine.agents
+    }
+    engine.step()
+    total = 0
+    for aid, agent in engine.agents.items():
+        sent = len(emitted[aid][0][-1]) + sum(len(call[-1]) for call in answered[aid])
+        total += sent
+        cost = compute_metabolic_cost(agent.genome, config) + 0.003 * sent
+        cost += 0.01 if aid == 0 else 0.0
+        assert agent.energy == pytest.approx(config.initial_energy - cost, abs=1e-9)
+    assert total > 0
+
+
+@pytest.mark.parametrize(("index", "sign"), [(0, 1.0), (6, -1.0)])
+def test_ganancia_por_recurso_elemental(
+    monkeypatch: pytest.MonkeyPatch, index: int, sign: float
+) -> None:
+    engine = SimulationEngine(quiet(num_agents=1, enable_evolution=True))
+    grid = grid_of(engine)
+    cell, resource = first_resource_of(grid, pat(index))
+    walk_to(grid, 0, cell)
+    act(monkeypatch, engine, {0: AgentAction(ActionType.INTERACT, resource.resource_id)})
+    engine.step()
+    expected = 1.5 + sign * engine.config.energy_gain_scale
+    assert engine.agents[0].energy == pytest.approx(expected, abs=1e-9)
+
+
+def test_muerte_por_inanicion_en_el_mismo_tick(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(quiet(num_agents=3, enable_evolution=True))
+    engine.agents[1].apply_energy_delta(-1.5)
+    act(monkeypatch, engine)
+    engine.step()
+    assert 1 not in engine.agents
+    assert 1 not in engine.env.get_active_agent_ids()
+    assert engine.evolutionary_history[-1].deaths_this_tick == 1
+    assert engine.evolutionary_history[-1].active_agents == 2
+
+
+def test_la_muerte_poda_el_holon(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(num_agents=3, enable_evolution=True, enable_holonic_hierarchy=True)
+    )
+    holon = make_holon(engine, [1, 2])
+    engine.agents[1].apply_energy_delta(-1.5)
+    act(monkeypatch, engine)
+    engine.step()
+    assert holon.node_id not in engine.root_nodes
+    assert engine.root_nodes[2] is engine.agents[2]
+    assert engine.agent_to_root == {0: 0, 2: 2}
+
+
+def test_la_ablacion_poda_y_reinicia_el_estado_de_formacion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=4,
+            comm_enabled=False,
+            enable_holonic_hierarchy=True,
+            holon_bond_threshold=1.0,
+        )
+    )
+    engine.agents[0].memory.upsert(direct(pat(0), 1.0), 0)
+    engine.agents[2].memory.upsert(direct(pat(1), 1.0), 0)
+    engine.agents[2].memory.upsert(direct(pat(7), 1.0), 0)  # signo incorrecto: no cuenta
+    holon = make_holon(engine, [0, 1, 2])
+    act(monkeypatch, engine)
+    engine.run(2)
+    engine.direct_discoverers[pat(5)] = {1}
+    assert engine.ablate_discoverers(pat(5), retire_stimulus=False) == [1]
+    assert [leaf.agent_id for leaf in holon.leaf_agents] == [0, 2]
+    assert holon.formation_tick == engine.next_tick == 2
+    assert holon.formation_knowledge == ((0, frozenset({pat(0)})), (2, frozenset({pat(1)})))
+    assert engine.agent_to_root == {0: holon.node_id, 2: holon.node_id, 3: 3}
+
+
+def test_particion_exacta_de_energia_y_linaje(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(num_agents=6, enable_evolution=True, reproduction_threshold=2.0)
+    )
+    replace_agent(engine, 4, engine.agents[4].genome, energy=2.4, generation=2)
+    act(monkeypatch, engine)
+    engine.step()
+    child = engine.agents[6]
+    assert (child.parent_id, child.generation) == (4, 3)
+    assert child.energy == pytest.approx(1.2, abs=1e-9)
+    assert engine.agents[4].energy == pytest.approx(1.2, abs=1e-9)
+    assert engine.root_nodes[6] is child and engine.agent_to_root[6] == 6
+    assert grid_of(engine).get_agent_distance(4, 6) <= 1
+    assert engine.next_agent_id == 7
+    assert engine.evolutionary_history[-1].births_this_tick == 1
+
+
+def test_respeto_estricto_de_la_capacidad_de_carga(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = quiet(
+        num_agents=3, enable_evolution=True, reproduction_threshold=2.0, max_population=3
+    )
+    engine = SimulationEngine(config)
+    engine.agents[0].apply_energy_delta(1.0)
+    act(monkeypatch, engine)
+    engine.step()
+    assert sorted(engine.agents) == [0, 1, 2]
+    assert engine.agents[0].energy == pytest.approx(2.5, abs=1e-9)
+
+
+def test_reproduccion_holonica_y_un_evento_por_agente(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=3,
+            enable_evolution=True,
+            enable_holonic_hierarchy=True,
+            enable_holon_reproduction=True,
+            holon_bond_threshold=1.0,
+            reproduction_threshold=2.0,
+        )
+    )
+    holon = make_holon(engine, [0, 1])
+    for aid in (0, 1):
+        engine.agents[aid].apply_energy_delta(10.0)
+    act(monkeypatch, engine)
+    engine.step()
+    assert engine.evolutionary_history[-1].births_this_tick == 2
+    assert sorted(engine.agents) == [0, 1, 2, 3, 4]
+    child_holon = engine.root_nodes[engine.agent_to_root[3]]
+    assert isinstance(child_holon, CompositeAgent) and child_holon is not holon
+    assert [leaf.agent_id for leaf in child_holon.leaf_agents] == [3, 4]
+    assert [leaf.parent_id for leaf in child_holon.leaf_agents] == [0, 1]
+    assert not child_holon.formed_by_bond
+    assert child_holon.formation_knowledge == ((3, frozenset()), (4, frozenset()))
+    for aid in (0, 1):
+        assert engine.agents[aid].energy == pytest.approx(11.5 / 2, abs=1e-9)
+
+
+def test_sin_r17_las_hojas_se_reproducen_por_separado(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=3,
+            enable_evolution=True,
+            enable_holonic_hierarchy=True,
+            holon_bond_threshold=1.0,
+            reproduction_threshold=2.0,
+        )
+    )
+    holon = make_holon(engine, [0, 1])
+    for aid in (0, 1):
+        engine.agents[aid].apply_energy_delta(10.0)
+    act(monkeypatch, engine)
+    engine.step()
+    assert engine.root_nodes[3] is engine.agents[3]
+    assert engine.root_nodes[4] is engine.agents[4]
+    assert engine.root_nodes[holon.node_id] is holon
+
+
+def test_reproduccion_neutral_misma_demografia_genoma_del_donante(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def build(mode: str) -> SimulationEngine:
+        config = quiet(
+            num_agents=4,
+            enable_evolution=True,
+            reproduction_threshold=2.0,
+            mutation_rate=0.0,
+            discrete_mutation_prob=0.0,
+            reproduction_mode=mode,
+        )
+        engine = SimulationEngine(config)
+        for aid in range(4):
+            replace_agent(engine, aid, AgentGenome(bond_affinity=0.1 * (aid + 1)))
+        for aid in (0, 2):
+            engine.agents[aid].apply_energy_delta(1.0)
+        with monkeypatch.context() as patch:
+            act(patch, engine)
+            engine.step()
+        return engine
+
+    energy, neutral = build("energy"), build("neutral")
+    donor_rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence(42, spawn_key=(4,))))
+    for child_id, parent in ((4, 0), (5, 2)):
+        a, b = energy.agents[child_id], neutral.agents[child_id]
+        assert a.parent_id == b.parent_id == parent
+        assert a.energy == pytest.approx(b.energy, abs=1e-9)
+        assert grid_of(energy).get_agent_position(child_id) == grid_of(neutral).get_agent_position(
+            child_id
+        )
+        assert a.genome == energy.agents[parent].genome
+        donor = int(donor_rng.integers(4))
+        assert b.genome == neutral.agents[donor].genome
+
+
+def test_herencia_cultural_por_assimilate_testimony(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=3,
+            comm_enabled=False,
+            enable_evolution=True,
+            enable_cultural_inheritance=True,
+            inheritance_discount=0.5,
+            reproduction_threshold=2.0,
+            mutation_rate=0.0,
+            discrete_mutation_prob=0.0,
+        )
+    )
+    engine.agents[0].apply_energy_delta(1.0)
+    engine.agents[0].memory.upsert(KnowledgeUnit(pat(1), 1.0, 0.8, 5, 0, True), 0)
+    act(monkeypatch, engine)
+    calls = record_calls(monkeypatch, MicroAgent, "assimilate_testimony")
+    engine.step()
+    child = engine.agents[3]
+    assert [(c[0].agent_id, c[2], c[3]) for c in calls] == [(3, 0, 0)]
+    assert child.memory.get(pat(1)) == KnowledgeUnit(
+        pat(1), 1.0, pytest.approx(0.30, abs=1e-9), 1, 0, False
+    )
+
+
+def test_el_control_nulo_alcanza_a_la_herencia_cultural(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=3,
+            comm_enabled=False,
+            comm_content_null=True,
+            enable_evolution=True,
+            enable_cultural_inheritance=True,
+            reproduction_threshold=2.0,
+        )
+    )
+    engine.agents[0].apply_energy_delta(1.0)
+    engine.agents[0].memory.upsert(KnowledgeUnit(pat(1), 0.6, 0.8, 5, 0, True), 0)
+    act(monkeypatch, engine)
+    calls = record_calls(monkeypatch, engine_module, "nullify_belief")
+    engine.step()
+    assert [call[0].pattern for call in calls] == [pat(1)]
+    inherited = engine.agents[3].memory.get(pat(1))
+    assert inherited is not None and inherited.predicted_value in (-1.0, 1.0)
+
+
+def test_causalidad_descendente_y_limpieza_tras_split(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=3,
+            comm_enabled=False,
+            enable_holonic_hierarchy=True,
+            enable_downward_causation=True,
+            holon_bond_threshold=1.0,
+        )
+    )
+    grid = grid_of(engine)
+    walk_to(grid, 2, grid.get_agent_position(1))
+    weaker = KnowledgeUnit(pat(0), 1.0, 0.8, 1, 1, True)
+    engine.agents[1].memory.upsert(KnowledgeUnit(pat(0), 1.0, 0.9, 1, 1, True), 0)
+    engine.agents[2].memory.upsert(weaker, 0)
+    holon = make_holon(engine, [1, 2])
+    act(monkeypatch, engine)
+    engine.run(2)
+    memory = engine.agents[2].memory
+    plain = BoundedMemory(memory.capacity, engine.config.lambda_decay)
+    unit = memory.get(pat(0))
+    assert unit is not None
+    penalized = memory.compute_utility(unit, 2)
+    assert penalized == pytest.approx(0.25 * plain.compute_utility(unit, 2), abs=1e-9)
+
+    holon.ticks_without_surplus = engine.config.holon_split_patience - 1
+    engine.step()
+    assert holon.node_id not in engine.root_nodes
+    assert engine.root_nodes[1] is engine.agents[1] and engine.root_nodes[2] is engine.agents[2]
+    assert memory.get(pat(0)) is not None
+    assert memory.compute_utility(unit, 3) == pytest.approx(
+        plain.compute_utility(unit, 3), abs=1e-9
+    )
+
+
+def test_split_libera_a_los_hijos_sin_perder_memorias(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=3,
+            comm_enabled=False,
+            enable_holonic_hierarchy=True,
+            holon_bond_threshold=1.0,
+        )
+    )
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    holon = make_holon(engine, [1, 2])
+    holon.ticks_without_surplus = engine.config.holon_split_patience - 1
+    act(monkeypatch, engine)
+    engine.step()
+    assert holon.node_id not in engine.root_nodes
+    assert engine.agent_to_root == {0: 0, 1: 1, 2: 2}
+    assert engine.agents[1].memory.get(pat(0)) is not None
+
+
+def test_bond_fusiona_especialistas_complementarios(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=2,
+            comm_enabled=False,
+            enable_holonic_hierarchy=True,
+            initial_bond_affinity=0.8,
+            holon_bond_threshold=0.5,
+        )
+    )
+    grid = grid_of(engine)
+    walk_to(grid, 1, grid.get_agent_position(0))
+    engine.agents[0].memory.upsert(direct(pat(0), 1.0), 0)
+    engine.agents[1].memory.upsert(direct(pat(1), 1.0), 0)
+    engine.agents[1].memory.upsert(direct(pat(7), 1.0), 0)  # signo incorrecto
+    act(monkeypatch, engine)
+    engine.step()
+    assert list(engine.root_nodes) == [-2]
+    holon = engine.root_nodes[-2]
+    assert isinstance(holon, CompositeAgent)
+    assert holon.children == (engine.agents[0], engine.agents[1])
+    assert holon.formed_by_bond and holon.created_tick == 0
+    assert holon.formation_knowledge == ((0, frozenset({pat(0)})), (1, frozenset({pat(1)})))
+    assert engine.agent_to_root == {0: -2, 1: -2}
+    assert engine.next_holon_id == -3
+
+
+def test_estigmergia_deposita_y_se_asimila_al_tick_siguiente(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = SimulationEngine(quiet(num_agents=1, enable_stigmergy=True))
+    grid = grid_of(engine)
+    cell, resource = first_resource_of(grid, pat(0))
+    walk_to(grid, 0, cell)
+    act(monkeypatch, engine, {0: AgentAction(ActionType.INTERACT, resource.resource_id)})
+    engine.step()
+    trace = grid.cell_stigmergy[cell][pat(0)]
+    intensity = engine.config.stigmergy_deposit_rate * engine.config.initial_direct_confidence
+    assert trace.intensity == pytest.approx(intensity, abs=1e-9)
+    assert trace.sign_value == 1.0 and trace.last_updated_tick == 0
+    act(monkeypatch, engine)
+    calls = record_calls(monkeypatch, MicroAgent, "assimilate_testimony")
+    engine.step()
+    assert [(c[1].pattern, c[2]) for c in calls] == [(pat(0), -1)]
+    assert calls[0][1].confidence == pytest.approx(intensity, abs=1e-9)
+
+
+def test_historial_evolutivo_en_una_corrida_de_fase_i() -> None:
+    engine = SimulationEngine(small_config())
+    engine.run(5)
+    assert [m.tick for m in engine.evolutionary_history] == list(range(5))
+    assert all(m.births_this_tick == m.deaths_this_tick == 0 for m in engine.evolutionary_history)
+
+
+def test_sucesion_generacional_y_formacion_de_holones() -> None:
+    config = SimulationConfig(
+        enable_evolution=True,
+        enable_cultural_inheritance=True,
+        enable_holonic_hierarchy=True,
+        resources_per_pattern=40,
+    )
+    engine = SimulationEngine(config)
+    engine.run(100)
+    history = engine.evolutionary_history
+    assert len(history) == 100
+    assert all(m.active_agents <= config.max_population for m in history)
+    assert any(m.births_this_tick > 0 for m in history)
+    assert max(m.max_generation for m in history) >= 1
+
+
+def _forest_is_consistent(engine: SimulationEngine) -> bool:
+    leaves = sorted(
+        leaf.agent_id for node in engine.root_nodes.values() for leaf in node.leaf_agents
+    )
+    index = {leaf.agent_id: nid for nid, n in engine.root_nodes.items() for leaf in n.leaf_agents}
+    return leaves == sorted(engine.agents) and index == engine.agent_to_root
+
+
+PHASE2_ALL = {
+    "enable_evolution": True,
+    "enable_cultural_inheritance": True,
+    "enable_holonic_hierarchy": True,
+    "enable_holon_reproduction": True,
+    "enable_downward_causation": True,
+    "enable_stigmergy": True,
+    "num_composite_patterns": 2,
+}
+
+
+@settings(max_examples=10)
+@given(st.integers(min_value=0, max_value=2**32 - 1))
+def test_el_bosque_holonico_particiona_a_la_poblacion(seed: int) -> None:
+    engine = SimulationEngine(small_config(seed=seed, resources_per_pattern=6, **PHASE2_ALL))
+    for _ in range(40):
+        engine.step()
+        assert _forest_is_consistent(engine)
+    engine.ablate_population(0.3)
+    assert _forest_is_consistent(engine)
+
+
+def test_determinismo_con_todas_las_banderas_de_fase_ii() -> None:
+    config = small_config(seed=21, resources_per_pattern=6, **PHASE2_ALL)
+    a, b = SimulationEngine(config), SimulationEngine(config)
+    a.run(40)
+    b.run(40)
+    assert _state(a) == _state(b)
+    assert a.evolutionary_history == b.evolutionary_history
+
+
+def test_fase_ii_independiente_del_hash() -> None:
+    script = textwrap.dedent(
+        """
+        from ide.config import SimulationConfig
+        from ide.simulation.engine import SimulationEngine
+
+        engine = SimulationEngine(
+            SimulationConfig(
+                seed=11, num_agents=30, resources_per_pattern=20, enable_evolution=True,
+                enable_cultural_inheritance=True, enable_holonic_hierarchy=True,
+                enable_holon_reproduction=True, enable_downward_causation=True,
+                enable_stigmergy=True, num_composite_patterns=2,
+            )
+        )
+        engine.run(30)
+        print(engine.history[-1])
+        print(engine.evolutionary_history[-1])
+        print(sorted(engine.root_nodes), sorted(engine.agents))
+        print([engine.agents[a].memory.all_units() for a in sorted(engine.agents)])
+        """
+    )
+    outputs = []
+    for hash_seed in ("0", "1"):
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed}
+        done = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=True,
+            cwd=ROOT,
+        )
+        outputs.append(done.stdout)
+    assert outputs[0] == outputs[1]
+    assert outputs[0].strip()
+
+
+def test_fase_ii_exige_un_entorno_evolutivo() -> None:
+    class PhaseOneOnly:
+        def __init__(self, grid: ToroidalGrid2D) -> None:
+            self._grid = grid
+
+        def get_active_agent_ids(self) -> list[int]:
+            return self._grid.get_active_agent_ids()
+
+    config = small_config(enable_evolution=True)
+    grid = ToroidalGrid2D(config, np.random.Generator(np.random.PCG64(0)))
+    with pytest.raises(TypeError, match="EvolutionaryEnvironmentPort"):
+        SimulationEngine(config, env=cast(Any, PhaseOneOnly(grid)))
+
+
+def test_sin_comunicacion_no_se_cobran_mensajes() -> None:
+    config = quiet(num_agents=6, comm_enabled=False, enable_evolution=True, message_cost=0.5)
+    engine = SimulationEngine(config)
+    walk_to(grid_of(engine), 1, grid_of(engine).get_agent_position(0))
+    engine.agents[0].memory.upsert(direct(pat(0), 1.0), 0)  # tendría algo que difundir
+    with pytest.MonkeyPatch.context() as patch:
+        act(patch, engine)
+        engine.step()
+    assert engine.history[-1].messages_sent == 0
+    assert all(a.energy == pytest.approx(1.5, abs=1e-9) for a in engine.agents.values())
+
+
+def test_un_sub_holon_liberado_por_split_reinicia_su_paciencia(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = SimulationEngine(
+        quiet(
+            num_agents=4,
+            comm_enabled=False,
+            enable_holonic_hierarchy=True,
+            holon_bond_threshold=1.0,
+        )
+    )
+    inner = make_holon(engine, [0, 1])
+    inner.ticks_without_surplus = engine.config.holon_split_patience - 1
+    outer = make_holon(engine, [0, 2])
+    outer.ticks_without_surplus = engine.config.holon_split_patience - 1
+    act(monkeypatch, engine)
+    engine.step()
+    assert outer.node_id not in engine.root_nodes
+    assert engine.root_nodes[inner.node_id] is inner
+    assert inner.ticks_without_surplus == 0
+    engine.step()
+    assert engine.root_nodes.get(inner.node_id) is inner

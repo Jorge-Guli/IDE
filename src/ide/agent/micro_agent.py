@@ -181,6 +181,15 @@ class MicroAgent:
         unit = self._memory.get(pattern)
         return unit if unit is not None else self._ephemeral_tick_beliefs.get(pattern)
 
+    def own_beliefs(self) -> dict[Pattern, KnowledgeUnit]:
+        """`own_belief` de cada patrón de la memoria o del caché propio, ordenado por patrón.
+
+        No incluye la vista del holón: es lo que el motor lee en el tiempo 2 de R22.
+        """
+        memory = {unit.pattern: unit for unit in self._memory.all_units()}
+        cache = self._ephemeral_tick_beliefs
+        return {p: memory[p] if p in memory else cache[p] for p in sorted({*cache, *memory})}
+
     def get_effective_belief(self, pattern: Pattern) -> KnowledgeUnit | None:
         """Creencia propia si existe; si no, la de la vista del holón del tick (R22)."""
         unit = self.own_belief(pattern)
