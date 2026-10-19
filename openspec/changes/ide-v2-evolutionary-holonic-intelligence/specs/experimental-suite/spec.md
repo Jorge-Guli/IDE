@@ -7,7 +7,7 @@
 
 #### Scenario: Preservación de TickMetrics y cálculo de EvolutionaryTickMetrics
 - **WHEN** se inspeccionan los campos de `TickMetrics` y se registra un tick con `EvolutionaryMetricsCollector` sobre una población con un holón de nivel 1 formado por dos agentes especialistas
-- **THEN** `TickMetrics` conserva sus 14 campos de Fase I y `EvolutionaryTickMetrics` incluye `tick`, `active_agents`, `mean_generation`, `max_generation`, `births_this_tick`, `deaths_this_tick`, `mean_energy`, `offspring_social_ratio`, `holon_count_by_level == ((1, 1),)`, `max_holon_level == 1`, `mean_holon_size == 2.0`, `holonic_coverage_gain > 1.0`, `composite_completions`, `acquired_orthogonalization` y `stigmergy_active_cells`.
+- **THEN** `TickMetrics` conserva sus 14 campos de Fase I y `EvolutionaryTickMetrics` incluye `tick`, `active_agents`, `mean_generation`, `max_generation`, `births_this_tick`, `deaths_this_tick`, `mean_energy`, `offspring_social_ratio`, `holon_count_by_level == ((1, 1),)`, `max_holon_level == 1`, `mean_holon_size == 2.0`, `holonic_coverage_gain > 1.0`, `composite_completions`, `acquired_orthogonalization`, `eligible_holons` y `stigmergy_active_cells`.
 
 ### Requirement: Ortogonalización Adquirida desde la Formación (M13)
 `acquired_orthogonalization` SHALL ser la media, sobre los holones raíz formados por `BOND` con edad $\ge 1$, de $\text{red}_0(U) - \text{red}(U)$, contando sólo patrones elementales con confianza $\ge$ `decision_conf_threshold` y signo correcto, con $\text{red}_0$ recalculada sobre las hojas vivas desde `formation_knowledge`; SHALL valer `None` sin holones elegibles.

@@ -29,3 +29,10 @@ Para una afirmación de Fase II, `is_by_construction` SHALL ser verdadero si su 
 #### Scenario: Perfil y configuraciones congelados
 - **WHEN** se inspeccionan `PROFILES[PHASE2_ATTRIBUTION_PROFILE]`, `PHASE2_SEEDS` y `PHASE2_PROTOCOL_CONFIGS["003a"]`
 - **THEN** `total_ticks == 2000`, hay 10 semillas de 42 a 51, y la configuración de `003a` tiene `num_composite_patterns == 3` y `composite_order == 4 > memory_capacity`.
+
+### Requirement: Semillas sin Medición en C8
+En una comparación de C8, una semilla sin `mean_acquired_orthogonalization` en alguna de las dos variantes SHALL contar como empate y listarse; con menos de `MIN_SEEDS` semillas medidas en E2, C8 SHALL ser `INSUFFICIENT_EVIDENCE`; un efecto de regla sin semillas medidas SHALL valer `None`.
+
+#### Scenario: C8 sin holones
+- **WHEN** en las 10 semillas de `phase2` ninguna corrida `full` de 003-B forma holones elegibles
+- **THEN** `measure_claim` devuelve `None` para C8 en cada semilla, la evaluación es `INSUFFICIENT_EVIDENCE` (no `NOT_OBSERVED`) y ningún efecto de regla de C8 vale `0.0`.
