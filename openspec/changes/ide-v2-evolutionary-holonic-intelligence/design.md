@@ -167,6 +167,7 @@ En `src/ide/config.py`, `SimulationConfig` incorpora los siguientes campos al fi
 - Enteros mínimos: `max_population >= 1`, `max_genome_memory_capacity >= memory_capacity`, `max_holon_leaves >= 2`, `holon_split_patience >= 1`, `composite_order >= 2`, `composite_resources_per_pattern >= 1`.
 - `reproduction_mode` en `{"energy", "neutral"}`; si no, `ValueError` que menciona `"reproduction_mode"`.
 - Validación de orden compuesto frente a patrones benéficos disponibles: si `num_composite_patterns > 0` y `composite_order > num_world_patterns // 2`, lanza `ValueError` cuyo mensaje menciona `"composite_order"`.
+- Coherencia de la estigmergia con el umbral de depósito (2026-10-19): si `enable_stigmergy=True` y `0 < stigmergy_deposit_rate < min_confidence`, lanza `ValueError` cuyo mensaje menciona `"stigmergy_deposit_rate"`. Con esa tasa ningún depósito alcanza `min_confidence` y, por el umbral de depósito de D27, la estigmergia sólo borraría rastros. La ablación declarada de $R_{19}$ es `enable_stigmergy=False`.
 
 **Reglas de Blindaje de Auditorías AST de Fase I:**
 1. En `SimulationEngine.__init__`, las 4 comprobaciones de Fase I (`enable_specialization`, `epsilon_recheck > 0`, `tau_policy != "validation"`, `update_scheme != "synchronous"`) DEBEN seguir lanzando `NotImplementedError` para que `test_mecanismos_fuera_de_alcance_lanzan_not_implemented` siga pasando.

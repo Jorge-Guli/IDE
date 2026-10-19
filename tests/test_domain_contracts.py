@@ -442,3 +442,14 @@ def test_config_acepta_los_bordes_validos_de_fase_ii() -> None:
 def test_config_rechaza_nan_en_hiperparametros_de_fase_ii(campo: str) -> None:
     with pytest.raises(ValueError, match=campo):
         SimulationConfig(**{campo: float("nan")})  # type: ignore[arg-type]
+
+
+def test_config_rechaza_estigmergia_que_solo_borraria_rastros() -> None:
+    with pytest.raises(ValueError, match="stigmergy_deposit_rate"):
+        SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.04)
+
+
+def test_config_acepta_tasas_de_estigmergia_coherentes() -> None:
+    SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.05)  # igual al umbral
+    SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.0)  # nunca deposita
+    SimulationConfig(enable_stigmergy=False, stigmergy_deposit_rate=0.04)  # apagada: no aplica

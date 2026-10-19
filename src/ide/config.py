@@ -222,6 +222,12 @@ class SimulationConfig:
                 f"reproduction_mode debe ser uno de {_REPRODUCTION_MODES}, "
                 f"recibido {self.reproduction_mode!r}"
             )
+        if self.enable_stigmergy and 0.0 < self.stigmergy_deposit_rate < self.min_confidence:
+            # Ningún depósito alcanzaría min_confidence: la estigmergia sólo borraría rastros (D27).
+            raise ValueError(
+                f"stigmergy_deposit_rate ({self.stigmergy_deposit_rate}) debe ser 0 o >= "
+                f"min_confidence ({self.min_confidence}) con enable_stigmergy"
+            )
         if self.num_composite_patterns > 0 and self.composite_order > self.num_world_patterns // 2:
             raise ValueError(
                 f"composite_order ({self.composite_order}) debe ser <= num_world_patterns // 2 "
