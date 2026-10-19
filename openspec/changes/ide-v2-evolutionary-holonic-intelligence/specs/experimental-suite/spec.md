@@ -10,7 +10,7 @@
 - **THEN** `TickMetrics` conserva sus 14 campos de Fase I y `EvolutionaryTickMetrics` incluye `tick`, `active_agents`, `mean_generation`, `max_generation`, `births_this_tick`, `deaths_this_tick`, `mean_energy`, `offspring_social_ratio`, `holon_count_by_level == ((1, 1),)`, `max_holon_level == 1`, `mean_holon_size == 2.0`, `holonic_coverage_gain > 1.0`, `composite_completions`, `acquired_coverage`, `redundancy_reduction`, `eligible_holons` y `stigmergy_active_cells`.
 
 ### Requirement: Cobertura Colectiva Adquirida desde la Formación (M13)
-`acquired_coverage` SHALL ser la media, sobre los holones raíz formados por `BOND` con edad $\ge 1$, de $(\text{cov}(U) - \text{cov}_0(U))/|U|$, donde `cov` cuenta patrones elementales distintos con confianza $\ge$ `decision_conf_threshold` y signo correcto y $\text{cov}_0$ sale de `formation_knowledge`, que se reinicia al estado actual cuando el holón pierde un miembro; SHALL valer `None` sin holones elegibles.
+`acquired_coverage` SHALL ser la media, sobre los holones raíz formados por `BOND` con `tick - formation_tick >= 1`, de $(\text{cov}(U) - \text{cov}_0(U))/|U|$, donde `cov` cuenta patrones elementales distintos con confianza $\ge$ `decision_conf_threshold` y signo correcto y $\text{cov}_0$ sale de `formation_knowledge`, que se reinicia al estado actual cuando el holón pierde un miembro; SHALL valer `None` sin holones elegibles.
 
 #### Scenario: Holón que gana cobertura después de formarse
 - **WHEN** un holón formado por `BOND` con dos hojas que conocen correctamente $\{\rho_0, \rho_1\}$ y $\{\rho_0\}$ pasa, dos ticks después, a $\{\rho_0, \rho_1\}$ y $\{\rho_2\}$, y una creencia de signo incorrecto en una hoja no cuenta

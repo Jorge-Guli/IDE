@@ -51,7 +51,7 @@
   - (d) `evaluate_bond_candidates` ($R_{15}$) entre especialistas complementarios, y el rechazo de clones;
   - (e) `should_split_holon` ($R_{16}$) por paciencia o por energía mínima;
   - (f) `apply_downward_causation` ($R_{18}$) con alcance local;
-  - (g) `reproduce_holon` ($R_{17}$) preservando la topología;
+  - (g) `reproduce_holon` ($R_{17}$) preservando la topología, con `formed_by_bond = False` y `formation_tick = tick` en todos los nodos replicados;
   - (h) `prune_dead_leaves` con colapso de sub-holones.
 - [ ] 3.2 **[GREEN]** Implementar `src/ide/agent/holon.py` con `AgentNode`, `CompositeAgent`, `prune_dead_leaves`, `evaluate_bond_candidates`, `should_split_holon`, `apply_downward_causation` y `reproduce_holon`, según las firmas de design D23.
 - [ ] 3.3 **[REFACTOR]** Verificación del bloque.
@@ -75,7 +75,7 @@
   - (a) el aislamiento de `evo_rng` (`spawn_key=(2,)`);
   - (b) la vista del holón en dos tiempos sin efectos de orden y su ablación (`enable_holon_view`, $R_{22}$); los recursos compuestos aprendidos por experiencia, sin inyección, con reparto de energía y su ablación (`holon_energy_sharing`, $R_{23}$); y la exclusión de compuestos en M2;
   - (c) la Fase 5: metabolismo, muerte ($E_i \le 0$), poda en `_remove` (incluidas las ablaciones), a lo sumo una reproducción por agente y por tick, reproducción neutral (`reproduction_mode="neutral"`, $R_{12}$), herencia cultural por `assimilate_testimony` (con control nulo aplicado por el motor), $R_{18}$, `SPLIT` y `BOND`;
-  - (d) `engine.evolutionary_history`;
+  - (d) `engine.evolutionary_history`, y que el motor completa `formation_knowledge` al crear un holón y reinicia el estado de formación (con `formation_tick`) cuando un holón pierde un miembro, también desde `ablate_population`;
   - (e) igualdad de historiales entre procesos con distinto `PYTHONHASHSEED` con todas las banderas de Fase II activas.
 - [ ] 5.2 **[GREEN]** Extender `SimulationEngine` en `src/ide/simulation/engine.py` y agregar `EvolutionaryMetricsCollector` en `src/ide/experiments/metrics.py`, manteniendo bit a bit la Fase I con los valores por defecto.
 - [ ] 5.3 **[REFACTOR]** `python -m pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py`, `python -m ide.experiments.benchmark` (comparar ticks por segundo con la línea base) y verificación del bloque.
@@ -83,7 +83,7 @@
 ## 6. Telemetría M8–M13, Protocolos 002/003 y Atribución R12–R23 (`experimental-suite`, `emergence-attribution`)
 
 - [ ] 6.1 **[RED]** Crear `tests/test_exp002_exp003.py` y ampliar `tests/test_metrics.py` y `tests/test_attribution.py` con tests para:
-  - (a) `EvolutionaryTickMetrics` (M8–M13, incluida la cobertura colectiva adquirida (y la reducción de redundancia descriptiva) con `formation_knowledge`, holones elegibles por `BOND`, recálculo tras la poda y media por par tick-holón) sin alterar los 14 campos de `TickMetrics`;
+  - (a) `EvolutionaryTickMetrics` (M8–M13, incluida la cobertura colectiva adquirida (y la reducción de redundancia descriptiva) con `formation_knowledge`, holones elegibles por `BOND`, reinicio del estado de formación con `formation_tick` cuando el holón pierde un miembro y media por par tick-holón) sin alterar los 14 campos de `TickMetrics`;
   - (b) `PHASE2_DESIGN_RULES` (`R12`–`R23`) con `purpose`, `ALL_DESIGN_RULES`, `PHASE2_CLAIM_CHANNELS`, el criterio ampliado de `is_by_construction`, el perfil `phase2`, `PHASE2_SEEDS`, `PHASE2_PROTOCOL_CONFIGS`, `run_phase2_attribution` (una sola condición por variante) y las variantes pre-registradas para `EXP002_CLAIMS` y `EXP003_CLAIMS` (para C8, la ablación de `R22`) y `PHASE2_INACTIVE_RULES` fuera de `rule_effects` (con el test que la contrasta con `PHASE2_PROTOCOL_CONFIGS`), preservando `report.rules == DESIGN_RULES` y `rule_effects == R3..R11` para `EXP001_CLAIMS`;
   - (c) la ejecución y la serialización JSON/CLI de los cuatro protocolos 002 y 003.
 - [ ] 6.2 **[GREEN]** Antes de los runners, correr la prueba de humo de design D29 (sólo termina y generación máxima, sin mirar las métricas de las afirmaciones) y registrar su salida. Implementar las métricas en `src/ide/experiments/metrics.py`, extender `src/ide/experiments/attribution.py` y crear `src/ide/experiments/exp002_runner.py` y `src/ide/experiments/exp003_runner.py`.
