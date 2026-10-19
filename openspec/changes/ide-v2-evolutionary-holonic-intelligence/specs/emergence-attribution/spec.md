@@ -24,7 +24,7 @@ Para una afirmación de Fase II, `is_by_construction` SHALL ser verdadero si su 
 - **THEN** es verdadero para `C5`, `C6`, `C7` y `C8` (cuyo canal y $R_C$ son `("R22",)`), y las afirmaciones de Fase I conservan su clasificación previa.
 
 ### Requirement: Perfil Pre-Registrado de la Fase II
-`attribution.py` SHALL definir `PHASE2_ATTRIBUTION_PROFILE = "phase2"` (`total_ticks = 2000`), `PHASE2_SEEDS = tuple(range(42, 52))` y `PHASE2_PROTOCOL_CONFIGS` con las configuraciones de design D29, versionados antes de implementar los runners 002 y 003.
+`attribution.py` SHALL definir `PHASE2_ATTRIBUTION_PROFILE = "phase2"` (`total_ticks = 2000`), `PHASE2_SEEDS = tuple(range(42, 52))`, `PHASE2_PROTOCOL_CONFIGS` y `PHASE2_PROTOCOL_CONFIGS_ORIGINAL` (las de design D29 antes de su Enmienda 1), versionados antes de implementar los runners 002 y 003.
 
 #### Scenario: Perfil y configuraciones congelados
 - **WHEN** se inspeccionan `PROFILES[PHASE2_ATTRIBUTION_PROFILE]`, `PHASE2_SEEDS` y `PHASE2_PROTOCOL_CONFIGS["003a"]`
@@ -36,3 +36,24 @@ En una comparación de C8, una semilla sin `mean_acquired_coverage` en alguna de
 #### Scenario: C8 sin holones
 - **WHEN** en las 10 semillas de `phase2` ninguna corrida `full` de 003-B forma holones elegibles
 - **THEN** `measure_claim` devuelve `None` para C8 en cada semilla, la evaluación es `INSUFFICIENT_EVIDENCE` (no `NOT_OBSERVED`) y ningún efecto de regla de C8 vale `0.0`.
+
+### Requirement: Calibración de Viabilidad del Perfil (Enmienda 1 de D29)
+`phase2_calibration.py` SHALL elegir, sobre `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`, el menor `resources_per_pattern` de la grilla 10, 20, 40, 80 con el que, en cada condición de comparación de los runners 002 y 003 y en su control nulo, al menos 8 de las semillas 0 a 9 siguen vivas a los 2000 ticks y llegan a la generación 5, registrando sólo demografía.
+
+#### Scenario: Una variante de comparación inviable descarta el valor
+- **WHEN** con un valor de la grilla la base de 002-A es viable en 10 semillas pero la condición `drift` sólo en 7
+- **THEN** el valor no es viable, la calibración pasa al siguiente y, si ninguno lo es, `chosen is None`.
+
+### Requirement: Registro Demográfico de las Variantes de Fase II
+`ClaimEvaluation.demography` SHALL registrar, para cada variante de una afirmación de Fase II y cada semilla, la población final y la generación máxima de la corrida, y SHALL quedar vacío en Fase I.
+
+#### Scenario: Demografía por variante
+- **WHEN** se ejecuta `run_phase2_attribution` para C6 con dos semillas
+- **THEN** `demography` tiene las mismas variantes que `values`, con un par `(población final, generación máxima)` por semilla, igual al de la corrida de esa variante.
+
+### Requirement: Atribución de Referencia sobre las Configuraciones Originales
+`run_phase2_attribution` SHALL aceptar `configs` y usar `configs[claim.protocol]` como población completa, para medir como referencia sobre `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`.
+
+#### Scenario: Atribución sobre otras configuraciones
+- **WHEN** se invoca `run_phase2_attribution` con `configs` distintas de `PHASE2_PROTOCOL_CONFIGS`
+- **THEN** el valor `full` de cada afirmación es el de su métrica medida sobre `configs[claim.protocol]` con esa semilla.

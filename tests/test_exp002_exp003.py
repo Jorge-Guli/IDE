@@ -65,6 +65,7 @@ def test_protocolo_002a_rapido() -> None:
         "adaptation_gain", "selection_gain", "final_mean_memory_capacity",
         "final_mean_bond_affinity", "evolved_max_generation", "evolved_mean_energy",
         "total_births", "total_deaths",
+        "condition_demography",
     ]  # fmt: skip
     evolved = run_engine(config)
     frozen = run_engine(ablate(config, ["R13"]))
@@ -117,6 +118,7 @@ def test_protocolo_002b_rapido() -> None:
         "cultural_accuracy_surplus", "final_offspring_social_ratio",
         "final_offspring_social_ratio_tabula_rasa", "social_ratio_gain",
         "cultural_convergence_tick", "tabula_rasa_convergence_tick",
+        "condition_demography",
     ]  # fmt: skip
     cultural = run_engine(config)
     tabula = run_engine(ablate(config, ["R14"]))
@@ -174,6 +176,7 @@ def test_protocolo_003a_rapido() -> None:
         "seed", "total_ticks", "holonic_composite_completions",
         "individual_composite_completions", "composite_completion_surplus", "holonic_accuracy",
         "individual_accuracy", "holonic_surplus", "max_holon_level", "peak_holonic_coverage_gain",
+        "condition_demography",
     ]  # fmt: skip
     holonic = run_engine(config)
     individual = run_engine(ablate(config, ["R15"]))
@@ -209,6 +212,7 @@ def test_protocolo_003b_rapido() -> None:
         "coverage_advantage", "mean_redundancy_reduction",
         "mean_redundancy_reduction_without_view", "holon_ticks", "holon_ticks_without_view",
         "max_holon_level", "level_counts_peak",
+        "condition_demography",
     ]  # fmt: skip
     with_view = run_engine(config).evolutionary_history
     without_view = run_engine(ablate(config, ["R22"])).evolutionary_history
@@ -399,13 +403,17 @@ def test_atribucion_usa_por_defecto_las_semillas_pre_registradas(
 ) -> None:
     received: list[Any] = []
 
-    def fake(seeds: Any, claims: Any, jobs: int) -> Any:
+    configs_received: list[Any] = []
+
+    def fake(seeds: Any, claims: Any, jobs: int, configs: Any) -> Any:
         received.append(tuple(seeds))
+        configs_received.append(configs)
         return attribution.AttributionReport("phase2", attribution.ALL_DESIGN_RULES, ())
 
     monkeypatch.setattr(phase2_cli, "run_phase2_attribution", fake)
     assert runner.main(["--attribution", "--out", str(tmp_path)]) == 0
     assert received == [attribution.PHASE2_SEEDS]
+    assert configs_received[0] is attribution.PHASE2_PROTOCOL_CONFIGS  # sin --reference
 
 
 def test_cli_corre_una_vez_cada_condicion_identica(
@@ -454,3 +462,76 @@ def test_cli_determinista_entre_procesos(tmp_path: Path, module: str) -> None:
         subprocess.run(command, env=env, cwd=ROOT, check=True, capture_output=True, text=True)
         outputs.append({p.name: p.read_bytes() for p in sorted(out.iterdir())})
     assert outputs[0] == outputs[1]
+
+
+def demography(engine: SimulationEngine) -> tuple[int, int]:
+    return len(engine.agents), max(m.max_generation for m in engine.evolutionary_history)
+
+
+def test_demografia_de_cada_condicion() -> None:
+    """Enmienda 1 de D29: población final y generación máxima de cada condición, en orden."""
+    config = protocol_config("002a", seed=5)
+    report = run_protocol_002a_adaptation(config, TICKS)
+    expected = [
+        (name, *demography(run_engine(c)))
+        for name, c in (
+            ("evolved", config),
+            ("frozen_genome", ablate(config, ["R13"])),
+            ("drift", ablate(config, ["R12"])),
+        )
+    ]
+    assert list(report.condition_demography) == expected
+    b = run_protocol_002b_cultural_inheritance(protocol_config("002b", seed=6), 5)
+    assert [name for name, _, _ in b.condition_demography] == ["cultural", "tabula_rasa"]
+    c3 = protocol_config("003a", seed=7)
+    a3 = run_protocol_003a_holonic_transition(c3, TICKS)
+    assert list(a3.condition_demography) == [
+        ("holonic", *demography(run_engine(c3))),
+        ("individual", *demography(run_engine(ablate(c3, ["R15"])))),
+    ]
+    b3 = run_protocol_003b_orthogonalization(protocol_config("003b", seed=8), 5)
+    assert [name for name, _, _ in b3.condition_demography] == ["with_view", "without_view"]
+
+
+@pytest.mark.parametrize(("runner", "name", "keys"), RUNNERS)
+def test_cli_referencia_con_configuraciones_originales(
+    tmp_path: Path,
+    tiny: str,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: ModuleType,
+    name: str,
+    keys: tuple[str, str],
+) -> None:
+    """Enmienda 1 de D29: `--reference` corre sobre `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`."""
+    original = {
+        k: dataclasses.replace(c, **{**SMALL, "resources_per_pattern": 3})
+        for k, c in attribution.PHASE2_PROTOCOL_CONFIGS_ORIGINAL.items()
+    }
+    monkeypatch.setattr(attribution, "PHASE2_PROTOCOL_CONFIGS_ORIGINAL", original)
+    argv = ["--profile", tiny, "--seeds", "7", "--reference", "--out", str(tmp_path)]
+    assert runner.main(argv) == 0
+    assert sorted(p.name for p in tmp_path.iterdir()) == [f"{name}_reference_seed7.json"]
+    data = json.loads((tmp_path / f"{name}_reference_seed7.json").read_text())
+    for key in keys:
+        expected = dataclasses.replace(original[key], seed=7).to_dict()
+        assert data[f"protocol_{key}"]["config"] == expected
+
+
+def test_atribucion_de_referencia(
+    tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    received: list[Any] = []
+
+    def fake(seeds: Any, claims: Any, jobs: int, configs: Any) -> Any:
+        received.append(configs)
+        return attribution.AttributionReport("phase2", attribution.ALL_DESIGN_RULES, ())
+
+    monkeypatch.setattr(phase2_cli, "run_phase2_attribution", fake)
+    argv = ["--attribution", "--reference", "--seeds", "7", "--out", str(tmp_path)]
+    assert exp002_runner.main(argv) == 0
+    assert len(received) == 1
+    assert received[0] is attribution.PHASE2_PROTOCOL_CONFIGS_ORIGINAL
+    data = json.loads((tmp_path / "exp002_reference_attribution.json").read_text())
+    original = attribution.PHASE2_PROTOCOL_CONFIGS_ORIGINAL
+    assert data["configs"] == {key: original[key].to_dict() for key in sorted(original)}
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["exp002_reference_attribution.json"]

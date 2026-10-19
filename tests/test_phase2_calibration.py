@@ -7,8 +7,15 @@ from typing import Any
 
 import pytest
 
+from ide.config import SimulationConfig
 from ide.experiments import attribution, phase2_calibration
-from ide.experiments.attribution import PHASE2_PROTOCOL_CONFIGS, PHASE2_SEEDS
+from ide.experiments.attribution import (
+    EXP002_CLAIMS,
+    EXP003_CLAIMS,
+    PHASE2_PROTOCOL_CONFIGS_ORIGINAL,
+    PHASE2_SEEDS,
+    ablate,
+)
 from ide.experiments.phase2_calibration import (
     CALIBRATION_GRID,
     CALIBRATION_PARAMETER,
@@ -17,6 +24,7 @@ from ide.experiments.phase2_calibration import (
     MIN_VIABLE_SEEDS,
     CalibrationReport,
     ViabilityRun,
+    calibration_conditions,
     is_viable_value,
     main,
     run_calibration,
@@ -25,8 +33,18 @@ from ide.experiments.phase2_calibration import (
 SMALL = {"grid_width": 10, "grid_height": 10, "num_agents": 12}
 
 
-def run(protocol: str, seed: int, agents: int = 5, generation: int = 6) -> ViabilityRun:
-    return ViabilityRun(protocol, 10, seed, agents, generation)
+def run(
+    protocol: str, condition: str, seed: int, agents: int = 5, generation: int = 6
+) -> ViabilityRun:
+    return ViabilityRun(protocol, condition, 10, seed, agents, generation)
+
+
+CONDITIONS = [
+    ("002a", "evolved"), ("002a", "frozen_genome"), ("002a", "drift"), ("002a", "null_content"),
+    ("002b", "cultural"), ("002b", "tabula_rasa"), ("002b", "null_content"),
+    ("003a", "holonic"), ("003a", "individual"), ("003a", "null_content"),
+    ("003b", "with_view"), ("003b", "without_view"), ("003b", "null_content"),
+]  # fmt: skip
 
 
 def test_procedimiento_declarado() -> None:
@@ -37,10 +55,28 @@ def test_procedimiento_declarado() -> None:
     assert (MIN_VIABLE_SEEDS, MIN_GENERATION) == (8, 5)
 
 
+def test_condiciones_de_comparacion() -> None:
+    """Las condiciones de cada runner, derivadas de sus `ProtocolSpec`, más el control nulo."""
+    base = PHASE2_PROTOCOL_CONFIGS_ORIGINAL
+    found = calibration_conditions(base)
+    assert [(p, c) for p, c, _ in found] == CONDITIONS
+    configs = {(p, c): config for p, c, config in found}
+    assert configs[("002a", "evolved")] == base["002a"]
+    assert configs[("002a", "frozen_genome")] == ablate(base["002a"], ["R13"])
+    assert configs[("002a", "drift")] == ablate(base["002a"], ["R12"])
+    assert configs[("002b", "tabula_rasa")] == ablate(base["002b"], ["R14"])
+    assert configs[("003a", "individual")] == ablate(base["003a"], ["R15"])
+    assert configs[("003b", "without_view")] == ablate(base["003b"], ["R22"])
+    for protocol in base:
+        null = configs[(protocol, "null_content")]
+        assert null == dataclasses.replace(base[protocol], comm_content_null=True)
+
+
 def test_solo_registra_demografia() -> None:
     """La calibración no calcula ninguna métrica de las afirmaciones C5 a C8."""
     assert [f.name for f in dataclasses.fields(ViabilityRun)] == [
         "protocol",
+        "condition",
         "value",
         "seed",
         "final_agents",
@@ -53,16 +89,22 @@ def test_solo_registra_demografia() -> None:
     [(5, 6, True), (1, 5, True), (0, 9, False), (40, 4, False)],
 )
 def test_criterio_de_una_corrida(agents: int, generation: int, viable: bool) -> None:
-    assert run("002a", 0, agents, generation).viable is viable
+    assert run("002a", "evolved", 0, agents, generation).viable is viable
 
 
 def test_criterio_de_un_valor() -> None:
-    protocols = sorted(PHASE2_PROTOCOL_CONFIGS)
-    good = [run(p, s, agents=0 if s >= 8 else 5) for p in protocols for s in CALIBRATION_SEEDS]
-    assert is_viable_value(good)  # 8 de 10 en cada protocolo
-    bad = [r if r.protocol != "003b" or r.seed != 0 else run("003b", 0, agents=0) for r in good]
-    assert not is_viable_value(bad)  # 003-B queda con 7 de 10
-    assert not is_viable_value([r for r in good if r.protocol != "002a"])  # falta un protocolo
+    good = [
+        run(p, c, s, agents=0 if s >= 8 else 5) for p, c in CONDITIONS for s in CALIBRATION_SEEDS
+    ]
+    assert is_viable_value(good)  # 8 de 10 en cada condición de comparación
+    bad = [
+        run("002a", "drift", 0, agents=0)
+        if (r.protocol, r.condition, r.seed) == ("002a", "drift", 0)
+        else r
+        for r in good
+    ]
+    assert not is_viable_value(bad)  # la deriva queda con 7 de 10, aunque la base sea viable
+    assert not is_viable_value([r for r in good if r.condition != "without_view"])  # falta una
 
 
 FEW_SEEDS = (0, 1, 2)
@@ -70,9 +112,16 @@ FEW_SEEDS = (0, 1, 2)
 
 @pytest.fixture
 def small(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Configuraciones chicas y 3 semillas (2 viables bastan), sin tocar lo declarado."""
-    configs = {k: dataclasses.replace(c, **SMALL) for k, c in PHASE2_PROTOCOL_CONFIGS.items()}
-    monkeypatch.setattr(attribution, "PHASE2_PROTOCOL_CONFIGS", configs)
+    """Configuraciones chicas y 3 semillas (2 viables bastan), sin tocar lo declarado.
+
+    La calibración parte de las configuraciones originales; las vigentes quedan vacías para que
+    leerlas falle.
+    """
+    configs = {
+        k: dataclasses.replace(c, **SMALL) for k, c in PHASE2_PROTOCOL_CONFIGS_ORIGINAL.items()
+    }
+    monkeypatch.setattr(attribution, "PHASE2_PROTOCOL_CONFIGS_ORIGINAL", configs)
+    monkeypatch.setattr(attribution, "PHASE2_PROTOCOL_CONFIGS", {})
     monkeypatch.setattr(phase2_calibration, "CALIBRATION_SEEDS", FEW_SEEDS)
     monkeypatch.setattr(phase2_calibration, "MIN_VIABLE_SEEDS", 2)
 
@@ -91,14 +140,14 @@ def test_elige_el_menor_valor_viable_y_se_detiene(
     report = run_calibration(total_ticks=12)
     assert report.chosen == CALIBRATION_GRID[0]
     assert {r.value for r in report.runs} == {CALIBRATION_GRID[0]}
-    expected = [(p, s) for p in sorted(PHASE2_PROTOCOL_CONFIGS) for s in FEW_SEEDS]
-    assert [(r.protocol, r.seed) for r in report.runs] == expected
+    expected = [(p, c, s) for p, c in CONDITIONS for s in FEW_SEEDS]
+    assert [(r.protocol, r.condition, r.seed) for r in report.runs] == expected
 
 
 def test_corridas_identicas_se_ejecutan_una_vez(
     small: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """003-A y 003-B tienen la misma configuración: cada semilla corre una sola vez."""
+    """003-A y 003-B comparten base y control nulo: 11 configuraciones distintas por semilla."""
     monkeypatch.setattr(phase2_calibration, "MIN_GENERATION", 0)
     sizes: list[int] = []
     original = phase2_calibration.map_in_order
@@ -109,10 +158,10 @@ def test_corridas_identicas_se_ejecutan_una_vez(
 
     monkeypatch.setattr(phase2_calibration, "map_in_order", counting)
     report = run_calibration(total_ticks=12)
-    assert sizes == [3 * len(FEW_SEEDS)]
-    by_key = {(r.protocol, r.seed): r for r in report.runs}
+    assert sizes == [11 * len(FEW_SEEDS)]
+    by_key = {(r.protocol, r.condition, r.seed): r for r in report.runs}
     for seed in FEW_SEEDS:
-        a, b = by_key[("003a", seed)], by_key[("003b", seed)]
+        a, b = by_key[("003a", "holonic", seed)], by_key[("003b", "with_view", seed)]
         assert (a.final_agents, a.max_generation) == (b.final_agents, b.max_generation)
 
 
@@ -125,7 +174,7 @@ def test_cli(tmp_path: Path, small: None, capsys: pytest.CaptureFixture[str]) ->
     data = json.loads((tmp_path / "phase2_calibration.json").read_text())
     assert data["chosen"] is None
     assert data["parameter"] == CALIBRATION_PARAMETER
-    assert len(data["runs"]) == len(CALIBRATION_GRID) * 4 * len(FEW_SEEDS)
+    assert len(data["runs"]) == len(CALIBRATION_GRID) * len(CONDITIONS) * len(FEW_SEEDS)
     assert "ningún valor" in capsys.readouterr().out
 
 
@@ -133,3 +182,52 @@ def test_reporte_inmutable() -> None:
     report = CalibrationReport("resources_per_pattern", 12, None, ())
     with pytest.raises(dataclasses.FrozenInstanceError):
         report.chosen = 10  # type: ignore[misc]
+
+
+def test_cubre_las_variantes_de_e2_y_e4_de_cada_afirmacion() -> None:
+    """La aislada y el control nulo de cada afirmación de Fase II están en el criterio."""
+    base = PHASE2_PROTOCOL_CONFIGS_ORIGINAL
+    covered = {config for _, _, config in calibration_conditions(base)}
+    for claim in EXP002_CLAIMS + EXP003_CLAIMS:
+        variants = attribution._variants(claim, base[claim.protocol])  # pyright: ignore[reportPrivateUsage]
+        assert variants["isolated"] in covered, claim.claim_id
+        assert variants["null_content"] in covered, claim.claim_id
+
+
+def test_una_variante_inviable_hace_pasar_al_valor_siguiente(
+    small: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Escenario de la spec: base viable y deriva una semilla por debajo del mínimo."""
+    monkeypatch.setattr(phase2_calibration, "MIN_GENERATION", 0)
+    first_value = {
+        key: dataclasses.replace(config, resources_per_pattern=CALIBRATION_GRID[0])
+        for key, config in attribution.PHASE2_PROTOCOL_CONFIGS_ORIGINAL.items()
+    }
+    drift = next(
+        config
+        for protocol, name, config in calibration_conditions(first_value)
+        if (protocol, name) == ("002a", "drift")
+    )
+    # Con 3 semillas y un mínimo de 2, extinguir 2 deja a la deriva con 1: una de menos.
+    extinct = {dataclasses.replace(drift, seed=seed) for seed in FEW_SEEDS[:2]}
+    original = phase2_calibration._demography  # pyright: ignore[reportPrivateUsage]
+
+    def extinct_drift(task: tuple[SimulationConfig, int]) -> tuple[int, int]:
+        return (0, 0) if task[0] in extinct else original(task)
+
+    monkeypatch.setattr(phase2_calibration, "_demography", extinct_drift)
+    report = run_calibration(total_ticks=12)
+    assert report.chosen == CALIBRATION_GRID[1]
+    first = [r for r in report.runs if r.value == CALIBRATION_GRID[0]]
+    assert all(r.viable for r in first if r.condition == "evolved")
+    assert sum(r.viable for r in first if r.condition == "drift") == 1
+
+
+def test_exige_condiciones_para_cada_protocolo() -> None:
+    extra = {**PHASE2_PROTOCOL_CONFIGS_ORIGINAL, "004a": PHASE2_PROTOCOL_CONFIGS_ORIGINAL["002a"]}
+    with pytest.raises(ValueError, match="004a"):
+        calibration_conditions(extra)
+    with_r18 = dict(PHASE2_PROTOCOL_CONFIGS_ORIGINAL)
+    with_r18["003b"] = dataclasses.replace(with_r18["003b"], enable_downward_causation=True)
+    with pytest.raises(ValueError, match="R18"):
+        calibration_conditions(with_r18)

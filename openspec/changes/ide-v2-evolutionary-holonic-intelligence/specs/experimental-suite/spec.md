@@ -45,3 +45,17 @@
 #### Scenario: Cobertura colectiva con y sin la vista del holón en 003-B
 - **WHEN** se ejecuta `run_protocol_003b_orthogonalization` con `total_ticks=40` y `enable_downward_causation=False`
 - **THEN** el `OrthogonalizationReport` contiene `mean_acquired_coverage`, `mean_acquired_coverage_without_view`, `coverage_advantage` igual a su diferencia, las reducciones de redundancia descriptivas de ambas condiciones, `holon_ticks` y `holon_ticks_without_view`, y las medias son promedios por par (tick, holón elegible).
+
+### Requirement: Demografía por Condición
+Los reportes de 002 y 003 SHALL incluir `condition_demography`, con la población final y la generación máxima de cada condición en su orden.
+
+#### Scenario: Demografía de las condiciones de 002-A
+- **WHEN** se ejecuta `run_protocol_002a_adaptation` con `total_ticks=40`
+- **THEN** `condition_demography` lista `evolved`, `frozen_genome` y `drift`, cada una con la población final y la generación máxima de su corrida.
+
+### Requirement: Corrida de Referencia de los Runners de Fase II
+La CLI de `exp002_runner` y `exp003_runner` SHALL aceptar `--reference` para correr los protocolos, o su atribución con `--attribution`, sobre `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`, escribiendo archivos con el prefijo `expNNN_reference_`.
+
+#### Scenario: Referencia con las configuraciones originales
+- **WHEN** se ejecuta `exp002_runner --reference --seeds 7`
+- **THEN** escribe sólo `exp002_reference_seed7.json`, y la configuración de cada protocolo es la de `PHASE2_PROTOCOL_CONFIGS_ORIGINAL` con la semilla 7.

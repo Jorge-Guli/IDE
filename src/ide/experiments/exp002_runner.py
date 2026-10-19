@@ -14,7 +14,12 @@ from dataclasses import dataclass
 from ide.config import SimulationConfig
 from ide.experiments.attribution import EXP002_CLAIMS, ablate
 from ide.experiments.metrics import TickMetrics
-from ide.experiments.phase2_cli import ProtocolSpec, require_positive_ticks, run_protocol
+from ide.experiments.phase2_cli import (
+    ProtocolSpec,
+    condition_demography,
+    require_positive_ticks,
+    run_protocol,
+)
 from ide.experiments.phase2_cli import build_arg_parser as phase2_parser
 from ide.experiments.phase2_cli import main as phase2_main
 from ide.simulation.engine import SimulationEngine
@@ -37,6 +42,7 @@ class AdaptationReport:
     evolved_mean_energy: float
     total_births: int
     total_deaths: int
+    condition_demography: tuple[tuple[str, int, int], ...]  # (condición, población, generación)
 
 
 @dataclass(frozen=True)
@@ -51,6 +57,7 @@ class CulturalInheritanceReport:
     social_ratio_gain: float  # final_offspring_social_ratio - ..._tabula_rasa
     cultural_convergence_tick: int | None
     tabula_rasa_convergence_tick: int | None
+    condition_demography: tuple[tuple[str, int, int], ...]  # (condición, población, generación)
 
 
 @dataclass(frozen=True)
@@ -58,6 +65,7 @@ class EvolutionSummary:
     """Resumen de una condición evolutiva: lo que usan los reportes de 002-A y 002-B."""
 
     final_accuracy: float  # M2 acumulada del último tick (sólo recursos elementales)
+    final_agents: int  # población viva al final
     convergence_tick: int | None
     final_offspring_social_ratio: float  # M9 del último tick
     final_mean_memory_capacity: float  # media sobre los vivos al final (0.0 si no hay)
@@ -91,6 +99,7 @@ def run_evolution_condition(config: SimulationConfig, total_ticks: int) -> Evolu
     count = len(alive)
     return EvolutionSummary(
         final_accuracy=history[-1].cumulative_decision_accuracy,
+        final_agents=count,
         convergence_tick=convergence_tick(history),
         final_offspring_social_ratio=evolution[-1].offspring_social_ratio,
         final_mean_memory_capacity=(
@@ -135,6 +144,7 @@ def _assemble_002a(
         evolved_mean_energy=evolved.final_mean_energy,
         total_births=evolved.total_births,
         total_deaths=evolved.total_deaths,
+        condition_demography=condition_demography(runs),
     )
 
 
@@ -178,6 +188,7 @@ def _assemble_002b(
         - tabula.final_offspring_social_ratio,
         cultural_convergence_tick=cultural.convergence_tick,
         tabula_rasa_convergence_tick=tabula.convergence_tick,
+        condition_demography=condition_demography(runs),
     )
 
 

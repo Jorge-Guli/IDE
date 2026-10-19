@@ -14,7 +14,12 @@ from dataclasses import dataclass
 from ide.config import SimulationConfig
 from ide.experiments.attribution import EXP003_CLAIMS, ablate, require_r18_off
 from ide.experiments.metrics import holon_tick_mean, holon_ticks
-from ide.experiments.phase2_cli import ProtocolSpec, require_positive_ticks, run_protocol
+from ide.experiments.phase2_cli import (
+    ProtocolSpec,
+    condition_demography,
+    require_positive_ticks,
+    run_protocol,
+)
 from ide.experiments.phase2_cli import build_arg_parser as phase2_parser
 from ide.experiments.phase2_cli import main as phase2_main
 from ide.simulation.engine import SimulationEngine
@@ -32,6 +37,7 @@ class HolonicTransitionReport:
     holonic_surplus: float  # holonic_accuracy - individual_accuracy
     max_holon_level: int
     peak_holonic_coverage_gain: float
+    condition_demography: tuple[tuple[str, int, int], ...]  # (condición, población, generación)
 
 
 @dataclass(frozen=True)
@@ -47,6 +53,7 @@ class OrthogonalizationReport:
     holon_ticks_without_view: int  # lo mismo sin vista
     max_holon_level: int
     level_counts_peak: tuple[tuple[int, int], ...]  # pares (L, conteo) ordenados por L
+    condition_demography: tuple[tuple[str, int, int], ...]  # (condición, población, generación)
 
 
 @dataclass(frozen=True)
@@ -54,6 +61,8 @@ class HolonicSummary:
     """Resumen de una condición holónica: lo que usan los reportes de 003-A y 003-B."""
 
     final_accuracy: float  # M2 acumulada del último tick (sólo recursos elementales)
+    final_agents: int  # población viva al final
+    max_generation: int  # máximo de la corrida
     composite_completions: int  # M12 acumulada al final
     max_holon_level: int  # máximo de la corrida
     peak_holonic_coverage_gain: float  # máximo de M11 en la corrida
@@ -75,6 +84,8 @@ def run_holonic_condition(config: SimulationConfig, total_ticks: int) -> Holonic
             peak[level] = max(peak.get(level, 0), count)
     return HolonicSummary(
         final_accuracy=history[-1].cumulative_decision_accuracy,
+        final_agents=len(engine.agents),
+        max_generation=max(m.max_generation for m in evolution),
         composite_completions=evolution[-1].composite_completions,
         max_holon_level=max(m.max_holon_level for m in evolution),
         peak_holonic_coverage_gain=max(m.holonic_coverage_gain for m in evolution),
@@ -109,6 +120,7 @@ def _assemble_003a(
         holonic_surplus=holonic.final_accuracy - individual.final_accuracy,
         max_holon_level=holonic.max_holon_level,
         peak_holonic_coverage_gain=holonic.peak_holonic_coverage_gain,
+        condition_demography=condition_demography(runs),
     )
 
 
@@ -159,6 +171,7 @@ def _assemble_003b(
         holon_ticks_without_view=blind.holon_ticks,
         max_holon_level=view.max_holon_level,
         level_counts_peak=view.level_counts_peak,
+        condition_demography=condition_demography(runs),
     )
 
 

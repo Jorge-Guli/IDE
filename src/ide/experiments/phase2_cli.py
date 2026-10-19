@@ -37,6 +37,11 @@ class ProtocolSpec:
     validate: Callable[[SimulationConfig], None] = lambda _: None  # ValueError si no admite config
 
 
+def condition_demography(runs: Mapping[str, Any]) -> tuple[tuple[str, int, int], ...]:
+    """(condición, población final, generación máxima) de cada condición, en su orden."""
+    return tuple((name, s.final_agents, s.max_generation) for name, s in runs.items())
+
+
 def require_positive_ticks(total_ticks: int) -> None:
     if total_ticks < 1:
         raise ValueError(f"total_ticks debe ser >= 1, recibido {total_ticks}")
@@ -83,6 +88,11 @@ def build_arg_parser(description: str) -> argparse.ArgumentParser:
         action="store_true",
         help="ejecuta sólo la atribución de las afirmaciones, con el perfil pre-registrado",
     )
+    parser.add_argument(
+        "--reference",
+        action="store_true",
+        help="usa PHASE2_PROTOCOL_CONFIGS_ORIGINAL (referencia de la Enmienda 1 de D29)",
+    )
     return parser
 
 
@@ -121,14 +131,19 @@ def main(
         validate_seeds(seeds)
     except ValueError as error:
         parser.error(f"--seeds: {error}")
+    # Con --reference, las configuraciones previas a la Enmienda 1 y archivos con otro nombre.
+    configs = (
+        attribution.PHASE2_PROTOCOL_CONFIGS_ORIGINAL
+        if args.reference
+        else attribution.PHASE2_PROTOCOL_CONFIGS
+    )
+    prefix = f"{name}_reference" if args.reference else name
     bases = {
-        (seed, spec.key): replace(attribution.PHASE2_PROTOCOL_CONFIGS[spec.key], seed=seed)
-        for seed in seeds
-        for spec in specs
+        (seed, spec.key): replace(configs[spec.key], seed=seed) for seed in seeds for spec in specs
     }
     try:  # antes de crear --out, también con --attribution: p. ej., R18 encendida en 003-B
         for spec in specs:
-            spec.validate(attribution.PHASE2_PROTOCOL_CONFIGS[spec.key])
+            spec.validate(configs[spec.key])
     except ValueError as error:
         parser.error(f"configuración inválida: {error}")
     conditions = {
@@ -141,7 +156,7 @@ def main(
     except OSError as error:
         parser.error(f"--out no es un directorio utilizable ({out}): {error}")
     if args.attribution:  # ignora --profile: usa siempre el perfil pre-registrado
-        return _main_attribution(name, claims, seeds, out, jobs)
+        return _main_attribution(prefix, claims, seeds, out, jobs, configs)
 
     total_ticks = PROFILES[profile_name].total_ticks
     tasks: dict[_Task, None] = {}  # conjunto ordenado: una condición idéntica corre una vez
@@ -168,18 +183,23 @@ def main(
                 "report": report_to_dict(report),
             }
             lines.append(spec.headline(report))
-        write_json(out / f"{name}_seed{seed}.json", data)
+        write_json(out / f"{prefix}_seed{seed}.json", data)
         print(f"semilla {seed}: " + " | ".join(lines))
     if len(seeds) > 1:
         aggregate: dict[str, Any] = {"seeds": seeds, "profile": profile_name}
         for key, reports in per_protocol.items():
             aggregate[f"protocol_{key}"] = _aggregate(reports)
-        write_json(out / f"{name}_aggregate.json", aggregate)
+        write_json(out / f"{prefix}_aggregate.json", aggregate)
     return 0
 
 
 def _main_attribution(
-    name: str, claims: Sequence[EmergenceClaim], seeds: list[int], out: Path, jobs: int
+    name: str,
+    claims: Sequence[EmergenceClaim],
+    seeds: list[int],
+    out: Path,
+    jobs: int,
+    configs: Mapping[str, SimulationConfig],
 ) -> int:
     """Atribución de las afirmaciones del experimento: JSON y tabla de estados en consola."""
     profile = attribution.PHASE2_ATTRIBUTION_PROFILE
@@ -189,8 +209,11 @@ def _main_attribution(
             f"Aviso: con menos de {MIN_SEEDS} semillas la prueba de signo no tiene potencia; "
             "todos los estados serán INSUFFICIENT_EVIDENCE."
         )
-    report = run_phase2_attribution(seeds, claims, jobs)
-    write_json(out / f"{name}_attribution.json", report_to_dict(report))
+    report = run_phase2_attribution(seeds, claims, jobs, configs)
+    data = report_to_dict(report)
+    # Las configuraciones base van en el archivo: distingue la referencia por su contenido.
+    data["configs"] = {key: configs[key].to_dict() for key in sorted(configs)}
+    write_json(out / f"{name}_attribution.json", data)
 
     def fmt(p: float | None) -> str:
         return "—" if p is None else f"{p:.5f}"
@@ -201,7 +224,7 @@ def _main_attribution(
         unmeasured = sorted(
             {
                 s
-                for variant in ("isolated", "null_content")
+                for variant in ("isolated", attribution.NULL_CONTENT)
                 for s in e.unmeasured_seeds.get(variant, ())
             }
         )

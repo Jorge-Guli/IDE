@@ -24,6 +24,7 @@ from ide.experiments.attribution import (
     PHASE2_DESIGN_RULES,
     PHASE2_INACTIVE_RULES,
     PHASE2_PROTOCOL_CONFIGS,
+    PHASE2_PROTOCOL_CONFIGS_ORIGINAL,
     PHASE2_SEEDS,
     ClaimEvaluation,
     ClaimStatus,
@@ -787,3 +788,51 @@ def test_c8_exige_r18_apagada(small_phase2: str) -> None:
 def test_tipo_de_corrida_desconocido() -> None:
     with pytest.raises(ValueError, match="tipo de corrida desconocido"):
         attribution._run("foo", SMALL, PROFILES["quick"])  # pyright: ignore[reportPrivateUsage]
+
+
+def test_configuraciones_originales_conservadas() -> None:
+    """Enmienda 1 de D29: las configuraciones previas a la calibración se corren como referencia."""
+    holonic = SimulationConfig(
+        enable_evolution=True,
+        enable_holonic_hierarchy=True,
+        enable_holon_reproduction=True,
+        num_composite_patterns=3,
+        composite_order=4,
+    )
+    assert {
+        "002a": SimulationConfig(enable_evolution=True),
+        "002b": SimulationConfig(enable_evolution=True, enable_cultural_inheritance=True),
+        "003a": holonic,
+        "003b": holonic,
+    } == PHASE2_PROTOCOL_CONFIGS_ORIGINAL
+    assert all(c.resources_per_pattern == 8 for c in PHASE2_PROTOCOL_CONFIGS_ORIGINAL.values())
+
+
+def test_demografia_por_variante(small_phase2: str) -> None:
+    """Registro de la Enmienda 1: población final y generación máxima por variante y semilla."""
+    from ide.experiments.exp002_runner import run_evolution_condition
+
+    report = run_phase2_attribution(seeds=(3, 4), claims=(C6,))
+    evaluation = report.evaluations[0]
+    assert list(evaluation.demography) == list(evaluation.values)
+    ticks = PROFILES[small_phase2].total_ticks
+    drift = ablate(
+        dataclasses.replace(attribution.PHASE2_PROTOCOL_CONFIGS["002a"], seed=4), ["R12"]
+    )
+    summary = run_evolution_condition(drift, ticks)
+    assert evaluation.demography["isolated"][1] == (summary.final_agents, summary.max_generation)
+    assert all(len(per_seed) == 2 for per_seed in evaluation.demography.values())
+
+
+def test_fase_i_sin_demografia() -> None:
+    assert evaluate(UP, by_construction=True).demography == {}
+
+
+def test_atribucion_sobre_configuraciones_de_referencia(small_phase2: str) -> None:
+    reference = {
+        k: dataclasses.replace(c, resources_per_pattern=3)
+        for k, c in attribution.PHASE2_PROTOCOL_CONFIGS.items()
+    }
+    report = run_phase2_attribution(seeds=(3,), claims=(C6,), configs=reference)
+    config = dataclasses.replace(reference["002a"], seed=3)
+    assert report.evaluations[0].values["full"][0] == measure_claim(C6, config, small_phase2)

@@ -9,15 +9,20 @@ recursos con un criterio puramente demográfico: nunca calcula ni mira las métr
   evaluación se detiene ahí; si ninguno lo es, no se elige nada y se consulta.
 - Semillas de calibración 0 a 9, distintas de las de medición (`PHASE2_SEEDS`, 42 a 51).
 - Una corrida es viable si al final del perfil `phase2` (2000 ticks) la población sigue viva y
-  llegó al menos a la generación 5. Un valor es viable si en cada protocolo de
-  `PHASE2_PROTOCOL_CONFIGS` al menos 8 de las 10 semillas son viables.
+  llegó al menos a la generación 5. Un valor es viable si al menos 8 de las 10 semillas son
+  viables en cada condición de comparación (`calibration_conditions`): las de cada runner, tal
+  como las declaran sus `ProtocolSpec`, y el control nulo de cada protocolo (E4). Exigirlo sólo a
+  la base la dejaría en el borde de la supervivencia, y una variante más débil podría perder por
+  pura demografía.
+- Parte de `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`, así que es reproducible después de incorporar el
+  valor elegido a `PHASE2_PROTOCOL_CONFIGS`.
 
 Uso: `python -m ide.experiments.phase2_calibration [--jobs N] [--out results/] [--ticks T]`.
 """
 
 import argparse
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -30,6 +35,8 @@ from ide.experiments.exp001_runner import (
     report_to_dict,
     write_json,
 )
+from ide.experiments.exp002_runner import SPEC_002A, SPEC_002B
+from ide.experiments.exp003_runner import SPEC_003A, SPEC_003B
 from ide.simulation.engine import SimulationEngine
 
 CALIBRATION_PARAMETER = "resources_per_pattern"
@@ -39,11 +46,31 @@ MIN_VIABLE_SEEDS = 8
 MIN_GENERATION = 5
 
 
+def calibration_conditions(
+    configs: Mapping[str, SimulationConfig],
+) -> list[tuple[str, str, SimulationConfig]]:
+    """(protocolo, condición, configuración): las de cada runner y su control nulo, en orden.
+
+    Exige un `ProtocolSpec` por protocolo de `configs` y valida cada base como el runner.
+    """
+    specs = (SPEC_002A, SPEC_002B, SPEC_003A, SPEC_003B)
+    if sorted(spec.key for spec in specs) != sorted(configs):
+        raise ValueError(f"protocolos sin condiciones de calibración: {sorted(configs)}")
+    found: list[tuple[str, str, SimulationConfig]] = []
+    for spec in specs:
+        base = configs[spec.key]
+        spec.validate(base)
+        found += [(spec.key, name, config) for name, config in spec.conditions(base).items()]
+        found.append((spec.key, attribution.NULL_CONTENT, attribution.null_content_variant(base)))
+    return found
+
+
 @dataclass(frozen=True)
 class ViabilityRun:
     """Sólo demografía: población final y generación máxima de la corrida."""
 
     protocol: str
+    condition: str  # nombre de la condición del runner, o `NULL_CONTENT`
     value: int
     seed: int
     final_agents: int
@@ -62,11 +89,16 @@ class CalibrationReport:
     runs: tuple[ViabilityRun, ...]
 
 
+def _labels() -> list[tuple[str, str]]:
+    configs = attribution.PHASE2_PROTOCOL_CONFIGS_ORIGINAL
+    return [(protocol, name) for protocol, name, _ in calibration_conditions(configs)]
+
+
 def is_viable_value(runs: Sequence[ViabilityRun]) -> bool:
-    """En cada protocolo, al menos `MIN_VIABLE_SEEDS` semillas viables."""
+    """En cada condición de comparación, al menos `MIN_VIABLE_SEEDS` semillas viables."""
     return all(
-        sum(r.viable for r in runs if r.protocol == protocol) >= MIN_VIABLE_SEEDS
-        for protocol in sorted(attribution.PHASE2_PROTOCOL_CONFIGS)
+        sum(r.viable for r in runs if (r.protocol, r.condition) == key) >= MIN_VIABLE_SEEDS
+        for key in _labels()
     )
 
 
@@ -81,24 +113,24 @@ def run_calibration(total_ticks: int | None = None, jobs: int = 1) -> Calibratio
     """Evalúa la grilla en orden ascendente y se detiene en el primer valor viable."""
     ticks = PROFILES[attribution.PHASE2_ATTRIBUTION_PROFILE].total_ticks
     ticks = ticks if total_ticks is None else total_ticks
-    protocols = sorted(attribution.PHASE2_PROTOCOL_CONFIGS)
     runs: list[ViabilityRun] = []
     for value in CALIBRATION_GRID:
+        # Parte de las configuraciones originales: reproducible tras incorporar el valor.
+        bases = {
+            key: replace(config, **{CALIBRATION_PARAMETER: value})
+            for key, config in attribution.PHASE2_PROTOCOL_CONFIGS_ORIGINAL.items()
+        }
         planned = {
-            (protocol, seed): replace(
-                attribution.PHASE2_PROTOCOL_CONFIGS[protocol],
-                seed=seed,
-                **{CALIBRATION_PARAMETER: value},
-            )
-            for protocol in protocols
+            (protocol, label, seed): replace(config, seed=seed)
+            for protocol, label, config in calibration_conditions(bases)
             for seed in CALIBRATION_SEEDS
         }
-        # Configuraciones idénticas (003-A y 003-B) corren una sola vez.
+        # Configuraciones idénticas (p. ej., las bases de 003-A y 003-B) corren una sola vez.
         tasks = list(dict.fromkeys((config, ticks) for config in planned.values()))
         results = dict(zip(tasks, map_in_order(_demography, tasks, jobs), strict=True))
         batch = [
-            ViabilityRun(protocol, value, seed, *results[(config, ticks)])
-            for (protocol, seed), config in planned.items()
+            ViabilityRun(protocol, label, value, seed, *results[(config, ticks)])
+            for (protocol, label, seed), config in planned.items()
         ]
         runs += batch
         if is_viable_value(batch):
@@ -120,12 +152,18 @@ def main(argv: list[str] | None = None) -> int:
     report = run_calibration(args.ticks, args.jobs)
     write_json(out / "phase2_calibration.json", report_to_dict(report))
     for value in sorted({r.value for r in report.runs}):
-        for protocol in sorted({r.protocol for r in report.runs}):
-            batch = [r for r in report.runs if r.value == value and r.protocol == protocol]
+        for protocol, label in _labels():
+            batch = [
+                r
+                for r in report.runs
+                if (r.value, r.protocol, r.condition) == (value, protocol, label)
+            ]
+            if not batch:
+                continue
             generations = " ".join(str(r.max_generation) for r in batch)
             alive = sum(r.final_agents > 0 for r in batch)
             print(
-                f"{CALIBRATION_PARAMETER}={value} {protocol}: viables "
+                f"{CALIBRATION_PARAMETER}={value} {protocol} {label}: viables "
                 f"{sum(r.viable for r in batch)}/{len(batch)}, vivas {alive}/{len(batch)}, "
                 f"generación máxima por semilla: {generations}"
             )

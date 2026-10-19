@@ -67,6 +67,10 @@ class ClaimEvaluation:
     rule_effects: dict[str, float | None]  # regla -> media de d(full, sin ella); None sin medición
     # variante -> semillas en que ella o `full` no tienen valor (sólo C8 puede no tenerlo)
     unmeasured_seeds: dict[str, tuple[int, ...]] = field(default_factory=dict[str, tuple[int, ...]])
+    # variante -> (población final, generación máxima) por semilla; Enmienda 1 de D29, sólo Fase II
+    demography: dict[str, tuple[tuple[int, int], ...]] = field(
+        default_factory=dict[str, tuple[tuple[int, int], ...]]
+    )
 
 
 @dataclass(frozen=True)
@@ -302,13 +306,16 @@ _HOLONIC_PROTOCOL = SimulationConfig(
     composite_order=4,  # > memory_capacity = 3
 )
 
-PHASE2_PROTOCOL_CONFIGS: dict[str, SimulationConfig] = {
+# Configuraciones previas a la Enmienda 1 de D29: se corren como referencia.
+PHASE2_PROTOCOL_CONFIGS_ORIGINAL: dict[str, SimulationConfig] = {
     "002a": SimulationConfig(enable_evolution=True),
     "002b": SimulationConfig(enable_evolution=True, enable_cultural_inheritance=True),
     "003a": _HOLONIC_PROTOCOL,
     # R18 apagada es parte de la condición base de C8.
     "003b": replace(_HOLONIC_PROTOCOL, enable_downward_causation=False),
 }
+
+PHASE2_PROTOCOL_CONFIGS: dict[str, SimulationConfig] = dict(PHASE2_PROTOCOL_CONFIGS_ORIGINAL)
 
 _ALL_RULES_BY_ID = {rule.rule_id: rule for rule in ALL_DESIGN_RULES}
 
@@ -340,6 +347,7 @@ def disables_communication(config: SimulationConfig) -> bool:
 
 MIN_SEEDS = 5
 _WITHOUT = "without:"
+NULL_CONTENT = "null_content"  # nombre de la variante de E4
 
 # Métrica de cada afirmación de Fase II como campo del resumen de la condición base (D29).
 _PHASE2_METRIC_FIELDS = {
@@ -481,7 +489,7 @@ def classify(
     se lista en `unmeasured_seeds` (por su semilla, o por su posición si no se pasan `seeds`).
     La evidencia es insuficiente si menos de `MIN_SEEDS` semillas tienen medición en E2.
     """
-    required = ["full", "isolated", "null_content"]
+    required = ["full", "isolated", NULL_CONTENT]
     tests_e3 = bool(claim.purpose_rules) and not by_construction
     if tests_e3:
         required.append("purpose_ablated")
@@ -505,7 +513,7 @@ def classify(
     }
     p_iso = _p(claim, values, "full", "isolated")
     p_purpose = _p(claim, values, "purpose_ablated", "isolated") if tests_e3 else None
-    p_null = _p(claim, values, "full", "null_content")
+    p_null = _p(claim, values, "full", NULL_CONTENT)
     async_needed = ["async:full", "async:isolated"] + (
         ["async:purpose_ablated"] if tests_e3 else []
     )
@@ -568,6 +576,11 @@ def is_by_construction(claim: EmergenceClaim, config: SimulationConfig) -> bool:
     return bool(claim.purpose_rules) and disables_communication(ablate(config, claim.purpose_rules))
 
 
+def null_content_variant(config: SimulationConfig) -> SimulationConfig:
+    """Control nulo (E4): mismas reglas, contenido de cada creencia entregada reemplazado."""
+    return replace(config, comm_content_null=True)
+
+
 def _variants(claim: EmergenceClaim, config: SimulationConfig) -> dict[str, SimulationConfig]:
     """Variantes de una semilla, en orden fijo.
 
@@ -585,7 +598,7 @@ def _variants(claim: EmergenceClaim, config: SimulationConfig) -> dict[str, Simu
     variants = {"full": config, "isolated": isolated}
     if claim.purpose_rules and not is_by_construction(claim, config):
         variants["purpose_ablated"] = ablate(config, claim.purpose_rules)
-    variants["null_content"] = replace(config, comm_content_null=True)
+    variants[NULL_CONTENT] = null_content_variant(config)
     for rule in rules:
         if rule.ablation:
             variants[_WITHOUT + rule.rule_id] = ablate(config, [rule.rule_id])
@@ -629,11 +642,17 @@ def _attribute(
 
     evaluations: list[ClaimEvaluation] = []
     for claim, kind, by_construction, per_variant in plans:
-        values: dict[str, Sequence[float | None]] = {
-            name: [_metric(results[(kind, c, profile)], claim) for c in cfgs]
-            for name, cfgs in per_variant.items()
-        }
-        evaluations.append(classify(claim, values, by_construction, seeds=seeds))
+        values: dict[str, Sequence[float | None]] = {}
+        demography: dict[str, tuple[tuple[int, int], ...]] = {}
+        for name, cfgs in per_variant.items():
+            outcomes = [results[(kind, c, profile)] for c in cfgs]
+            values[name] = [_metric(outcome, claim) for outcome in outcomes]
+            if is_phase2_claim(claim):
+                demography[name] = tuple((o.final_agents, o.max_generation) for o in outcomes)
+        evaluation = classify(claim, values, by_construction, seeds=seeds)
+        if demography:
+            evaluation = replace(evaluation, demography=demography)
+        evaluations.append(evaluation)
     return evaluations
 
 
@@ -656,10 +675,12 @@ def run_phase2_attribution(
     seeds: Sequence[int] = PHASE2_SEEDS,
     claims: Sequence[EmergenceClaim] = EXP002_CLAIMS + EXP003_CLAIMS,
     jobs: int = 1,
+    configs: Mapping[str, SimulationConfig] | None = None,
 ) -> AttributionReport:
     """Pre-registro de Fase II: cada afirmación sobre la configuración congelada de su protocolo.
 
-    Usa `PHASE2_PROTOCOL_CONFIGS[claim.protocol]` como población completa y el perfil
+    Usa `configs[claim.protocol]` (por defecto `PHASE2_PROTOCOL_CONFIGS`; la referencia de la
+    Enmienda 1 pasa `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`) como población completa y el perfil
     `PHASE2_ATTRIBUTION_PROFILE`; el reporte lleva `ALL_DESIGN_RULES` (D29).
     """
     validate_seeds(seeds)
@@ -670,6 +691,6 @@ def run_phase2_attribution(
     if unchanneled:
         raise ValueError(f"afirmaciones de Fase II sin canal declarado: {unchanneled}")
     profile = PHASE2_ATTRIBUTION_PROFILE
-    configs = PHASE2_PROTOCOL_CONFIGS
-    evaluations = _attribute(claims, seeds, lambda c: configs[c.protocol], profile, jobs)
+    chosen = PHASE2_PROTOCOL_CONFIGS if configs is None else configs
+    evaluations = _attribute(claims, seeds, lambda c: chosen[c.protocol], profile, jobs)
     return AttributionReport(profile, ALL_DESIGN_RULES, tuple(evaluations))
