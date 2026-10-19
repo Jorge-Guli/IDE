@@ -25,4 +25,4 @@
 
 #### Scenario: Validación de hiperparámetros evolutivos y compuestos fuera de rango
 - **WHEN** se instancia `SimulationConfig(initial_energy=0.0)` o `SimulationConfig(offspring_energy_share=1.0)` o `SimulationConfig(inheritance_discount=1.5)` o `SimulationConfig(redundancy_penalty=0.0)` o `SimulationConfig(reproduction_mode="random")` o `SimulationConfig(num_world_patterns=6, num_composite_patterns=1, composite_order=4)` o `SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.05)`
-- **THEN** se lanza `ValueError` cuyo mensaje nombra el campo inválido (incluyendo `composite_order <= num_world_patterns // 2` cuando `num_composite_patterns > 0`, y `stigmergy_deposit_rate` cuando `enable_stigmergy=True` y `stigmergy_deposit_rate * initial_direct_confidence - stigmergy_decay < min_confidence` con tasa positiva).
+- **THEN** se lanza `ValueError` cuyo mensaje nombra el campo inválido (incluyendo `composite_order <= num_world_patterns // 2` cuando `num_composite_patterns > 0`, y `stigmergy_deposit_rate` cuando `enable_stigmergy=True` y `stigmergy_deposit_rate * initial_direct_confidence < min_confidence` con tasa positiva).

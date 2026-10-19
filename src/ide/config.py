@@ -225,17 +225,13 @@ class SimulationConfig:
         if (
             self.enable_stigmergy
             and self.stigmergy_deposit_rate > 0
-            # Mismas operaciones que el depósito y el decaimiento del entorno: igual redondeo.
-            and self.stigmergy_deposit_rate * self.initial_direct_confidence - self.stigmergy_decay
-            < self.min_confidence
+            and self.stigmergy_deposit_rate * self.initial_direct_confidence < self.min_confidence
         ):
-            # Ni el rastro de una creencia directa nueva resistiría un decaimiento: nadie lo
-            # leería y la estigmergia casi sólo borraría rastros (D20 y D27). Es una cota de
-            # cordura, no una garantía para todo depósito.
+            # Ni una creencia directa nueva dejaría un rastro: la estigmergia casi sólo borraría
+            # rastros (D20 y D27). Es una cota de cordura, no una garantía para todo depósito.
             raise ValueError(
                 f"stigmergy_deposit_rate ({self.stigmergy_deposit_rate}) por "
-                f"initial_direct_confidence ({self.initial_direct_confidence}) menos "
-                f"stigmergy_decay ({self.stigmergy_decay}) debe ser >= "
+                f"initial_direct_confidence ({self.initial_direct_confidence}) debe ser >= "
                 f"min_confidence ({self.min_confidence}) con enable_stigmergy"
             )
         if self.num_composite_patterns > 0 and self.composite_order > self.num_world_patterns // 2:
