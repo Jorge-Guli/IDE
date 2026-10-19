@@ -93,6 +93,8 @@
   - `openspec validate --all --strict`;
   - actualizar `.github/workflows/ci.yml` si cambian los pasos de verificación.
 
+- [ ] 6.4 Calibración de viabilidad (Enmienda 1 de design D29): declarar y testear el procedimiento en `src/ide/experiments/phase2_calibration.py` **antes** de ejecutarlo; correrlo, registrar su salida en `RESULTADOS.md` e incorporar el valor elegido a `PHASE2_PROTOCOL_CONFIGS`, sin mirar las métricas de las afirmaciones. Si ningún valor es viable, consultar.
+
 ## 7. Corridas y registro
 
 - [ ] 7.1 Correr los protocolos 002 y 003 con el perfil pre-registrado y registrar los resultados, incluidos los negativos, en `RESULTADOS.md`, sin tocar el pre-registro.
