@@ -842,3 +842,12 @@ def test_retirar_un_compuesto_descarta_su_reposicion() -> None:
         grid.step_dynamics(tick)
     assert count_pattern(grid, comp_pat(0)) == 0
     assert count_pattern(grid, comp_pat(1)) == 4
+
+
+def test_nacimiento_fallido_por_radio_de_comunicacion_no_consume_el_rng() -> None:
+    grid = make_grid()
+    rng, ref = evo_rng(), evo_rng()
+    with pytest.raises(ValueError, match="comm_radius"):
+        grid.spawn_agent_near(80, 1, rng, comm_radius=-1)
+    assert rng.bit_generator.state == ref.bit_generator.state
+    assert 80 not in grid.get_active_agent_ids()
