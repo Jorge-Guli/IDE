@@ -455,6 +455,8 @@ def test_config_rechaza_nan_en_hiperparametros_de_fase_ii(campo: str) -> None:
         {"stigmergy_deposit_rate": 0.05},  # 0.05 * 0.85 < 0.05: sólo sobreviviría con c = 1
         {"stigmergy_deposit_rate": 0.3, "min_confidence": 0.3},
         {"stigmergy_deposit_rate": 0.5, "initial_direct_confidence": 0.09},
+        # 0.06 * 0.85 = 0.051 >= 0.05, pero tras un decaimiento (0.02) queda en 0.031
+        {"stigmergy_deposit_rate": 0.06},
     ],
 )
 def test_config_rechaza_estigmergia_que_solo_borraria_rastros(overrides: dict[str, float]) -> None:
@@ -463,9 +465,13 @@ def test_config_rechaza_estigmergia_que_solo_borraria_rastros(overrides: dict[st
 
 
 def test_config_acepta_tasas_de_estigmergia_coherentes() -> None:
-    # borde exacto: 0.1 * 0.5 == 0.05
+    # borde exacto, con valores binarios para que no haya redondeo: 0.25 * 0.5 - 0.0625 == 0.0625
     SimulationConfig(
-        enable_stigmergy=True, stigmergy_deposit_rate=0.1, initial_direct_confidence=0.5
+        enable_stigmergy=True,
+        stigmergy_deposit_rate=0.25,
+        initial_direct_confidence=0.5,
+        stigmergy_decay=0.0625,
+        min_confidence=0.0625,
     )
     SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.0)  # nunca deposita
     SimulationConfig(enable_stigmergy=False, stigmergy_deposit_rate=0.04)  # apagada: no aplica
@@ -476,28 +482,33 @@ def test_config_acepta_tasas_de_estigmergia_coherentes() -> None:
     rate=st.floats(0.0, 1.0),
     first=st.floats(0.0, 1.0),
     minimum=st.floats(0.0, 0.3),
+    decay=st.floats(0.0, 0.2),
     enabled=st.booleans(),
 )
-def test_config_de_estigmergia_aceptada_deja_el_rastro_de_una_creencia_directa_nueva(
-    rate: float, first: float, minimum: float, enabled: bool
+def test_config_de_estigmergia_aceptada_deja_un_rastro_que_resiste_un_decaimiento(
+    rate: float, first: float, minimum: float, decay: float, enabled: bool
 ) -> None:
-    """Se rechaza sii, con la estigmergia activa y tasa positiva, el entorno real no guarda el
-    rastro de una creencia directa nueva (confianza `initial_direct_confidence`)."""
+    """Se rechaza sii, con la estigmergia activa y tasa positiva, el rastro de una creencia
+    directa nueva (confianza `initial_direct_confidence`) no sigue en el entorno real tras un
+    decaimiento, es decir, cuando otro agente podría leerlo."""
     probe = SimulationConfig(
         grid_width=10,
         grid_height=10,
         num_agents=1,
         min_confidence=minimum,
         stigmergy_deposit_rate=rate,
+        stigmergy_decay=decay,
     )
     grid = ToroidalGrid2D(probe, np.random.Generator(np.random.PCG64(0)))
     grid.deposit_stigmergy(0, pat("p_0"), 1.0, first, 0)
+    grid.step_dynamics(1)
     stored = grid.get_active_stigmergy_cells() == 1
     kwargs = {
         "enable_stigmergy": enabled,
         "stigmergy_deposit_rate": rate,
         "initial_direct_confidence": first,
         "min_confidence": minimum,
+        "stigmergy_decay": decay,
     }
     if enabled and rate > 0 and not stored:
         with pytest.raises(ValueError, match="stigmergy_deposit_rate"):
