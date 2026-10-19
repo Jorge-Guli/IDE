@@ -4,21 +4,28 @@ import dataclasses
 import json
 from dataclasses import FrozenInstanceError, fields
 
+import numpy as np
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from ide.config import SimulationConfig
-from ide.domain.ports import EnvironmentPort
+from ide.domain.ports import EnvironmentPort, EvolutionaryEnvironmentPort
 from ide.domain.types import (
     ActionResult,
     AgentAction,
+    AgentGenome,
+    HolonSnapshot,
     KnowledgeUnit,
     Message,
     MessageType,
     Observation,
     Pattern,
     Resource,
+    StigmergicTrace,
     VisibleResource,
 )
+from ide.environments.grid2d import ToroidalGrid2D
 
 
 def pat(name: str) -> Pattern:
@@ -147,7 +154,12 @@ def test_capacidad_igual_a_patrones_es_invalida() -> None:
 
 
 def test_capacidad_igual_a_patrones_se_permite_sin_restriccion() -> None:
-    cfg = SimulationConfig(num_world_patterns=8, memory_capacity=8, enforce_memory_constraint=False)
+    cfg = SimulationConfig(
+        num_world_patterns=8,
+        memory_capacity=8,
+        max_genome_memory_capacity=8,  # D20: la cota del genoma no puede quedar bajo la capacidad
+        enforce_memory_constraint=False,
+    )
     assert cfg.memory_capacity == 8
 
 
@@ -280,3 +292,215 @@ def test_to_dict_ida_y_vuelta_por_json() -> None:
 def test_consulta_con_creencia_es_invalida() -> None:
     with pytest.raises(ValueError, match="QUERY_PATTERN"):
         Message(MessageType.QUERY_PATTERN, 1, 2, pat("p_0"), belief=unit(pat("p_0")))
+
+
+# --- Fase II: tipos inmutables, sub-puerto y configuración -------------------------------------
+
+
+@pytest.mark.parametrize("cls", [AgentGenome, StigmergicTrace, HolonSnapshot])
+def test_tipos_de_fase_ii_son_frozen(cls: type) -> None:
+    assert cls.__dataclass_params__.frozen  # type: ignore[attr-defined]
+
+
+def test_agent_genome_por_defecto_coincide_con_la_configuracion() -> None:
+    genome, config = AgentGenome(), SimulationConfig()
+    assert genome.alpha_learning == config.alpha_learning
+    assert genome.gamma_social_discount == config.gamma_social_discount
+    assert genome.epsilon_explore == config.epsilon_explore
+    assert genome.bond_affinity == config.initial_bond_affinity
+    assert genome.memory_capacity == config.memory_capacity
+    assert genome.perception_radius == config.perception_radius
+    assert genome.comm_radius == config.comm_radius
+    with pytest.raises(FrozenInstanceError):
+        genome.alpha_learning = 0.1  # type: ignore[misc]
+
+
+def test_campos_de_los_tipos_de_fase_ii() -> None:
+    assert [f.name for f in fields(StigmergicTrace)] == [
+        "pattern",
+        "sign_value",
+        "intensity",
+        "last_updated_tick",
+    ]
+    assert [f.name for f in fields(HolonSnapshot)] == [
+        "node_id",
+        "holon_level",
+        "child_node_ids",
+        "leaf_agent_ids",
+        "effective_capacity",
+        "collective_known_patterns",
+    ]
+
+
+def test_visible_resource_conserva_sus_campos_de_fase_i() -> None:
+    assert {f.name for f in fields(VisibleResource)} == {
+        "resource_id",
+        "pattern",
+        "recommended_move",
+        "distance",
+        "is_reachable_now",
+    }
+
+
+def test_environment_port_conserva_sus_diez_metodos() -> None:
+    declarados = {n for n in vars(EnvironmentPort) if not n.startswith("_")}
+    assert len(declarados) == 10
+
+
+def test_evolutionary_port_extiende_a_environment_port() -> None:
+    nuevos = {
+        "spawn_agent_near",
+        "set_agent_radii",
+        "get_agent_distance",
+        "get_composite_rules",
+        "deposit_stigmergy",
+        "get_cell_stigmergy",
+        "get_active_stigmergy_cells",
+    }
+    assert issubclass(EvolutionaryEnvironmentPort, EnvironmentPort)
+    assert nuevos <= {n for n in vars(EvolutionaryEnvironmentPort) if not n.startswith("_")}
+    assert not isinstance(object(), EvolutionaryEnvironmentPort)
+
+
+def test_config_por_defecto_apaga_los_mecanismos_de_fase_ii() -> None:
+    cfg = SimulationConfig()
+    for flag in (
+        "enable_evolution",
+        "enable_cultural_inheritance",
+        "enable_holonic_hierarchy",
+        "enable_holon_reproduction",
+        "enable_downward_causation",
+        "enable_stigmergy",
+    ):
+        assert getattr(cfg, flag) is False
+    assert cfg.num_composite_patterns == 0
+    assert cfg.reproduction_mode == "energy"
+    assert cfg.enable_holon_splitting and cfg.enable_holon_view and cfg.holon_energy_sharing
+    assert SimulationConfig(**json.loads(json.dumps(cfg.to_dict()))) == cfg
+
+
+@pytest.mark.parametrize(
+    ("overrides", "campo"),
+    [
+        ({"initial_energy": 0.0}, "initial_energy"),
+        ({"reproduction_threshold": 0.0}, "reproduction_threshold"),
+        ({"energy_gain_scale": 0.0}, "energy_gain_scale"),
+        ({"composite_reward_exponent": 0.0}, "composite_reward_exponent"),
+        ({"offspring_energy_share": 1.0}, "offspring_energy_share"),
+        ({"offspring_energy_share": 0.0}, "offspring_energy_share"),
+        ({"inheritance_discount": 1.5}, "inheritance_discount"),
+        ({"discrete_mutation_prob": -0.1}, "discrete_mutation_prob"),
+        ({"initial_bond_affinity": 1.1}, "initial_bond_affinity"),
+        ({"holon_bond_threshold": 2.0}, "holon_bond_threshold"),
+        ({"stigmergy_deposit_rate": 1.5}, "stigmergy_deposit_rate"),
+        ({"stigmergy_decay": -0.5}, "stigmergy_decay"),
+        ({"redundancy_penalty": 0.0}, "redundancy_penalty"),
+        ({"redundancy_penalty": 1.5}, "redundancy_penalty"),
+        ({"metabolic_base_cost": -0.01}, "metabolic_base_cost"),
+        ({"mutation_rate": -0.01}, "mutation_rate"),
+        ({"holon_coord_cost": -1.0}, "holon_coord_cost"),
+        ({"composite_failure_penalty": 1.5}, "composite_failure_penalty"),
+        ({"composite_failure_penalty": -0.1}, "composite_failure_penalty"),
+        ({"num_composite_patterns": -1}, "num_composite_patterns"),
+        ({"max_population": 0}, "max_population"),
+        ({"max_genome_memory_capacity": 2}, "max_genome_memory_capacity"),
+        ({"max_holon_leaves": 1}, "max_holon_leaves"),
+        ({"holon_split_patience": 0}, "holon_split_patience"),
+        ({"composite_order": 1}, "composite_order"),
+        ({"composite_resources_per_pattern": 0}, "composite_resources_per_pattern"),
+        ({"reproduction_mode": "random"}, "reproduction_mode"),
+        (
+            {"num_world_patterns": 6, "num_composite_patterns": 1, "composite_order": 4},
+            "composite_order",
+        ),
+    ],
+)
+def test_config_rechaza_hiperparametros_de_fase_ii_invalidos(
+    overrides: dict[str, object], campo: str
+) -> None:
+    with pytest.raises(ValueError, match=campo):
+        SimulationConfig(**overrides)  # type: ignore[arg-type]
+
+
+def test_config_orden_compuesto_sin_compuestos_no_se_valida() -> None:
+    SimulationConfig(num_world_patterns=6, num_composite_patterns=0, composite_order=4)
+    SimulationConfig(num_world_patterns=8, num_composite_patterns=1, composite_order=4)
+
+
+def test_config_acepta_los_bordes_validos_de_fase_ii() -> None:
+    SimulationConfig(redundancy_penalty=1.0, composite_failure_penalty=1.0, mutation_rate=0.0)
+
+
+@pytest.mark.parametrize(
+    "campo",
+    [
+        "initial_energy",
+        "energy_gain_scale",
+        "composite_failure_penalty",
+        "redundancy_penalty",
+        "offspring_energy_share",
+        "mutation_rate",
+        "move_cost",
+    ],
+)
+def test_config_rechaza_nan_en_hiperparametros_de_fase_ii(campo: str) -> None:
+    with pytest.raises(ValueError, match=campo):
+        SimulationConfig(**{campo: float("nan")})  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"stigmergy_deposit_rate": 0.04},
+        {"stigmergy_deposit_rate": 0.05},  # 0.05 * 0.85 < 0.05: sólo sobreviviría con c = 1
+        {"stigmergy_deposit_rate": 0.3, "min_confidence": 0.3},
+        {"stigmergy_deposit_rate": 0.5, "initial_direct_confidence": 0.09},
+    ],
+)
+def test_config_rechaza_estigmergia_que_solo_borraria_rastros(overrides: dict[str, float]) -> None:
+    with pytest.raises(ValueError, match="stigmergy_deposit_rate"):
+        SimulationConfig(enable_stigmergy=True, **overrides)  # type: ignore[arg-type]
+
+
+def test_config_acepta_tasas_de_estigmergia_coherentes() -> None:
+    # borde exacto: 0.1 * 0.5 == 0.05
+    SimulationConfig(
+        enable_stigmergy=True, stigmergy_deposit_rate=0.1, initial_direct_confidence=0.5
+    )
+    SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.0)  # nunca deposita
+    SimulationConfig(enable_stigmergy=False, stigmergy_deposit_rate=0.04)  # apagada: no aplica
+    SimulationConfig(enable_stigmergy=False, stigmergy_deposit_rate=0.0)  # ablación de R19
+
+
+@given(
+    rate=st.floats(0.0, 1.0),
+    first=st.floats(0.0, 1.0),
+    minimum=st.floats(0.0, 0.3),
+    enabled=st.booleans(),
+)
+def test_config_de_estigmergia_aceptada_deja_el_rastro_de_una_creencia_directa_nueva(
+    rate: float, first: float, minimum: float, enabled: bool
+) -> None:
+    """Se rechaza sii, con la estigmergia activa y tasa positiva, el entorno real no guarda el
+    rastro de una creencia directa nueva (confianza `initial_direct_confidence`)."""
+    probe = SimulationConfig(
+        grid_width=10,
+        grid_height=10,
+        num_agents=1,
+        min_confidence=minimum,
+        stigmergy_deposit_rate=rate,
+    )
+    grid = ToroidalGrid2D(probe, np.random.Generator(np.random.PCG64(0)))
+    grid.deposit_stigmergy(0, pat("p_0"), 1.0, first, 0)
+    stored = grid.get_active_stigmergy_cells() == 1
+    kwargs = {
+        "enable_stigmergy": enabled,
+        "stigmergy_deposit_rate": rate,
+        "initial_direct_confidence": first,
+        "min_confidence": minimum,
+    }
+    if enabled and rate > 0 and not stored:
+        with pytest.raises(ValueError, match="stigmergy_deposit_rate"):
+            SimulationConfig(**kwargs)  # type: ignore[arg-type]
+    else:
+        SimulationConfig(**kwargs)  # type: ignore[arg-type]

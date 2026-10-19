@@ -11,21 +11,21 @@
 
 ## 1. Contratos de Dominio, Configuración y Extensiones (`domain-contracts`, `roadmap-extensions`)
 
-- [ ] 1.1 **[RED]** Escribir tests en `tests/test_domain_contracts.py` y `tests/test_roadmap_extensions.py` para:
+- [x] 1.1 **[RED]** Escribir tests en `tests/test_domain_contracts.py` y `tests/test_roadmap_extensions.py` para:
   - los nuevos tipos inmutables `AgentGenome`, `StigmergicTrace` y `HolonSnapshot`;
   - el sub-puerto `EvolutionaryEnvironmentPort`;
   - los hiperparámetros y validaciones de Fase II en `SimulationConfig`, incluidos `reproduction_mode`, `enable_holon_view` y `holon_energy_sharing`;
   - `mutate_genome` y `compute_epistemic_synergy`.
 
   Verificar que fallan, y que `VisibleResource`, `EnvironmentPort` y `CompositeRule` conservan sus campos y métodos de Fase I.
-- [ ] 1.2 **[GREEN]** Implementar:
+- [x] 1.2 **[GREEN]** Implementar:
   - `AgentGenome`, `StigmergicTrace` y `HolonSnapshot` en `src/ide/domain/types.py`;
   - `EvolutionaryEnvironmentPort` en `src/ide/domain/ports.py`;
   - los campos y validaciones de Fase II en `src/ide/config.py`;
   - `mutate_genome` y `compute_epistemic_synergy` en `src/ide/domain/extensions.py`.
 
   Actualizar los docstrings con la numeración de experimentos v2.
-- [ ] 1.3 **[REFACTOR]** Verificación del bloque.
+- [x] 1.3 **[REFACTOR]** Verificación del bloque.
 
 ## 2. Memoria con Penalización de Redundancia y Dinámica Evolutiva (`bounded-memory`, `evolutionary-dynamics`, `micro-agent`)
 
@@ -58,16 +58,16 @@
 
 ## 4. Entorno Espacial Evolutivo (`spatial-environments`)
 
-- [ ] 4.1 **[RED]** Ampliar `tests/test_grid2d.py` con tests para:
+- [x] 4.1 **[RED]** Ampliar `tests/test_grid2d.py` con tests para:
   - (a) `spawn_agent_near` (celdas de menor ocupación en `((0, 0), *MOORE_MOVES)`), `set_agent_radii` y `get_agent_distance`;
   - (b) la generación cíclica y la reposición de recursos compuestos con `_comp_rng` (`spawn_key=(3,)`), sin consumir el `rng` de Fase I cuando `num_composite_patterns == 0`;
   - (c) el depósito independiente del orden, la consulta y el decaimiento de `StigmergicTrace` ($R_{19}$).
-- [ ] 4.2 **[GREEN]** Implementar en `src/ide/environments/grid2d.py`:
+- [x] 4.2 **[GREEN]** Implementar en `src/ide/environments/grid2d.py`:
   - `spawn_agent_near`, `set_agent_radii` y `get_agent_distance`;
   - `get_composite_rules`;
   - `deposit_stigmergy`, `get_cell_stigmergy` y `get_active_stigmergy_cells`;
   - el decaimiento estigmérgico.
-- [ ] 4.3 **[REFACTOR]** `python -m pytest tests/test_grid2d.py tests/test_performance_equivalence.py` (hashes de Fase I intactos) y verificación del bloque.
+- [x] 4.3 **[REFACTOR]** `python -m pytest tests/test_grid2d.py tests/test_performance_equivalence.py` (hashes de Fase I intactos) y verificación del bloque.
 
 ## 5. Motor de Simulación Evolutivo y Holónico (`simulation-engine`)
 

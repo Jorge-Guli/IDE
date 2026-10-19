@@ -100,3 +100,41 @@ class ActionResult:
     action_type: ActionType
     interacted_pattern: Pattern | None = None
     experienced_value: float | None = None
+
+
+@dataclass(frozen=True)
+class AgentGenome:
+    """Genoma heredable (Exp 002 v2). Los valores por defecto coinciden con `SimulationConfig`.
+
+    El genoma fundador real se construye siempre con `genome_from_config`.
+    """
+
+    alpha_learning: float = 0.40
+    gamma_social_discount: float = 0.75
+    epsilon_explore: float = 0.15
+    bond_affinity: float = 0.60
+    memory_capacity: int = 3
+    perception_radius: int = 2
+    comm_radius: int = 2
+
+
+@dataclass(frozen=True)
+class StigmergicTrace:
+    """Rastro depositado en una celda (R19): signo de la experiencia e intensidad decreciente."""
+
+    pattern: Pattern
+    sign_value: float  # -1.0, 0.0 o 1.0
+    intensity: float
+    last_updated_tick: int
+
+
+@dataclass(frozen=True)
+class HolonSnapshot:
+    """Vista inmutable de un nodo holónico para la telemetría (Exp 003 v2)."""
+
+    node_id: int
+    holon_level: int
+    child_node_ids: tuple[int, ...]
+    leaf_agent_ids: tuple[int, ...]
+    effective_capacity: int
+    collective_known_patterns: int

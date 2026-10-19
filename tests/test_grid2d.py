@@ -1,6 +1,7 @@
 """Tests de `spatial-environments`: generación, topología, percepción y ciclo de recursos."""
 
 from dataclasses import replace
+from typing import Any
 
 import numpy as np
 import pytest
@@ -8,7 +9,8 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from ide.config import SimulationConfig
-from ide.domain.ports import EnvironmentPort
+from ide.domain.extensions import CompositeRule
+from ide.domain.ports import EnvironmentPort, EvolutionaryEnvironmentPort
 from ide.domain.types import ActionResult, ActionType, AgentAction, Pattern, Resource
 from ide.environments.grid2d import ToroidalGrid2D
 
@@ -20,14 +22,14 @@ def pat(i: int) -> Pattern:
     return Pattern((("id", f"p_{i}"),))
 
 
-def make_config(**overrides: int) -> SimulationConfig:
+def make_config(**overrides: Any) -> SimulationConfig:
     base = SimulationConfig(
         grid_width=10, grid_height=10, num_agents=4, num_world_patterns=12, resources_per_pattern=8
     )
     return replace(base, **overrides)
 
 
-def make_grid(seed: int = 7, **overrides: int) -> ToroidalGrid2D:
+def make_grid(seed: int = 7, **overrides: Any) -> ToroidalGrid2D:
     config = make_config(**overrides)
     return ToroidalGrid2D(config, np.random.Generator(np.random.PCG64(seed)))
 
@@ -505,3 +507,442 @@ def test_inversion_con_fraccion_fuera_de_rango(fraction: float) -> None:
 def test_inversion_acepta_los_bordes_del_rango(fraction: float) -> None:
     flipped = make_grid().invert_world_rules(fraction, np.random.Generator(np.random.PCG64(5)))
     assert len(flipped) == round(fraction * 12)
+
+
+# --- Fase II: nacimiento espacial, radios individuales y distancia -------------------------------
+
+
+def evo_rng(seed: int = 7) -> np.random.Generator:
+    return np.random.Generator(np.random.PCG64(np.random.SeedSequence(seed, spawn_key=(2,))))
+
+
+def place(grid: ToroidalGrid2D, agent_id: int, cell: Cell) -> None:
+    walk_to(grid, agent_id, cell)
+    assert grid.get_agent_position(agent_id) == cell
+
+
+def test_cumple_el_subpuerto_evolutivo() -> None:
+    assert isinstance(make_grid(), EvolutionaryEnvironmentPort)
+
+
+def test_spawn_agent_near_elige_la_celda_menos_poblada_y_aplica_radios() -> None:
+    grid = make_grid()
+    place(grid, 1, (5, 5))
+    for other, cell in ((0, (5, 5)), (2, (4, 4)), (3, (6, 6))):
+        place(grid, other, cell)
+    for resources in grid.cell_resources.values():
+        resources.clear()
+    grid._resource_cell.clear()  # pyright: ignore[reportPrivateUsage]
+    chosen = grid.spawn_agent_near(80, 1, evo_rng(), perception_radius=3, comm_radius=1)
+    assert grid.get_agent_position(80) == chosen
+    assert 80 in grid.get_active_agent_ids()
+    assert grid.get_agent_distance(1, 80) <= 1
+    assert chosen not in {(5, 5), (4, 4), (6, 6)}  # hay celdas vacías, se prefieren
+    ax, ay = chosen
+    target = ((ax + 3) % 10, ay)
+    grid.cell_resources[target][999] = Resource(999, pat(0), 1.0)
+    grid._resource_cell[999] = target  # pyright: ignore[reportPrivateUsage]
+    visibles = grid.get_observation(80, 0).visible_resources
+    assert [(v.resource_id, v.distance) for v in visibles] == [(999, 3)]
+    # el progenitor conserva el radio global (2): no ve a distancia 3
+    assert grid.get_observation(2, 0).visible_resources != visibles
+
+
+def test_spawn_agent_near_con_todas_las_celdas_ocupadas_elige_entre_las_minimas() -> None:
+    grid = make_grid(num_agents=2)
+    place(grid, 0, (5, 5))
+    anchor_cells = [((5 + dx) % 10, (5 + dy) % 10) for dx, dy in ((0, 0), *grid.MOORE_MOVES)]
+    for new_id, cell in enumerate(anchor_cells, start=10):
+        grid.cell_agents[cell].add(new_id)
+        grid._agent_cell[new_id] = cell  # pyright: ignore[reportPrivateUsage]
+    # (5, 5) tiene 2 agentes (0 y 10); las otras 8 celdas tienen 1: gana alguna de las 8
+    chosen = grid.spawn_agent_near(99, 0, evo_rng())
+    assert chosen != (5, 5)
+    assert chosen in anchor_cells
+
+
+def test_spawn_agent_near_consume_una_sola_extraccion_del_rng_dado() -> None:
+    grid = make_grid()
+    rng, ref = evo_rng(), evo_rng()
+    place(grid, 1, (5, 5))
+    best = [
+        c
+        for c in [((5 + dx) % 10, (5 + dy) % 10) for dx, dy in ((0, 0), *grid.MOORE_MOVES)]
+        if len(grid.cell_agents[c])
+        == min(
+            len(grid.cell_agents[k])
+            for k in [((5 + dx) % 10, (5 + dy) % 10) for dx, dy in ((0, 0), *grid.MOORE_MOVES)]
+        )
+    ]
+    chosen = grid.spawn_agent_near(80, 1, rng)
+    assert chosen == best[int(ref.integers(len(best)))]
+    assert rng.bit_generator.state == ref.bit_generator.state
+
+
+def test_spawn_agent_near_no_toca_el_rng_del_entorno() -> None:
+    grid = make_grid(seed=11)
+    ref = make_grid(seed=11)
+    grid.spawn_agent_near(80, 1, evo_rng())
+    assert grid._rng.bit_generator.state == ref._rng.bit_generator.state  # pyright: ignore[reportPrivateUsage]
+
+
+def test_spawn_agent_near_con_radios_globales_no_registra_radios_individuales() -> None:
+    grid = make_grid()
+    grid.spawn_agent_near(80, 1, evo_rng(), perception_radius=2, comm_radius=2)
+    assert grid._agent_radii == {}  # pyright: ignore[reportPrivateUsage]
+
+
+def test_set_agent_radii_cambia_percepcion_y_comunicacion() -> None:
+    grid = make_grid()
+    place(grid, 0, (5, 5))
+    place(grid, 1, (5, 8))
+    assert 1 not in grid.get_communication_neighbors(0)  # radio de comunicación global: 2
+    grid.set_agent_radii(0, 2, 3)
+    assert 1 in grid.get_communication_neighbors(0)
+    assert 1 not in grid.get_communication_neighbors(1)  # asimetría: 1 conserva el radio global
+    grid.set_agent_radii(0, 2, 2)  # vuelve a los globales
+    assert 1 not in grid.get_communication_neighbors(0)
+
+
+def test_set_agent_radii_rechaza_radios_incompatibles_con_el_toro() -> None:
+    grid = make_grid()
+    with pytest.raises(ValueError, match="radio"):
+        grid.set_agent_radii(0, 5, 1)  # 2 * 5 >= 10
+    with pytest.raises(ValueError, match="radio"):
+        grid.set_agent_radii(0, 1, -1)
+
+
+def test_remove_agents_olvida_los_radios_individuales() -> None:
+    grid = make_grid()
+    grid.set_agent_radii(0, 3, 3)
+    grid.remove_agents([0])
+    assert 0 not in grid._agent_radii  # pyright: ignore[reportPrivateUsage]
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "expected"),
+    [((0, 0), (0, 0), 0), ((0, 0), (1, 1), 1), ((0, 0), (9, 9), 1), ((0, 0), (5, 3), 5)],
+)
+def test_distancia_de_chebyshev_toroidal(a: Cell, b: Cell, expected: int) -> None:
+    grid = make_grid()
+    place(grid, 0, a)
+    place(grid, 1, b)
+    assert grid.get_agent_distance(0, 1) == grid.get_agent_distance(1, 0) == expected
+
+
+# --- Fase II: recursos compuestos --------------------------------------------------------------
+
+
+def composite_grid(seed: int = 7, **overrides: Any) -> ToroidalGrid2D:
+    return make_grid(
+        seed,
+        num_composite_patterns=2,
+        composite_order=2,
+        composite_reward_exponent=1.5,
+        **overrides,
+    )
+
+
+def comp_pat(k: int, m: int = 2) -> Pattern:
+    return Pattern((("id", f"c_{k}"), ("order", str(m))))
+
+
+def test_sin_compuestos_no_hay_reglas_ni_se_altera_el_rng_de_fase_i() -> None:
+    config = make_config()
+    rng, ref = np.random.Generator(np.random.PCG64(7)), np.random.Generator(np.random.PCG64(7))
+    grid = ToroidalGrid2D(config, rng)
+    assert grid.get_composite_rules() == {}
+    # el entorno de Fase I consumió exactamente lo mismo que antes: se compara con el recorrido
+    ref_grid = ToroidalGrid2D(config, ref)
+    assert rng.bit_generator.state == ref.bit_generator.state
+    assert all_resources(grid) == all_resources(ref_grid)
+
+
+def test_los_compuestos_no_alteran_el_tablero_de_fase_i() -> None:
+    plain, comp = make_grid(), composite_grid()
+    assert comp._rng.bit_generator.state == plain._rng.bit_generator.state  # pyright: ignore[reportPrivateUsage]
+    base = [r for r in all_resources(comp) if r.pattern in plain.get_world_patterns()]
+    assert base == all_resources(plain)
+    assert [comp.get_agent_position(i) for i in range(4)] == [
+        plain.get_agent_position(i) for i in range(4)
+    ]
+
+
+def test_generacion_de_reglas_compuestas_de_orden_m() -> None:
+    rules = composite_grid().get_composite_rules()
+    assert list(rules) == [comp_pat(0), comp_pat(1)]
+    assert rules[comp_pat(0)].required_patterns == (pat(0), pat(1))
+    assert rules[comp_pat(1)].required_patterns == (pat(1), pat(2))
+    for rule in rules.values():
+        assert isinstance(rule, CompositeRule)
+        assert rule.composite_value == pytest.approx(2**1.5, abs=1e-9)
+
+
+def test_los_requeridos_se_eligen_ciclicamente_y_ordenados() -> None:
+    grid = make_grid(num_composite_patterns=4, composite_order=3, num_world_patterns=8)
+    rules = grid.get_composite_rules()
+    # beneficiosos: p_0..p_3 (8 // 2); k=2 -> p_2, p_3, p_0 ordenados
+    assert rules[comp_pat(2, 3)].required_patterns == (pat(0), pat(2), pat(3))
+    assert rules[comp_pat(3, 3)].required_patterns == (pat(0), pat(1), pat(3))
+    assert rules[comp_pat(3, 3)].composite_value == pytest.approx(3**1.5, abs=1e-9)
+
+
+def test_hay_los_recursos_compuestos_configurados_y_con_ids_nuevos() -> None:
+    grid = composite_grid(composite_resources_per_pattern=3)
+    comps = [r for r in all_resources(grid) if r.pattern in grid.get_composite_rules()]
+    assert len(comps) == 6
+    assert sorted(r.resource_id for r in comps) == list(range(96, 102))
+    assert all(r.true_value == pytest.approx(2**1.5, abs=1e-9) for r in comps)
+    assert set(grid.get_world_patterns()) == {pat(i) for i in range(12)}  # sin compuestos
+
+
+def test_generacion_compuesta_es_determinista_por_semilla() -> None:
+    assert all_resources(composite_grid(seed=5)) == all_resources(composite_grid(seed=5))
+
+
+def test_consumir_un_compuesto_lo_repone_con_el_generador_dedicado() -> None:
+    grid = composite_grid()
+    resource = next(r for r in all_resources(grid) if r.pattern == comp_pat(0))
+    result = consume(grid, 0, resource)
+    assert result.interacted_pattern == comp_pat(0)
+    assert result.experienced_value == pytest.approx(2**1.5, abs=1e-9)
+    rng_state = grid._rng.bit_generator.state  # pyright: ignore[reportPrivateUsage]
+    comp_state = grid._comp_rng.bit_generator.state  # pyright: ignore[reportPrivateUsage]
+    assert count_pattern(grid, comp_pat(0)) == 3
+    grid.step_dynamics(1)
+    assert count_pattern(grid, comp_pat(0)) == 4
+    assert grid._rng.bit_generator.state == rng_state  # pyright: ignore[reportPrivateUsage]
+    assert grid._comp_rng.bit_generator.state != comp_state  # pyright: ignore[reportPrivateUsage]
+
+
+def test_reponer_elementales_no_consume_el_generador_compuesto() -> None:
+    grid = composite_grid()
+    resource = next(r for r in all_resources(grid) if r.pattern == pat(0))
+    consume(grid, 0, resource)
+    comp_state = grid._comp_rng.bit_generator.state  # pyright: ignore[reportPrivateUsage]
+    grid.step_dynamics(1)
+    assert grid._comp_rng.bit_generator.state == comp_state  # pyright: ignore[reportPrivateUsage]
+
+
+# --- Fase II: estigmergia (R19) -----------------------------------------------------------------
+
+
+def stigmergy_grid(**overrides: Any) -> ToroidalGrid2D:
+    defaults: dict[str, Any] = {
+        "enable_stigmergy": True,
+        "stigmergy_deposit_rate": 1.0,
+        "stigmergy_decay": 0.1,
+    }
+    return make_grid(**{**defaults, **overrides})
+
+
+def test_deposito_lectura_y_decaimiento_estigmergico() -> None:
+    grid = stigmergy_grid()
+    place(grid, 0, (3, 3))
+    place(grid, 1, (3, 3))
+    assert grid.get_cell_stigmergy(1) == ()
+    grid.deposit_stigmergy(0, pat(0), 1.0, 0.5, 10)
+    (trace,) = grid.get_cell_stigmergy(1)
+    assert trace.pattern == pat(0)
+    assert trace.sign_value == 1.0
+    assert trace.intensity == pytest.approx(0.5, abs=1e-9)
+    assert trace.last_updated_tick == 10
+    grid.step_dynamics(10)  # mismo tick: no decae
+    assert grid.get_cell_stigmergy(1)[0].intensity == pytest.approx(0.5, abs=1e-9)
+    grid.step_dynamics(11)
+    assert grid.get_cell_stigmergy(1)[0].intensity == pytest.approx(0.4, abs=1e-9)
+
+
+def test_el_signo_del_rastro_es_el_de_la_experiencia() -> None:
+    grid = stigmergy_grid()
+    grid.deposit_stigmergy(0, pat(7), -0.8, 0.5, 1)
+    assert grid.get_cell_stigmergy(0)[0].sign_value == -1.0
+
+
+def test_la_intensidad_es_la_tasa_por_la_confianza() -> None:
+    grid = stigmergy_grid(stigmergy_deposit_rate=0.5)
+    grid.deposit_stigmergy(0, pat(0), 1.0, 0.8, 1)
+    assert grid.get_cell_stigmergy(0)[0].intensity == pytest.approx(0.4, abs=1e-9)
+    full = stigmergy_grid()
+    full.deposit_stigmergy(0, pat(0), 1.0, 1.0, 1)
+    assert full.get_cell_stigmergy(0)[0].intensity == 1.0
+
+
+def test_un_deposito_de_un_tick_posterior_reemplaza_al_anterior() -> None:
+    grid = stigmergy_grid()
+    grid.deposit_stigmergy(0, pat(0), 1.0, 0.9, 3)
+    grid.deposit_stigmergy(0, pat(0), -1.0, 0.2, 4)
+    (trace,) = grid.get_cell_stigmergy(0)
+    assert (trace.sign_value, trace.last_updated_tick) == (-1.0, 4)
+    assert trace.intensity == pytest.approx(0.2, abs=1e-9)
+
+
+def test_el_deposito_del_mismo_tick_no_depende_del_orden() -> None:
+    first = stigmergy_grid()
+    second = stigmergy_grid()
+    place(first, 0, (3, 3))
+    place(first, 1, (3, 3))
+    place(second, 0, (3, 3))
+    place(second, 1, (3, 3))
+    for grid, order in ((first, (0, 1)), (second, (1, 0))):
+        for agent, (value, conf) in zip(order, ((1.0, 0.4), (-1.0, 0.7)), strict=True):
+            grid.deposit_stigmergy(agent, pat(0), value, conf, 5)
+    assert first.get_cell_stigmergy(0) == second.get_cell_stigmergy(0)
+    assert first.get_cell_stigmergy(0)[0].intensity == pytest.approx(0.7, abs=1e-9)
+    # mismo tick e igual intensidad: gana el mayor signo
+    third = stigmergy_grid()
+    third.deposit_stigmergy(0, pat(0), -1.0, 0.5, 5)
+    third.deposit_stigmergy(0, pat(0), 1.0, 0.5, 5)
+    assert third.get_cell_stigmergy(0)[0].sign_value == 1.0
+
+
+def test_el_rastro_se_purga_bajo_la_confianza_minima_y_se_cuentan_las_celdas() -> None:
+    grid = stigmergy_grid(min_confidence=0.05, stigmergy_decay=0.1)
+    place(grid, 0, (1, 1))
+    place(grid, 1, (8, 8))
+    grid.deposit_stigmergy(0, pat(0), 1.0, 0.12, 0)
+    grid.deposit_stigmergy(1, pat(1), 1.0, 0.9, 0)
+    assert grid.get_active_stigmergy_cells() == 2
+    grid.step_dynamics(1)  # 0.12 -> 0.02 < 0.05: se purga
+    assert grid.get_active_stigmergy_cells() == 1
+    assert grid.get_cell_stigmergy(0) == ()
+
+
+def test_los_rastros_se_devuelven_en_orden_canonico_de_patron() -> None:
+    grid = stigmergy_grid()
+    for i in (5, 2, 9):
+        grid.deposit_stigmergy(0, pat(i), 1.0, 0.5, 1)
+    assert [t.pattern for t in grid.get_cell_stigmergy(0)] == sorted(pat(i) for i in (5, 2, 9))
+
+
+def test_sin_estigmergia_el_estado_inicial_es_vacio() -> None:
+    grid = make_grid()
+    assert grid.get_active_stigmergy_cells() == 0
+    assert grid.get_cell_stigmergy(0) == ()
+
+
+# --- Fase II: robustez (revisión) ---------------------------------------------------------------
+
+
+def test_spawn_agent_near_con_radio_invalido_no_deja_un_agente_a_medias() -> None:
+    grid = make_grid()
+    with pytest.raises(ValueError, match="radio"):
+        grid.spawn_agent_near(80, 1, evo_rng(), perception_radius=5)
+    assert 80 not in grid.get_active_agent_ids()
+    assert all(80 not in agents for agents in grid.cell_agents.values())
+    grid.spawn_agent_near(80, 1, evo_rng(), perception_radius=3)  # el reintento es posible
+
+
+def test_retirar_un_compuesto_descarta_su_reposicion() -> None:
+    grid = composite_grid()
+    resource = next(r for r in all_resources(grid) if r.pattern == comp_pat(0))
+    consume(grid, 0, resource)
+    grid.retire_pattern_resources(comp_pat(0))
+    for tick in range(1, 4):
+        grid.step_dynamics(tick)
+    assert count_pattern(grid, comp_pat(0)) == 0
+    assert count_pattern(grid, comp_pat(1)) == 4
+
+
+def test_nacimiento_fallido_por_radio_de_comunicacion_no_consume_el_rng() -> None:
+    grid = make_grid()
+    rng, ref = evo_rng(), evo_rng()
+    with pytest.raises(ValueError, match="comm_radius"):
+        grid.spawn_agent_near(80, 1, rng, comm_radius=-1)
+    assert rng.bit_generator.state == ref.bit_generator.state
+    assert 80 not in grid.get_active_agent_ids()
+
+
+def test_set_agent_radii_rechaza_agentes_inexistentes() -> None:
+    grid = make_grid()
+    with pytest.raises(KeyError):
+        grid.set_agent_radii(99, 3, 1)
+    grid.remove_agents([0])
+    with pytest.raises(KeyError):
+        grid.set_agent_radii(0, 3, 1)
+    assert grid._agent_radii == {}  # pyright: ignore[reportPrivateUsage]
+
+
+_deposits = st.lists(
+    st.tuples(
+        st.sampled_from([0, 1, 2]),
+        st.integers(0, 3),
+        st.sampled_from([-1.0, 0.0, 0.5, 1.0]),
+        st.sampled_from([0.1, 0.4, 0.7, 1.0]),
+    ),
+    max_size=12,
+)
+
+
+@given(deposits=_deposits, data=st.data())
+def test_depositos_del_mismo_tick_dan_lo_mismo_en_cualquier_orden(
+    deposits: list[tuple[int, int, float, float]], data: st.DataObject
+) -> None:
+    shuffled = data.draw(st.permutations(deposits))
+    grids = [stigmergy_grid(), stigmergy_grid()]
+    for grid, batch in zip(grids, (deposits, shuffled), strict=True):
+        for agent in range(3):
+            place(grid, agent, (2, 2))
+        for agent, pattern, value, conf in batch:
+            grid.deposit_stigmergy(agent, pat(pattern), value, conf, 7)
+    assert grids[0].cell_stigmergy == grids[1].cell_stigmergy
+
+
+def test_deposito_bajo_el_umbral_borra_el_rastro_anterior_y_no_deja_ninguno() -> None:
+    grid = stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05)
+    grid.deposit_stigmergy(1, pat(0), 1.0, 0.9, 3)
+    grid.deposit_stigmergy(1, pat(0), 1.0, 0.06, 4)  # intensidad 0.03 < 0.05
+    assert grid.get_cell_stigmergy(1) == ()
+    assert grid.get_active_stigmergy_cells() == 0
+
+
+def test_deposito_bajo_el_umbral_en_celda_vacia_no_crea_nada() -> None:
+    grid = stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05)
+    grid.deposit_stigmergy(1, pat(0), 1.0, 0.0, 4)
+    assert grid.get_active_stigmergy_cells() == 0
+    assert grid.get_cell_stigmergy(1) == ()
+    assert grid.cell_stigmergy == {}
+
+
+@pytest.mark.parametrize("strong_first", [True, False])
+def test_deposito_bajo_el_umbral_no_altera_un_rastro_del_mismo_tick(strong_first: bool) -> None:
+    grid = stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05)
+    deposits = [(1.0, 0.9), (-1.0, 0.06)]
+    for value, conf in deposits if strong_first else deposits[::-1]:
+        grid.deposit_stigmergy(1, pat(0), value, conf, 4)
+    (trace,) = grid.get_cell_stigmergy(1)
+    assert (trace.sign_value, trace.last_updated_tick) == (1.0, 4)
+    assert trace.intensity == pytest.approx(0.45, abs=1e-9)
+
+
+@given(
+    deposits=st.lists(
+        st.tuples(
+            st.sampled_from([0, 1, 2]),
+            st.integers(0, 3),
+            st.sampled_from([-1.0, 0.0, 1.0]),
+            st.sampled_from([0.0, 0.06, 0.4, 1.0]),
+        ),
+        max_size=12,
+    ),
+    seeded=st.sets(st.integers(0, 3)),
+    data=st.data(),
+)
+def test_depositos_con_rastros_previos_y_bajo_umbral_no_dependen_del_orden(
+    deposits: list[tuple[int, int, float, float]], seeded: set[int], data: st.DataObject
+) -> None:
+    shuffled = data.draw(st.permutations(deposits))
+    grids = [stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05) for _ in range(2)]
+    for grid, batch in zip(grids, (deposits, shuffled), strict=True):
+        place(grid, 0, (2, 2))
+        place(grid, 1, (2, 2))
+        place(grid, 2, (7, 7))  # una segunda celda, sin rastros previos
+        for p in sorted(seeded):
+            grid.deposit_stigmergy(0, pat(p), 1.0, 0.9, 6)  # rastros previos opcionales
+        for agent, pattern, value, conf in batch:
+            grid.deposit_stigmergy(agent, pat(pattern), value, conf, 7)
+        assert all(traces for traces in grid.cell_stigmergy.values())  # sin celdas vacías
+        assert all(
+            t.intensity >= 0.05 for traces in grid.cell_stigmergy.values() for t in traces.values()
+        )
+    assert grids[0].cell_stigmergy == grids[1].cell_stigmergy
