@@ -95,6 +95,38 @@ Verificación con `src/` idéntico al del commit `360c771`; `tests/` también, s
 - **Resultado:** las 40 corridas terminan. La generación máxima es 0 o 1 en todas: con el perfil pre-registrado la población **no llega a varias generaciones**. Cada corrida de 2000 ticks tardó alrededor de 1 s, mucho menos que una población activa, lo que sugiere una extinción temprana; no se verificó, porque D29 limita la prueba de humo a estas dos observaciones.
 - **Lectura, sin ajustar parámetros:** D29 prohíbe cambiar el perfil a la vista de los resultados y pide reportar la extinción o la falta de generaciones como resultado. Es coherente con la física declarada (D21): con los valores por defecto, el costo basal de un fundador es $0.01 + 0.002 \cdot 3^2 + 0.0005 \cdot (2^2 + 2^2) = 0.032$ por tick, y con `initial_energy = 1.5` un agente que no come muere en unos 47 ticks. Con este perfil, las afirmaciones C5 a C8, que dependen de la sucesión generacional, de los holones o de ambas, difícilmente tengan con qué medirse. Cambiar el perfil sería modificar el pre-registro: exige una decisión explícita y un commit que la justifique.
 
+## Fase II: calibración de viabilidad del perfil (Enmienda 1 de D29, tarea 6.4)
+
+- **Procedimiento:** declarado en `02c6a56` y ampliado en `aa47715`, antes de leer cualquier salida. Calibra sólo `resources_per_pattern` en la grilla 10, 20, 40, 80 con las semillas 0 a 9. Una corrida es viable si la población sigue viva a los 2000 ticks y llegó al menos a la generación 5; un valor es viable con al menos 8 de 10 semillas viables en cada condición de comparación. Sólo registra demografía: **no** se calculó ninguna métrica de C5 a C8.
+- **Salidas completas:** `registros/phase2_calibration.json` y `registros/phase2_calibration_consola.txt` (corrida con el criterio ampliado, 87 min con 4 procesos); `registros/phase2_calibration_antecedente*` (antecedente).
+
+### Antecedente: criterio limitado a la base (commit `02c6a56`)
+
+Terminó antes de ampliar el criterio, y su salida se leyó recién después de commitear la ampliación (`aa47715`). Con ese criterio habría elegido `resources_per_pattern = 20`: con 10 se extinguen las 10 semillas de los cuatro protocolos, y con 20 las cuatro bases son viables en 10 de 10. No se usa para elegir.
+
+### Corrida con el criterio ampliado
+
+Semillas viables (de 10) por condición. Entre paréntesis, las semillas con población viva al final cuando difieren de las viables:
+
+| Condición | 10 | 20 | 40 | 80 |
+| :--- | ---: | ---: | ---: | ---: |
+| 002-A `evolved` | 0 | 10 | 1 (10 vivas) | 0 (10 vivas) |
+| 002-A `frozen_genome` | 0 | 10 | 3 (10 vivas) | 0 (10 vivas) |
+| 002-A `drift` | 0 | 10 | 0 (10 vivas) | 0 (10 vivas) |
+| 002-A `null_content` | 0 | **2** | 10 | 2 (10 vivas) |
+| 002-B `cultural` | 0 | 10 | 1 (10 vivas) | 0 (10 vivas) |
+| 002-B `tabula_rasa` | 0 | 10 | 1 (10 vivas) | 0 (10 vivas) |
+| 002-B `null_content` | 0 | **1** | 10 | 2 (10 vivas) |
+| 003-A `holonic` / 003-B `with_view` | 0 | 10 | 10 | 3 (10 vivas) |
+| 003-A `individual` | 0 | 9 | 1 (10 vivas) | 0 (10 vivas) |
+| 003-B `without_view` | 0 | 10 | 9 | 2 (10 vivas) |
+| 003-A/B `null_content` | 0 | **1** | 10 | 7 (10 vivas) |
+
+- **Resultado:** ningún valor es viable; no se elige nada, no se amplía la grilla sin una decisión nueva y se consulta, como fija la enmienda.
+- **Con 10** se extinguen todas las condiciones.
+- **Con 20** todas las condiciones de los runners son viables (la peor, 003-A `individual`, 9 de 10), pero el **control nulo** se extingue en 8 o 9 de 10 semillas: con el contenido de las creencias reemplazado al azar, la población no sobrevive. Es justo el sesgo que la ampliación buscaba detectar: medida con 20, la comparación E4 (completa frente a control nulo) ganaría por extinción del control.
+- **Con 40 y 80** todas las poblaciones siguen vivas, pero la mayoría no llega a la generación 5: el criterio falla por falta de recambio generacional, no por extinción. Una explicación posible, **no verificada**, es que con abundancia la población llega pronto al tope `max_population = 160` y casi no nace nadie. El control nulo, que se extingue con 20, es viable con 40.
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.
