@@ -240,7 +240,7 @@ class AgentNode(Protocol):
   - `created_tick: int`.
   - `ticks_without_surplus: int = 0` (contador para evaluar `SPLIT`).
   - `cooperative_completions: int = 0`.
-  - `formation_redundancy: float = 0.0` (redundancia al formarse, la fija el motor; D28, M13).
+  - `formed_by_bond: bool` (`True` si lo creó `BOND`; `False` si lo creó $R_{17}$) y `formation_knowledge: tuple[tuple[int, frozenset[Pattern]], ...]` (lo que sabía cada hoja al formarse, en pares `(agent_id, K)` ordenados por `agent_id`). Los fija el motor al crearlo, para M13 (D28).
 - **Propiedades derivadas recursivamente:**
   - `holon_level: int`: $1 + \max_{c \in \text{children}} c.\text{holon\_level}$.
   - `leaf_agents: tuple[MicroAgent, ...]`: concatenación ordenada por `agent_id` de las hojas de todos sus hijos (en `__init__` se verifica que no existan hojas repetidas entre hijos y que `len(children) >= 2`, lanzando `ValueError` en caso contrario).
@@ -388,7 +388,8 @@ class EvolutionaryTickMetrics:
     mean_holon_size: float  # M10 (0.0 si no hay holones L >= 1)
     holonic_coverage_gain: float  # M11 (1.0 si no hay holones L >= 1)
     composite_completions: int  # M12 (acumulado de recursos compuestos resueltos)
-    acquired_orthogonalization: float  # M13 (0.0 si no hay holones raíz con edad >= 1)
+    acquired_orthogonalization: float | None  # M13 (None si no hay holones elegibles en el tick)
+    eligible_holons: int  # M13: holones raíz que entran en la media del tick
     stigmergy_active_cells: int
 ```
 
@@ -400,8 +401,10 @@ class EvolutionaryTickMetrics:
 - **`acquired_orthogonalization` (M13, métrica de C8):** mide cuánto bajó la redundancia de memoria de cada holón **desde que se formó**, para que el sesgo de `BOND` ($R_{15}$), que ya junta memorias distintas al fusionar, no cuente.
   - **Creencias que cuentan.** Para una hoja $\ell$, $K(\ell)$ es el conjunto de patrones **elementales** de su memoria con `confidence >= decision_conf_threshold` **y signo correcto** ($\text{sign}(\hat{v}) = \text{sign}(v)$ del patrón en el mundo). El colector conoce la verdad del mundo, como para M1 y M2; el agente no.
   - **Redundancia.** Con $S(U) = \sum_{\ell} |K(\ell)|$, $\text{red}(U) = (S(U) - |\bigcup_{\ell} K(\ell)|) / S(U)$ si $S(U) > 0$ y $0$ si no. Vale 0 si las memorias son disjuntas y crece con la duplicación.
-  - **Redundancia de formación.** Cada `CompositeAgent` guarda `formation_redundancy: float`, que el motor fija al crearlo (por `BOND` o por $R_{17}$) con $\text{red}(U)$ en ese momento. Un sub-holón que pasa a raíz por `SPLIT` conserva la suya, y la poda por muerte no la recalcula (afecta igual a las dos condiciones de C8).
-  - **Valor del tick.** `acquired_orthogonalization` es la media de `formation_redundancy(U) - red(U)` sobre los holones raíz con `tick - created_tick >= 1`. Es positiva si los miembros pasaron a recordar cosas más distintas que al juntarse. Si no hay ninguno, vale `0.0`, que significa "ninguna ortogonalización" y nunca es un valor ventajoso.
+  - **Redundancia de formación.** Al crear un `CompositeAgent`, el motor guarda en `formation_knowledge` el conjunto $K(\ell)$ de cada hoja. La redundancia de formación se calcula siempre **sobre las hojas que siguen vivas**: $\text{red}_0(U)$ es la fórmula de la redundancia aplicada a los $K$ guardados de las hojas actuales de $U$. Así, cuando muere una hoja, la redundancia de formación se recalcula sin ella, y su muerte no cuenta como ortogonalización. Un sub-holón que pasa a raíz por `SPLIT` conserva su propio `formation_knowledge` y su `formed_by_bond`.
+  - **Holones elegibles.** Un holón raíz entra en M13 en el tick $t$ si `formed_by_bond` es `True` y `tick - created_tick >= 1`. Los holones creados por $R_{17}$ no entran: nacen con hojas de memoria vacía, así que su redundancia inicial es 0 y sólo podrían empeorar.
+  - **Valor del tick.** `acquired_orthogonalization` es la media de $\text{red}_0(U) - \text{red}(U)$ sobre los holones elegibles, y `eligible_holons` es cuántos son. Es positiva si los miembros pasaron a recordar cosas más distintas que al juntarse, y puede ser negativa si convergen. Sin holones elegibles vale `None`: no hay nada que medir, y ese tick no cuenta.
+  - **Media de una corrida.** Para los reportes y para C8 se promedia sobre los pares (tick, holón elegible): la suma de $\text{red}_0(U) - \text{red}(U)$ sobre todos esos pares, dividida por su cantidad. Así, una condición con menos holones no se acerca a 0 por tener menos exposición. Si una corrida no tiene ningún par, su media es `None`.
 - **`cultural_convergence_tick` y `tabula_rasa_convergence_tick` en `CulturalInheritanceReport` (`002-B`):** Se define exactamente como el menor `m.tick` en `engine.history` tal que `m.decision_opportunities > 0` y `m.cumulative_decision_accuracy >= 0.70` (o `None` si ningún tick de la corrida alcanza ese umbral).
 
 En `src/ide/experiments/exp002_runner.py` se definen los reportes inmutables:
@@ -457,11 +460,11 @@ class HolonicTransitionReport:
 class OrthogonalizationReport:
     seed: int
     total_ticks: int
-    mean_acquired_orthogonalization: float  # media de M13 sobre todos los ticks; R18 apagada, R22 activa
-    mean_acquired_orthogonalization_without_view: float  # misma media con R22 apagada
-    orthogonalization_advantage: float  # diferencia de las dos anteriores (con vista - sin vista)
-    ticks_with_holons: int  # ticks de la condición con vista con al menos un holón raíz de edad >= 1
-    ticks_with_holons_without_view: int  # lo mismo en la condición sin vista: permite ver si las dos medias se promedian sobre exposiciones distintas
+    mean_acquired_orthogonalization: float | None  # media de M13 sobre los pares (tick, holón elegible); R18 apagada, R22 activa
+    mean_acquired_orthogonalization_without_view: float | None  # misma media con R22 apagada
+    orthogonalization_advantage: float | None  # con vista - sin vista; None si alguna media es None
+    holon_ticks: int  # pares (tick, holón elegible) de la condición con vista
+    holon_ticks_without_view: int  # lo mismo sin vista: muestra si las dos medias descansan en exposiciones muy distintas
     max_holon_level: int
     level_counts_peak: tuple[tuple[int, int], ...]  # pares (L, conteo) ordenados por L
 ```
@@ -505,11 +508,12 @@ En `src/ide/experiments/attribution.py`:
 | `C5` | `("C5", "Aceleración cultural intergeneracional", "002b", "cultural_accuracy", True, ("R14",))` | `("R14",)` | `ablate(config, ["R14"])`: sin herencia, con comunicación horizontal | Programada por construcción. |
 | `C6` | `("C6", "Adaptación evolutiva por selección", "002a", "evolved_accuracy", True, ("R12", "R13"))` | `("R12",)` | `ablate(config, ["R12"])`: el control de deriva | Programada por construcción: adaptarse por selección es el propósito de R12 y R13. Qué rasgos evolucionan (`final_mean_memory_capacity`, `final_mean_bond_affinity`) se registra como **observación exploratoria**, no como afirmación. |
 | `C7` | `("C7", "Superávit cooperativo sobre recursos compuestos", "003a", "holonic_composite_completions", True, ("R15", "R17"))` | `("R15",)` | `ablate(config, ["R15"])`: sin holones, con comunicación | Programada por construcción: el entorno impide por diseño que un individuo con $C_{\max} < m$ y sin ayuda resuelva el recurso. |
-| `C8` | `("C8", "Ortogonalización adquirida sin causalidad descendente", "003b", "mean_acquired_orthogonalization", True, ())` | `()` | `ablate(config, ["R22"])`: los mismos holones, formados por la misma regla `BOND`, pero sin la vista compartida | Abierta. Ninguna regla la persigue: `R18` está apagada en la condición base, y el sesgo de `BOND` se cancela porque las dos condiciones forman holones igual y M13 mide el cambio desde la formación. `R22` se diseñó para dar acceso, no para ortogonalizar. Es la única afirmación de Fase II con prueba genuina. Si E4 sale negativo (`ACTIVITY_ARTIFACT`), significa que la ortogonalización viene de que la vista exista, no de su contenido. |
+| `C8` | `("C8", "Ortogonalización adquirida sin causalidad descendente", "003b", "mean_acquired_orthogonalization", True, ())` | `()` | `ablate(config, ["R22"])`: holones formados por la misma regla `BOND`, pero sin la vista compartida. No son *los mismos* holones, porque la vista cambia la energía y con ella qué holones se forman y cuánto duran; por eso M13 se promedia por par (tick, holón) y el reporte muestra la exposición de cada condición. | Abierta. Ninguna regla la persigue: `R18` está apagada en la condición base, el sesgo de `BOND` se cancela porque M13 mide el cambio desde la formación, y `R22` se diseñó para dar acceso, no para ortogonalizar. Es la única afirmación de Fase II con prueba genuina. **Mecanismo esperado, declarado de antemano:** con la vista, una hoja deja de consultar lo que ya saben sus compañeros (D25) y por eso no lo duplica. La prueba E4 discrimina: si la ortogonalización aparece igual con el contenido de la vista anulado, la clasificación será `ACTIVITY_ARTIFACT` (la produce que la vista exista, no lo que dice), y eso se reporta como resultado. |
 
 - **Criterio "por construcción" ampliado.** Para las afirmaciones de Fase I, `is_by_construction` no cambia (quitar $R_C$ deja a la población sin comunicación). Para las de Fase II, una afirmación es por construcción si su canal no es vacío y está contenido en $R_C$: quitar $R_C$ elimina el mecanismo que se pone a prueba, y E3 sería una tautología. Con este criterio, C5, C6 y C7 salen por construcción y C8 no.
 - **Variantes de Fase II** (`_variants`):
   - `isolated`: la indicada en la tabla.
+  - **Semillas sin medición en C8.** Si en una semilla `full` o `isolated` tiene `mean_acquired_orthogonalization = None` (ningún par tick-holón elegible), esa comparación cuenta como **empate**: la prueba de signo la descarta, como a cualquier empate, y el reporte lista esas semillas. Lo mismo vale para `null_content` en E4 y para las variantes de `rule_effects` (que promedian sólo las semillas con valor).
   - `purpose_ablated`: `ablate(config, R_C)`, sólo si $R_C$ no es vacío y la afirmación no es por construcción.
   - `null_content`: `replace(config, comm_content_null=True)`. Con él, el motor aplica `nullify_belief` al ruteo horizontal, a la herencia cultural ($R_{14}$), a la estigmergia ($R_{19}$) y a la vista del holón ($R_{22}$).
   - `rule_effects`: una variante sin cada regla ablacionable de `ALL_DESIGN_RULES`, **salvo las inactivas** en el protocolo de la afirmación. Para ellas, quitar la regla no cambia nada, y un efecto 0 se leería como "no influye". Las inactivas se declaran en `PHASE2_INACTIVE_RULES: dict[str, tuple[str, ...]]` y no reciben variante ni efecto:

@@ -10,11 +10,19 @@
 - **THEN** `TickMetrics` conserva sus 14 campos de Fase I y `EvolutionaryTickMetrics` incluye `tick`, `active_agents`, `mean_generation`, `max_generation`, `births_this_tick`, `deaths_this_tick`, `mean_energy`, `offspring_social_ratio`, `holon_count_by_level == ((1, 1),)`, `max_holon_level == 1`, `mean_holon_size == 2.0`, `holonic_coverage_gain > 1.0`, `composite_completions`, `acquired_orthogonalization` y `stigmergy_active_cells`.
 
 ### Requirement: Ortogonalización Adquirida desde la Formación (M13)
-`acquired_orthogonalization` SHALL ser la media, sobre los holones raíz con edad $\ge 1$, de `formation_redundancy - red(U)`, donde `red` cuenta sólo patrones elementales con confianza $\ge$ `decision_conf_threshold` y signo correcto, y SHALL valer `0.0` si no hay tales holones.
+`acquired_orthogonalization` SHALL ser la media, sobre los holones raíz formados por `BOND` con edad $\ge 1$, de $\text{red}_0(U) - \text{red}(U)$, contando sólo patrones elementales con confianza $\ge$ `decision_conf_threshold` y signo correcto, con $\text{red}_0$ recalculada sobre las hojas vivas desde `formation_knowledge`; SHALL valer `None` sin holones elegibles.
 
 #### Scenario: Holón que ortogonaliza después de formarse
-- **WHEN** un holón se forma con dos hojas que conocen correctamente $\{\rho_0, \rho_1\}$ y $\{\rho_0\}$ (redundancia de formación `1/3`) y, dos ticks después, conocen $\{\rho_0, \rho_1\}$ y $\{\rho_2\}$, y una creencia de signo incorrecto en una hoja no cuenta
-- **THEN** `acquired_orthogonalization == 1/3` (con tolerancia `1e-9`), y sin holones de edad $\ge 1$ vale `0.0`.
+- **WHEN** un holón formado por `BOND` con dos hojas que conocen correctamente $\{\rho_0, \rho_1\}$ y $\{\rho_0\}$ (redundancia de formación `1/3`) pasa, dos ticks después, a $\{\rho_0, \rho_1\}$ y $\{\rho_2\}$, y una creencia de signo incorrecto en una hoja no cuenta
+- **THEN** `acquired_orthogonalization == 1/3` (con tolerancia `1e-9`), y sin holones elegibles vale `None`.
+
+#### Scenario: La muerte de una hoja no cuenta como ortogonalización
+- **WHEN** un holón formado por `BOND` con hojas $\{\rho_0\}$, $\{\rho_0\}$ y $\{\rho_1\}$ pierde por muerte una de las hojas $\{\rho_0\}$ sin que las demás cambien lo que saben
+- **THEN** su aporte a `acquired_orthogonalization` es `0.0`, porque la redundancia de formación se recalcula sobre las dos hojas vivas.
+
+#### Scenario: Los holones nacidos por R17 no entran
+- **WHEN** el único holón raíz de edad $\ge 1$ fue creado por `reproduce_holon`
+- **THEN** `acquired_orthogonalization is None` y `eligible_holons == 0`.
 
 ### Requirement: Protocolos 002-A y 002-B (Selección y Herencia Cultural)
 `src/ide/experiments/exp002_runner.py` SHALL implementar `run_protocol_002a_adaptation(config, total_ticks)` (evolución frente a genoma congelado y frente al control de deriva) y `run_protocol_002b_cultural_inheritance(config, total_ticks)` (herencia cultural frente a tabula rasa), con reportes tipados serializables a JSON y una CLI reproducible.
@@ -32,4 +40,4 @@
 
 #### Scenario: Ortogonalización con y sin la vista del holón en 003-B
 - **WHEN** se ejecuta `run_protocol_003b_orthogonalization` con `total_ticks=40` y `enable_downward_causation=False`
-- **THEN** el `OrthogonalizationReport` contiene `mean_acquired_orthogonalization`, `mean_acquired_orthogonalization_without_view`, `orthogonalization_advantage` igual a su diferencia, `ticks_with_holons` y `ticks_with_holons_without_view`.
+- **THEN** el `OrthogonalizationReport` contiene `mean_acquired_orthogonalization`, `mean_acquired_orthogonalization_without_view`, `orthogonalization_advantage` igual a su diferencia, `holon_ticks` y `holon_ticks_without_view`, y las medias son promedios por par (tick, holón elegible).

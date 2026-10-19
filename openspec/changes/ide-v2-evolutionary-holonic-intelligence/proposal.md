@@ -65,7 +65,8 @@ Para investigar si una inteligencia distribuida abierta (*open-ended evolution*)
   - **Métricas.** M9 pasa a ser descriptiva (proporción social de los descendientes), y la contribución de la herencia se mide contra la ablación de `R14`. Se agrega M13 (ortogonalización adquirida desde la formación, sobre creencias de signo correcto).
   - **Corrección del pre-registro (2026-10-18, antes de mirar resultados).** Tras la revisión del pre-registro se cambiaron, con aprobación:
     - C8, para que el sesgo de `BOND` no cuente: ahora mide el cambio desde la formación, contra la ablación de `R22`, en lugar de un control barajado.
-    - M13: sólo cuenta creencias de signo correcto, y sin holones vale 0 ("ninguna ortogonalización").
+    - M13: sólo cuenta creencias de signo correcto; sólo entran holones formados por `BOND`; la redundancia de formación se recalcula sobre las hojas vivas; se promedia por par (tick, holón), y sin holones no hay medición (la semilla cuenta como empate).
+    - C8 declara de antemano su mecanismo esperado (la vista suprime consultas a lo que el holón ya sabe), que E4 discrimina.
     - La reproducción neutral: conserva exactamente la demografía y sólo sortea el genoma.
     - Las reglas inactivas de cada protocolo se excluyen de `rule_effects`.
 
