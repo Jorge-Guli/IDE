@@ -4,7 +4,14 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
-from ide.domain.types import ActionResult, AgentAction, Observation, Pattern
+from ide.domain.extensions import CompositeRule
+from ide.domain.types import (
+    ActionResult,
+    AgentAction,
+    Observation,
+    Pattern,
+    StigmergicTrace,
+)
 
 
 @runtime_checkable
@@ -45,3 +52,35 @@ class EnvironmentPort(Protocol):
     def get_reachable_true_values(self, agent_id: int) -> dict[int, float]:
         """Oráculo exclusivo del motor para la métrica M2; jamás se entrega a un agente."""
         ...
+
+
+@runtime_checkable
+class EvolutionaryEnvironmentPort(EnvironmentPort, Protocol):
+    """Sub-puerto de la Fase II: nacimiento espacial, radios individuales y estigmergia."""
+
+    def spawn_agent_near(
+        self,
+        agent_id: int,
+        anchor_agent_id: int,
+        rng: np.random.Generator,
+        perception_radius: int | None = None,
+        comm_radius: int | None = None,
+    ) -> tuple[int, int]:
+        """Ubica a `agent_id` en la celda menos ocupada de la vecindad de Moore del ancla."""
+        ...
+
+    def set_agent_radii(self, agent_id: int, perception_radius: int, comm_radius: int) -> None: ...
+
+    def get_agent_distance(self, agent_a: int, agent_b: int) -> int:
+        """Distancia de Chebyshev toroidal."""
+        ...
+
+    def get_composite_rules(self) -> dict[Pattern, CompositeRule]: ...
+
+    def deposit_stigmergy(
+        self, agent_id: int, pattern: Pattern, value: float, confidence: float, tick: int
+    ) -> None: ...
+
+    def get_cell_stigmergy(self, agent_id: int) -> tuple[StigmergicTrace, ...]: ...
+
+    def get_active_stigmergy_cells(self) -> int: ...

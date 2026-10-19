@@ -11,21 +11,21 @@
 
 ## 1. Contratos de Dominio, Configuración y Extensiones (`domain-contracts`, `roadmap-extensions`)
 
-- [ ] 1.1 **[RED]** Escribir tests en `tests/test_domain_contracts.py` y `tests/test_roadmap_extensions.py` para:
+- [x] 1.1 **[RED]** Escribir tests en `tests/test_domain_contracts.py` y `tests/test_roadmap_extensions.py` para:
   - los nuevos tipos inmutables `AgentGenome`, `StigmergicTrace` y `HolonSnapshot`;
   - el sub-puerto `EvolutionaryEnvironmentPort`;
   - los hiperparámetros y validaciones de Fase II en `SimulationConfig`, incluidos `reproduction_mode`, `enable_holon_view` y `holon_energy_sharing`;
   - `mutate_genome` y `compute_epistemic_synergy`.
 
   Verificar que fallan, y que `VisibleResource`, `EnvironmentPort` y `CompositeRule` conservan sus campos y métodos de Fase I.
-- [ ] 1.2 **[GREEN]** Implementar:
+- [x] 1.2 **[GREEN]** Implementar:
   - `AgentGenome`, `StigmergicTrace` y `HolonSnapshot` en `src/ide/domain/types.py`;
   - `EvolutionaryEnvironmentPort` en `src/ide/domain/ports.py`;
   - los campos y validaciones de Fase II en `src/ide/config.py`;
   - `mutate_genome` y `compute_epistemic_synergy` en `src/ide/domain/extensions.py`.
 
   Actualizar los docstrings con la numeración de experimentos v2.
-- [ ] 1.3 **[REFACTOR]** Verificación del bloque.
+- [x] 1.3 **[REFACTOR]** Verificación del bloque.
 
 ## 2. Memoria con Penalización de Redundancia y Dinámica Evolutiva (`bounded-memory`, `evolutionary-dynamics`, `micro-agent`)
 
