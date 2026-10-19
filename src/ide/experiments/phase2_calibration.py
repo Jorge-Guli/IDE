@@ -22,6 +22,8 @@ recursos con un criterio puramente demográfico: nunca calcula ni mira las métr
   tampoco hay un valor viable, se usa `CALIBRATION_FALLBACK = 20` y la comparación E4 de C5 a C8
   se declara no interpretable (con 20 se extingue el control nulo), regla fijada antes de esta
   corrida; el reporte la registra en `fallback`.
+- La grilla refinada tampoco dio un valor viable (`RESULTADOS.md`), así que
+  `PHASE2_PROTOCOL_CONFIGS` usa la salida de respaldo, 20 (`PHASE2_RESOURCES_PER_PATTERN`).
 
 Uso: `python -m ide.experiments.phase2_calibration [--refined] [--jobs N] [--out results/]
 [--ticks T]`.
@@ -49,7 +51,9 @@ from ide.simulation.engine import SimulationEngine
 CALIBRATION_PARAMETER = "resources_per_pattern"
 CALIBRATION_GRID: tuple[int, ...] = (10, 20, 40, 80)
 CALIBRATION_REFINED_GRID: tuple[int, ...] = (25, 30, 35)  # Enmienda 1b
-CALIBRATION_FALLBACK = 20  # Enmienda 1b: si la grilla refinada no da un valor viable
+# Enmienda 1b, fijado antes de correr la grilla refinada: si no da un valor viable. Es el valor
+# que tomó el perfil (`PHASE2_RESOURCES_PER_PATTERN`); un test exige que coincidan.
+CALIBRATION_FALLBACK = 20
 CALIBRATION_SEEDS: tuple[int, ...] = tuple(range(10))
 MIN_VIABLE_SEEDS = 8
 MIN_GENERATION = 5

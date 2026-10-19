@@ -238,6 +238,8 @@ def test_exige_condiciones_para_cada_protocolo() -> None:
 def test_grilla_refinada_declarada() -> None:
     """Enmienda 1b: valores entre 20 y 40, mismo criterio y mismas semillas."""
     assert CALIBRATION_REFINED_GRID == (25, 30, 35)
+    # Dos literales independientes: el perfil vigente es la salida de respaldo pre-registrada.
+    assert attribution.PHASE2_RESOURCES_PER_PATTERN == CALIBRATION_FALLBACK == 20
     assert not set(CALIBRATION_REFINED_GRID) & set(CALIBRATION_GRID)
 
 

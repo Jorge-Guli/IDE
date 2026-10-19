@@ -560,7 +560,7 @@ def test_perfil_y_configuraciones_congelados() -> None:
         "num_composite_patterns": 3,
         "composite_order": 4,
     }
-    base = SimulationConfig()
+    base = SimulationConfig(resources_per_pattern=attribution.PHASE2_RESOURCES_PER_PATTERN)
     assert {
         "002a": dataclasses.replace(base, enable_evolution=True),
         "002b": dataclasses.replace(base, enable_evolution=True, enable_cultural_inheritance=True),
@@ -570,6 +570,7 @@ def test_perfil_y_configuraciones_congelados() -> None:
     c003a = PHASE2_PROTOCOL_CONFIGS["003a"]
     assert c003a.num_composite_patterns == 3
     assert c003a.composite_order == 4 > c003a.memory_capacity
+    assert attribution.PHASE2_RESOURCES_PER_PATTERN == 20
 
 
 def _rule_is_active(rule_id: str, config: SimulationConfig) -> bool:
@@ -836,3 +837,16 @@ def test_atribucion_sobre_configuraciones_de_referencia(small_phase2: str) -> No
     report = run_phase2_attribution(seeds=(3,), claims=(C6,), configs=reference)
     config = dataclasses.replace(reference["002a"], seed=3)
     assert report.evaluations[0].values["full"][0] == measure_claim(C6, config, small_phase2)
+
+
+def test_e4_no_interpretable_en_fase_ii(small_phase2: str) -> None:
+    """Respaldo de la Enmienda 1b: con 20 recursos el control nulo se extingue; E4 no se lee."""
+    configs = attribution.PHASE2_PROTOCOL_CONFIGS
+    amended = {k: dataclasses.replace(c, resources_per_pattern=20) for k, c in configs.items()}
+    reference = {k: dataclasses.replace(c, resources_per_pattern=8) for k, c in configs.items()}
+    report = run_phase2_attribution(seeds=(3,), claims=(C6,), configs=amended)
+    assert report.evaluations[0].e4_interpretable is False
+    # Fuera de la abundancia del perfil (p. ej., la referencia con 8) la marca no aplica.
+    report = run_phase2_attribution(seeds=(3,), claims=(C6,), configs=reference)
+    assert report.evaluations[0].e4_interpretable is True
+    assert evaluate(UP, by_construction=True).e4_interpretable is True  # Fase I no cambia

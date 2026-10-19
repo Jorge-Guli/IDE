@@ -83,7 +83,7 @@ Verificación con `src/` idéntico al del commit `360c771`; `tests/` también, s
 - **Pre-registro:** `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y el perfil de corrida versionados en el commit `7375a8c`, **antes** de implementar los runners 002 y 003.
 - **Código:** `7375a8c` (motor del bloque 5, sin los runners).
 - **Qué se mide:** sólo que la corrida termina y la generación máxima (`max(m.max_generation)` sobre `engine.evolutionary_history`), como fija D29. **No** se calcularon ni se miraron las métricas de las afirmaciones C5 a C8.
-- **Comando:** para cada protocolo `p` de `PHASE2_PROTOCOL_CONFIGS` y cada semilla `s` de `PHASE2_SEEDS`, `SimulationEngine(replace(PHASE2_PROTOCOL_CONFIGS[p], seed=s))` durante `PROFILES["phase2"].total_ticks = 2000` ticks.
+- **Comando:** para cada protocolo `p` y cada semilla `s` de `PHASE2_SEEDS`, `SimulationEngine(replace(PHASE2_PROTOCOL_CONFIGS[p], seed=s))` con las configuraciones de `7375a8c`, que hoy son `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`, durante `PROFILES["phase2"].total_ticks = 2000` ticks.
 
 | Protocolo | Termina (2000 ticks) | Gen. máx. 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 |
 | :--- | :---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -122,10 +122,32 @@ Semillas viables (de 10) por condición. Entre paréntesis, las semillas con pob
 | 003-B `without_view` | 0 | 10 | 9 | 2 (10 vivas) |
 | 003-A/B `null_content` | 0 | **1** | 10 | 7 (10 vivas) |
 
-- **Resultado:** ningún valor es viable; no se elige nada, no se amplía la grilla sin una decisión nueva y se consulta, como fija la enmienda.
+- **Resultado:** ningún valor es viable; no se elige nada y se consulta, como fija la enmienda. El responsable del proyecto decidió entonces la Enmienda 1b (grilla refinada, abajo).
 - **Con 10** se extinguen todas las condiciones.
 - **Con 20** todas las condiciones de los runners son viables (la peor, 003-A `individual`, 9 de 10), pero el **control nulo** se extingue en 8 o 9 de 10 semillas: con el contenido de las creencias reemplazado al azar, la población no sobrevive. Es justo el sesgo que la ampliación buscaba detectar: medida con 20, la comparación E4 (completa frente a control nulo) ganaría por extinción del control.
 - **Con 40 y 80** todas las poblaciones siguen vivas, pero la mayoría no llega a la generación 5: el criterio falla por falta de recambio generacional, no por extinción. Una explicación posible, **no verificada**, es que con abundancia la población llega pronto al tope `max_population = 160` y casi no nace nadie. El control nulo, que se extingue con 20, es viable con 40.
+
+### Grilla refinada (Enmienda 1b)
+
+- **Código y equipo:** `d60ffa6` (mergeado en main como `f8cdad3`), corrido en el equipo del responsable del proyecto con `python -m ide.experiments.phase2_calibration --refined --jobs $env:NUMBER_OF_PROCESSORS` (el resultado no depende de `--jobs`). Mismo criterio y mismas semillas (0 a 9) que la grilla original. Salida de consola completa en `registros/phase2_calibration_refinada_consola.txt`.
+
+| Condición | 25 | 30 | 35 |
+| :--- | ---: | ---: | ---: |
+| 002-A `evolved` | 10 | 2 (10 vivas) | 1 (10 vivas) |
+| 002-A `frozen_genome` | 8 (10 vivas) | 5 (10 vivas) | 0 (10 vivas) |
+| 002-A `drift` | 8 (10 vivas) | 2 (10 vivas) | 0 (10 vivas) |
+| 002-A `null_content` | 10 | 10 | 10 |
+| 002-B `cultural` | 8 (10 vivas) | 3 (10 vivas) | 1 (10 vivas) |
+| 002-B `tabula_rasa` | 10 | 2 (10 vivas) | 1 (10 vivas) |
+| 002-B `null_content` | 8 | 10 | 10 |
+| 003-A `holonic` / 003-B `with_view` | 10 | 10 | 10 |
+| 003-A `individual` | 8 (10 vivas) | 3 (10 vivas) | 2 (10 vivas) |
+| 003-B `without_view` | 10 | 10 | 10 |
+| 003-A/B `null_content` | **5** | 10 | 10 |
+
+- **Resultado:** ningún valor es viable. Con 25 sólo falla el control nulo de 003 (5 de 10); con 30 y 35 las condiciones de 002 y 003-A `individual` siguen vivas pero casi no llegan a la generación 5, el mismo patrón que con 40 y 80.
+- **Salida de respaldo, fijada antes de esta corrida:** `resources_per_pattern = 20` (`PHASE2_RESOURCES_PER_PATTERN`), con E4 de C5 a C8 no interpretable (`ClaimEvaluation.e4_interpretable = False`) y cada `rule_effect` leído después de revisar su demografía (`ClaimEvaluation.demography`). Con 20, todas las condiciones de los runners son viables (9 o 10 de 10), pero el control nulo se extingue en 8 o 9 de 10.
+- La extinción del control nulo con 20 es una observación demográfica de la calibración, con las semillas 0 a 9. No es una medición de C5 a C8, y el control nulo aleatoriza a la vez todos los canales (horizontal, herencia, estigmergia y vista), así que no aísla un mecanismo.
 
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
