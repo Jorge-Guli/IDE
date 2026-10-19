@@ -425,3 +425,20 @@ def test_config_orden_compuesto_sin_compuestos_no_se_valida() -> None:
 
 def test_config_acepta_los_bordes_validos_de_fase_ii() -> None:
     SimulationConfig(redundancy_penalty=1.0, composite_failure_penalty=1.0, mutation_rate=0.0)
+
+
+@pytest.mark.parametrize(
+    "campo",
+    [
+        "initial_energy",
+        "energy_gain_scale",
+        "composite_failure_penalty",
+        "redundancy_penalty",
+        "offspring_energy_share",
+        "mutation_rate",
+        "move_cost",
+    ],
+)
+def test_config_rechaza_nan_en_hiperparametros_de_fase_ii(campo: str) -> None:
+    with pytest.raises(ValueError, match=campo):
+        SimulationConfig(**{campo: float("nan")})  # type: ignore[arg-type]

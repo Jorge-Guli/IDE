@@ -84,12 +84,15 @@ class ToroidalGrid2D:
 
     # --- Utilidades internas -------------------------------------------------------------------
 
-    def _random_cell(self) -> Cell:
-        return int(self._rng.integers(self._width)), int(self._rng.integers(self._height))
+    def _random_cell(self, rng: np.random.Generator | None = None) -> Cell:
+        rng = self._rng if rng is None else rng
+        return int(rng.integers(self._width)), int(rng.integers(self._height))
 
     def _spawn(self, pattern: Pattern) -> None:
-        cell = self._random_cell()
-        resource = Resource(self._next_resource_id, pattern, self._world[pattern])
+        self._place_resource(pattern, self._world[pattern], self._random_cell())
+
+    def _place_resource(self, pattern: Pattern, value: float, cell: Cell) -> None:
+        resource = Resource(self._next_resource_id, pattern, value)
         self._next_resource_id += 1
         self.cell_resources[cell][resource.resource_id] = resource
         self._resource_cell[resource.resource_id] = cell
@@ -111,16 +114,8 @@ class ToroidalGrid2D:
                 self._spawn_composite(pattern)
 
     def _spawn_composite(self, pattern: Pattern) -> None:
-        cell = (
-            int(self._comp_rng.integers(self._width)),
-            int(self._comp_rng.integers(self._height)),
-        )
-        resource = Resource(
-            self._next_resource_id, pattern, self._composite_rules[pattern].composite_value
-        )
-        self._next_resource_id += 1
-        self.cell_resources[cell][resource.resource_id] = resource
-        self._resource_cell[resource.resource_id] = cell
+        value = self._composite_rules[pattern].composite_value
+        self._place_resource(pattern, value, self._random_cell(self._comp_rng))
 
     def _offsets_for(self, radius: int) -> tuple[tuple[int, int, int, Cell | None], ...]:
         cached = self._offsets_cache.get(radius)
@@ -314,6 +309,8 @@ class ToroidalGrid2D:
 
     def set_agent_radii(self, agent_id: int, perception_radius: int, comm_radius: int) -> None:
         """Fija los radios del agente; si coinciden con los globales no guarda nada."""
+        if agent_id not in self._agent_cell:
+            raise KeyError(f"el agente {agent_id} no está en el entorno")
         self._check_radii(perception_radius, comm_radius)
         self._store_radii(agent_id, perception_radius, comm_radius)
 
@@ -377,10 +374,9 @@ class ToroidalGrid2D:
         return len(self.cell_stigmergy)
 
     def _decay_stigmergy(self, tick: int) -> None:
-        for cell in sorted(self.cell_stigmergy):
-            traces = self.cell_stigmergy[cell]
-            for pattern in sorted(traces):
-                trace = traces[pattern]
+        # El resultado no depende del orden de recorrido ni consume rng: no hace falta ordenar.
+        for cell, traces in list(self.cell_stigmergy.items()):
+            for pattern, trace in list(traces.items()):
                 if trace.last_updated_tick >= tick:
                     continue
                 intensity = trace.intensity - self.config.stigmergy_decay

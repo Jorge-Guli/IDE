@@ -851,3 +851,38 @@ def test_nacimiento_fallido_por_radio_de_comunicacion_no_consume_el_rng() -> Non
         grid.spawn_agent_near(80, 1, rng, comm_radius=-1)
     assert rng.bit_generator.state == ref.bit_generator.state
     assert 80 not in grid.get_active_agent_ids()
+
+
+def test_set_agent_radii_rechaza_agentes_inexistentes() -> None:
+    grid = make_grid()
+    with pytest.raises(KeyError):
+        grid.set_agent_radii(99, 3, 1)
+    grid.remove_agents([0])
+    with pytest.raises(KeyError):
+        grid.set_agent_radii(0, 3, 1)
+    assert grid._agent_radii == {}  # pyright: ignore[reportPrivateUsage]
+
+
+_deposits = st.lists(
+    st.tuples(
+        st.sampled_from([0, 1, 2]),
+        st.integers(0, 3),
+        st.sampled_from([-1.0, 0.0, 0.5, 1.0]),
+        st.sampled_from([0.1, 0.4, 0.7, 1.0]),
+    ),
+    max_size=12,
+)
+
+
+@given(deposits=_deposits, data=st.data())
+def test_depositos_del_mismo_tick_dan_lo_mismo_en_cualquier_orden(
+    deposits: list[tuple[int, int, float, float]], data: st.DataObject
+) -> None:
+    shuffled = data.draw(st.permutations(deposits))
+    grids = [stigmergy_grid(), stigmergy_grid()]
+    for grid, batch in zip(grids, (deposits, shuffled), strict=True):
+        for agent in range(3):
+            place(grid, agent, (2, 2))
+        for agent, pattern, value, conf in batch:
+            grid.deposit_stigmergy(agent, pat(pattern), value, conf, 7)
+    assert grids[0].cell_stigmergy == grids[1].cell_stigmergy

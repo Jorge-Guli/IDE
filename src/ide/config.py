@@ -158,7 +158,7 @@ class SimulationConfig:
             if getattr(self, name) < 1:
                 raise ValueError(f"{name} debe ser >= 1, recibido {getattr(self, name)}")
         for name in _NON_NEGATIVE_FIELDS:
-            if getattr(self, name) < 0:
+            if not getattr(self, name) >= 0:  # `not >=` también rechaza NaN
                 raise ValueError(f"{name} no puede ser negativo, recibido {getattr(self, name)}")
         if 2 * max(self.perception_radius, self.comm_radius) >= min(
             self.grid_width, self.grid_height
@@ -188,7 +188,7 @@ class SimulationConfig:
 
     def _validate_phase2(self) -> None:
         for name in _POSITIVE_FIELDS:
-            if getattr(self, name) <= 0.0:
+            if not getattr(self, name) > 0.0:  # `not >` también rechaza NaN
                 raise ValueError(f"{name} debe ser > 0, recibido {getattr(self, name)}")
         if not 0.0 < self.offspring_energy_share < 1.0:
             raise ValueError(
@@ -199,7 +199,7 @@ class SimulationConfig:
             raise ValueError(
                 f"redundancy_penalty debe estar en (0, 1], recibido {self.redundancy_penalty}"
             )
-        if self.composite_failure_penalty > 1.0:
+        if not self.composite_failure_penalty <= 1.0:
             raise ValueError(
                 f"composite_failure_penalty debe ser <= 1, recibido "
                 f"{self.composite_failure_penalty}"
