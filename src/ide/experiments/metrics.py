@@ -7,6 +7,7 @@ con la misma confianza.
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 from ide.agent.holon import AgentNode, CompositeAgent, composite_nodes
 from ide.agent.micro_agent import MicroAgent
@@ -320,3 +321,28 @@ class EvolutionaryMetricsCollector:
             eligible_holons=len(acquired),
             stigmergy_active_cells=stigmergy_active_cells,
         )
+
+
+def holon_ticks(history: Sequence[EvolutionaryTickMetrics]) -> int:
+    """Exposición de una corrida a M13: cantidad de pares (tick, holón elegible)."""
+    return sum(m.eligible_holons for m in history)
+
+
+def holon_tick_mean(
+    history: Sequence[EvolutionaryTickMetrics],
+    field: Literal["acquired_coverage", "redundancy_reduction"],
+) -> float | None:
+    """Media de M13 de una corrida sobre los pares (tick, holón elegible); `None` sin pares.
+
+    Cada tick pesa por sus holones elegibles, así que una condición con menos holones no se
+    acerca a 0 por tener menos exposición (D28).
+    """
+    pairs = holon_ticks(history)
+    if pairs == 0:
+        return None
+    total = 0.0
+    for m in history:
+        value = getattr(m, field)
+        if value is not None:
+            total += value * m.eligible_holons
+    return total / pairs

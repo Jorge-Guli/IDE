@@ -82,12 +82,12 @@
 
 ## 6. Telemetría M8–M13, Protocolos 002/003 y Atribución R12–R23 (`experimental-suite`, `emergence-attribution`)
 
-- [ ] 6.1 **[RED]** Crear `tests/test_exp002_exp003.py` y ampliar `tests/test_metrics.py` y `tests/test_attribution.py` con tests para:
+- [x] 6.1 **[RED]** Crear `tests/test_exp002_exp003.py` y ampliar `tests/test_metrics.py` y `tests/test_attribution.py` con tests para:
   - (a) `EvolutionaryTickMetrics` (M8–M13, incluida la cobertura colectiva adquirida (y la reducción de redundancia descriptiva) con `formation_knowledge`, holones elegibles por `BOND`, reinicio del estado de formación con `formation_tick` cuando el holón pierde un miembro y media por par tick-holón) sin alterar los 14 campos de `TickMetrics`;
   - (b) `PHASE2_DESIGN_RULES` (`R12`–`R23`) con `purpose`, `ALL_DESIGN_RULES`, `PHASE2_CLAIM_CHANNELS`, el criterio ampliado de `is_by_construction`, el perfil `phase2`, `PHASE2_SEEDS`, `PHASE2_PROTOCOL_CONFIGS`, `run_phase2_attribution` (una sola condición por variante) y las variantes pre-registradas para `EXP002_CLAIMS` y `EXP003_CLAIMS` (para C8, la ablación de `R22`) y `PHASE2_INACTIVE_RULES` fuera de `rule_effects` (con el test que la contrasta con `PHASE2_PROTOCOL_CONFIGS`), preservando `report.rules == DESIGN_RULES` y `rule_effects == R3..R11` para `EXP001_CLAIMS`;
   - (c) la ejecución y la serialización JSON/CLI de los cuatro protocolos 002 y 003.
-- [ ] 6.2 **[GREEN]** Antes de los runners, correr la prueba de humo de design D29 (sólo termina y generación máxima, sin mirar las métricas de las afirmaciones) y registrar su salida. Implementar las métricas en `src/ide/experiments/metrics.py`, extender `src/ide/experiments/attribution.py` y crear `src/ide/experiments/exp002_runner.py` y `src/ide/experiments/exp003_runner.py`.
-- [ ] 6.3 **[REFACTOR]** Verificación completa:
+- [x] 6.2 **[GREEN]** Antes de los runners, correr la prueba de humo de design D29 (sólo termina y generación máxima, sin mirar las métricas de las afirmaciones) y registrar su salida. Implementar las métricas en `src/ide/experiments/metrics.py`, extender `src/ide/experiments/attribution.py` y crear `src/ide/experiments/exp002_runner.py` y `src/ide/experiments/exp003_runner.py`.
+- [x] 6.3 **[REFACTOR]** Verificación completa:
   - `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide` (cobertura $\ge 90\%$);
   - `python -m pytest -m slow`;
   - `openspec validate --all --strict`;

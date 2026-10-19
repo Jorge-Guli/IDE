@@ -6,6 +6,7 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -30,7 +31,9 @@ from ide.experiments.attribution import (
     ablate,
     classify,
     disables_communication,
+    is_by_construction,
     measure_claim,
+    run_phase2_attribution,
     run_protocol_001d_attribution,
 )
 from ide.experiments.exp001_runner import (
@@ -600,3 +603,187 @@ def test_reglas_inactivas_coinciden_con_las_configuraciones() -> None:
     for protocol, config in PHASE2_PROTOCOL_CONFIGS.items():
         inactive = [rid for rid in ablatable if not _rule_is_active(rid, config)]
         assert tuple(inactive) == PHASE2_INACTIVE_RULES[protocol], protocol
+
+
+# --- Fase II: criterio ampliado, variantes y semillas sin medición -----------------------------
+
+PHASE2_CLAIMS = EXP002_CLAIMS + EXP003_CLAIMS
+C5, C6, C7, C8 = PHASE2_CLAIMS
+SMALL_GRID = {"grid_width": 10, "grid_height": 10, "num_agents": 12, "resources_per_pattern": 6}
+PHASE1_EFFECTS = [f"R{i}" for i in range(3, 12)]
+EXPECTED_EFFECTS = {
+    "C5": [*PHASE1_EFFECTS, "R12", "R13", "R14", "R21"],
+    "C6": [*PHASE1_EFFECTS, "R12", "R13", "R21"],
+    "C7": [*PHASE1_EFFECTS, "R12", "R13", "R15", "R16", "R17", "R21", "R22", "R23"],
+    "C8": [*PHASE1_EFFECTS, "R12", "R13", "R15", "R16", "R17", "R21", "R22", "R23"],
+}
+
+
+def test_clasificacion_de_c5_a_c8_por_construccion() -> None:
+    """Escenario de la spec: el canal está contenido en R_C; Fase I conserva su criterio."""
+    for claim in PHASE2_CLAIMS:
+        assert is_by_construction(claim, PHASE2_PROTOCOL_CONFIGS[claim.protocol]), claim.claim_id
+    assert [is_by_construction(c, CFG) for c in EXP001_CLAIMS] == [True, True, False, True]
+    widened = dataclasses.replace(C6, purpose_rules=("R13",))  # canal R12 fuera de R_C
+    assert not is_by_construction(widened, PHASE2_PROTOCOL_CONFIGS["002a"])
+
+
+def test_c8_sin_medicion_en_ninguna_semilla() -> None:
+    """Escenario de la spec: sin holones elegibles, C8 es INSUFFICIENT_EVIDENCE."""
+    nothing: tuple[float | None, ...] = (None,) * 10
+    values: dict[str, Sequence[float | None]] = {
+        "full": nothing,
+        "isolated": (0.1,) * 10,
+        "null_content": (0.2,) * 10,
+        "without:R22": (0.1,) * 10,
+        "without:R12": nothing,
+    }
+    evaluation = classify(C8, values, by_construction=True, seeds=PHASE2_SEEDS)
+    assert evaluation.status is ClaimStatus.INSUFFICIENT_EVIDENCE
+    assert evaluation.p_vs_isolated == 1.0
+    assert evaluation.rule_effects == {"R22": None, "R12": None}
+    assert evaluation.seeds == PHASE2_SEEDS
+    assert evaluation.unmeasured_seeds == {
+        "isolated": PHASE2_SEEDS,
+        "null_content": PHASE2_SEEDS,
+        "without:R22": PHASE2_SEEDS,
+        "without:R12": PHASE2_SEEDS,
+    }
+
+
+def test_semillas_sin_medicion_cuentan_como_empate() -> None:
+    full = (0.5, 0.6, None, 0.7, 0.8, 0.9)
+    values: dict[str, Sequence[float | None]] = {
+        "full": full,
+        "isolated": (0.1, 0.1, 0.1, 0.1, 0.1, None),
+        "null_content": (0.0,) * 6,
+        "without:R22": (0.4, None, 0.0, 0.6, 0.6, 0.6),
+    }
+    seeds = (1, 2, 3, 4, 5, 6)
+    evaluation = classify(C8, values, by_construction=True, seeds=seeds)
+    # E2 mide 4 semillas (< MIN_SEEDS): evidencia insuficiente, aunque `full` tenga 5 valores.
+    assert evaluation.status is ClaimStatus.INSUFFICIENT_EVIDENCE
+    assert evaluation.p_vs_isolated == pytest.approx(1 / 16, abs=1e-9)
+    assert evaluation.p_vs_null_content == pytest.approx(1 / 32, abs=1e-9)
+    assert evaluation.unmeasured_seeds == {
+        "isolated": (3, 6),
+        "null_content": (3,),
+        "without:R22": (2, 3),
+    }
+    effect = evaluation.rule_effects["R22"]
+    assert effect == pytest.approx((0.1 + 0.1 + 0.2 + 0.3) / 4, abs=1e-9)
+    measured = dict(values, isolated=(0.1,) * 6)
+    assert classify(C8, measured, True, seeds=seeds).status is ClaimStatus.PROGRAMMED
+
+
+def test_fase_i_sin_semillas_sin_medicion() -> None:
+    evaluation = evaluate(UP, by_construction=True)
+    assert evaluation.unmeasured_seeds == {}
+    assert evaluation.seeds == ()
+
+
+def test_measure_claim_de_fase_ii(tiny_profile: str) -> None:
+    """Escenario de la spec: cada afirmación devuelve su métrica; C8 puede ser `None`."""
+    from ide.experiments.exp002_runner import run_evolution_condition
+    from ide.experiments.exp003_runner import run_holonic_condition
+
+    ticks = PROFILES[tiny_profile].total_ticks
+    for claim in PHASE2_CLAIMS:
+        config = dataclasses.replace(PHASE2_PROTOCOL_CONFIGS[claim.protocol], **SMALL_GRID)
+        value = measure_claim(claim, config, tiny_profile)
+        if claim.protocol.startswith("002"):
+            expected = run_evolution_condition(config, ticks).final_accuracy
+            assert isinstance(value, float) and value == pytest.approx(expected, abs=1e-9)
+        elif claim is C7:
+            completions = run_holonic_condition(config, ticks).composite_completions
+            assert isinstance(value, float) and value == float(completions)
+        else:
+            coverage = run_holonic_condition(config, ticks).mean_acquired_coverage
+            assert value == (None if coverage is None else pytest.approx(coverage, abs=1e-9))
+
+
+def test_measure_claim_c8_sin_holones_elegibles(monkeypatch: pytest.MonkeyPatch) -> None:
+    # En un único tick ningún holón tiene edad >= 1: no hay nada que medir.
+    monkeypatch.setitem(PROFILES, "one", Profile(1, 0, 1, 1))
+    assert measure_claim(C8, PHASE2_PROTOCOL_CONFIGS["003b"], "one") is None
+
+
+@pytest.fixture
+def small_phase2(monkeypatch: pytest.MonkeyPatch, tiny_profile: str) -> str:
+    """Perfil corto y configuraciones chicas, sin tocar el pre-registro versionado."""
+    monkeypatch.setattr(attribution, "PHASE2_ATTRIBUTION_PROFILE", tiny_profile)
+    small = {
+        key: dataclasses.replace(config, **SMALL_GRID)
+        for key, config in PHASE2_PROTOCOL_CONFIGS.items()
+    }
+    monkeypatch.setattr(attribution, "PHASE2_PROTOCOL_CONFIGS", small)
+    return tiny_profile
+
+
+def test_atribucion_de_fase_ii_con_pocas_semillas(small_phase2: str) -> None:
+    report = run_phase2_attribution(seeds=(3,))
+    assert report.profile == small_phase2
+    assert report.rules == ALL_DESIGN_RULES
+    assert [e.claim_id for e in report.evaluations] == ["C5", "C6", "C7", "C8"]
+    for evaluation in report.evaluations:
+        assert evaluation.status is ClaimStatus.INSUFFICIENT_EVIDENCE
+        assert evaluation.by_construction is True
+        assert evaluation.seeds == (3,)
+        assert list(evaluation.rule_effects) == EXPECTED_EFFECTS[evaluation.claim_id]
+        assert "purpose_ablated" not in evaluation.values
+    c6 = report.evaluations[1]
+    configs = attribution.PHASE2_PROTOCOL_CONFIGS
+    drift = ablate(dataclasses.replace(configs["002a"], seed=3), ["R12"])
+    assert c6.values["isolated"][0] == measure_claim(C6, drift, small_phase2)
+    assert c6.values["isolated"] == c6.values["without:R12"]
+    c8 = report.evaluations[3]
+    without_view = ablate(dataclasses.replace(configs["003b"], seed=3), ["R22"])
+    assert c8.values["isolated"][0] == measure_claim(C8, without_view, small_phase2)
+
+
+def test_atribucion_de_fase_ii_paralelismo_inocuo(small_phase2: str) -> None:
+    sequential = run_phase2_attribution(seeds=(3,), claims=(C8,))
+    parallel = run_phase2_attribution(seeds=(3,), claims=(C8,), jobs=2)
+    assert sequential == parallel
+
+
+def test_cada_atribucion_acepta_solo_sus_afirmaciones() -> None:
+    with pytest.raises(ValueError, match="C5"):
+        run_protocol_001d_attribution(SMALL, [3], claims=EXP002_CLAIMS)
+    with pytest.raises(ValueError, match="C1"):
+        run_phase2_attribution(seeds=(3,), claims=EXP001_CLAIMS[:1])
+    with pytest.raises(ValueError, match="repetidas"):
+        run_phase2_attribution(seeds=(3, 3), claims=(C8,))
+
+
+def test_c7_y_c8_comparten_sus_corridas_identicas(
+    small_phase2: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """003-A y 003-B tienen la misma configuración: C8 no repite las corridas de C7."""
+    sizes: list[int] = []
+    original = attribution.map_in_order
+
+    def counting(function: Any, items: Any, jobs: int) -> Any:
+        sizes.append(len(items))
+        return original(function, items, jobs)
+
+    monkeypatch.setattr(attribution, "map_in_order", counting)
+    alone = run_phase2_attribution(seeds=(3,), claims=(C7,))
+    both = run_phase2_attribution(seeds=(3,), claims=(C7, C8))
+    assert sizes[0] == sizes[1]
+    assert both.evaluations[0] == alone.evaluations[0]
+
+
+def test_c8_exige_r18_apagada(small_phase2: str) -> None:
+    configs = attribution.PHASE2_PROTOCOL_CONFIGS
+    with_r18 = dataclasses.replace(configs["003b"], enable_downward_causation=True)
+    with pytest.raises(ValueError, match="R18"):
+        measure_claim(C8, with_r18, small_phase2)
+    configs["003b"] = with_r18
+    with pytest.raises(ValueError, match="R18"):
+        run_phase2_attribution(seeds=(3,), claims=(C8,))
+
+
+def test_tipo_de_corrida_desconocido() -> None:
+    with pytest.raises(ValueError, match="tipo de corrida desconocido"):
+        attribution._run("foo", SMALL, PROFILES["quick"])  # pyright: ignore[reportPrivateUsage]

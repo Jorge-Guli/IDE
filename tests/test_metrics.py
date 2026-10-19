@@ -1,17 +1,24 @@
-"""Tests de las métricas M1 a M7 (`experimental-suite`)."""
+"""Tests de las métricas M1 a M7 y de la telemetría evolutiva M8 a M13 (`experimental-suite`)."""
 
+import dataclasses
 from dataclasses import replace
 from typing import Any
 
 import pytest
 
+from ide.agent.holon import AgentNode, CompositeAgent
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
 from ide.domain.types import ActionType, AgentAction, KnowledgeUnit, Pattern
 from ide.environments.grid2d import ToroidalGrid2D
 from ide.experiments.metrics import (
+    EvolutionaryMetricsCollector,
+    EvolutionaryTickMetrics,
     MetricsCollector,
     TickMetrics,
+    correct_known_patterns,
+    holon_tick_mean,
+    holon_ticks,
     judge_decision,
     knowledge_snapshot,
     propagation_time,
@@ -263,3 +270,207 @@ def test_theta_fuera_de_rango(theta: float) -> None:
     history = [tick_metrics(0, {pat(3): 0.5})]
     with pytest.raises(ValueError, match="theta"):
         propagation_time(history, pat(3), theta)
+
+
+# --- Fase II: telemetría evolutiva y holónica M8 a M13 (design D28) ----------------------------
+
+TICK_METRICS_FIELDS = [
+    "tick", "active_agents", "individual_coverage_mean", "collective_coverage",
+    "accessible_coverage_mean", "decision_opportunities", "correct_decisions",
+    "decision_accuracy", "cumulative_decision_accuracy", "pattern_prevalence",
+    "pattern_false_prevalence", "false_belief_prevalence", "messages_sent", "messages_per_agent",
+]  # fmt: skip
+EVOLUTIONARY_FIELDS = [
+    "tick", "active_agents", "mean_generation", "max_generation", "births_this_tick",
+    "deaths_this_tick", "mean_energy", "offspring_social_ratio", "holon_count_by_level",
+    "max_holon_level", "mean_holon_size", "holonic_coverage_gain", "composite_completions",
+    "acquired_coverage", "redundancy_reduction", "eligible_holons", "stigmergy_active_cells",
+]  # fmt: skip
+
+
+def record(
+    tick: int,
+    agents: list[MicroAgent],
+    roots: list[AgentNode] | None = None,
+    **counters: int,
+) -> EvolutionaryTickMetrics:
+    """Un tick del colector; sin `roots`, cada agente es su propio nodo raíz."""
+    nodes = roots if roots is not None else list(agents)
+    base = {"births": 0, "deaths": 0, "composite_completions": 0, "stigmergy_active_cells": 0}
+    return EvolutionaryMetricsCollector(CFG).record_tick(
+        tick,
+        {a.agent_id: a for a in agents},
+        {n.node_id: n for n in nodes},
+        WORLD,
+        **{**base, **counters},
+    )
+
+
+def bonded(node_id: int, *children: AgentNode, tick: int = 0) -> CompositeAgent:
+    """Holón formado por BOND en `tick`, con el estado de formación que completa el motor."""
+    holon = CompositeAgent(node_id, tuple(children), tick, True)
+    holon.formation_knowledge = tuple(
+        (leaf.agent_id, correct_known_patterns(leaf, WORLD, CFG)) for leaf in holon.leaf_agents
+    )
+    return holon
+
+
+def forget(agent: MicroAgent, i: int) -> None:
+    assert agent.memory.remove(pat(i))
+
+
+def learn(agent: MicroAgent, i: int, value: float = 1.0) -> None:
+    agent.memory.upsert(KnowledgeUnit(pat(i), value, 0.9, 1, 0, True), 0, force=True)
+
+
+def test_campos_de_tick_metrics_y_de_la_telemetria_evolutiva() -> None:
+    assert [f.name for f in dataclasses.fields(TickMetrics)] == TICK_METRICS_FIELDS
+    assert [f.name for f in dataclasses.fields(EvolutionaryTickMetrics)] == EVOLUTIONARY_FIELDS
+
+
+def test_holon_de_nivel_uno_con_dos_especialistas() -> None:
+    """Escenario de la spec: estructura holónica (M10) y ganancia holónica (M11)."""
+    a = agent_with(0, (0, 1.0, 0.9), (1, 1.0, 0.9))
+    b = agent_with(1, (2, 1.0, 0.9), (3, 1.0, 0.9))
+    loner = agent_with(2, (4, 1.0, 0.9))
+    m = record(5, [a, b, loner], [bonded(-2, a, b), loner], births=1, deaths=2)
+    assert m.holon_count_by_level == ((1, 1),)
+    assert m.max_holon_level == 1
+    assert m.mean_holon_size == pytest.approx(2.0, abs=1e-9)
+    assert m.holonic_coverage_gain == pytest.approx(2.0, abs=1e-9)  # 4 patrones / 2 por hoja
+    assert (m.tick, m.active_agents, m.births_this_tick, m.deaths_this_tick) == (5, 3, 1, 2)
+
+
+def test_holones_anidados_por_nivel() -> None:
+    a, b, c, d = (agent_with(i, (i, 1.0, 0.9)) for i in range(4))
+    inner = bonded(-2, a, b)
+    outer = bonded(-3, inner, c)
+    m = record(1, [a, b, c, d], [outer, d])
+    assert m.holon_count_by_level == ((1, 1), (2, 1))
+    assert m.max_holon_level == 2
+    assert m.mean_holon_size == pytest.approx(3.0, abs=1e-9)  # sólo los holones raíz
+
+
+def test_poblacion_extinguida_en_la_telemetria_evolutiva() -> None:
+    m = record(9, [], deaths=4, composite_completions=7, stigmergy_active_cells=2)
+    assert (m.mean_generation, m.max_generation, m.mean_energy) == (0.0, 0, 0.0)
+    assert m.offspring_social_ratio == 0.0
+    assert (m.holon_count_by_level, m.max_holon_level, m.mean_holon_size) == ((), 0, 0.0)
+    assert m.holonic_coverage_gain == 1.0
+    assert (m.acquired_coverage, m.redundancy_reduction, m.eligible_holons) == (None, None, 0)
+    assert (m.composite_completions, m.stigmergy_active_cells, m.deaths_this_tick) == (7, 2, 4)
+
+
+def test_generaciones_energia_y_proporcion_social() -> None:
+    """M8 y M9: la proporción social sólo mira descendientes y creencias válidas."""
+    founder = agent_with(0, (0, 1.0, 0.9))
+    child = MicroAgent.from_lineage(1, CFG, founder.genome, 0.5, 2, 0)
+    child.memory.upsert(KnowledgeUnit(pat(1), 1.0, 0.9, 1, 0, True), 0, force=True)
+    child.memory.upsert(KnowledgeUnit(pat(2), 1.0, 0.6, 1, 0, False), 0, force=True)
+    child.memory.upsert(KnowledgeUnit(pat(3), 1.0, 0.1, 1, 0, False), 0, force=True)  # débil
+    m = record(3, [founder, child])
+    assert m.mean_generation == pytest.approx(1.0, abs=1e-9)
+    assert m.max_generation == 2
+    assert m.mean_energy == pytest.approx((CFG.initial_energy + 0.5) / 2, abs=1e-9)
+    assert m.offspring_social_ratio == pytest.approx(0.5, abs=1e-9)
+
+
+def test_holon_que_gana_cobertura_despues_de_formarse() -> None:
+    """Escenario de la spec (M13): de 2 a 3 patrones distintos, entre 2 hojas."""
+    a = agent_with(0, (0, 1.0, 0.9), (1, 1.0, 0.9))
+    b = agent_with(1, (0, 1.0, 0.9))
+    holon = bonded(-2, a, b, tick=0)
+    assert record(0, [a, b], [holon]).acquired_coverage is None  # recién formado
+    forget(b, 0)
+    learn(b, 2)
+    learn(b, 7)  # signo incorrecto: no cuenta
+    m = record(2, [a, b], [holon])
+    assert m.acquired_coverage == pytest.approx(0.5, abs=1e-9)
+    assert m.redundancy_reduction == pytest.approx(1 / 3, abs=1e-9)
+    assert m.eligible_holons == 1
+    plain = record(2, [a, b])
+    assert (plain.acquired_coverage, plain.redundancy_reduction) == (None, None)
+    assert plain.eligible_holons == 0
+
+
+def test_olvidar_un_duplicado_no_suma() -> None:
+    a = agent_with(0, (0, 1.0, 0.9))
+    b = agent_with(1, (0, 1.0, 0.9))
+    holon = bonded(-2, a, b, tick=0)
+    forget(b, 0)
+    m = record(1, [a, b], [holon])
+    assert m.acquired_coverage == pytest.approx(0.0, abs=1e-9)
+    assert m.redundancy_reduction == pytest.approx(0.5, abs=1e-9)
+
+
+def test_los_holones_nacidos_por_r17_no_entran() -> None:
+    a = agent_with(0, (0, 1.0, 0.9))
+    b = agent_with(1, (1, 1.0, 0.9))
+    holon = CompositeAgent(-2, (a, b), 0, formed_by_bond=False)
+    m = record(5, [a, b], [holon])
+    assert m.acquired_coverage is None
+    assert m.eligible_holons == 0
+    assert m.holon_count_by_level == ((1, 1),)
+
+
+def test_la_muerte_de_una_hoja_no_cuenta_como_ganancia(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Escenario de la spec: B muere en el tick 1 y el holón reinicia su estado de formación."""
+    config = SimulationConfig(
+        grid_width=10,
+        grid_height=10,
+        num_agents=3,
+        resources_per_pattern=4,
+        comm_enabled=False,
+        enable_evolution=True,
+        enable_holonic_hierarchy=True,
+        holon_bond_threshold=1.0,
+        metabolic_base_cost=0.0,
+        memory_capacity_cost=0.0,
+        sensory_radius_cost=0.0,
+        holon_coord_cost=0.0,
+        reproduction_threshold=100.0,
+    )
+    engine = SimulationEngine(config)
+    a, b, c = (engine.agents[i] for i in range(3))
+    for agent in (a, b, c):
+        idle = AgentAction(ActionType.IDLE)
+        monkeypatch.setattr(agent, "decide_action", lambda *_args, x=idle: x)
+    learn(a, 0)
+    learn(b, 1)
+    learn(c, 2)
+    holon = bonded(engine.next_holon_id, a, b, c, tick=0)
+    engine.next_holon_id -= 1
+    engine.root_nodes = {holon.node_id: holon}
+    engine.agent_to_root = dict.fromkeys(range(3), holon.node_id)
+    engine.step()  # tick 0: recién formado, no es elegible
+    learn(a, 1)  # A duplica lo que sabe B
+    b.apply_energy_delta(-b.energy)
+    engine.step()  # tick 1: B muere en la Fase 5
+    assert sorted(engine.agents) == [0, 2]
+    assert holon.formation_tick == 1
+    assert holon.formation_knowledge == ((0, frozenset({pat(0), pat(1)})), (2, frozenset({pat(2)})))
+    assert engine.evolutionary_history[-1].acquired_coverage is None
+    assert engine.evolutionary_history[-1].eligible_holons == 0
+    engine.step()  # tick 2: sin otros cambios
+    assert engine.evolutionary_history[-1].acquired_coverage == pytest.approx(0.0, abs=1e-9)
+    assert engine.evolutionary_history[-1].eligible_holons == 1
+
+
+def evo_tick(
+    tick: int, acquired: float | None, reduction: float | None, eligible: int
+) -> EvolutionaryTickMetrics:
+    return EvolutionaryTickMetrics(
+        tick, 2, 0.0, 0, 0, 0, 1.0, 0.0, (), 0, 0.0, 1.0, 0, acquired, reduction, eligible, 0
+    )
+
+
+def test_media_por_par_tick_holon() -> None:
+    """La media de una corrida pondera cada tick por sus holones elegibles (D28)."""
+    history = [evo_tick(0, 0.5, 0.2, 2), evo_tick(1, None, None, 0), evo_tick(2, -0.1, 0.5, 1)]
+    assert holon_ticks(history) == 3
+    assert holon_tick_mean(history, "acquired_coverage") == pytest.approx(0.3, abs=1e-9)
+    assert holon_tick_mean(history, "redundancy_reduction") == pytest.approx(0.3, abs=1e-9)
+    empty = [evo_tick(0, None, None, 0)]
+    assert holon_ticks(empty) == 0
+    assert holon_tick_mean(empty, "acquired_coverage") is None
+    assert holon_tick_mean([], "redundancy_reduction") is None
