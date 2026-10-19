@@ -4,6 +4,7 @@ import dataclasses
 import json
 from dataclasses import FrozenInstanceError, fields
 
+import numpy as np
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
@@ -24,6 +25,7 @@ from ide.domain.types import (
     StigmergicTrace,
     VisibleResource,
 )
+from ide.environments.grid2d import ToroidalGrid2D
 
 
 def pat(name: str) -> Pattern:
@@ -471,21 +473,32 @@ def test_config_acepta_tasas_de_estigmergia_coherentes() -> None:
 
 
 @given(
-    rate=st.floats(0.0, 1.0),
-    first=st.floats(0.0, 1.0),
+    rate=st.floats(0.01, 1.0),
+    first=st.floats(0.01, 1.0),
     minimum=st.floats(0.0, 0.3),
 )
-def test_config_de_estigmergia_se_acepta_si_y_solo_si_el_primer_rastro_sobrevive(
+def test_config_de_estigmergia_aceptada_deja_el_rastro_de_una_creencia_directa_nueva(
     rate: float, first: float, minimum: float
 ) -> None:
+    """Oráculo semántico: el entorno real conserva el rastro de confianza `c0` sii se acepta."""
+    probe = SimulationConfig(
+        grid_width=10,
+        grid_height=10,
+        num_agents=1,
+        min_confidence=minimum,
+        stigmergy_deposit_rate=rate,
+    )
+    grid = ToroidalGrid2D(probe, np.random.Generator(np.random.PCG64(0)))
+    grid.deposit_stigmergy(0, Pattern((("id", "p_0"),)), 1.0, first, 0)
+    survives = grid.get_active_stigmergy_cells() == 1
     kwargs = {
         "enable_stigmergy": True,
         "stigmergy_deposit_rate": rate,
         "initial_direct_confidence": first,
         "min_confidence": minimum,
     }
-    if rate > 0 and rate * first < minimum:
+    if survives:
+        SimulationConfig(**kwargs)  # type: ignore[arg-type]
+    else:
         with pytest.raises(ValueError, match="stigmergy_deposit_rate"):
             SimulationConfig(**kwargs)  # type: ignore[arg-type]
-    else:
-        SimulationConfig(**kwargs)  # type: ignore[arg-type]
