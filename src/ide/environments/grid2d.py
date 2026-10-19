@@ -356,7 +356,7 @@ class ToroidalGrid2D:
             min(1.0, self.config.stigmergy_deposit_rate * confidence),
             tick,
         )
-        traces = self.cell_stigmergy.setdefault(cell, {})
+        traces = self.cell_stigmergy.get(cell, {})
         old = traces.get(pattern)
         if (
             old is not None
@@ -364,6 +364,13 @@ class ToroidalGrid2D:
             and (old.intensity, old.sign_value) >= (new.intensity, new.sign_value)
         ):
             return
+        if new.intensity < self.config.min_confidence:
+            # Reemplaza y se purga en el acto (D27): ningún rastro existe bajo el umbral.
+            traces.pop(pattern, None)
+            if not traces:
+                self.cell_stigmergy.pop(cell, None)
+            return
+        self.cell_stigmergy[cell] = traces
         traces[pattern] = new
 
     def get_cell_stigmergy(self, agent_id: int) -> tuple[StigmergicTrace, ...]:

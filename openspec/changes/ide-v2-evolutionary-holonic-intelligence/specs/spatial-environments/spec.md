@@ -21,8 +21,12 @@ Cuando `num_composite_patterns > 0`, `ToroidalGrid2D` SHALL generar determiníst
 - **THEN** `get_composite_rules()` contiene 2 entradas para `c_0` y `c_1` cuyos `CompositeRule` exigen `(p_0, p_1)` y `(p_1, p_2)` respectivamente y tienen `composite_value == 2 ** 1.5` (con tolerancia `1e-9`).
 
 ### Requirement: Construcción de Nicho y Estigmergia Espacial (R19)
-`ToroidalGrid2D` SHALL implementar `deposit_stigmergy(agent_id, pattern, value, confidence, tick)` y `get_cell_stigmergy(agent_id) -> tuple[StigmergicTrace, ...]`, aplicando en `step_dynamics(tick)` un decaimiento `stigmergy_decay` a cada rastro con `last_updated_tick < tick` y purgando aquellos bajo `min_confidence`.
+`ToroidalGrid2D` SHALL implementar `deposit_stigmergy(agent_id, pattern, value, confidence, tick)` y `get_cell_stigmergy(agent_id) -> tuple[StigmergicTrace, ...]`, aplicando en `step_dynamics(tick)` un decaimiento `stigmergy_decay` a cada rastro con `last_updated_tick < tick`, purgando aquellos bajo `min_confidence` y sin dejar en la celda un depósito cuya intensidad sea menor que `min_confidence`.
 
 #### Scenario: Depósito, lectura y decaimiento estigmérgico
 - **WHEN** con `enable_stigmergy=True`, `stigmergy_deposit_rate=1.0` y `stigmergy_decay=0.1` el agente 1 deposita en `tick=10` un rastro de `p_0` con `confidence=0.5` en su celda, otro agente en esa celda consulta `get_cell_stigmergy` en `tick=10` y luego se ejecuta `step_dynamics(11)`
 - **THEN** en `tick=10` el rastro tiene `intensity == 0.5`, y tras `step_dynamics(11)` su `intensity` es `0.4` (con tolerancia `1e-9`).
+
+#### Scenario: Depósito bajo el umbral de confianza mínima
+- **WHEN** con `stigmergy_deposit_rate=0.5` y `min_confidence=0.05` la celda tiene un rastro de `p_0` depositado en `tick=3` y el agente 1 deposita en `tick=4` un rastro de `p_0` con `confidence=0.06` (intensidad `0.03`)
+- **THEN** `get_cell_stigmergy` no devuelve ningún rastro de `p_0` y la celda no cuenta en `get_active_stigmergy_cells()`.

@@ -886,3 +886,56 @@ def test_depositos_del_mismo_tick_dan_lo_mismo_en_cualquier_orden(
         for agent, pattern, value, conf in batch:
             grid.deposit_stigmergy(agent, pat(pattern), value, conf, 7)
     assert grids[0].cell_stigmergy == grids[1].cell_stigmergy
+
+
+def test_deposito_bajo_el_umbral_borra_el_rastro_anterior_y_no_deja_ninguno() -> None:
+    grid = stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05)
+    grid.deposit_stigmergy(1, pat(0), 1.0, 0.9, 3)
+    grid.deposit_stigmergy(1, pat(0), 1.0, 0.06, 4)  # intensidad 0.03 < 0.05
+    assert grid.get_cell_stigmergy(1) == ()
+    assert grid.get_active_stigmergy_cells() == 0
+
+
+def test_deposito_bajo_el_umbral_en_celda_vacia_no_crea_nada() -> None:
+    grid = stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05)
+    grid.deposit_stigmergy(1, pat(0), 1.0, 0.0, 4)
+    assert grid.get_active_stigmergy_cells() == 0
+
+
+def test_deposito_bajo_el_umbral_no_altera_un_rastro_del_mismo_tick() -> None:
+    grid = stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05)
+    grid.deposit_stigmergy(1, pat(0), 1.0, 0.9, 4)
+    grid.deposit_stigmergy(1, pat(0), -1.0, 0.06, 4)
+    (trace,) = grid.get_cell_stigmergy(1)
+    assert (trace.sign_value, trace.last_updated_tick) == (1.0, 4)
+    assert trace.intensity == pytest.approx(0.45, abs=1e-9)
+
+
+@given(
+    deposits=st.lists(
+        st.tuples(
+            st.sampled_from([0, 1, 2]),
+            st.integers(0, 3),
+            st.sampled_from([-1.0, 0.0, 1.0]),
+            st.sampled_from([0.0, 0.06, 0.4, 1.0]),
+        ),
+        max_size=12,
+    ),
+    data=st.data(),
+)
+def test_depositos_con_rastros_previos_y_bajo_umbral_no_dependen_del_orden(
+    deposits: list[tuple[int, int, float, float]], data: st.DataObject
+) -> None:
+    shuffled = data.draw(st.permutations(deposits))
+    grids = [stigmergy_grid(stigmergy_deposit_rate=0.5, min_confidence=0.05) for _ in range(2)]
+    for grid, batch in zip(grids, (deposits, shuffled), strict=True):
+        for agent in range(3):
+            place(grid, agent, (2, 2))
+        for p in range(4):
+            grid.deposit_stigmergy(0, pat(p), 1.0, 0.9, 6)  # rastros previos
+        for agent, pattern, value, conf in batch:
+            grid.deposit_stigmergy(agent, pat(pattern), value, conf, 7)
+        assert all(
+            t.intensity >= 0.05 for traces in grid.cell_stigmergy.values() for t in traces.values()
+        )
+    assert grids[0].cell_stigmergy == grids[1].cell_stigmergy
