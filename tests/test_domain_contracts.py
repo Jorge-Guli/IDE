@@ -473,14 +473,16 @@ def test_config_acepta_tasas_de_estigmergia_coherentes() -> None:
 
 
 @given(
-    rate=st.floats(0.01, 1.0),
-    first=st.floats(0.01, 1.0),
+    rate=st.floats(0.0, 1.0),
+    first=st.floats(0.0, 1.0),
     minimum=st.floats(0.0, 0.3),
+    enabled=st.booleans(),
 )
 def test_config_de_estigmergia_aceptada_deja_el_rastro_de_una_creencia_directa_nueva(
-    rate: float, first: float, minimum: float
+    rate: float, first: float, minimum: float, enabled: bool
 ) -> None:
-    """Oráculo semántico: el entorno real conserva el rastro de confianza `c0` sii se acepta."""
+    """Se rechaza sii, con la estigmergia activa y tasa positiva, el entorno real no guarda el
+    rastro de una creencia directa nueva (confianza `initial_direct_confidence`)."""
     probe = SimulationConfig(
         grid_width=10,
         grid_height=10,
@@ -489,16 +491,16 @@ def test_config_de_estigmergia_aceptada_deja_el_rastro_de_una_creencia_directa_n
         stigmergy_deposit_rate=rate,
     )
     grid = ToroidalGrid2D(probe, np.random.Generator(np.random.PCG64(0)))
-    grid.deposit_stigmergy(0, Pattern((("id", "p_0"),)), 1.0, first, 0)
-    survives = grid.get_active_stigmergy_cells() == 1
+    grid.deposit_stigmergy(0, pat("p_0"), 1.0, first, 0)
+    stored = grid.get_active_stigmergy_cells() == 1
     kwargs = {
-        "enable_stigmergy": True,
+        "enable_stigmergy": enabled,
         "stigmergy_deposit_rate": rate,
         "initial_direct_confidence": first,
         "min_confidence": minimum,
     }
-    if survives:
-        SimulationConfig(**kwargs)  # type: ignore[arg-type]
-    else:
+    if enabled and rate > 0 and not stored:
         with pytest.raises(ValueError, match="stigmergy_deposit_rate"):
             SimulationConfig(**kwargs)  # type: ignore[arg-type]
+    else:
+        SimulationConfig(**kwargs)  # type: ignore[arg-type]
