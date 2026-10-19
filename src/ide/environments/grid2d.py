@@ -62,6 +62,7 @@ class ToroidalGrid2D:
         # Radios individuales de la Fase II (D22): vacío en Fase I, sin sobrecosto.
         self._agent_radii: dict[int, tuple[int, int]] = {}
         self._offsets_cache: dict[int, tuple[tuple[int, int, int, Cell | None], ...]] = {}
+        self._comm_offsets_cache: dict[int, tuple[tuple[int, int], ...]] = {}
         self._composite_rules: dict[Pattern, CompositeRule] = {}
         self._pending_composite: list[Pattern] = []
         self.cell_stigmergy: dict[Cell, dict[Pattern, StigmergicTrace]] = {}
@@ -127,6 +128,13 @@ class ToroidalGrid2D:
             cached = self._offsets_cache[radius] = self._offsets(radius)
         return cached
 
+    def _comm_offsets_for(self, radius: int) -> tuple[tuple[int, int], ...]:
+        cached = self._comm_offsets_cache.get(radius)
+        if cached is None:
+            cached = tuple((dx, dy) for dx, dy, _, _ in self._offsets_for(radius))
+            self._comm_offsets_cache[radius] = cached
+        return cached
+
     @staticmethod
     def _offsets(radius: int) -> tuple[tuple[int, int, int, Cell | None], ...]:
         """`(dx, dy, distance, recommended_move)` de cada celda a distancia <= radius.
@@ -181,11 +189,7 @@ class ToroidalGrid2D:
         width, height = self._width, self._height
         found: set[int] = set()
         radii = self._agent_radii.get(agent_id)
-        comm_offsets = (
-            self._comm_offsets
-            if radii is None
-            else tuple((dx, dy) for dx, dy, _, _ in self._offsets_for(radii[1]))
-        )
+        comm_offsets = self._comm_offsets if radii is None else self._comm_offsets_for(radii[1])
         for dx, dy in comm_offsets:
             found.update(self.cell_agents[((x + dx) % width, (y + dy) % height)])
         found.discard(agent_id)
@@ -233,6 +237,7 @@ class ToroidalGrid2D:
     def retire_pattern_resources(self, pattern: Pattern) -> None:
         self._retired.add(pattern)
         self._pending = [p for p in self._pending if p != pattern]
+        self._pending_composite = [p for p in self._pending_composite if p != pattern]
         doomed = sorted(
             rid
             for cell in self.cell_resources.values()
@@ -267,7 +272,8 @@ class ToroidalGrid2D:
                 self._spawn(pattern)
         pending_composite, self._pending_composite = self._pending_composite, []
         for pattern in pending_composite:
-            self._spawn_composite(pattern)
+            if pattern not in self._retired:
+                self._spawn_composite(pattern)
         self._decay_stigmergy(tick)
 
     def get_world_patterns(self) -> dict[Pattern, float]:
@@ -290,6 +296,11 @@ class ToroidalGrid2D:
         """Ubica al agente en la celda menos ocupada de la vecindad de Moore del ancla (D27)."""
         if agent_id in self._agent_cell:
             raise ValueError(f"el agente {agent_id} ya existe")
+        perception = (
+            self.config.perception_radius if perception_radius is None else perception_radius
+        )
+        comm = self.config.comm_radius if comm_radius is None else comm_radius
+        self._check_radii(perception, comm)
         ax, ay = self._agent_cell[anchor_agent_id]
         offsets = ((0, 0), *self.MOORE_MOVES)
         candidates = [((ax + dx) % self._width, (ay + dy) % self._height) for dx, dy in offsets]
@@ -298,15 +309,15 @@ class ToroidalGrid2D:
         chosen = best[int(rng.integers(len(best)))]
         self._agent_cell[agent_id] = chosen
         self.cell_agents[chosen].add(agent_id)
-        self.set_agent_radii(
-            agent_id,
-            self.config.perception_radius if perception_radius is None else perception_radius,
-            self.config.comm_radius if comm_radius is None else comm_radius,
-        )
+        self._store_radii(agent_id, perception, comm)
         return chosen
 
     def set_agent_radii(self, agent_id: int, perception_radius: int, comm_radius: int) -> None:
         """Fija los radios del agente; si coinciden con los globales no guarda nada."""
+        self._check_radii(perception_radius, comm_radius)
+        self._store_radii(agent_id, perception_radius, comm_radius)
+
+    def _check_radii(self, perception_radius: int, comm_radius: int) -> None:
         side = min(self._width, self._height)
         for name, radius in (
             ("perception_radius", perception_radius),
@@ -317,6 +328,8 @@ class ToroidalGrid2D:
                     f"radio {name} fuera de rango: {radius} "
                     f"(se exige 0 <= radio y 2 * radio < {side})"
                 )
+
+    def _store_radii(self, agent_id: int, perception_radius: int, comm_radius: int) -> None:
         if (perception_radius, comm_radius) == (
             self.config.perception_radius,
             self.config.comm_radius,

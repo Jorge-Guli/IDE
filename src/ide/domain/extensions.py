@@ -1,4 +1,7 @@
-"""Contratos de extensión para los Experimentos 002 a 006 (sólo contratos, sin su lógica)."""
+"""Contratos de extensión para los Experimentos 002 a 006.
+
+Fuera de `mutate_genome` y `compute_epistemic_synergy` (Fase II, design D22), son sólo contratos.
+"""
 
 from dataclasses import dataclass, replace
 from typing import Protocol, runtime_checkable
@@ -93,7 +96,11 @@ class DefaultEvolutionaryOperator:
 
 
 def _mutate_integer(value: int, lo: int, hi: int, rng: np.random.Generator) -> int:
-    """Salto de ±1 con probabilidad externa; siempre consume sus dos extracciones si salta."""
+    """Salto de ±1 recortado a [lo, hi]; si hi < lo conserva el valor parental.
+
+    Siempre consume su extracción del signo, para que la secuencia del generador no dependa de
+    los valores del genoma.
+    """
     step = 1 if int(rng.integers(0, 2)) == 1 else -1
     if hi < lo:
         return value

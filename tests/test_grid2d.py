@@ -819,3 +819,26 @@ def test_sin_estigmergia_el_estado_inicial_es_vacio() -> None:
     grid = make_grid()
     assert grid.get_active_stigmergy_cells() == 0
     assert grid.get_cell_stigmergy(0) == ()
+
+
+# --- Fase II: robustez (revisión) ---------------------------------------------------------------
+
+
+def test_spawn_agent_near_con_radio_invalido_no_deja_un_agente_a_medias() -> None:
+    grid = make_grid()
+    with pytest.raises(ValueError, match="radio"):
+        grid.spawn_agent_near(80, 1, evo_rng(), perception_radius=5)
+    assert 80 not in grid.get_active_agent_ids()
+    assert all(80 not in agents for agents in grid.cell_agents.values())
+    grid.spawn_agent_near(80, 1, evo_rng(), perception_radius=3)  # el reintento es posible
+
+
+def test_retirar_un_compuesto_descarta_su_reposicion() -> None:
+    grid = composite_grid()
+    resource = next(r for r in all_resources(grid) if r.pattern == comp_pat(0))
+    consume(grid, 0, resource)
+    grid.retire_pattern_resources(comp_pat(0))
+    for tick in range(1, 4):
+        grid.step_dynamics(tick)
+    assert count_pattern(grid, comp_pat(0)) == 0
+    assert count_pattern(grid, comp_pat(1)) == 4
