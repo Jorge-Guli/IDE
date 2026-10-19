@@ -71,14 +71,14 @@
 
 ## 5. Motor de Simulación Evolutivo y Holónico (`simulation-engine`)
 
-- [ ] 5.1 **[RED]** Ampliar `tests/test_simulation_engine.py` con tests para:
+- [x] 5.1 **[RED]** Ampliar `tests/test_simulation_engine.py` con tests para:
   - (a) el aislamiento de `evo_rng` (`spawn_key=(2,)`);
   - (b) la vista del holón en dos tiempos sin efectos de orden y su ablación (`enable_holon_view`, $R_{22}$); los recursos compuestos aprendidos por experiencia, sin inyección, con reparto de energía y su ablación (`holon_energy_sharing`, $R_{23}$); y la exclusión de compuestos en M2;
   - (c) la Fase 5: metabolismo, muerte ($E_i \le 0$), poda en `_remove` (incluidas las ablaciones), a lo sumo una reproducción por agente y por tick, reproducción neutral (`reproduction_mode="neutral"`, $R_{12}$), herencia cultural por `assimilate_testimony` (con control nulo aplicado por el motor), $R_{18}$, `SPLIT` y `BOND`;
   - (d) `engine.evolutionary_history`, y que el motor completa `formation_knowledge` al crear un holón y reinicia el estado de formación (con `formation_tick`) cuando un holón pierde un miembro, también desde `ablate_population`;
   - (e) igualdad de historiales entre procesos con distinto `PYTHONHASHSEED` con todas las banderas de Fase II activas.
-- [ ] 5.2 **[GREEN]** Extender `SimulationEngine` en `src/ide/simulation/engine.py` y agregar `EvolutionaryMetricsCollector` en `src/ide/experiments/metrics.py`, manteniendo bit a bit la Fase I con los valores por defecto.
-- [ ] 5.3 **[REFACTOR]** `python -m pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py`, `python -m ide.experiments.benchmark` (comparar ticks por segundo con la línea base) y verificación del bloque.
+- [x] 5.2 **[GREEN]** Extender `SimulationEngine` en `src/ide/simulation/engine.py` y agregar `EvolutionaryMetricsCollector` en `src/ide/experiments/metrics.py`, manteniendo bit a bit la Fase I con los valores por defecto.
+- [x] 5.3 **[REFACTOR]** `python -m pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py`, `python -m ide.experiments.benchmark` (comparar ticks por segundo con la línea base) y verificación del bloque.
 
 ## 6. Telemetría M8–M13, Protocolos 002/003 y Atribución R12–R23 (`experimental-suite`, `emergence-attribution`)
 

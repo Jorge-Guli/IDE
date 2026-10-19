@@ -861,6 +861,17 @@ def test_own_belief_es_memoria_y_luego_cache_propio() -> None:
     assert a.own_belief(pat(8)) is None
 
 
+def test_own_beliefs_une_memoria_y_cache_propio_sin_la_vista() -> None:
+    a = full_agent()
+    cached = a.assimilate_testimony(ku(9, conf=0.5), sender_id=2, tick=0)
+    a.inject_ephemeral_belief(ku(8, conf=0.9))
+    beliefs = a.own_beliefs()
+    expected = sorted({u.pattern for u in a.memory.all_units()} | {pat(9)})
+    assert list(beliefs) == expected
+    assert beliefs[pat(9)] == cached
+    assert all(beliefs[p] == a.own_belief(p) for p in beliefs)
+
+
 def test_vista_del_holon_sobrevive_a_la_percepcion_y_se_borra_con_clear() -> None:
     a = agent()
     view = ku(4, value=-1.0, conf=0.9)

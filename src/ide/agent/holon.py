@@ -32,6 +32,23 @@ class AgentNode(Protocol):
     def collective_memory(self) -> dict[Pattern, KnowledgeUnit]: ...
 
 
+def best_beliefs(
+    beliefs_by_leaf: Mapping[int, Mapping[Pattern, KnowledgeUnit]],
+) -> dict[Pattern, KnowledgeUnit]:
+    """Por patrón, la creencia de máx (c, τ, -agent_id) entre las hojas dadas, por patrón.
+
+    Es la regla de selección de la memoria colectiva (D23) y de la vista del holón (D25.2).
+    """
+    best: dict[Pattern, tuple[tuple[float, int, int], KnowledgeUnit]] = {}
+    for agent_id, beliefs in beliefs_by_leaf.items():
+        for pattern, unit in beliefs.items():
+            key = (unit.confidence, unit.last_updated_tick, -agent_id)
+            current = best.get(pattern)
+            if current is None or key > current[0]:
+                best[pattern] = (key, unit)
+    return {pattern: best[pattern][1] for pattern in sorted(best)}
+
+
 def _mean_bond_affinity(node: AgentNode) -> float:
     leaves = node.leaf_agents
     return sum(leaf.genome.bond_affinity for leaf in leaves) / len(leaves)
@@ -98,16 +115,20 @@ class CompositeAgent:
         self, allowed_leaf_ids: set[int] | None = None
     ) -> dict[Pattern, KnowledgeUnit]:
         """Unión de las memorias de las hojas: por patrón, máx (c, τ, -agent_id)."""
-        best: dict[Pattern, tuple[tuple[float, int, int], KnowledgeUnit]] = {}
-        for leaf in self.leaf_agents:
-            if allowed_leaf_ids is not None and leaf.agent_id not in allowed_leaf_ids:
-                continue
-            for unit in leaf.memory.all_units():
-                key = (unit.confidence, unit.last_updated_tick, -leaf.agent_id)
-                current = best.get(unit.pattern)
-                if current is None or key > current[0]:
-                    best[unit.pattern] = (key, unit)
-        return {pattern: best[pattern][1] for pattern in sorted(best)}
+        return best_beliefs(
+            {
+                leaf.agent_id: leaf.collective_memory()
+                for leaf in self.leaf_agents
+                if allowed_leaf_ids is None or leaf.agent_id in allowed_leaf_ids
+            }
+        )
+
+
+def composite_nodes(node: AgentNode) -> list[CompositeAgent]:
+    """Nodos compuestos del subárbol de `node` (incluido él), en preorden."""
+    if not isinstance(node, CompositeAgent):
+        return []
+    return [node, *(c for child in node.children for c in composite_nodes(child))]
 
 
 def prune_dead_leaves(node: AgentNode, alive_ids: set[int]) -> AgentNode | None:
