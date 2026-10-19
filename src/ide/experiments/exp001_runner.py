@@ -93,6 +93,10 @@ PROFILES: dict[str, Profile] = {
     "full": Profile(
         total_ticks=1000, injection_tick=200, warmup_ticks=500, post_ablation_ticks=200
     ),
+    # Pre-registro de la Fase II (design D29): los protocolos 002 y 003 sólo usan `total_ticks`.
+    "phase2": Profile(
+        total_ticks=2000, injection_tick=80, warmup_ticks=150, post_ablation_ticks=100
+    ),
 }
 
 

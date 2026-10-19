@@ -12,9 +12,18 @@ import pytest
 from ide.config import SimulationConfig
 from ide.experiments import attribution, exp001_runner
 from ide.experiments.attribution import (
+    ALL_DESIGN_RULES,
     ATTRIBUTION_PROFILE,
     DESIGN_RULES,
     EXP001_CLAIMS,
+    EXP002_CLAIMS,
+    EXP003_CLAIMS,
+    PHASE2_ATTRIBUTION_PROFILE,
+    PHASE2_CLAIM_CHANNELS,
+    PHASE2_DESIGN_RULES,
+    PHASE2_INACTIVE_RULES,
+    PHASE2_PROTOCOL_CONFIGS,
+    PHASE2_SEEDS,
     ClaimEvaluation,
     ClaimStatus,
     EmergenceClaim,
@@ -446,3 +455,148 @@ def test_map_in_order_sin_pool_innecesario(
 
 def test_map_in_order_en_paralelo_conserva_el_orden() -> None:
     assert map_in_order(abs, [-3, -1, -2, -5], 3) == [3, 1, 2, 5]
+
+
+# --- Fase II: pre-registro (design D29) --------------------------------------------------------
+
+EVO = SimulationConfig(enable_evolution=True, enable_holonic_hierarchy=True)
+
+
+def test_reglas_de_fase_ii() -> None:
+    assert [r.rule_id for r in DESIGN_RULES] == [f"R{i}" for i in range(1, 12)]
+    assert [r.rule_id for r in PHASE2_DESIGN_RULES] == [f"R{i}" for i in range(12, 24)]
+    assert [r.rule_id for r in PHASE2_DESIGN_RULES if r.ablation == ()] == ["R20"]
+    assert all(r.name and r.purpose for r in PHASE2_DESIGN_RULES)
+    assert ALL_DESIGN_RULES == DESIGN_RULES + PHASE2_DESIGN_RULES
+
+
+def test_overrides_de_cada_regla_de_fase_ii() -> None:
+    overrides = {r.rule_id: dict(r.ablation) for r in PHASE2_DESIGN_RULES}
+    assert overrides == {
+        "R12": {"reproduction_mode": "neutral"},
+        "R13": {"mutation_rate": 0.0, "discrete_mutation_prob": 0.0},
+        "R14": {"enable_cultural_inheritance": False, "inheritance_discount": 0.0},
+        "R15": {"enable_holonic_hierarchy": False},
+        "R16": {"enable_holon_splitting": False},
+        "R17": {"enable_holon_reproduction": False},
+        "R18": {"enable_downward_causation": False, "redundancy_penalty": 1.0},
+        "R19": {"enable_stigmergy": False, "stigmergy_deposit_rate": 0.0},
+        "R20": {},
+        "R21": {"memory_capacity_cost": 0.0, "sensory_radius_cost": 0.0},
+        "R22": {"enable_holon_view": False},
+        "R23": {"holon_coord_cost": 0.0, "holon_energy_sharing": False},
+    }
+
+
+def test_ablacion_de_reglas_de_fase_ii() -> None:
+    """Escenario de la spec: `ablate` opera sobre cualquier regla de `ALL_DESIGN_RULES`."""
+    ablated = ablate(EVO, ["R12", "R22", "R23"])
+    assert ablated.reproduction_mode == "neutral"
+    assert ablated.enable_holon_view is False
+    assert ablated.holon_coord_cost == 0.0
+    assert ablated.holon_energy_sharing is False
+    assert ablate(EVO, ["R4", "R13"]) == dataclasses.replace(
+        EVO, gamma_social_discount=1.0, mutation_rate=0.0, discrete_mutation_prob=0.0
+    )
+    with pytest.raises(ValueError, match="nuclear"):
+        ablate(EVO, ["R20"])
+    with pytest.raises(ValueError, match="R24"):
+        ablate(EVO, ["R24"])
+
+
+def test_ablacion_de_todas_las_reglas_de_ambas_fases_es_valida() -> None:
+    every = [r.rule_id for r in ALL_DESIGN_RULES if r.ablation]
+    for config in PHASE2_PROTOCOL_CONFIGS.values():
+        ablated = ablate(config, every)
+        for rule in ALL_DESIGN_RULES:
+            for name, value in rule.ablation:
+                assert getattr(ablated, name) == value
+
+
+def test_afirmaciones_de_fase_ii() -> None:
+    assert (
+        EmergenceClaim(
+            "C5", "Aceleración cultural intergeneracional", "002b", "cultural_accuracy", True,
+            ("R14",),
+        ),
+        EmergenceClaim(
+            "C6", "Adaptación evolutiva por selección", "002a", "evolved_accuracy", True,
+            ("R12", "R13"),
+        ),
+    ) == EXP002_CLAIMS  # fmt: skip
+    assert (
+        EmergenceClaim(
+            "C7", "Superávit cooperativo sobre recursos compuestos", "003a",
+            "holonic_composite_completions", True, ("R15", "R17"),
+        ),
+        EmergenceClaim(
+            "C8", "Cobertura colectiva adquirida sin causalidad descendente", "003b",
+            "mean_acquired_coverage", True, ("R22",),
+        ),
+    ) == EXP003_CLAIMS  # fmt: skip
+    assert PHASE2_CLAIM_CHANNELS == {
+        "C5": ("R14",),
+        "C6": ("R12",),
+        "C7": ("R15",),
+        "C8": ("R22",),
+    }
+
+
+def test_perfil_y_configuraciones_congelados() -> None:
+    """Escenario de la spec: perfil `phase2`, 10 semillas y la configuración de 003-A."""
+    assert PHASE2_ATTRIBUTION_PROFILE == "phase2"
+    assert PROFILES[PHASE2_ATTRIBUTION_PROFILE] == Profile(
+        total_ticks=2000, injection_tick=80, warmup_ticks=150, post_ablation_ticks=100
+    )
+    assert tuple(range(42, 52)) == PHASE2_SEEDS
+    holonic = {
+        "enable_evolution": True,
+        "enable_holonic_hierarchy": True,
+        "enable_holon_reproduction": True,
+        "num_composite_patterns": 3,
+        "composite_order": 4,
+    }
+    base = SimulationConfig()
+    assert {
+        "002a": dataclasses.replace(base, enable_evolution=True),
+        "002b": dataclasses.replace(base, enable_evolution=True, enable_cultural_inheritance=True),
+        "003a": dataclasses.replace(base, **holonic),
+        "003b": dataclasses.replace(base, **holonic, enable_downward_causation=False),
+    } == PHASE2_PROTOCOL_CONFIGS
+    c003a = PHASE2_PROTOCOL_CONFIGS["003a"]
+    assert c003a.num_composite_patterns == 3
+    assert c003a.composite_order == 4 > c003a.memory_capacity
+
+
+def _rule_is_active(rule_id: str, config: SimulationConfig) -> bool:
+    """Bandera principal de cada regla ablacionable, con sus dependencias (design D29)."""
+    evolution = config.enable_evolution
+    holonic = config.enable_holonic_hierarchy
+    active = {
+        "R12": evolution,
+        "R13": evolution and (config.mutation_rate > 0 or config.discrete_mutation_prob > 0),
+        "R14": evolution and config.enable_cultural_inheritance and config.inheritance_discount > 0,
+        "R15": holonic,
+        "R16": holonic and config.enable_holon_splitting,
+        "R17": holonic and evolution and config.enable_holon_reproduction,
+        "R18": holonic and config.enable_downward_causation,
+        "R19": config.enable_stigmergy and config.stigmergy_deposit_rate > 0,
+        "R21": evolution and (config.memory_capacity_cost > 0 or config.sensory_radius_cost > 0),
+        "R22": holonic and config.enable_holon_view,
+        "R23": holonic and (config.holon_coord_cost > 0 or config.holon_energy_sharing),
+    }
+    return active.get(rule_id, True)  # las reglas de Fase I actúan en todos los protocolos
+
+
+def test_reglas_inactivas_coinciden_con_las_configuraciones() -> None:
+    assert PHASE2_INACTIVE_RULES == {
+        "002a": ("R14", "R15", "R16", "R17", "R18", "R19", "R22", "R23"),
+        "002b": ("R15", "R16", "R17", "R18", "R19", "R22", "R23"),
+        "003a": ("R14", "R18", "R19"),
+        "003b": ("R14", "R18", "R19"),
+    }
+    assert sorted(PHASE2_INACTIVE_RULES) == sorted(PHASE2_PROTOCOL_CONFIGS)
+    ablatable = [r.rule_id for r in ALL_DESIGN_RULES if r.ablation]
+    for protocol, config in PHASE2_PROTOCOL_CONFIGS.items():
+        inactive = [rid for rid in ablatable if not _rule_is_active(rid, config)]
+        assert tuple(inactive) == PHASE2_INACTIVE_RULES[protocol], protocol

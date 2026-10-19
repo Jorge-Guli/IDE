@@ -1,7 +1,10 @@
 """Atribución de emergencia (Decisión 13): emergente vs. programado.
 
 `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` son un **pre-registro**: se versionan
-antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
+antes de mirar resultados, y cambiarlos después exige un commit que lo justifique. Lo mismo vale
+para el pre-registro de la Fase II (design D29): `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`,
+`EXP003_CLAIMS`, `PHASE2_CLAIM_CHANNELS`, `PHASE2_INACTIVE_RULES` y el perfil de corrida
+(`PHASE2_ATTRIBUTION_PROFILE`, `PHASE2_SEEDS` y `PHASE2_PROTOCOL_CONFIGS`).
 """
 
 from collections.abc import Mapping, Sequence
@@ -34,7 +37,7 @@ class DesignRule:
 class EmergenceClaim:
     claim_id: str  # "C1"
     description: str
-    protocol: str  # "001a" | "001b" | "001c"
+    protocol: str  # "001a" | "001b" | "001c" | "002a" | "002b" | "003a" | "003b"
     metric: str
     higher_is_better: bool
     purpose_rules: tuple[str, ...]  # R_c
@@ -150,7 +153,162 @@ EXP001_CLAIMS: tuple[EmergenceClaim, ...] = (
     ),
 )
 
-_RULES_BY_ID = {rule.rule_id: rule for rule in DESIGN_RULES}
+
+# --- Pre-registro de la Fase II (design D29) ---------------------------------------------------
+
+PHASE2_DESIGN_RULES: tuple[DesignRule, ...] = (
+    DesignRule(
+        "R12",
+        "Reproducción diferencial por energía",
+        "Que los agentes con más energía dejen más descendencia (selección)",
+        (("reproduction_mode", "neutral"),),
+    ),
+    DesignRule(
+        "R13",
+        "Mutación genética acotada",
+        "Variación heredable sobre la que actúa la selección",
+        (("mutation_rate", 0.0), ("discrete_mutation_prob", 0.0)),
+    ),
+    DesignRule(
+        "R14",
+        "Herencia cultural vertical",
+        "Transmitir conocimiento de padres a hijos",
+        (("enable_cultural_inheritance", False), ("inheritance_discount", 0.0)),
+    ),
+    DesignRule(
+        "R15",
+        "Fusión holónica (BOND)",
+        "Asociar nodos complementarios en unidades de nivel superior",
+        (("enable_holonic_hierarchy", False),),
+    ),
+    DesignRule(
+        "R16",
+        "Fisión holónica (SPLIT)",
+        "Disolver holones sin superávit",
+        (("enable_holon_splitting", False),),
+    ),
+    DesignRule(
+        "R17",
+        "Reproducción de holón completo",
+        "Transmitir la estructura simbiótica a la descendencia",
+        (("enable_holon_reproduction", False),),
+    ),
+    DesignRule(
+        "R18",
+        "Causalidad descendente intra-holón",
+        "Reducir la redundancia de memoria entre hojas de un holón (ortogonalización)",
+        (("enable_downward_causation", False), ("redundancy_penalty", 1.0)),
+    ),
+    DesignRule(
+        "R19",
+        "Estigmergia",
+        "Externalizar conocimiento en el entorno",
+        (("enable_stigmergy", False), ("stigmergy_deposit_rate", 0.0)),
+    ),
+    DesignRule(
+        "R20",
+        "Física metabólica",
+        "Vida y muerte por energía: costo basal fijo, de movimiento y de emisión, muerte con "
+        "E <= 0 y capacidad de carga. Sin ella no hay selección",
+        (),
+    ),
+    DesignRule(
+        "R21",
+        "Costo cuadrático de cerebro y sentidos",
+        "Encarecer la hipertrofia individual (C_max², radios²). Sesga a favor de cooperar; se "
+        "declara como sesgo",
+        (("memory_capacity_cost", 0.0), ("sensory_radius_cost", 0.0)),
+    ),
+    DesignRule(
+        "R22",
+        "Vista compartida del holón",
+        "Dar a cada hoja acceso efímero al conocimiento de las hojas cercanas de su holón",
+        (("enable_holon_view", False),),
+    ),
+    DesignRule(
+        "R23",
+        "Coordinación y reparto energético del holón",
+        "Que pertenecer a un holón tenga un costo y un beneficio energético compartido",
+        (("holon_coord_cost", 0.0), ("holon_energy_sharing", False)),
+    ),
+)
+
+ALL_DESIGN_RULES: tuple[DesignRule, ...] = DESIGN_RULES + PHASE2_DESIGN_RULES
+
+EXP002_CLAIMS: tuple[EmergenceClaim, ...] = (
+    EmergenceClaim(
+        "C5",
+        "Aceleración cultural intergeneracional",
+        "002b",
+        "cultural_accuracy",
+        True,
+        ("R14",),
+    ),
+    EmergenceClaim(
+        "C6",
+        "Adaptación evolutiva por selección",
+        "002a",
+        "evolved_accuracy",
+        True,
+        ("R12", "R13"),
+    ),
+)
+
+EXP003_CLAIMS: tuple[EmergenceClaim, ...] = (
+    EmergenceClaim(
+        "C7",
+        "Superávit cooperativo sobre recursos compuestos",
+        "003a",
+        "holonic_composite_completions",
+        True,
+        ("R15", "R17"),
+    ),
+    EmergenceClaim(
+        "C8",
+        "Cobertura colectiva adquirida sin causalidad descendente",
+        "003b",
+        "mean_acquired_coverage",
+        True,
+        ("R22",),
+    ),
+)
+
+# Canal: las reglas sin las cuales el mecanismo que se pone a prueba no existe.
+PHASE2_CLAIM_CHANNELS: dict[str, tuple[str, ...]] = {
+    "C5": ("R14",),
+    "C6": ("R12",),
+    "C7": ("R15",),
+    "C8": ("R22",),
+}
+
+# Reglas sin efecto en la configuración del protocolo: no reciben variante ni `rule_effects`.
+PHASE2_INACTIVE_RULES: dict[str, tuple[str, ...]] = {
+    "002a": ("R14", "R15", "R16", "R17", "R18", "R19", "R22", "R23"),
+    "002b": ("R15", "R16", "R17", "R18", "R19", "R22", "R23"),
+    "003a": ("R14", "R18", "R19"),
+    "003b": ("R14", "R18", "R19"),
+}
+
+PHASE2_ATTRIBUTION_PROFILE = "phase2"
+PHASE2_SEEDS: tuple[int, ...] = tuple(range(42, 52))
+
+_HOLONIC_PROTOCOL = SimulationConfig(
+    enable_evolution=True,
+    enable_holonic_hierarchy=True,
+    enable_holon_reproduction=True,
+    num_composite_patterns=3,
+    composite_order=4,  # > memory_capacity = 3
+)
+
+PHASE2_PROTOCOL_CONFIGS: dict[str, SimulationConfig] = {
+    "002a": SimulationConfig(enable_evolution=True),
+    "002b": SimulationConfig(enable_evolution=True, enable_cultural_inheritance=True),
+    "003a": _HOLONIC_PROTOCOL,
+    # R18 apagada es parte de la condición base de C8.
+    "003b": replace(_HOLONIC_PROTOCOL, enable_downward_causation=False),
+}
+
+_ALL_RULES_BY_ID = {rule.rule_id: rule for rule in ALL_DESIGN_RULES}
 
 
 # --- Ablación ----------------------------------------------------------------------------------
@@ -160,7 +318,7 @@ def ablate(config: SimulationConfig, rule_ids: Sequence[str]) -> SimulationConfi
     """Copia de `config` con la unión de los overrides que desactivan esas reglas."""
     overrides: dict[str, Any] = {}
     for rule_id in rule_ids:
-        rule = _RULES_BY_ID.get(rule_id)
+        rule = _ALL_RULES_BY_ID.get(rule_id)
         if rule is None:
             raise ValueError(f"regla inexistente: {rule_id}")
         if not rule.ablation:
