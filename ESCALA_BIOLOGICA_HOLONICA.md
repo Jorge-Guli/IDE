@@ -71,3 +71,32 @@ flowchart BT
    - En $L=1 \dots 3$: evaluar la complementariedad con el otro (`BOND`, $R_{15}$) y podar recuerdos duplicados dentro del grupo (Causalidad Descendente, $R_{18}$).
 3. **Metaconciencia Funcional (Auto-Modelo del Sistema — $L \ge 4$):**
    - En niveles superiores, la supervivencia del super-organismo depende de monitorear la salud energética y la fiabilidad de sus propios "órganos" y "sistemas" inferiores (`ticks_without_surplus`, `SPLIT` $R_{16}$ y selección de módulos en `SkillSandboxPort`), cerrando un bucle autorreferencial donde el sistema actúa sobre su propia arquitectura mental.
+
+---
+
+## 4. Capacidad de Carga y Nivel Máximo Alcanzable según el Hardware Detectado
+
+Dado que cada nivel holónico $L$ se forma fusionando al menos 2 sub-nodos del nivel anterior (`BOND`, $R_{15}$), el tamaño mínimo de un holón de nivel $L$ crece exponencialmente como $2^L$ hojas (y típicamente $\sim 2.5^L$ hojas en promedio):
+
+| Nivel Holónico ($L$) | Equivalente Biológico | Hojas mínimas por unidad ($2^L$) | Hojas típicas por unidad ($\sim 2.5^L$) | Población activa requerida para sostener un ecosistema de ese nivel |
+| :---: | :--- | :---: | :---: | :---: |
+| **$L = 1$** | Célula Eucariota | $2$ | $3$ | $30 - 100$ agentes |
+| **$L = 2$** | Tejido Especializado | $4$ | $6 - 8$ | $100 - 300$ agentes |
+| **$L = 3$** | Órgano Funcional | $8$ | $16 - 20$ | $300 - 800$ agentes |
+| **$L = 4$** | Sistema / Aparato | $16$ | $40 - 50$ | $800 - 2.500$ agentes |
+| **$L = 5$** | **Organismo Pluricelular Completo** | $32$ | $100 - 120$ | $2.500 - 8.000$ agentes |
+| **$L = 6$** | **Tribu / Colonia Eusocial** | $64$ | $250 - 350$ | $8.000 - 25.000$ agentes |
+| **$L = 7$** | **Sociedad / Ciudad Multigremial** | $128$ | $600 - 1.000$ | $25.000 - 100.000$ agentes |
+| **$L = 8$** | **Biosfera / Noosfera Local (Gaia)** | $256+$ | $1.500 - 5.000$ | $100.000 - 500.000+$ agentes |
+
+### Auto-Adaptación a la Infraestructura (`HardwareAdaptiveRuntime` en Fase III/IV)
+
+Mediante la sonda automática de hardware (`HardwareProbe`), `IDE` ajusta su backend de ejecución, el volumen del cubo 3D y `max_population` al equipo donde corre:
+
+| Perfil Detectado Automáticamente | Infraestructura de Referencia | Backend Seleccionado | Cubo 3D y Población Fluida | Techo Jerárquico Alcanzable |
+| :--- | :--- | :--- | :---: | :--- |
+| **Tier-1: CPU Base** | Laptop / PC sin GPU dedicada ($< 8\text{ GB}$ RAM) | Python / NumPy en CPU | $24^3$ celdas $\cdot$ $500 - 2.500$ agentes | **$L = 4$ a $L = 5$** (*Sistemas* y *Organismos Pluricelulares*) |
+| **Tier-2: CPU Multicore** | Workstation CPU ($6\text{–}16$ núcleos, $16\text{–}32\text{ GB}$ RAM, sin CUDA) | Multiprocessing / JIT en CPU | $48^3$ celdas $\cdot$ $2.500 - 15.000$ agentes | **$L = 5$ a $L = 6$** (*Organismos Completos* y *Tribus / Colonias*) |
+| **Tier-3: Híbrido CPU + GPU CUDA** | **Equipo actual de referencia:** AMD Ryzen 5 9600 (6C/12T Zen 5) + 32 GB DDR5 + **NVIDIA RTX 5060 Ti (16 GB VRAM)** | Híbrido: Árboles Holónicos en CPU + Grilla 3D, Estigmergia y Jaccard en GPU CUDA | $128^3$ celdas ($> 2\text{M}$) $\cdot$ $100.000 - 500.000$ agentes | **$L = 7$ a $L = 8$** (*Sociedades Multigremiales* y **Noosfera Local Completa**) |
+| **Tier-4: Federación en Red** | Múltiples equipos intercambiando *Esporas Cognitivas* (`.holon.json`) | Multi-nodo distribuido | Múltiples cubos 3D interconectados | **$L = 9+$** (*Federación Inter-Equipos / Red de Mundos*) |
+

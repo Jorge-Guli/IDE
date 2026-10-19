@@ -18,7 +18,7 @@ flowchart LR
 | :--- | :---: | :---: | :--- |
 | **Fase I** | `v1.0` | **Completada y Archivada** | Micro-agentes inmortales con memoria acotada ($C_{\max} < N$), protocolo epistémico (`R1`–`R11`), entorno `ToroidalGrid2D` y marco de atribución `001-D`. |
 | **Fase II** | `v2.0` | **En Curso (Diseño Cerrado / Pre-registrado)** | Metabolismo energético ($R_{20}, R_{21}$), selección y deriva ($R_{12}$), mutación genética ($R_{13}$), herencia cultural ($R_{14}$), holones recursivos $L = 0 \dots K$ (`BOND`/`SPLIT`, $R_{15}$–$R_{18}, R_{22}, R_{23}$) y estigmergia ($R_{19}$). |
-| **Fase III** | `v3.0` | **Planificada** | Inmortalidad ante apagones (checkpoints atómicos + telemetría en streaming), espacio 3D (`ToroidalGrid3D`), interfaz viva (Web UI + consola) y ecología abierta + **Telescopio a Internet** (sub-etapa 3.5). |
+| **Fase III** | `v3.0` | **Planificada** | Inmortalidad ante apagones (checkpoints atómicos + telemetría en streaming), espacio 3D (`ToroidalGrid3D`), **auto-detección y escalado de hardware (CPU/Multicore/CUDA)**, interfaz viva (Web UI + consola), ecología abierta y **Telescopio a Internet** (sub-etapa 3.6). |
 | **Fase IV** | `v4.0` | **Horizonte** | Automejora de **capacidades lógicas** (síntesis holónica de operadores matemáticos y algoritmos) y **capacidades físicas** (generación evolutiva de nuevos módulos y herramientas en `SkillSandboxPort`). |
 
 ---
@@ -84,24 +84,37 @@ Superar el "cuello de botella topológico del plano 2D" (Teorema de Kuratowski: 
 - **3.2.2. Estratificación Cognitiva en el Eje $Z$:**
   - Permite que la evolución organice el espacio tridimensional por capas (análogo a las capas del córtex cerebral): estímulos crudos y recursos dinámicos en la "superficie" ($Z = 0$) y ensamblaje de holones de alto orden ($L \ge 2$) y autopistas estigmérgicas en las capas profundas ($Z > 0$) sin bloqueos geométricos.
 
-## 3.3. Interfaz de Observación e Interacción en Tiempo Real (El "Microscopio y Consola")
+## 3.3. Detección Automática de Hardware y Escalabilidad Adaptativa (`HardwareAdaptiveRuntime`)
 
-- **3.3.1. Motor con Control en Caliente (Pausa / Paso a Paso / Velocidad Variable):**
+Al escalar a un cubo 3D continuo ($t \to \infty$), el sistema debe inspeccionar automáticamente la infraestructura sobre la que se ejecuta y adaptar su backend de cómputo y su capacidad de carga sin configuración manual:
+
+- **3.3.1. Sonda de Infraestructura al Arranque (`src/ide/infrastructure/hardware_probe.py`):**
+  - Detecta en $< 50\text{ ms}$: (a) núcleos físicos/lógicos e IPC de CPU, (b) memoria RAM libre del sistema, y (c) presencia de GPU compatible (CUDA / VRAM disponible).
+  - Selecciona automáticamente uno de los **3 Perfiles de Ejecución Determinista**:
+    1. **Perfil Tier-1 (CPU Ligera / Laptop sin GPU dedicada, $< 8\text{ GB}$ RAM):** Backend Python/NumPy vectorizado en CPU, cubo 3D compacto ($24^3$), `max_population ~ 1.500` agentes (techo jerárquico $L = 4 \dots 5$).
+    2. **Perfil Tier-2 (CPU Multicore de escritorio/servidor sin GPU, $16\text{–}32\text{ GB}$ RAM):** Backend paralelizado por regiones/lotes en CPU (Numba JIT / Multiprocessing), cubo 3D medio ($48^3$), `max_population ~ 15.000` agentes (techo jerárquico $L = 5 \dots 6$).
+    3. **Perfil Tier-3 (Híbrido CPU + GPU CUDA, ej. Ryzen 5 9600 + 32 GB DDR5 + RTX 5060 Ti 16 GB VRAM):** Los árboles lógicos de los holones operan en CPU mientras que las operaciones masivas del cubo 3D (vecindades de 26/124 celdas, difusión/decaimiento de estigmergia en millones de celdas y matriz de complementariedad de Jaccard para `BOND`) se descargan en los núcleos CUDA de la GPU, habilitando cubos de $128^3$ ($> 2.000.000$ de celdas) y `max_population ~ 250.000+` agentes (techo jerárquico $L = 7 \dots 8$, Noosfera Local).
+- **3.3.2. Regulación Dinámica en Caliente (*Dynamic Carrying Capacity*):**
+  - Monitorea los *ticks por segundo (TPS)* y la presión de memoria en vivo: si el usuario ejecuta otras tareas pesadas en el equipo, el motor ajusta suavemente el flujo energético ambiental para sostener la fluidez sin saturar el sistema operativo; y si un checkpoint (`.state`) se migra a un equipo más potente, expande automáticamente `max_population` y activa el backend superior al reanudar.
+
+## 3.4. Interfaz de Observación e Interacción en Tiempo Real (El "Microscopio y Consola")
+
+- **3.4.1. Motor con Control en Caliente (Pausa / Paso a Paso / Velocidad Variable):**
   - Ejecución del `SimulationEngine` en un hilo/proceso desacoplado con cola de comandos en vivo (`PAUSE`, `RESUME`, `STEP`, `SET_TPS`, `SAVE_NOW`).
-- **3.3.2. Visor 3D y Radiografía Holónica en Tiempo Real (Web UI / Panel Local):**
+- **3.4.2. Visor 3D y Radiografía Holónica en Tiempo Real (Web UI / Panel Local):**
   - **Vista Espacial 3D:** Nube de agentes coloreados por linaje/casta, enlaces de los holones ($L = 1 \dots K$) y mapa de calor de estigmergia.
   - **Inspector de Mentes:** Clic en cualquier agente u holón para inspeccionar su árbol jerárquico, su energía, su genoma mutado y qué patrones recuerda cada hoja.
-- **3.3.3. "Mano del Experimentador" (Intervenciones en Vivo desde la UI):**
+- **3.4.3. "Mano del Experimentador" (Intervenciones en Vivo desde la UI):**
   - Inyectar recursos simples o compuestos en una coordenada $(X, Y, Z)$, disparar shocks ambientales (`invert_world_rules`) o premiar/castigar energéticamente ($\pm \Delta E$) a un holón específico (**Refuerzo Humano en Vivo**).
 
-## 3.4. Ecología Abierta y Puente Simbólico Humano-IDE
+## 3.5. Ecología Abierta y Puente Simbólico Humano-IDE
 
-- **3.4.1. Ecología Abierta (*Open-Ended Environment*):**
+- **3.5.1. Ecología Abierta (*Open-Ended Environment*):**
   - Generador procedimental de complejidad progresiva: a medida que la población domina los recursos compuestos de orden $m = 2, 3$, el entorno introduce gradualmente combinaciones nuevas de orden $m = 4, 5, 6 \dots$ para que la presión selectiva nunca se detenga.
-- **3.4.2. Puerto de Entrada/Salida Simbólica (`InteractiveBridgePort`) y Comunicación Emergente (Exp 004–006):**
+- **3.5.2. Puerto de Entrada/Salida Simbólica (`InteractiveBridgePort`) y Comunicación Emergente (Exp 004–006):**
   - Traductor bidireccional Humano $\leftrightarrow$ Universo IDE que deposita estímulos del usuario en la capa $Z = 0$ del cubo 3D y lee las respuestas de los holones superiores, acompañado de la des-programación progresiva del lenguaje (`N1` $\to$ `N4`).
 
-## 3.5. El "Telescopio a Internet" (`InternetStreamEnvironment` — Sub-etapa Puente III-B)
+## 3.6. El "Telescopio a Internet" (`InternetStreamEnvironment` — Sub-etapa Puente III-B)
 
 > **¿Por qué el Telescopio a Internet entra al cierre de la Fase III (justo antes de la Fase IV)?**
 > 1. **Requiere Inmortalidad (3.1) y Espacio 3D (3.2) ya operativos:** Internet es un flujo continuo y ruidoso; sin checkpoints y sin espacio 3D para separar "continentes temáticos", el ecosistema se saturaría.
@@ -111,7 +124,7 @@ Superar el "cuello de botella topológico del plano 2D" (Teorema de Kuratowski: 
   - Nuevo adaptador `InternetStreamEnvironment(EvolutionaryEnvironmentPort)` estrictamente de **sólo lectura** (consume APIs públicas, RSS, series temporales financieras/meteorológicas o flujos de texto y los proyecta como constelaciones de `Pattern` y `CompositeRule` en la superficie $Z = 0$ del cubo 3D).
   - **Aislamiento físico garantizado:** Los agentes siguen emitiendo únicamente acciones internas del motor (`MOVE`, `INTERACT`, `WAIT`); jamás tienen acceso a sockets de red salientes ni al sistema operativo anfitrión, impidiendo por diseño cualquier propagación fuera del equipo.
 
-## 3.6. Dinámica de Crecimiento en Ejecución Continua ($t \to \infty$)
+## 3.7. Dinámica de Crecimiento en Ejecución Continua ($t \to \infty$)
 
 El sistema crece en **4 dimensiones simultáneas** sin violar el límite cerebral individual ($C_{\max}$):
 
