@@ -57,3 +57,10 @@ En una comparación de C8, una semilla sin `mean_acquired_coverage` en alguna de
 #### Scenario: Atribución sobre otras configuraciones
 - **WHEN** se invoca `run_phase2_attribution` con `configs` distintas de `PHASE2_PROTOCOL_CONFIGS`
 - **THEN** el valor `full` de cada afirmación es el de su métrica medida sobre `configs[claim.protocol]` con esa semilla.
+
+### Requirement: Grilla Refinada y Salida de Respaldo (Enmienda 1b de D29)
+Si la grilla original no da un valor viable, `run_calibration` SHALL evaluar con el mismo criterio y las mismas semillas `CALIBRATION_REFINED_GRID = (25, 30, 35)` y, si tampoco hay un valor viable, SHALL registrar `fallback = CALIBRATION_FALLBACK = 20`, con E4 de C5 a C8 declarado no interpretable.
+
+#### Scenario: Grilla refinada sin valor viable
+- **WHEN** se ejecuta `run_calibration(grid=CALIBRATION_REFINED_GRID)` y ningún valor es viable
+- **THEN** `chosen is None`, `grid == (25, 30, 35)` y `fallback == 20`; con la grilla original, `fallback is None`.

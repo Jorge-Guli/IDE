@@ -6,7 +6,8 @@ recursos con un criterio puramente demográfico: nunca calcula ni mira las métr
 
 - Parámetro: `resources_per_pattern` (abundancia del entorno; no toca ninguna regla R12-R23).
 - Grilla cerrada, en orden ascendente: 10, 20, 40, 80. Se elige el menor valor viable y la
-  evaluación se detiene ahí; si ninguno lo es, no se elige nada y se consulta.
+  evaluación se detiene ahí; si ninguno lo es, no se elige nada (para esta grilla, la Enmienda
+  1b de abajo fija qué sigue).
 - Semillas de calibración 0 a 9, distintas de las de medición (`PHASE2_SEEDS`, 42 a 51).
 - Una corrida es viable si al final del perfil `phase2` (2000 ticks) la población sigue viva y
   llegó al menos a la generación 5. Un valor es viable si al menos 8 de las 10 semillas son
@@ -16,8 +17,14 @@ recursos con un criterio puramente demográfico: nunca calcula ni mira las métr
   pura demografía.
 - Parte de `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`, así que es reproducible después de incorporar el
   valor elegido a `PHASE2_PROTOCOL_CONFIGS`.
+- Enmienda 1b: con la grilla original ningún valor fue viable (`RESULTADOS.md`). Se evalúa,
+  con el mismo criterio y las mismas semillas, la grilla refinada 25, 30, 35 (`--refined`). Si
+  tampoco hay un valor viable, se usa `CALIBRATION_FALLBACK = 20` y la comparación E4 de C5 a C8
+  se declara no interpretable (con 20 se extingue el control nulo), regla fijada antes de esta
+  corrida; el reporte la registra en `fallback`.
 
-Uso: `python -m ide.experiments.phase2_calibration [--jobs N] [--out results/] [--ticks T]`.
+Uso: `python -m ide.experiments.phase2_calibration [--refined] [--jobs N] [--out results/]
+[--ticks T]`.
 """
 
 import argparse
@@ -41,6 +48,8 @@ from ide.simulation.engine import SimulationEngine
 
 CALIBRATION_PARAMETER = "resources_per_pattern"
 CALIBRATION_GRID: tuple[int, ...] = (10, 20, 40, 80)
+CALIBRATION_REFINED_GRID: tuple[int, ...] = (25, 30, 35)  # Enmienda 1b
+CALIBRATION_FALLBACK = 20  # Enmienda 1b: si la grilla refinada no da un valor viable
 CALIBRATION_SEEDS: tuple[int, ...] = tuple(range(10))
 MIN_VIABLE_SEEDS = 8
 MIN_GENERATION = 5
@@ -85,8 +94,11 @@ class ViabilityRun:
 class CalibrationReport:
     parameter: str
     total_ticks: int
+    grid: tuple[int, ...]  # grilla evaluada, en orden
     chosen: int | None  # menor valor viable de la grilla; None si ninguno lo es
     runs: tuple[ViabilityRun, ...]
+    # Enmienda 1b: `CALIBRATION_FALLBACK` si la grilla refinada no dio un valor viable
+    fallback: int | None = None
 
 
 def _labels() -> list[tuple[str, str]]:
@@ -109,12 +121,17 @@ def _demography(task: tuple[SimulationConfig, int]) -> tuple[int, int]:
     return len(engine.agents), max(m.max_generation for m in engine.evolutionary_history)
 
 
-def run_calibration(total_ticks: int | None = None, jobs: int = 1) -> CalibrationReport:
-    """Evalúa la grilla en orden ascendente y se detiene en el primer valor viable."""
+def run_calibration(
+    total_ticks: int | None = None, jobs: int = 1, grid: Sequence[int] = CALIBRATION_GRID
+) -> CalibrationReport:
+    """Evalúa `grid` en orden ascendente y se detiene en el primer valor viable."""
+    grid = tuple(grid)
+    if not grid or list(grid) != sorted(set(grid)):
+        raise ValueError(f"la grilla debe ser ascendente y sin repetidos: {grid}")
     ticks = PROFILES[attribution.PHASE2_ATTRIBUTION_PROFILE].total_ticks
     ticks = ticks if total_ticks is None else total_ticks
     runs: list[ViabilityRun] = []
-    for value in CALIBRATION_GRID:
+    for value in grid:
         # Parte de las configuraciones originales: reproducible tras incorporar el valor.
         bases = {
             key: replace(config, **{CALIBRATION_PARAMETER: value})
@@ -134,8 +151,9 @@ def run_calibration(total_ticks: int | None = None, jobs: int = 1) -> Calibratio
         ]
         runs += batch
         if is_viable_value(batch):
-            return CalibrationReport(CALIBRATION_PARAMETER, ticks, value, tuple(runs))
-    return CalibrationReport(CALIBRATION_PARAMETER, ticks, None, tuple(runs))
+            return CalibrationReport(CALIBRATION_PARAMETER, ticks, grid, value, tuple(runs))
+    fallback = CALIBRATION_FALLBACK if grid == CALIBRATION_REFINED_GRID else None
+    return CalibrationReport(CALIBRATION_PARAMETER, ticks, grid, None, tuple(runs), fallback)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -143,14 +161,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--jobs", type=positive_int, default=1)
     parser.add_argument("--out", type=Path, default=Path("results/"))
     parser.add_argument("--ticks", type=positive_int, default=None, help="sólo para pruebas")
+    parser.add_argument(
+        "--refined", action="store_true", help="grilla refinada 25, 30, 35 (Enmienda 1b)"
+    )
     args = parser.parse_args(argv)
     out: Path = args.out
     try:
         out.mkdir(parents=True, exist_ok=True)
     except OSError as error:
         parser.error(f"--out no es un directorio utilizable ({out}): {error}")
-    report = run_calibration(args.ticks, args.jobs)
-    write_json(out / "phase2_calibration.json", report_to_dict(report))
+    grid = CALIBRATION_REFINED_GRID if args.refined else CALIBRATION_GRID
+    report = run_calibration(args.ticks, args.jobs, grid)
+    name = "phase2_calibration_refinada.json" if args.refined else "phase2_calibration.json"
+    write_json(out / name, report_to_dict(report))
     for value in sorted({r.value for r in report.runs}):
         for protocol, label in _labels():
             batch = [
@@ -167,7 +190,12 @@ def main(argv: list[str] | None = None) -> int:
                 f"{sum(r.viable for r in batch)}/{len(batch)}, vivas {alive}/{len(batch)}, "
                 f"generación máxima por semilla: {generations}"
             )
-    if report.chosen is None:
+    if report.fallback is not None:
+        print(
+            f"Resultado: ningún valor de la grilla es viable; por la Enmienda 1b se usa "
+            f"{CALIBRATION_PARAMETER} = {report.fallback} y E4 se declara no interpretable."
+        )
+    elif report.chosen is None:
         print("Resultado: ningún valor de la grilla es viable; no se elige nada.")
     else:
         print(f"Resultado: {CALIBRATION_PARAMETER} = {report.chosen}")

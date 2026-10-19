@@ -93,7 +93,7 @@
   - `openspec validate --all --strict`;
   - actualizar `.github/workflows/ci.yml` si cambian los pasos de verificación.
 
-- [ ] 6.4 Calibración de viabilidad (Enmienda 1 de design D29): declarar y testear el procedimiento en `src/ide/experiments/phase2_calibration.py` **antes** de ejecutarlo, con el criterio sobre la base de cada protocolo y sus variantes de comparación (`calibration_conditions`, que incluye el control nulo), `PHASE2_PROTOCOL_CONFIGS_ORIGINAL` y el registro demográfico (`condition_demography`, `ClaimEvaluation.demography`); correrlo, registrar su salida y la de la corrida antecedente en `RESULTADOS.md` e incorporar el valor elegido a `PHASE2_PROTOCOL_CONFIGS`, sin mirar las métricas de las afirmaciones. Si ningún valor es viable, consultar.
+- [ ] 6.4 Calibración de viabilidad (Enmienda 1 de design D29): declarar y testear el procedimiento en `src/ide/experiments/phase2_calibration.py` **antes** de ejecutarlo, con el criterio sobre la base de cada protocolo y sus variantes de comparación (`calibration_conditions`, que incluye el control nulo), `PHASE2_PROTOCOL_CONFIGS_ORIGINAL` y el registro demográfico (`condition_demography`, `ClaimEvaluation.demography`); correrlo, registrar su salida y la de la corrida antecedente en `RESULTADOS.md` e incorporar el valor elegido a `PHASE2_PROTOCOL_CONFIGS`, sin mirar las métricas de las afirmaciones. Con la grilla original ningún valor fue viable; por la Enmienda 1b (que reemplaza la consulta para este caso), correr la grilla refinada 25, 30, 35 (`--refined`) y, si tampoco hay un valor viable, usar `CALIBRATION_FALLBACK = 20` y declarar E4 no interpretable.
 
 ## 7. Corridas y registro
 

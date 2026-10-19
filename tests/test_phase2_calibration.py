@@ -17,8 +17,10 @@ from ide.experiments.attribution import (
     ablate,
 )
 from ide.experiments.phase2_calibration import (
+    CALIBRATION_FALLBACK,
     CALIBRATION_GRID,
     CALIBRATION_PARAMETER,
+    CALIBRATION_REFINED_GRID,
     CALIBRATION_SEEDS,
     MIN_GENERATION,
     MIN_VIABLE_SEEDS,
@@ -179,7 +181,7 @@ def test_cli(tmp_path: Path, small: None, capsys: pytest.CaptureFixture[str]) ->
 
 
 def test_reporte_inmutable() -> None:
-    report = CalibrationReport("resources_per_pattern", 12, None, ())
+    report = CalibrationReport("resources_per_pattern", 12, CALIBRATION_GRID, None, ())
     with pytest.raises(dataclasses.FrozenInstanceError):
         report.chosen = 10  # type: ignore[misc]
 
@@ -231,3 +233,36 @@ def test_exige_condiciones_para_cada_protocolo() -> None:
     with_r18["003b"] = dataclasses.replace(with_r18["003b"], enable_downward_causation=True)
     with pytest.raises(ValueError, match="R18"):
         calibration_conditions(with_r18)
+
+
+def test_grilla_refinada_declarada() -> None:
+    """Enmienda 1b: valores entre 20 y 40, mismo criterio y mismas semillas."""
+    assert CALIBRATION_REFINED_GRID == (25, 30, 35)
+    assert not set(CALIBRATION_REFINED_GRID) & set(CALIBRATION_GRID)
+
+
+def test_calibracion_sobre_la_grilla_refinada(small: None) -> None:
+    report = run_calibration(total_ticks=12, grid=CALIBRATION_REFINED_GRID)
+    assert report.chosen is None  # en 12 ticks nadie llega a la generación 5
+    assert report.grid == CALIBRATION_REFINED_GRID
+    assert report.fallback == CALIBRATION_FALLBACK == 20  # salida A de la Enmienda 1b
+    assert sorted({r.value for r in report.runs}) == list(CALIBRATION_REFINED_GRID)
+    assert {r.seed for r in report.runs} == set(FEW_SEEDS)  # mismas semillas que la original
+    assert run_calibration(total_ticks=12).fallback is None  # la grilla original no la aplica
+
+
+@pytest.mark.parametrize("grid", [(), (30, 25), (25, 25, 30)])
+def test_grilla_invalida(grid: tuple[int, ...]) -> None:
+    with pytest.raises(ValueError, match="ascendente"):
+        run_calibration(total_ticks=1, grid=grid)
+
+
+def test_cli_refinada_escribe_otro_archivo(
+    tmp_path: Path, small: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(["--ticks", "12", "--refined", "--out", str(tmp_path)]) == 0
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["phase2_calibration_refinada.json"]
+    data = json.loads((tmp_path / "phase2_calibration_refinada.json").read_text())
+    assert sorted({r["value"] for r in data["runs"]}) == list(CALIBRATION_REFINED_GRID)
+    assert (data["grid"], data["fallback"]) == (list(CALIBRATION_REFINED_GRID), 20)
+    assert "Enmienda 1b" in capsys.readouterr().out
