@@ -10,6 +10,7 @@ adyacentes llegan ya calculados por el motor. El motor decide también cuándo i
 from collections.abc import Callable, Mapping, Sequence
 from typing import Protocol, runtime_checkable
 
+from ide.agent.epistemology import is_known
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
 from ide.domain.extensions import compute_epistemic_synergy
@@ -134,7 +135,7 @@ def evaluate_bond_candidates(
 ) -> list[tuple[int, int]]:
     """Pares de nodos raíz a fusionar por BOND (R15, D24.3), en orden de selección.
 
-    `adjacent_pairs` son los pares de `node_id` con al menos dos hojas a distancia <= 1. Los
+    `adjacent_pairs` son los pares de `node_id` con alguna hoja de cada nodo a distancia <= 1. Los
     candidatos con puntaje >= `holon_bond_threshold` se eligen por (-puntaje, a, b), sin que un
     nodo participe en dos fusiones del mismo tick.
     """
@@ -144,9 +145,7 @@ def evaluate_bond_candidates(
     def valid_patterns(node_id: int) -> frozenset[Pattern]:
         if node_id not in known:
             memory = by_id[node_id].collective_memory()
-            known[node_id] = frozenset(
-                p for p, u in memory.items() if u.confidence >= config.decision_conf_threshold
-            )
+            known[node_id] = frozenset(p for p, u in memory.items() if is_known(u, config))
         return known[node_id]
 
     candidates: list[tuple[float, int, int]] = []
@@ -186,14 +185,20 @@ def apply_downward_causation(
     regla apagada, limpia la penalización de todas las hojas.
     """
     leaves = holon.leaf_agents
+    by_id = {leaf.agent_id: leaf for leaf in leaves}
+    nearby_ids: dict[int, list[int]] = {}
+    # Se valida aun con la regla apagada, para que la ablación no oculte un error del motor.
+    for aid in by_id:
+        if aid not in local_reach or not set(local_reach[aid]) <= by_id.keys():
+            raise ValueError(f"local_reach debe dar, para la hoja {aid}, sólo hojas del holón")
+        nearby_ids[aid] = sorted({*local_reach[aid], aid})
     if not config.enable_downward_causation:
         for leaf in leaves:
             leaf.memory.set_redundant_patterns(frozenset(), 1.0)
         return
-    by_id = {leaf.agent_id: leaf for leaf in leaves}
     redundant_by_leaf: dict[int, frozenset[Pattern]] = {}
     for leaf in leaves:
-        nearby = [by_id[aid] for aid in sorted({*local_reach[leaf.agent_id], leaf.agent_id})]
+        nearby = [by_id[aid] for aid in nearby_ids[leaf.agent_id]]
         redundant: set[Pattern] = set()
         for unit in leaf.memory.all_units():
             holders = [
@@ -224,9 +229,15 @@ def reproduce_holon(
     """
     leaf_ids = [leaf.agent_id for leaf in holon.leaf_agents]
     children_ids = [offspring[aid].agent_id for aid in leaf_ids if aid in offspring]
-    if len(children_ids) != len(leaf_ids) or len(set(children_ids)) != len(leaf_ids):
+    if (
+        len(children_ids) != len(leaf_ids)
+        or len(set(children_ids)) != len(leaf_ids)
+        or not set(children_ids).isdisjoint(leaf_ids)
+    ):
         # Se valida antes de pedir IDs: un fallo no deja huecos en el contador del motor.
-        raise ValueError(f"offspring debe asignar un hijo distinto a cada hoja de {leaf_ids}")
+        raise ValueError(
+            f"offspring debe asignar a cada hoja un hijo distinto y ajeno al holón: {leaf_ids}"
+        )
 
     def replicate(node: CompositeAgent) -> CompositeAgent:
         node_id = node_id_source()

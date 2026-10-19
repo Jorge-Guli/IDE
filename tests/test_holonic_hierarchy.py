@@ -285,6 +285,16 @@ def test_causalidad_descendente_incluye_siempre_a_la_propia_hoja() -> None:
     assert a2.memory.compute_utility(ku(0), 0) == pytest.approx(0.18, abs=1e-9)
 
 
+def test_causalidad_descendente_valida_el_alcance_local() -> None:
+    u = holon(-2, leaf(1, ku(0)), leaf(2, ku(0, conf=0.5)))
+    with pytest.raises(ValueError, match="local_reach"):
+        apply_downward_causation(u, {1: [1, 2]}, R18)  # falta la hoja 2
+    with pytest.raises(ValueError, match="local_reach"):
+        apply_downward_causation(u, {1: [1, 2], 2: [2, 7]}, R18)  # 7 no es hoja del holón
+    with pytest.raises(ValueError, match="local_reach"):  # también con la regla apagada
+        apply_downward_causation(u, {1: [1, 2]}, replace(R18, enable_downward_causation=False))
+
+
 def test_causalidad_descendente_apagada_limpia_la_penalizacion() -> None:
     a1, a2 = leaf(1, ku(0, conf=0.9)), leaf(2, ku(0, conf=0.5))
     u = holon(-2, a1, a2)
@@ -346,6 +356,8 @@ def test_reproduccion_exige_un_hijo_por_hoja_antes_de_pedir_ids() -> None:
         reproduce_holon(u, {1: leaf(11)}, source, 0)
     with pytest.raises(ValueError, match="offspring"):
         reproduce_holon(u, {1: leaf(11), 2: leaf(11)}, source, 0)
+    with pytest.raises(ValueError, match="offspring"):
+        reproduce_holon(u, {1: leaf(2), 2: leaf(11)}, source, 0)  # hija = hoja parental
     assert requested == []
 
 

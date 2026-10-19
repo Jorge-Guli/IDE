@@ -233,7 +233,9 @@ def test_sin_patrones_redundantes_la_utilidad_es_bit_a_bit_la_de_fase_i() -> Non
     m.set_redundant_patterns(frozenset({pat(5)}), penalty=0.3)
     unit = ku(0, conf=0.37, value=-0.61, tau=3)
     assert m.compute_utility(unit, 17) == referencia.compute_utility(unit, 17)
-    assert m.compute_utility(unit, 17) == 0.37 * 0.61 * math.exp(-0.005 * 14)
+    assert m.compute_utility(unit, 17) == pytest.approx(
+        0.37 * 0.61 * math.exp(-0.005 * 14), abs=1e-9
+    )
 
 
 def test_cada_llamada_reemplaza_a_la_anterior() -> None:

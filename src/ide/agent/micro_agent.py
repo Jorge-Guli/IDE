@@ -74,7 +74,8 @@ class MicroAgent:
     ) -> "MicroAgent":
         """Descendiente cuyo fenotipo (configuración) expresa su genoma.
 
-        `bond_affinity` no tiene campo propio en la configuración: se lee siempre del genoma.
+        `initial_bond_affinity` conserva el valor fundador (D22): la afinidad de un descendiente
+        se lee siempre de su genoma, nunca de su configuración.
         """
         agent_config = replace(
             config,
