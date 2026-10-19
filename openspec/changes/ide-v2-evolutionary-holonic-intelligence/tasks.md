@@ -29,18 +29,18 @@
 
 ## 2. Memoria con Penalización de Redundancia y Dinámica Evolutiva (`bounded-memory`, `evolutionary-dynamics`, `micro-agent`)
 
-- [ ] 2.1 **[RED]** Crear `tests/test_evolutionary_dynamics.py` y ampliar `tests/test_memory.py` y `tests/test_micro_agent.py` con tests para:
+- [x] 2.1 **[RED]** Crear `tests/test_evolutionary_dynamics.py` y ampliar `tests/test_memory.py` y `tests/test_micro_agent.py` con tests para:
   - (a) `set_redundant_patterns` y la modulación de utilidad por `redundancy_penalty` ($\psi_{\text{red}}$, $R_{18}$) en `BoundedMemory`;
   - (b) `genome_from_config` y `compute_metabolic_cost` en `src/ide/agent/evolution.py`;
   - (c) `transfer_cultural_heritage` como función pura con descuento $\gamma_{\text{gen}}$ ($R_{14}$);
   - (d) las propiedades de `AgentNode` ($L=0$), el estado energético, el linaje, `own_belief`, `apply_energy_delta`, `from_lineage` y `create_offspring` en `MicroAgent`, sin modificar las 8 firmas canónicas de Fase I;
   - (e) que `evolution.py` no importa `micro_agent.py` y que ningún archivo de `src/ide/agent/` referencia `nullify_belief`.
-- [ ] 2.2 **[GREEN]** Implementar:
+- [x] 2.2 **[GREEN]** Implementar:
   - `set_redundant_patterns` en `src/ide/agent/memory.py`;
   - `src/ide/agent/evolution.py` (`genome_from_config`, `compute_metabolic_cost`, `transfer_cultural_heritage`);
   - en `MicroAgent`: `energy`, `generation`, `parent_id`, `genome`, `node_id`, `holon_level`, `leaf_agents`, `effective_capacity`, `collective_memory`, `own_belief`, `apply_energy_delta`, `from_lineage` y `create_offspring`;
   - `clear_holon_beliefs` e `inject_ephemeral_belief` (vista del holón, $R_{22}$), con los requisitos `MODIFIED` de `micro-agent`.
-- [ ] 2.3 **[REFACTOR]** Pruebas por propiedades con Hypothesis (perfil `ci`) sobre `mutate_genome` (cotas y aceptación por `SimulationConfig`) y `transfer_cultural_heritage`; auditorías AST de `tests/test_micro_agent.py`; verificación del bloque.
+- [x] 2.3 **[REFACTOR]** Pruebas por propiedades con Hypothesis (perfil `ci`) sobre `mutate_genome` (cotas y aceptación por `SimulationConfig`) y `transfer_cultural_heritage`; auditorías AST de `tests/test_micro_agent.py`; verificación del bloque.
 
 ## 3. Jerarquía Holónica Recursiva (`holonic-hierarchy`)
 
