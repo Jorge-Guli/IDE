@@ -5,6 +5,8 @@ import json
 from dataclasses import FrozenInstanceError, fields
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from ide.config import SimulationConfig
 from ide.domain.ports import EnvironmentPort, EvolutionaryEnvironmentPort
@@ -444,12 +446,46 @@ def test_config_rechaza_nan_en_hiperparametros_de_fase_ii(campo: str) -> None:
         SimulationConfig(**{campo: float("nan")})  # type: ignore[arg-type]
 
 
-def test_config_rechaza_estigmergia_que_solo_borraria_rastros() -> None:
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"stigmergy_deposit_rate": 0.04},
+        {"stigmergy_deposit_rate": 0.05},  # 0.05 * 0.85 < 0.05: sólo sobreviviría con c = 1
+        {"stigmergy_deposit_rate": 0.3, "min_confidence": 0.3},
+        {"stigmergy_deposit_rate": 0.5, "initial_direct_confidence": 0.09},
+    ],
+)
+def test_config_rechaza_estigmergia_que_solo_borraria_rastros(overrides: dict[str, float]) -> None:
     with pytest.raises(ValueError, match="stigmergy_deposit_rate"):
-        SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.04)
+        SimulationConfig(enable_stigmergy=True, **overrides)  # type: ignore[arg-type]
 
 
 def test_config_acepta_tasas_de_estigmergia_coherentes() -> None:
-    SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.05)  # igual al umbral
+    # borde exacto: 0.1 * 0.5 == 0.05
+    SimulationConfig(
+        enable_stigmergy=True, stigmergy_deposit_rate=0.1, initial_direct_confidence=0.5
+    )
     SimulationConfig(enable_stigmergy=True, stigmergy_deposit_rate=0.0)  # nunca deposita
     SimulationConfig(enable_stigmergy=False, stigmergy_deposit_rate=0.04)  # apagada: no aplica
+    SimulationConfig(enable_stigmergy=False, stigmergy_deposit_rate=0.0)  # ablación de R19
+
+
+@given(
+    rate=st.floats(0.0, 1.0),
+    first=st.floats(0.0, 1.0),
+    minimum=st.floats(0.0, 0.3),
+)
+def test_config_de_estigmergia_se_acepta_si_y_solo_si_el_primer_rastro_sobrevive(
+    rate: float, first: float, minimum: float
+) -> None:
+    kwargs = {
+        "enable_stigmergy": True,
+        "stigmergy_deposit_rate": rate,
+        "initial_direct_confidence": first,
+        "min_confidence": minimum,
+    }
+    if rate > 0 and rate * first < minimum:
+        with pytest.raises(ValueError, match="stigmergy_deposit_rate"):
+            SimulationConfig(**kwargs)  # type: ignore[arg-type]
+    else:
+        SimulationConfig(**kwargs)  # type: ignore[arg-type]

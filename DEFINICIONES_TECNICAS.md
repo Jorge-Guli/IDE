@@ -615,7 +615,7 @@ Se agregan al final de `SimulationConfig`, con los nombres y valores por defecto
 - Enteros: `max_population >= 1`, `max_genome_memory_capacity >= memory_capacity`, `max_holon_leaves >= 2`, `holon_split_patience >= 1`, `composite_order >= 2`, `composite_resources_per_pattern >= 1`.
 - `reproduction_mode` en `{"energy", "neutral"}`; si no, `ValueError` que nombra `reproduction_mode`.
 - Si `num_composite_patterns > 0`, `composite_order <= num_world_patterns // 2` (con los valores base, $m \le 6$); si no, `ValueError` que nombra `composite_order`.
-- Si `enable_stigmergy=True`, `stigmergy_deposit_rate` es `0` o `>= min_confidence`; si no, `ValueError` que nombra `stigmergy_deposit_rate`, porque ningún depósito alcanzaría el umbral y la estigmergia sólo borraría rastros (design D20 y D27).
+- Si `enable_stigmergy=True` y `stigmergy_deposit_rate > 0`, `stigmergy_deposit_rate * initial_direct_confidence >= min_confidence`; si no, `ValueError` que nombra `stigmergy_deposit_rate`, porque ni la primera experiencia directa dejaría un rastro sobre el umbral y la estigmergia casi sólo borraría rastros (design D20 y D27).
 
 **Generadores derivados (design D19):** la Fase II agrega `evo_rng` (`spawn_key=(2,)`: mutación y ubicación de descendientes), que se consume únicamente con `enable_evolution=True`; `_comp_rng` (`(3,)`: recursos compuestos), únicamente con `num_composite_patterns > 0`; y `donor_rng` (`(4,)`: donante de genoma), únicamente con `reproduction_mode="neutral"`; junto con `null_rng` (`(1,)`, Fase I) son los únicos generadores derivados. Las métricas (M8–M13) no consumen ningún generador.
 
