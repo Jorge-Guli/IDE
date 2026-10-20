@@ -107,6 +107,13 @@ flowchart LR
   - C13–C18: la regulación génica, la conducta, la comunicación desde cero, la actividad evolutiva, la complejidad genética bajo depredación y la cooperación material en los holones. Son **pruebas genuinas**: ninguna regla persigue la métrica.
   - Perfil `phase25` de 5000 ticks, 30 semillas (42–71), prueba de signo sobre los pares válidos (sin extinciones; con menos de 20, la afirmación no es evaluable) con corrección de Holm y tamaño de efecto mínimo (relativo a la mediana de `drift` en C16) sobre la mediana de todas las diferencias, incluidas las nulas, y la demografía como covariable. E4 usa la misma regla de pares válidos.
 
+- **Ampliación aprobada conceptualmente (2026-10-20, pendiente de especificar en OpenSpec).** La revisión conceptual de la reformulación mostró que la política genética es **reactiva**: no guarda nada de un tick al siguiente y la estructura del aprendizaje en vida sigue escrita a mano. El ADN biológico no aprende, pero construye la máquina que aprende (neuronas, sinapsis, sistema inmune); por eso la Fase II-B incorpora dos niveles de esa máquina, construidos por la evolución:
+  - **Nivel 1, estado interno persistente (regla prevista $R_{39}$):** codones que fijan y borran bits de estado interno ante eventos, y promotores que los leen en ticks posteriores. El estado arranca vacío al nacer y no se hereda. Permite memorias de corto plazo, modos de conducta y secuencias: una máquina de estados construida por la selección, y profundidad de regulación en el tiempo.
+  - **Nivel 2, plasticidad en vida (regla prevista $R_{40}$):** un modo de codón plástico cuya fuerza se ajusta durante la vida según la recompensa energética, con una regla de crédito mínima y declarada; cuánto y qué se aprende lo deciden los genes. Los pesos aprendidos no se heredan. Permite medir el efecto Baldwin.
+  - **Afirmación prevista de adaptabilidad:** si las poblaciones con estado interno y plasticidad se recuperan más rápido de un cambio del entorno que sin ellos.
+  - **Propuestas recomendadas, a confirmar:** señales evolucionables (una conducta `SIGNAL` con un símbolo elegido por el ADN y promotores que lo perciben, regla prevista $R_{41}$), para que la comunicación tenga significado emergente y no sólo el protocolo de la Fase I; y subir el máximo del ADN de 32 a 64 codones.
+  - El borrador D56 se reabre para incorporarlos antes de su aprobación (tarea 0.5).
+
 ---
 
 # Fase III (v3.0) — Persistencia Continua, Espacio 3D, Interfaz Viva y Telescopio a Internet [PLANIFICADA]
@@ -115,9 +122,12 @@ flowchart LR
 >
 > **Lo que ya no le corresponde.** La conducta evolucionable, la ecología con escasez e interacciones entre agentes (recursos agotables, nichos, estaciones, cadáveres, transferencia de energía y depredación) y el motor por sistemas pasaron a la Fase II-B reformulada. La Fase III parte de ellos y no los repite.
 
-## 3.0. Programas en el ADN (Máquina Virtual tipo Avida)
+## 3.0. Estructura de Aprendizaje Totalmente Abierta (Nivel 3): Programas en el ADN
 
-En la Fase II-B, el ADN expresa **impulsos** sobre un repertorio fijo de conductas: la evolución decide cuándo y cuánto se usa cada una, pero no puede inventar una conducta que no esté en la tabla. La Fase III da el paso siguiente: el cromosoma pasa a contener un **programa** que una máquina virtual pequeña y determinista ejecuta en cada decisión, al estilo de Avida (Ofria y Wilke, 2004).
+En la Fase II-B, el ADN expresa **impulsos** sobre un repertorio fijo de conductas y sensores, con estado interno persistente (nivel 1) y plasticidad en vida (nivel 2): la evolución decide cuándo y cuánto se usa cada conducta, qué se recuerda y qué se aprende, pero no puede inventar una conducta, un sensor ni una forma de aprender que no estén en la tabla. Ese es el techo de complejidad de la Fase II-B. La Fase III da el **nivel 3**: que la estructura misma de la máquina de decidir y aprender sea abierta y la construya la evolución.
+
+- **Sustrato.** Dos opciones, a decidir al especificar la fase: un **programa** en el cromosoma que una máquina virtual pequeña y determinista ejecuta en cada decisión, al estilo de Avida (Ofria y Wilke, 2004), o una **red neuronal con topología y plasticidad evolucionables**. Las dos permiten que crezcan el repertorio de conductas, la percepción y las reglas de aprendizaje, en lugar de combinar un conjunto fijo.
+- **Escala.** El nivel 3 sólo tiene sentido con muchas más generaciones que las de la Fase II-B, así que va junto con la aceleración por hardware (3.3) y la ejecución continua (3.7).
 
 - **Política como programa.** Se implementa como una política más detrás del `PolicyPort` de la Fase II-B, con un presupuesto de instrucciones por tick que cobra el metabolismo.
 - **Compatibilidad.** La política genética de impulsos sigue disponible como caso particular, y un programa fundador debe reproducir su conducta, igual que el ADN fundador de la Fase II-B reproduce la política escrita a mano.
