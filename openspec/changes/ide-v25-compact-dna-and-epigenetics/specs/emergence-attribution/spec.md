@@ -38,7 +38,7 @@ Según el pre-registro aprobado en la tarea 0.2 (design D42), `PHASE25_PROTOCOL_
 - **THEN** difiere de `PHASE2_PROTOCOL_CONFIGS["003a"]` sólo en esas seis banderas, todas en `True`.
 
 ### Requirement: Afirmaciones Pre-Registradas C9 a C12
-Según el pre-registro aprobado en la tarea 0.2 (design D42), `PHASE25_CLAIMS` SHALL contener `C9` (`002c`, `evolved_accuracy`), `C10` (`002d`, `evolved_accuracy`), `C11` (`002e`, `final_population`) y `C12` (`003c`, `holonic_composite_completions`), todas con métrica creciente y con $R_C$ y canal iguales a `("R24",)`, `("R29",)`, `("R28",)` y `("R25",)`, respectivamente.
+Según el pre-registro aprobado en la tarea 0.2 (design D42), `PHASE25_CLAIMS` SHALL contener `C9` (`002c`, `evolved_accuracy`), `C10` (`002d`, `evolved_accuracy`), `C11` (`002e`, `final_active_population`) y `C12` (`003c`, `holonic_composite_completions`), todas con métrica creciente y con $R_C$ y canal iguales a `("R24",)`, `("R29",)`, `("R28",)` y `("R25",)`, respectivamente.
 
 #### Scenario: Registro de afirmaciones
 - **WHEN** se inspecciona `PHASE25_CLAIMS`
@@ -63,11 +63,15 @@ Según el pre-registro aprobado en la tarea 0.2 (design D42), `PHASE25_INACTIVE_
 - **THEN** la regla está apagada o es inerte en esa configuración, y ninguna regla inactiva recibe variante en `rule_effects`.
 
 ### Requirement: E4 Declarado de Antemano en la Fase II-B
-Según el pre-registro aprobado en la tarea 0.2 (design D42), E4 SHALL declararse no interpretable de antemano para `002c`, `002e` y `003c`, e interpretable para `002d`.
+Según el pre-registro aprobado en la tarea 0.2 (design D42), E4 SHALL declararse no interpretable de antemano para `002c`, `002e` y `003c`; en `002d`, E4 de `C10` SHALL ser interpretable sólo si la variante `null_content` termina con población viva en al menos 8 de 10 semillas según `ClaimEvaluation.demography`.
 
 #### Scenario: Interpretabilidad de E4 por protocolo
 - **WHEN** se evalúan `C9`, `C10`, `C11` y `C12`
-- **THEN** sólo `C10` tiene E4 interpretable; las otras tres lo informan como no interpretable, sin depender del resultado.
+- **THEN** `C9`, `C11` y `C12` informan E4 como no interpretable, sin depender del resultado.
+
+#### Scenario: Condición demográfica de E4 en 002d
+- **WHEN** la variante `null_content` de `C10` termina con población viva sólo en 7 de 10 semillas
+- **THEN** `C10` informa E4 como no interpretable, sin consultar la métrica de la afirmación.
 
 ### Requirement: Ejecución de la Atribución de la Fase II-B
 `run_phase25_attribution(seeds=PHASE2_SEEDS, claims=PHASE25_CLAIMS, jobs=1, configs=None)` SHALL devolver `AttributionReport(profile="phase2", rules=PHASE25_ALL_RULES, ...)`, con el perfil `phase2` de 2000 ticks y las semillas 42 a 51, según el pre-registro aprobado en la tarea 0.2 (design D42).
@@ -77,8 +81,8 @@ Según el pre-registro aprobado en la tarea 0.2 (design D42), E4 SHALL declarars
 - **THEN** devuelve un `AttributionReport` con `profile == "phase2"`, `rules == PHASE25_ALL_RULES` y una evaluación por afirmación de `PHASE25_CLAIMS`.
 
 ### Requirement: Prueba de Humo antes de los Runners
-Antes de los runners de la Fase II-B, la prueba de humo SHALL registrar sólo si cada corrida termina, la generación máxima y la población final, sin calcular ni mirar las métricas de las afirmaciones; un protocolo inviable SHALL reportarse como resultado, sin calibración salvo con una decisión nueva.
+Antes de los runners de la Fase II-B, la prueba de humo SHALL registrar sólo si cada corrida termina, la generación máxima y, salvo en `002e`, la población final, sin calcular ni mirar las métricas de las afirmaciones; un protocolo inviable SHALL reportarse como resultado, y `002e` SHALL no recalibrarse después de la prueba.
 
 #### Scenario: Registro de la prueba de humo
 - **WHEN** se corre la prueba de humo de los cuatro protocolos
-- **THEN** su registro contiene, por protocolo y semilla, sólo la terminación, la generación máxima y la población final, y ningún valor de `evolved_accuracy`, `final_population` ni `holonic_composite_completions`.
+- **THEN** su registro contiene, por protocolo y semilla, sólo la terminación, la generación máxima y, salvo en `002e`, la población final, y ningún valor de `evolved_accuracy`, `final_active_population` ni `holonic_composite_completions`.

@@ -28,11 +28,11 @@ En `GeneticTickMetrics`, `mean_chromosome_length`, `mean_expressed_codons` y `me
 - **THEN** el registro del tick 30 tiene `crispr_rejections == 1` y el del tick 31 tiene `hgt_transfers == 0` y `crispr_rejections == 0`.
 
 ### Requirement: Runner de los Protocolos de la Fase II-B
-`src/ide/experiments/exp25_runner.py` SHALL implementar los protocolos `002c`, `002d`, `002e` y `003c` con la infraestructura `ProtocolSpec` de `phase2_cli.py`, con reportes serializables a JSON y CLI, y un resumen por condición que incluye `final_accuracy`, `composite_completions`, `final_agents`, `max_generation` y el resumen genético del último tick.
+`src/ide/experiments/exp25_runner.py` SHALL implementar los protocolos `002c`, `002d`, `002e` y `003c` con la infraestructura `ProtocolSpec` de `phase2_cli.py`, con reportes serializables a JSON y CLI, y un resumen por condición que incluye `final_accuracy`, `composite_completions`, `final_agents`, `final_active_agents` (hojas vivas fuera de endospora), `max_generation` y el resumen genético del último tick.
 
 #### Scenario: Ejecución corta y serialización
 - **WHEN** se ejecuta cada uno de los cuatro protocolos con `total_ticks=40` y se serializa su reporte a JSON
-- **THEN** cada condición del reporte contiene `final_accuracy`, `composite_completions`, `final_agents`, `max_generation` y los campos de `GeneticTickMetrics` del último tick.
+- **THEN** cada condición del reporte contiene `final_accuracy`, `composite_completions`, `final_agents`, `final_active_agents`, `max_generation` y los campos de `GeneticTickMetrics` del último tick.
 
 ### Requirement: Condiciones del Protocolo 002c
 El protocolo `002c` SHALL comparar, en este orden, las condiciones `dna` (base), `flat_genome` (sin $R_{24}$), `frozen_dna` (sin $R_{13}$) y `drift` (sin $R_{12}$).

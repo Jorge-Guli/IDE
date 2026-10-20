@@ -6,7 +6,7 @@ Resultados tal cual se obtuvieron, positivos o negativos, **sin ajustar parámet
 
 ## Experimento 001: expectativas funcionales (bloque 9.5)
 
-- **Código:** el commit que agrega esta entrada (bloque 9 de `tasks.md`; `git log -- RESULTADOS.md`).
+- **Código:** el commit que agrega esta entrada (bloque 9 de `tasks.md`; `git log --follow -- docs/RESULTADOS.md`).
 - **Comando:** `python -m pytest -m empirical` (16 tests, `SimulationConfig()` por defecto, perfil `quick`: 300 ticks; 001-B con inyección en el tick 80 al 25 %).
 - **Resultado:** 16 de 16 pasan.
 - **Alcance (regla de atribución):** H1 verifica que los mecanismos de comunicación programados cumplen su propósito. **No** es evidencia de emergencia: C1 y C2 son programadas por construcción (ver 001-D).

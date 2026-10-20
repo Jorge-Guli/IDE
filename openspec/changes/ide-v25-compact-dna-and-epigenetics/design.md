@@ -346,17 +346,19 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
    - Si conjuga, sus candidatos son `sorted(b for b in agentes vivos al empezar el paso if b != donante and not endospora and env.get_agent_distance(donante, b) <= 1)`.
    - Si hay candidatos: `receptor = candidatos[int(hgt_rng.integers(len(candidatos)))]` y `codón = plasmids_del_donante_al_empezar[int(hgt_rng.integers(len(plasmids)))]`.
    - Se registra el par `(receptor, codón)`.
-3. **Aplicación.** Las transferencias se aplican en el orden registrado, después de sortearlas todas, con `receive_plasmid(dna, codon, config) -> CompactDNA | None`:
+3. **Aplicación.** Las transferencias se aplican después de sortearlas todas. Si hay dos o más, se aplican en el orden de `hgt_rng.permutation(len(transferencias))` sobre la lista registrada: con FIFO, la llegada de varios plásmidos al mismo receptor es un conflicto, y se resuelve por sorteo, como los conflictos físicos, no por `agent_id`. Cada una se aplica con `receive_plasmid(dna, codon, config) -> CompactDNA | None`:
    - Con $R_{27}$ activa y el codón en `crispr_memory`, devuelve `None`: la transferencia se **bloquea** y cuenta como rechazo.
    - Si el codón ya está en `plasmids`, devuelve el mismo ADN sin cambios.
    - Si no, lo agrega al final, con FIFO a `max_plasmids`.
-   - Si el ADN cambió, el motor lo guarda con `set_dna`. Con $R_{27}$ activa, abre un ensayo `trials[codón] = (tick, energía actual)` en el receptor.
+   - Si el ADN cambió, el motor lo guarda con `set_dna`. Con $R_{27}$ activa, abre un ensayo `trials[codón] = (tick, energía actual, 0.0)` en el receptor. El tercer valor acumula la energía cedida a los hijos durante la ventana: cada `create_offspring` del receptor suma la energía del hijo a todos sus ensayos abiertos.
 
 **Ensayo CRISPR (`_evaluate_crispr`).** Corre después de la conjugación, con `enable_crispr_immunity` activa. Para cada agente en orden de `agent_id`, y para cada ensayo en orden de codón:
 - **Ensayo vencido** (`tick - t0 >= crispr_eval_ticks`):
-  - Si el codón sigue en `plasmids` y `energy - e0 < -crispr_toxicity_threshold`, se purga con `purge_plasmid(dna, codon, config) -> CompactDNA`: lo quita de `plasmids` y lo agrega a `crispr_memory`, con FIFO a `crispr_memory_size`.
+  - Si el codón sigue en `plasmids` y el balance $\Delta E = \text{energy} - e_0 + \text{cedida} < -$`crispr_toxicity_threshold`, se purga con `purge_plasmid(dna, codon, config) -> CompactDNA`: lo quita de `plasmids` y lo agrega a `crispr_memory`, con FIFO a `crispr_memory_size`.
   - En cualquier caso, el ensayo se cierra.
-- **Plásmido perdido.** Si el plásmido se perdió antes del vencimiento, por FIFO, el ensayo se cierra sin purga.
+- **Plásmido perdido.** Si el plásmido se perdió por FIFO antes del vencimiento, el ensayo se cierra al vencer, sin purga.
+
+**Por qué se descuenta lo cedido (decisión del 2026-10-20).** Reproducirse cede `offspring_energy_share` de una energía de al menos `reproduction_threshold`, una caída de 1.1 o más con los valores por defecto. Sin descontarla, todo receptor que se reproduce dentro de la ventana purgaría el plásmido, sin relación con su efecto, y $R_{27}$ castigaría a los agentes exitosos.
 
 **Lo que no hacen los plásmidos.** Transportan codones, no creencias. Son un canal genético, no epistémico: no pasan por `assimilate_testimony` ni por el control nulo de contenido. El control nulo de E4 no los altera, y así se declara.
 
@@ -365,7 +367,7 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
   - `energy <= phenotype.spore_threshold`;
   - su observación de la Fase 1 de ese tick no tiene recursos visibles;
   - con $R_{19}$ activa, su celda no tiene ningún rastro con `sign_value > 0`.
-  - Los recién nacidos del tick no se evalúan.
+  - La entrada se evalúa antes de la reproducción (D41), así que los recién nacidos del tick no entran en ella.
 - **Germinación.** En la Fase 1, inmediatamente después de `get_observation`, una endospora germina (`set_endospore(False)`) si su observación tiene algún recurso visible o, con $R_{19}$, su celda tiene un rastro positivo. Germina antes de emitir, y actúa normalmente en ese tick.
 - **Física de la endospora:**
   - no llama a `perceive_and_emit_messages`, ni asimila estigmergia;
@@ -428,7 +430,7 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - `locked_holons`;
 - `hgt_transfers`, `crispr_rejections` y `crispr_purges`, que cuentan los eventos del tick.
 
-**Protocolos (`src/ide/experiments/exp25_runner.py`).** Usan la infraestructura de `phase2_cli.py` (`ProtocolSpec`), y su resumen por condición incluye `final_accuracy`, `composite_completions`, `final_agents`, `max_generation` y el resumen genético del último tick. Condiciones de comparación de cada protocolo:
+**Protocolos (`src/ide/experiments/exp25_runner.py`).** Usan la infraestructura de `phase2_cli.py` (`ProtocolSpec`), y su resumen por condición incluye `final_accuracy`, `composite_completions`, `final_agents`, `final_active_agents` (hojas vivas que no están en endospora), `max_generation` y el resumen genético del último tick. Condiciones de comparación de cada protocolo:
 - `002c`: `dna` (base), `flat_genome` (sin $R_{24}$), `frozen_dna` (sin $R_{13}$) y `drift` (sin $R_{12}$);
 - `002d`: `telomeres` (base) y `no_telomeres` (sin $R_{29}$);
 - `002e`: `sporulation` (base) y `no_sporulation` (sin $R_{28}$);
@@ -465,7 +467,7 @@ Esta decisión es un **borrador de pre-registro**. Se aprueba o se corrige en la
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `C9` Adaptación con genoma regulado | `002c` | `evolved_accuracy` | `("R24",)` | `("R24",)` | `ablate(config, ["R24"])`: genoma plano, todo lo demás igual | Programada por construcción |
 | `C10` Adaptación con recambio en abundancia | `002d` | `evolved_accuracy` | `("R29",)` | `("R29",)` | `ablate(config, ["R29"])` | Programada por construcción |
-| `C11` Supervivencia en el desierto | `002e` | `final_population` | `("R28",)` | `("R28",)` | `ablate(config, ["R28"])` | Programada por construcción |
+| `C11` Supervivencia activa en el desierto | `002e` | `final_active_population` | `("R28",)` | `("R28",)` | `ablate(config, ["R28"])` | Programada por construcción. Cuenta sólo hojas activas: una endospora no es población activa (decisión del 2026-10-20) |
 | `C12` Superávit cooperativo con castas | `003c` | `holonic_composite_completions` | `("R25",)` | `("R25",)` | `ablate(config, ["R25"])` | Programada por construcción; potencia baja, porque en la Fase II los compuestos fueron 0 a 2 por corrida |
 
 - **Variantes.** `isolated`, `null_content` y `rule_effects` (una por regla ablacionable de `PHASE25_ALL_RULES`, salvo las inactivas), como en D29.
@@ -475,17 +477,30 @@ Esta decisión es un **borrador de pre-registro**. Se aprueba o se corrige en la
   - `"002e"`: las de `"002c"` salvo `R28`;
   - `"003c"`: `R14`, `R18`, `R19`, `R28` y `R29`.
   - Un test las contrasta con las configuraciones, como en la Fase II.
-- **E4.** Por la demografía de la calibración de la Fase II (el control nulo se extingue con 20 y con 10), E4 se declara **no interpretable** de antemano para `002c`, `002e` y `003c`, e interpretable para `002d` (con 40 el control nulo fue viable en las 10 semillas de calibración).
+- **E4.** Por la demografía de la calibración de la Fase II (el control nulo se extingue con 20 y con 10), E4 se declara **no interpretable** de antemano para `002c`, `002e` y `003c`. Para `002d` la calibración de la Fase II no basta, porque no tenía ADN ni senescencia y usó otras semillas. Por eso, E4 de C10 es interpretable **sólo si** la variante `null_content` termina con población viva en al menos 8 de las 10 semillas, según `ClaimEvaluation.demography`; si no, se informa como no interpretable. La condición se evalúa sobre la demografía, sin mirar la métrica de C10 (decisión del 2026-10-20).
 - **Perfil.** `phase2`, con 2000 ticks y `PHASE2_SEEDS` (42–51). `run_phase25_attribution(seeds=PHASE2_SEEDS, claims=PHASE25_CLAIMS, jobs=1, configs=None)` devuelve `AttributionReport(profile="phase2", rules=PHASE25_ALL_RULES, ...)`.
-- **Prueba de humo.** Antes de los runners, como en D29: sólo registra si la corrida termina, la generación máxima y la población final, sin calcular ni mirar las métricas de las afirmaciones. Si un protocolo resulta inviable, se reporta como resultado: no hay calibración sin una decisión nueva.
+- **Implementación de la atribución.** La maquinaria de la Fase II no reconoce los protocolos nuevos:
+  - `is_phase2_claim` mira `PHASE2_PROTOCOL_CONFIGS`;
+  - `_metric` y `_RUN_KIND` no conocen las métricas ni los protocolos;
+  - E4 se deriva de la abundancia del entorno.
+  - Por eso la atribución de la Fase II-B se declara explícitamente:
+    - `is_phase25_claim(claim)` vale `claim.protocol in PHASE25_PROTOCOL_CONFIGS`, y esas afirmaciones usan el camino de variantes de la Fase II (`isolated` por su canal, criterio "por construcción" ampliado y `rule_effects` sobre `PHASE25_ALL_RULES`, salvo `PHASE25_INACTIVE_RULES`);
+    - `PHASE25_CLAIM_CHANNELS` define los canales;
+    - `PHASE25_METRIC_FIELDS` (precisión 9) mapea cada métrica a su campo;
+    - `PHASE25_E4_INTERPRETABLE: dict[str, bool]` fija E4 por protocolo, sin derivarlo de la abundancia (`False` en `002c`, `002e` y `003c`). Para `002d` vale `True`, pero condicionado a la regla demográfica de arriba.
+  - El camino de la Fase II no cambia: un test exige que los reportes de C5–C8 sean idénticos a los de antes del cambio.
+- **Prueba de humo.** Antes de los runners, como en D29: registra si la corrida termina, la generación máxima y, salvo en `002e`, la población final, sin calcular ni mirar las métricas de las afirmaciones.
+  - En `002e` **no** registra la población, porque la población activa final es la métrica de C11.
+  - Si un protocolo resulta inviable, se reporta como resultado: no hay calibración sin una decisión nueva.
+  - `002e` no se recalibra en ningún caso después de la prueba de humo (decisión del 2026-10-20).
 - **Diagnóstico previo (decisión P5, tarea 0.1).** Antes de aprobar C10, se mide la demografía de la Fase II con `resources_per_pattern = 40`:
   - muertes por tick, edad al morir y nacimientos por tick;
   - con `PHASE2_PROTOCOL_CONFIGS_ORIGINAL["002a"]` y `["003a"]`, y las semillas de calibración 0 a 9;
   - sin calcular métricas de afirmaciones.
-  - Si muestra mortalidad sostenida, se refuta la hipótesis del "Tapón de Matusalén" y se decide si $R_{29}$ y C10 se mantienen.
+  - **Criterio, fijado antes de correrlo (decisión del 2026-10-20):** la hipótesis del "Tapón de Matusalén" se considera **confirmada** si, en al menos 8 de las 10 semillas de cada protocolo, más de la mitad de los agentes vivos en el tick 2000 nació antes del tick 1000. Si no, se considera **refutada**, y la tarea 0.2 decide si $R_{29}$ y C10 se mantienen.
 
 ### Precisiones (2026-10-20, surgidas de la redacción de los specs)
-Cierran huecos de D34–D41 sin cambiar su intención. Ninguna toca el pre-registro (D42).
+Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo de métricas) y 13 (dependencia de P5) forman parte de cómo se mide el pre-registro (D42), y se aprueban con él en la tarea 0.2. Las demás no lo tocan.
 1. **Fundadores (D34.1).** `MicroAgent.__init__` fija `base_config = config`.
    - Con `config.enable_compact_dna=True`, asigna `dna = founder_dna(config)` y `phenotype = transcribe_phenotype(dna, EpigeneticContext(0, EpigeneticRole.NONE, config.initial_energy / config.reproduction_threshold), config)`, cuyo `genome` es `genome_from_config(config)` (D32).
    - Si no, asigna `dna = None` y `phenotype = phenotype_from_genome(genome_from_config(config), config)`.
@@ -493,7 +508,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Ninguna toca el pre-regis
 2. **Actualización del fenotipo en `express` (D34.2).** `express` reemplaza **siempre** `phenotype` por el fenotipo transcripto, aunque sólo cambien `lifespan`, `spore_threshold` o `expressed_codons`. El reemplazo de `_genome` y de `_config` y el `resize` de la memoria ocurren sólo si cambió `genome`.
 3. **Expresión al nacer (D34.6).** La hace `create_offspring`, en el agente, no el motor. El motor sólo lee los radios del hijo para `spawn_agent_near`.
 4. **Ensayos CRISPR (D37).**
-   - **Dónde viven.** En `MicroAgent`, con `plasmid_trials -> dict[int, tuple[int, float]]` (una copia, ordenada por codón), `open_plasmid_trial(codon, tick)` y `close_plasmid_trial(codon)`.
+   - **Dónde viven.** En `MicroAgent`, con `plasmid_trials -> dict[int, tuple[int, float, float]]` (una copia, ordenada por codón; tick de apertura, energía de ingreso y energía cedida), `open_plasmid_trial(codon, tick)` y `close_plasmid_trial(codon)`. `create_offspring` suma la energía del hijo a la cedida de todos los ensayos abiertos.
    - **Apertura.** `open_plasmid_trial` no reabre un ensayo ya abierto para ese codón: conserva el original.
    - **Cierre.** Un ensayo sólo se cierra al vencer. Si al vencer el plásmido ya no está, se cierra sin purga.
    - **Herencia.** Los ensayos no se heredan (D35).
@@ -505,7 +520,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Ninguna toca el pre-regis
 6. **Endospora dentro de un holón (D38).** Sigue pagando su alícuota del costo de coordinación ($R_{23}$), que se cobra en el paso (ii) de la Fase 5 y es distinto del costo basal. Lo que reemplaza la endospora es el costo basal, el del ADN, el de movimiento y el de mensajes.
 7. **Registro del estrés (D39).** "Siempre" quiere decir "aunque `enable_sos_mutation=False`". El registro ocurre en el paso de metabolismo, así que sólo existe con `enable_evolution=True`.
 8. **Descuento del trinquete (D40).** El costo de coordinación se cobra sólo a los holones raíz, como en la Fase II. El descuento se aplica si la **raíz** está soldada: un sub-holón soldado dentro de una raíz sin soldar no da descuento.
-9. **Mapeo de métrica a campo (D41 y D42).** `PHASE25_METRIC_FIELDS = {"evolved_accuracy": "final_accuracy", "final_population": "final_agents", "holonic_composite_completions": "composite_completions"}`, como `_PHASE2_METRIC_FIELDS`.
+9. **Mapeo de métrica a campo (D41 y D42).** `PHASE25_METRIC_FIELDS = {"evolved_accuracy": "final_accuracy", "final_active_population": "final_active_agents", "holonic_composite_completions": "composite_completions"}`, como `_PHASE2_METRIC_FIELDS`.
 10. **`genetic_history` (D41).** Se registra en **cada** tick, con cualquier combinación de banderas, como `evolutionary_history`.
     - Los promedios son sobre las hojas vivas al final del tick.
     - `mean_age` es `float` y `max_age` es `int`.
@@ -515,6 +530,10 @@ Cierran huecos de D34–D41 sin cambiar su intención. Ninguna toca el pre-regis
 11. **Roles (D36).** Una raíz sin entrada en `_role_leaf_sets` cuenta como cambiada. En la impronta, cada hoja hija recibe el rol de la hoja progenitora de la que nació, según la correspondencia `offspring[progenitora.agent_id]` de `reproduce_holon`.
 12. **Plásmido mutado (D35, paso 2).** Después de la mutación puntual de los plásmidos, se descartan, en orden, los codones repetidos (se queda el primero) y los que estén en `crispr_memory`.
 13. **Dependencia de P5.** C10 y $R_{29}$ quedan sujetos al diagnóstico de la tarea 0.1. Si se descartan, la tarea 0.2 retoca D42 y los specs de `emergence-attribution` y `experimental-suite` (`002d`).
+14. **Endosporas y reproducción (D38).**
+    - Un holón con alguna hoja en endospora no se reproduce por $R_{17}$.
+    - En la reproducción neutral, los donantes de genoma son los agentes vivos que no están en endospora al empezar la fase de reproducción.
+    - Una endospora se expresa igual en la Fase 0. Es inocuo, porque paga un costo fijo, y evita un caso especial.
 
 ---
 
@@ -548,6 +567,7 @@ src/ide/
 - **Olvido forzado oscilante.** Un agente cerca de un umbral de energía puede achicar y agrandar su memoria tick a tick. Es física declarada de $R_{24}$, no se suaviza, y la telemetría lo deja auditable.
 - **Atribución con muchas reglas.** Ocho reglas nuevas hacen costosos `rule_effects` y difícil su lectura. *Mitigación:* cada protocolo activa sólo las reglas que necesita (D42), y las inactivas se excluyen.
 - **Solapamiento con el Experimento 004 (decisión P7).** Con $R_{25}$ activa, la especialización es programada. El Exp 004 se mide con $R_{25}$ ablacionada.
+- **JSON de la Fase II.** `config.to_dict()` incluye los campos nuevos, así que los JSON que regeneren los runners de la Fase II ya no son idénticos byte a byte a los de `registros/`. Lo que se garantiza es que los **historiales** y los valores medidos son idénticos. Para comparar un JSON regenerado con uno registrado, se comparan sin los campos de D31.
 - **Viabilidad.** Como en la Fase II, el perfil puede resultar inviable, por ejemplo `002e` con 10 recursos. Se reporta como resultado.
 
 ---

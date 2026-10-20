@@ -31,7 +31,7 @@ class UniformTrustStrategy:
 
 @dataclass(frozen=True)
 class AgentCapabilities:
-    """Perfil de capacidades plásticas (Exp 003); permanece en sus valores base en el Exp 001."""
+    """Perfil de capacidades plásticas (Exp 004 v2); permanece en sus valores base en el Exp 001."""
 
     perception_multiplier: float = 1.0
     memory_bonus: int = 0

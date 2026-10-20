@@ -23,7 +23,7 @@ El pre-registro propuesto (design D42) declara sus cuatro afirmaciones como prog
 ## What Changes
 
 - **ADN compacto y expresión condicional ($R_{24}$):** nuevos tipos inmutables `CompactDNA`, `EpigeneticRole`, `EpigeneticContext` y `ExpressedPhenotype`.
-  - **El codón.** Cada codón es un entero de 32 bits con cuatro campos de 8 bits: `PROM | TARGET | REG_MODE | PAYLOAD`.
+  - **El codón.** Cada codón es un entero de 32 bits: `PROM` (8 bits), `TARGET` (8 bits), `REG_MODE` (8 bits, dividido en `MODE` de 2 bits y `CHANNEL` de 6) y `PAYLOAD` (8 bits con signo).
   - **La transcripción.** `transcribe_phenotype` es pura y trabaja en dos pasadas. La primera evalúa los promotores de contexto y los factores de transcripción; la segunda, los promotores regulados. El resultado es el fenotipo expresado: los 7 rasgos de `AgentGenome`, más la longevidad y el umbral de esporulación.
   - **El costo.** El costo cuadrático se cobra sobre el fenotipo **expresado**. Cada codón paga además un costo lineal $c_{\text{dna}}$.
   - **La expresión en vida.** Ocurre en una nueva Fase 0 del tick. Puede cambiar $C_{\max}$, que achica la memoria por desalojo, y los radios.
@@ -78,6 +78,14 @@ El pre-registro propuesto (design D42) declara sus cuatro afirmaciones como prog
   - Ninguna de esas capacidades podrá presentarse como hallazgo.
 - **P7, solapamiento con el Experimento 004.** $R_{25}$ asigna roles por una regla del holón, así que toda especialización que produzca es programada. Propuesta: el Exp 004 (especialización y división del trabajo) se mide con $R_{25}$ ablacionada, y lo que muestre la Fase II-B con $R_{25}$ activa no cuenta como evidencia para el 004.
 
+## Decisiones tomadas (2026-10-20, tras la revisión cruzada independiente)
+
+Son parte del pre-registro que se aprueba completo en la tarea 0.2. Ya están incorporadas al design:
+- **C11.** Mide la población **activa** final, sin endosporas (`final_active_population`). La prueba de humo de `002e` no registra la población, y `002e` no se recalibra después de ella.
+- **E4 en `002d`.** Es interpretable sólo si el control nulo termina con población viva en al menos 8 de 10 semillas, según la demografía. En los otros tres protocolos, E4 es no interpretable de antemano.
+- **CRISPR ($R_{27}$).** El balance del ensayo descuenta la energía cedida a los hijos durante la ventana, para no purgar plásmidos por el solo hecho de reproducirse.
+- **Diagnóstico de la tarea 0.1.** La hipótesis del "Tapón de Matusalén" se confirma si, en al menos 8 de 10 semillas de cada protocolo, más de la mitad de los agentes vivos en el tick 2000 nació antes del tick 1000.
+
 ## Impact
 
 - **Código afectado:**
@@ -91,5 +99,5 @@ El pre-registro propuesto (design D42) declara sus cuatro afirmaciones como prog
   - `dna.py` es puro: no ve coordenadas ni `true_value`.
   - El conocimiento social sigue entrando sólo por `assimilate_testimony`. El ADN no transporta creencias.
 - **Determinismo.** Un generador derivado nuevo, `(5,)` `hgt_rng`, declarado en `CLAUDE.md` y en D30. Sólo se consume con $R_{26}$ activa.
-- **Tests:** suites nuevas `tests/test_compact_dna.py`, `tests/test_genetic_ecology.py` y `tests/test_exp25.py`, más la ampliación de las existentes, sin modificar ningún test de las Fases I y II.
+- **Tests:** suites nuevas `tests/test_compact_dna.py` y `tests/test_exp25.py`, más la ampliación de las existentes, sin modificar ningún test de las Fases I y II.
 - **Dependencias:** ninguna nueva.

@@ -17,6 +17,7 @@
   - muertes, nacimientos y edad al morir por tick;
   - con `PHASE2_PROTOCOL_CONFIGS_ORIGINAL["002a"]` y `["003a"]`, y las semillas de calibración 0 a 9.
   - **No** calcula ninguna métrica de afirmación.
+  - Aplica el criterio fijado de antemano en design D42: la hipótesis se confirma si, en al menos 8 de 10 semillas de cada protocolo, más de la mitad de los agentes vivos en el tick 2000 nació antes del tick 1000.
   - Registra la salida en `registros/` y en `docs/RESULTADOS.md` como diagnóstico exploratorio de la hipótesis del "Tapón de Matusalén".
 - [ ] 0.2 **Resolver P4–P7 con el responsable del proyecto:**
   - aprobar o corregir D42: inventario, afirmaciones, configuraciones, perfil, reglas inactivas y E4;
@@ -140,7 +141,8 @@
 - [ ] 10.1 **[RED]** Crear `tests/test_exp25.py` y ampliar `tests/test_metrics.py` y `tests/test_attribution.py` con tests para:
   - `GeneticTickMetrics` y `engine.genetic_history`, sin alterar `TickMetrics` ni `EvolutionaryTickMetrics`;
   - `PHASE25_DESIGN_RULES` con su `purpose`, `PHASE25_ALL_RULES`, `ablate()` con las reglas nuevas, `PHASE25_PROTOCOL_CONFIGS`, `PHASE25_CLAIMS` y `PHASE25_INACTIVE_RULES` (contrastadas con las configuraciones), y E4 declarado de antemano;
-  - `run_phase25_attribution`;
+  - `run_phase25_attribution`, con `is_phase25_claim`, `PHASE25_CLAIM_CHANNELS`, `PHASE25_METRIC_FIELDS` y `PHASE25_E4_INTERPRETABLE` (design D42), incluido que `002e` da `e4_interpretable=False` aunque su abundancia no sea la de la Fase II;
+  - que los reportes de atribución de C5–C8 no cambian;
   - la ejecución y la serialización JSON y CLI de los cuatro protocolos.
 - [ ] 10.2 **[GREEN]** Correr la prueba de humo de D42 **antes** de los runners, sin mirar las métricas de las afirmaciones, y registrar su salida. Después:
   - implementar `GeneticTickMetrics`;
