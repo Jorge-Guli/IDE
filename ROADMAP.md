@@ -1,11 +1,11 @@
 # Hoja de Ruta General (ROADMAP): Proyecto IDE (Inteligencia Distribuida Emergente)
 
-> **Propósito de este documento:** Consolidar la evolución completa del proyecto `IDE` desde sus cimientos ya verificados (**Fase I**), su etapa actual en curso (**Fase II**), el paso inmediato de código genético comprimido y epigenética (**Fase II-B**), la transición a un ecosistema continuo 3D interactivo (**Fase III**) y el horizonte de automejora funcional y conexión controlada a datos reales (**Fase IV**).
+> **Propósito de este documento:** Consolidar la evolución completa del proyecto `IDE` desde sus cimientos ya verificados (**Fase I**), su etapa actual en curso (**Fase II**), el paso inmediato de código genético comprimido de 32 bits y epigenética (**Fase II-B**), la transición a un ecosistema continuo 3D interactivo (**Fase III**) y el horizonte de automejora funcional y conexión controlada a datos reales (**Fase IV**).
 
 ```mermaid
 flowchart LR
     F1["Fase I (v1.0 — COMPLETADA):\nMemoria Acotada, Epistemología\ny Atribución Causal (Exp 001)"] --> F2["Fase II (v2.0 — EN CURSO):\nEvolución, Herencia Dual\ny Holarquía Recursiva (Exp 002-003)"]
-    F2 --> F2B["Fase II-B (v2.5 — SIGUIENTE PASO):\nADN Comprimido, Epigenética,\nPlásmidos, CRISPR y Telómeros"]
+    F2 --> F2B["Fase II-B (v2.5 — SIGUIENTE PASO):\nADN 32b (GRN), Epigenética,\nPlásmidos, CRISPR y Telómeros"]
     F2B --> F3["Fase III (v3.0 — PLANIFICADA):\nInmortalidad, Cubo 3D,\nWeb UI Viva y Ecología Abierta"]
     F3 --> F3B["Fase III-B (Puente):\nTelescopio a Internet\n(Streams Read-Only)"]
     F3B --> F4["Fase IV (v4.0 — HORIZONTE):\nAutomejora Lógica (Operadores)\ny Física (Módulos en Sandbox)"]
@@ -19,7 +19,7 @@ flowchart LR
 | :--- | :---: | :---: | :--- |
 | **Fase I** | `v1.0` | **Completada y Archivada** | Micro-agentes inmortales con memoria acotada ($C_{\max} < N$), protocolo epistémico (`R1`–`R11`), entorno `ToroidalGrid2D` y marco de atribución `001-D`. |
 | **Fase II** | `v2.0` | **En Curso (Diseño Cerrado / Pre-registrado)** | Metabolismo energético ($R_{20}, R_{21}$), selección y deriva ($R_{12}$), mutación genética ($R_{13}$), herencia cultural ($R_{14}$), holones recursivos $L = 0 \dots K$ (`BOND`/`SPLIT`, $R_{15}$–$R_{18}, R_{22}, R_{23}$) y estigmergia ($R_{19}$). |
-| **Fase II-B** | `v2.5` | **Siguiente Paso Inmediato ([ARQUITECTURA_ADN_HOLONICO.md](ARQUITECTURA_ADN_HOLONICO.md))** | ADN bacteriano comprimido en codones de 16 bits (`CompactDNA`, $R_{24}$), operones y diferenciación epigenética intra-holón ($R_{25}$), transferencia horizontal de plásmidos ($R_{26}$) con inmunidad CRISPR-Cas ($R_{27}$), esporulación ($R_{28}$), senescencia telomérica y mutación SOS ($R_{29}$), y trinquete simbiótico ($R_{30}$). |
+| **Fase II-B** | `v2.5` | **Siguiente Paso Inmediato ([ARQUITECTURA_ADN_HOLONICO.md](ARQUITECTURA_ADN_HOLONICO.md))** | ADN bacteriano comprimido en codones de 32 bits (`CompactDNA` + redes regulatorias GRN, $R_{24}$), operones y diferenciación epigenética intra-holón ($R_{25}$), transferencia horizontal de plásmidos ($R_{26}$) con inmunidad CRISPR-Cas ($R_{27}$), esporulación ($R_{28}$), senescencia telomérica y mutación SOS ($R_{29}$), y trinquete simbiótico ($R_{30}$). |
 | **Fase III** | `v3.0` | **Planificada** | Inmortalidad ante apagones (checkpoints atómicos + telemetría en streaming), espacio 3D (`ToroidalGrid3D`), **auto-detección y escalado de hardware (CPU/Multicore/CUDA)**, interfaz viva (Web UI + consola), ecología abierta y **Telescopio a Internet** (sub-etapa 3.6). |
 | **Fase IV** | `v4.0` | **Horizonte** | Automejora de **capacidades lógicas** (síntesis holónica de operadores matemáticos y algoritmos) y **capacidades físicas** (generación evolutiva de nuevos módulos y herramientas en `SkillSandboxPort`). |
 
@@ -60,19 +60,19 @@ flowchart LR
 
 ---
 
-# Fase II-B (v2.5) — ADN Bacteriano Comprimido, Epigenética Multinivel, Plásmidos y Trinquete Simbiótico [SIGUIENTE PASO INMEDIATO]
+# Fase II-B (v2.5) — ADN Bacteriano Comprimido de 32 bits, Redes Regulatorias (GRN), Epigenética y Plásmidos [SIGUIENTE PASO INMEDIATO]
 
 > **Especificación detallada:** [`ARQUITECTURA_ADN_HOLONICO.md`](ARQUITECTURA_ADN_HOLONICO.md). Se ejecuta inmediatamente al cerrar el Bloque 7 de la Fase II (`v2.0`), antes de pasar al cubo 3D de la Fase III.
 
-- **Objetivo:** Reemplazar el vector fenotípico plano (`AgentGenome` de 7 escalares) por un código genético bacteriano comprimido en $L=0$ (`CompactDNA`) cuya expresión condicional sostenga la diferenciación celular, la inmunidad genética y el recambio generacional continuo en todos los niveles holónicos ($L = 0 \dots K$).
+- **Objetivo:** Reemplazar el vector fenotípico plano (`AgentGenome` de 7 escalares) por un código genético bacteriano comprimido en $L=0$ (`CompactDNA`) con codones de 32 bits (`uint32`) cuya expresión condicional en dos pasadas (GRN) sostenga la diferenciación celular, la inmunidad genética, el recambio generacional continuo y los operadores lógicos/físicos hasta la Fase IV ($L = 0 \dots K$).
 - **Mecanismos e Inventario Pre-registrable (`R24`–`R30`):**
-  1. **Codificación en Codones de 16 bits y Operones (`CompactDNA`, $R_{24}$):**
-     - Cada codón (`uint16`) empaqueta `[PROM (4b) | TARGET (4b) | PAYLOAD (8b)]`.
+  1. **Codificación en Codones de 32 bits (`uint32`), Operones y Redes Regulatorias Génicas (GRN, $R_{24}$):**
+     - Cada codón (`4 bytes`, $2^{32}$ combinaciones) empaqueta `[PROM (8b) | TARGET (8b) | REG_MODE (8b) | PAYLOAD (8b)]`, habilitando 256 promotores (incluyendo 128 factores de transcripción internos `TF_0..TF_127`), 256 destinos (metabolismo, GRN, 96 operadores lógicos/matemáticos y 128 módulos de `SkillSandboxPort`), modo activador/represor y direccionamiento de registros.
      - El ADN físico vive sólo en $L=0$ (`MicroAgent`), pero contiene genes para niveles superiores ($L \ge 1$) que permanecen dormidos en $L=0$. El costo metabólico cuadrático ($R_{21}$) **sólo se cobra sobre el fenotipo expresado** (`transcribe_phenotype(dna, context)`), mientras los genes silenciados pagan un costo lineal minúsculo ($c_{\text{dna}}$).
   2. **Diferenciación Epigenética Intra-Holón e Impronta Mitótica ($R_{25}$):**
      - Un `CompositeAgent` ($L \ge 1$) actúa como director epigenético sobre el Hologenoma de sus hojas, asignando roles (`EXPLORER`, `LIBRARIAN`, `NERVE`) para que células con **idéntico ADN** se especialicen en el acto en órganos sensoriales, de memoria o de enlace, heredando esa metilación al dividirse.
   3. **Transferencia Horizontal de Plásmidos (HGT, $R_{26}$) e Inmunidad CRISPR-Cas ($R_{27}$):**
-     - Intercambio en vida de anillos cortos de codones (`plasmids`) entre pares exitosos, protegido por una memoria inmunológica (`crispr_memory`) que evalúa el balance energético $\Delta E$ tras la infección, destruye plásmidos parásitos y hereda la inmunidad.
+     - Intercambio en vida de anillos cortos de codones `uint32` (`plasmids`) entre pares exitosos, protegido por una memoria inmunológica (`crispr_memory`) que evalúa el balance energético $\Delta E$ tras la infección, destruye plásmidos parásitos y hereda la inmunidad.
   4. **Esporulación Bacteriana (`ENDOSPORE`, $R_{28}$):**
      - Criptobiosis ante escasez extrema (`resources_per_pattern <= 10`): reduce el gasto metabólico al $5\%$ basal en ayuno crítico hasta germinar ante la reaparición de recursos o estigmergia positiva.
   5. **Senescencia Telomérica y Respuesta SOS de Mutación Adaptativa ($R_{29}$):**
@@ -163,7 +163,7 @@ El sistema crece en **4 dimensiones simultáneas** sin violar el límite cerebra
    [[L=2]] + [[L=2]] ──BOND──► [[[Super-Organismo L=3 ... L=K]]]
 
 3. CRECIMIENTO CULTURAL E INTERGENERACIONAL (En el Tiempo: g = 0 -> 1 -> ... -> ∞)
-   Generación 0 descubre A ──(Herencia R14 + CompactDNA R24)──► Gen 1 nace sabiendo A y descubre B ──► Gen 100...
+   Generación 0 descubre A ──(Herencia R14 + CompactDNA 32b R24)──► Gen 1 nace sabiendo A y descubre B ──► Gen 100...
 
 4. CRECIMIENTO AMBIENTAL / ESTIGMÉRGICO (Memoria Externa en el Cubo 3D)
    El cubo 3D vacío se llena de "autopistas y bibliotecas químicas" (R19) grabadas en las celdas.
@@ -177,7 +177,7 @@ El sistema crece en **4 dimensiones simultáneas** sin violar el límite cerebra
 
 ## 4.1. Automejora en Capacidades Lógicas (Síntesis Holónica de Operaciones Matemáticas y Algoritmos)
 
-En las Fases I a III, cada hoja (`MicroAgent`) almacena creencias declarativas (`Pattern` $\to$ valor predicho $\hat{v}$) y los holones unen conjuntos de datos. En la Fase IV, los nodos adquieren **memoria procedimental (operadores lógicos y matemáticos codificados en los targets `0x8..0xF` de `CompactDNA`)**:
+En las Fases I a III, cada hoja (`MicroAgent`) almacena creencias declarativas (`Pattern` $\to$ valor predicho $\hat{v}$) y los holones unen conjuntos de datos. En la Fase IV, los nodos adquieren **memoria procedimental (operadores lógicos y matemáticos codificados en los targets `0x20..0x7F` y direccionados por `REG_MODE` en `CompactDNA`)**:
 
 - **4.1.1. Operadores Primitivos en las Hojas ($L = 0$):**
   - Cada `MicroAgent` puede portar en su repertorio operadores formales elementales: aritméticos (`ADD`, `SUB`, `MUL`, `DIV`, `MOD`), comparadores (`GT`, `EQ`), lógicos (`AND`, `OR`, `NOT`, `XOR`), estadísticos (`MEAN`, `DIFF`, `EMA`) y simbólicos (`SLICE`, `CONCAT`, `MATCH`).
@@ -189,7 +189,7 @@ En las Fases I a III, cada hoja (`MicroAgent`) almacena creencias declarativas (
 
 ## 4.2. Automejora en Capacidades Físicas / Estructurales (Generación de Nuevos Módulos en `SkillSandboxPort`)
 
-Para que `IDE` pueda extender su propia anatomía funcional (nuevos sensores, nuevos heurísticos de navegación, nuevos compresores de memoria o nuevos filtros epistémicos) sin poner en riesgo la estabilidad del motor ni el equipo del usuario:
+Para que `IDE` pueda extender su propia anatomía funcional (nuevos sensores, nuevos heurísticos de navegación, nuevos compresores de memoria o nuevos filtros epistémicos, referenciados por los targets `0x80..0xFF` de `CompactDNA`) sin poner en riesgo la estabilidad del motor ni el equipo del usuario:
 
 - **4.2.1. Arquitectura de Caja de Arena Estricta (`SkillSandboxPort`):**
   - El núcleo del motor (`SimulationEngine`) expone un puerto de extensión aislado donde los holones de orden superior pueden sintetizar, mutar y registrar nuevos módulos funcionales (`ExecutableSkill` / *plugins* autocontenidos en un subconjunto puro y determinista de Python/AST).
