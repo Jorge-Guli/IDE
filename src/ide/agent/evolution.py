@@ -1,5 +1,7 @@
 """Genoma fundador, costo metabólico y herencia cultural vertical (Exp 002 v2, design D21 y D22).
 
+En la Fase II-B suma el costo del ADN compacto (R24, design D34.5).
+
 No importa `micro_agent.py`: opera sobre `BoundedMemory`, `AgentGenome` y `SimulationConfig`.
 """
 
@@ -7,7 +9,7 @@ from dataclasses import replace
 
 from ide.agent.memory import BoundedMemory
 from ide.config import SimulationConfig
-from ide.domain.types import AgentGenome, KnowledgeUnit
+from ide.domain.types import AgentGenome, CompactDNA, KnowledgeUnit
 
 
 def genome_from_config(config: SimulationConfig) -> AgentGenome:
@@ -30,6 +32,17 @@ def compute_metabolic_cost(genome: AgentGenome, config: SimulationConfig) -> flo
         + config.memory_capacity_cost * genome.memory_capacity**2
         + config.sensory_radius_cost * (genome.perception_radius**2 + genome.comm_radius**2)
     )
+
+
+def compute_dna_cost(dna: CompactDNA | None, config: SimulationConfig) -> float:
+    """Costo del ADN por tick (R24, design D34.5): `dna_codon_cost` por codón; 0 sin ADN.
+
+    Cuenta los codones del cromosoma, de los plásmidos y de la memoria CRISPR.
+    """
+    if dna is None:
+        return 0.0
+    codons = len(dna.chromosome) + len(dna.plasmids) + len(dna.crispr_memory)
+    return config.dna_codon_cost * codons
 
 
 def transfer_cultural_heritage(

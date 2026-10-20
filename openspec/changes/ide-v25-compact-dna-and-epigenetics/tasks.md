@@ -99,15 +99,15 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 4.1 **[RED]** Ampliar `tests/test_memory.py`, `tests/test_micro_agent.py` y `tests/test_evolutionary_dynamics.py` con tests para:
+- [x] 4.1 **[RED]** Ampliar `tests/test_memory.py`, `tests/test_micro_agent.py` y `tests/test_evolutionary_dynamics.py` con tests para:
   - (a) `BoundedMemory.resize`: desalojo por menor utilidad con el desempate de $R_2$ y la penalización de $R_{18}$, sin borrar al agrandar, y `ValueError` con capacidad menor que 1;
   - (b) el estado nuevo de `MicroAgent` (D34.1), sin cambiar las 8 firmas de la Fase I ni el comportamiento sin ADN;
   - (c) `express`: reemplazo del genoma y de la configuración fenotípica, `resize` de la memoria, el valor de retorno con los radios, y el caché igual a la transcripción directa;
   - (d) bases tomadas de `base_config`, sin acumulación tick a tick;
   - (e) `create_offspring` con `dna_source` y `mutation_scale`, herencia de plásmidos y firmas sin ensayos, expresión al nacer y `birth_tick`;
   - (f) `compute_dna_cost`.
-- [ ] 4.2 **[GREEN]** Implementar `resize` en `memory.py`, el estado y los métodos de `MicroAgent`, y `compute_dna_cost` en `evolution.py`.
-- [ ] 4.3 **[REFACTOR]** Auditorías AST de `tests/test_micro_agent.py` y verificación del bloque.
+- [x] 4.2 **[GREEN]** Implementar `resize` en `memory.py`, el estado y los métodos de `MicroAgent`, y `compute_dna_cost` en `evolution.py`.
+- [x] 4.3 **[REFACTOR]** Auditorías AST de `tests/test_micro_agent.py` y verificación del bloque. (934 tests, cobertura 99 %; una transcripción por nacimiento.)
 
 ## 5. Motor con ADN, R24 (`simulation-engine`)
 

@@ -2,6 +2,7 @@
 
 import ast
 import inspect
+import math
 from dataclasses import dataclass, replace
 from itertools import pairwise
 from pathlib import Path
@@ -11,6 +12,13 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from ide.agent.dna import (
+    encode_codon,
+    founder_dna,
+    mutate_dna,
+    phenotype_from_genome,
+    transcribe_phenotype,
+)
 from ide.agent.epistemology import is_known
 from ide.agent.evolution import genome_from_config
 from ide.agent.micro_agent import MicroAgent
@@ -21,6 +29,9 @@ from ide.domain.types import (
     ActionType,
     AgentAction,
     AgentGenome,
+    CompactDNA,
+    EpigeneticContext,
+    EpigeneticRole,
     KnowledgeUnit,
     Message,
     MessageType,
@@ -215,6 +226,25 @@ def test_ningun_modulo_del_agente_referencia_nullify_belief() -> None:
             if isinstance(node, ast.alias):
                 name = node.name
             assert name != "nullify_belief", path.relative_to(AGENT_DIR)
+
+
+def test_las_auditorias_alcanzan_al_adn() -> None:
+    # Las auditorías de importaciones, del protocolo, de alias y de la asimilación social
+    # recorren `agent_modules()`: el ADN compacto (Fase II-B) queda bajo las mismas reglas.
+    modules = agent_modules()
+    for name in ("dna.py", "micro_agent.py", "memory.py", "evolution.py"):
+        assert AGENT_DIR / name in modules, name
+
+
+def test_ningun_modulo_del_agente_ve_el_valor_verdadero() -> None:
+    # El agente percibe `VisibleResource`; `true_value` y su oráculo son exclusivos del motor.
+    forbidden = {"true_value", "get_reachable_true_values"}
+    for path in agent_modules():
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            name = getattr(node, "id", None) or getattr(node, "attr", None)
+            if isinstance(node, ast.alias):
+                name = node.name
+            assert name not in forbidden, f"{path.relative_to(AGENT_DIR)}: {name}"
 
 
 # --- Interfaz ----------------------------------------------------------------------------------
@@ -923,3 +953,625 @@ def test_no_se_responde_ni_difunde_desde_la_vista_del_holon() -> None:
     query = Message(MessageType.QUERY_PATTERN, 1, None, pat(5))
     assert a.process_incoming_messages([query], 0) == []
     assert a.perceive_and_emit_messages(obs(neighbors=(1,)), 0) == []
+
+
+# --- Fase II-B: ADN compacto y expresión en vida (R24, design D34) -----------------------------
+
+DNA_CFG = replace(CFG, enable_evolution=True, enable_compact_dna=True)
+FROZEN_DNA_CFG = replace(DNA_CFG, mutation_rate=0.0, discrete_mutation_prob=0.0)
+NONE = EpigeneticRole.NONE
+NORMAL = EpigeneticContext(0, NONE, 0.6)  # banda normal: entre 0.35 y 0.85
+STRESS = EpigeneticContext(0, NONE, 0.1)
+SURPLUS = EpigeneticContext(0, NONE, 0.9)
+ROLES = (NONE, EpigeneticRole.EXPLORER, EpigeneticRole.LIBRARIAN, EpigeneticRole.NERVE)
+NEW_STATE = (
+    "dna",
+    "phenotype",
+    "base_config",
+    "epigenetic_role",
+    "birth_tick",
+    "is_endospore",
+    "last_stress_tick",
+    "plasmid_trials",
+)
+
+
+def with_extra(
+    config: SimulationConfig, *codons: int, plasmids: tuple[int, ...] = ()
+) -> CompactDNA:
+    """ADN fundador de `config` con codones agregados al final del cromosoma."""
+    return CompactDNA(founder_dna(config).chromosome + codons, plasmids)
+
+
+def dna_agent(*codons: int, config: SimulationConfig = DNA_CFG, agent_id: int = 1) -> MicroAgent:
+    a = MicroAgent(agent_id, config)
+    if codons:
+        a.set_dna(with_extra(config, *codons))
+    return a
+
+
+def phenotype_config(base: SimulationConfig, genome: AgentGenome) -> SimulationConfig:
+    """El `replace` de los 6 campos de `from_lineage`."""
+    return replace(
+        base,
+        alpha_learning=genome.alpha_learning,
+        gamma_social_discount=genome.gamma_social_discount,
+        epsilon_explore=genome.epsilon_explore,
+        memory_capacity=genome.memory_capacity,
+        perception_radius=genome.perception_radius,
+        comm_radius=genome.comm_radius,
+    )
+
+
+def test_estado_inicial_de_un_fundador_sin_adn() -> None:
+    a = MicroAgent(3, CFG)
+    assert a.dna is None
+    assert a.epigenetic_role is EpigeneticRole.NONE
+    assert a.birth_tick == 0
+    assert a.is_endospore is False
+    assert a.last_stress_tick is None
+    assert a.base_config is CFG
+    assert a.phenotype == phenotype_from_genome(genome_from_config(CFG), CFG)
+    assert a.plasmid_trials == {}
+    for name in NEW_STATE:
+        assert isinstance(inspect.getattr_static(MicroAgent, name), property), name
+
+
+def test_estado_inicial_de_un_fundador_con_adn() -> None:
+    a = MicroAgent(3, DNA_CFG)
+    ctx = EpigeneticContext(0, NONE, DNA_CFG.initial_energy / DNA_CFG.reproduction_threshold)
+    assert a.dna == founder_dna(DNA_CFG)
+    assert a.phenotype == transcribe_phenotype(founder_dna(DNA_CFG), ctx, DNA_CFG)
+    assert a.genome == genome_from_config(DNA_CFG) == a.phenotype.genome
+    assert a.config is DNA_CFG and a.base_config is DNA_CFG
+    assert a.memory.capacity == DNA_CFG.memory_capacity
+    assert (a.epigenetic_role, a.birth_tick, a.is_endospore, a.last_stress_tick) == (
+        NONE,
+        0,
+        False,
+        None,
+    )
+
+
+def test_setters_del_estado_nuevo() -> None:
+    a = MicroAgent(1, DNA_CFG)  # `set_dna` exige `enable_compact_dna` en la configuración base
+    dna2 = CompactDNA((encode_codon(0x00, 0x01, payload=5),), (7,), (9,))
+    a.set_epigenetic_role(EpigeneticRole.NERVE)
+    a.set_endospore(True)
+    a.set_dna(dna2)
+    assert a.epigenetic_role is EpigeneticRole.NERVE
+    assert a.is_endospore is True
+    assert a.dna == dna2
+    a.set_endospore(False)
+    assert a.is_endospore is False
+
+
+def test_expresion_sin_adn_no_hace_nada() -> None:
+    a = full_agent()
+    genome, config, units = a.genome, a.config, a.memory.all_units()
+    phenotype = a.phenotype
+    assert a.express(EpigeneticContext(2, EpigeneticRole.NERVE, 0.1), 7) is False
+    assert a.genome == genome and a.config is config and a.phenotype == phenotype
+    assert a.memory.all_units() == units and a.memory.capacity == CFG.memory_capacity
+
+
+def test_expresion_repetida_sin_acumulacion() -> None:
+    a = dna_agent(encode_codon(0x00, 0x00, payload=64))  # δ = 0.5 sobre α
+    assert a.base_config.alpha_learning == pytest.approx(0.40, abs=1e-12)
+    for tick in range(1, 6):
+        a.express(NORMAL, tick)
+        assert a.genome.alpha_learning == pytest.approx(0.60, abs=1e-9)
+        assert a.config.alpha_learning == pytest.approx(0.60, abs=1e-9)
+    child = a.create_offspring(child_id=2, tick=6, rng=rng())
+    assert child.base_config is a.base_config
+    assert child.base_config.alpha_learning == pytest.approx(0.40, abs=1e-12)
+
+
+def test_genoma_del_fenotipo() -> None:
+    a = dna_agent(encode_codon(0x19, 0x04, payload=43))  # 3 + 3·43/128 → 4 en superávit
+    a.express(SURPLUS, 1)
+    assert a.genome == a.phenotype.genome
+    assert a.genome.memory_capacity == 4
+    assert a.memory.capacity == 4 and a.effective_capacity == 4
+
+
+def test_cambio_de_capacidad_sin_cambio_de_radios() -> None:
+    a = dna_agent(encode_codon(0x18, 0x04, 0, 0, -86))
+    for i, conf in enumerate((0.9, 0.2, 0.6)):
+        a.memory.upsert(ku(i, conf=conf, tau=10), 10)
+    assert a.express(EpigeneticContext(0, NONE, 0.2), 10) is False
+    # x = 3 + 3 · (-86/128) = 0.984375, que redondea a 1.
+    assert a.genome.memory_capacity == 1
+    assert a.config.memory_capacity == 1
+    assert a.memory.capacity == 1
+    assert a.memory.all_units() == [ku(0, conf=0.9, tau=10)]
+
+
+def test_cambio_de_radio() -> None:
+    a = dna_agent(encode_codon(0x19, 0x05, payload=64))  # 2 + 2·0.5 = 3 en superávit
+    assert a.express(NORMAL, 1) is False
+    assert a.config.perception_radius == 2
+    assert a.express(SURPLUS, 2) is True
+    assert a.config.perception_radius == 3 and a.genome.perception_radius == 3
+    assert a.express(SURPLUS, 3) is False  # sin cambio, sin aviso al motor
+    assert a.express(NORMAL, 4) is True
+    assert a.config.perception_radius == 2
+
+
+def test_cambio_de_radio_de_comunicacion() -> None:
+    a = dna_agent(encode_codon(0x18, 0x06, payload=-64))  # 2 - 1 = 1 en estrés
+    assert a.express(STRESS, 1) is True
+    assert (a.config.comm_radius, a.config.perception_radius) == (1, 2)
+
+
+def test_configuracion_fenotipica_es_el_replace_de_los_seis_campos() -> None:
+    codons = (
+        encode_codon(0x19, 0x00, payload=32),
+        encode_codon(0x19, 0x01, payload=-32),
+        encode_codon(0x19, 0x02, payload=16),
+        encode_codon(0x19, 0x03, payload=-100),
+        encode_codon(0x19, 0x04, payload=50),
+        encode_codon(0x19, 0x05, payload=64),
+        encode_codon(0x19, 0x06, payload=64),
+    )
+    a = dna_agent(*codons)
+    a.express(SURPLUS, 1)
+    assert a.config == phenotype_config(DNA_CFG, a.genome)
+    assert a.config.initial_bond_affinity == DNA_CFG.initial_bond_affinity  # D22
+    assert a.genome.bond_affinity != DNA_CFG.initial_bond_affinity
+
+
+def test_expresion_sin_cambio_de_genoma_conserva_configuracion_y_memoria() -> None:
+    a = dna_agent(encode_codon(0x19, 0x07, payload=100))  # sólo la longevidad
+    for i in range(3):
+        a.memory.upsert(ku(i, tau=0), 0)
+    assert a.express(SURPLUS, 5) is False
+    assert a.config is DNA_CFG
+    assert len(a.memory) == 3
+    assert a.phenotype.lifespan == DNA_CFG.telomere_base_lifespan + math.floor(
+        250 * 100 / 128 + 0.5
+    )
+    assert a.phenotype.expressed_codons == 10
+    assert a.express(NORMAL, 6) is False
+    assert a.phenotype.lifespan == DNA_CFG.telomere_base_lifespan
+
+
+def mixed_dna() -> CompactDNA:
+    """Codones de nivel, rol, energía y regulados por un canal, para ejercitar el caché."""
+    return with_extra(
+        DNA_CFG,
+        encode_codon(0x01, 0x00, payload=20),  # solitario
+        encode_codon(0x03, 0x04, payload=60),  # nivel >= 2
+        encode_codon(0x0A, 0x05, payload=70),  # nivel >= 9
+        encode_codon(0x10, 0x06, payload=-70),  # EXPLORER
+        encode_codon(0x11, 0x01, payload=-40),  # LIBRARIAN
+        encode_codon(0x12, 0x02, mode=2, payload=50),  # NERVE, multiplicativo
+        encode_codon(0x18, 0x07, payload=-90),  # estrés
+        encode_codon(0x19, 0x08, payload=30),  # superávit
+        encode_codon(0x02, 0x09, channel=5),  # nivel >= 1 emite el canal 5
+        encode_codon(0x85, 0x03, mode=1, payload=-64),  # regulado por el canal 5
+    )
+
+
+def test_cache_frente_a_transcripcion_directa() -> None:
+    a = dna_agent()
+    a.set_dna(mixed_dna())
+    contexts = [
+        EpigeneticContext(level, role, ratio)
+        for level in range(13)
+        for role in ROLES
+        for ratio in (0.0, 0.34999, 0.35, 0.6, 0.84999, 0.85, 3.0)
+    ]
+    for tick, ctx in enumerate(contexts * 2):
+        if tick == len(contexts):
+            a.set_dna(with_extra(DNA_CFG, encode_codon(0x0A, 0x04, payload=-128)))
+        a.express(ctx, tick)
+        assert a.phenotype == transcribe_phenotype(a.dna, ctx, a.base_config), ctx  # type: ignore[arg-type]
+        assert a.genome == a.phenotype.genome
+        assert a.config == phenotype_config(DNA_CFG, a.genome)
+        assert a.memory.capacity == a.genome.memory_capacity
+
+
+def test_set_dna_invalida_el_cache() -> None:
+    a = dna_agent(encode_codon(0x00, 0x00, payload=64))
+    a.express(NORMAL, 1)
+    assert a.genome.alpha_learning == pytest.approx(0.60, abs=1e-9)
+    a.set_dna(with_extra(DNA_CFG, encode_codon(0x00, 0x00, payload=-64)))
+    a.express(NORMAL, 2)
+    assert a.genome.alpha_learning == pytest.approx(0.20, abs=1e-9)
+
+
+codon_strategy = st.builds(
+    encode_codon,
+    st.sampled_from([0x00, 0x01, 0x02, 0x05, 0x0A, 0x10, 0x11, 0x12, 0x18, 0x19, 0x80, 0x81]),
+    st.integers(0x00, 0x0A),
+    st.integers(0, 3),
+    st.integers(0, 1),
+    st.integers(-128, 127),
+)
+context_strategy = st.builds(
+    EpigeneticContext,
+    st.integers(0, 15),
+    st.sampled_from(ROLES),
+    st.floats(0.0, 3.0, allow_nan=False),
+)
+
+
+@given(
+    extra=st.lists(codon_strategy, max_size=8),
+    contexts=st.lists(context_strategy, min_size=1, max_size=12),
+)
+def test_propiedad_cache_igual_a_la_transcripcion_directa(
+    extra: list[int], contexts: list[EpigeneticContext]
+) -> None:
+    a = dna_agent(*extra)
+    for tick, ctx in enumerate(contexts):
+        changed_radius = a.express(ctx, tick)
+        direct = transcribe_phenotype(a.dna, ctx, DNA_CFG)  # type: ignore[arg-type]
+        assert a.phenotype == direct
+        assert a.genome == direct.genome
+        assert a.memory.capacity == direct.genome.memory_capacity
+        assert a.config.perception_radius == direct.genome.perception_radius
+        assert a.config.comm_radius == direct.genome.comm_radius
+        assert isinstance(changed_radius, bool)
+
+
+def test_firma_extendida_de_create_offspring() -> None:
+    params = inspect.signature(MicroAgent.create_offspring).parameters
+    assert list(params) == [
+        "self",
+        "child_id",
+        "tick",
+        "rng",
+        "genome_source",
+        "dna_source",
+        "mutation_scale",
+    ]
+    assert params["genome_source"].default is None
+    assert params["dna_source"].default is None
+    assert params["mutation_scale"].default == 1.0
+    for name, args in {
+        "express": ["self", "context", "tick"],
+        "set_epigenetic_role": ["self", "role"],
+        "set_dna": ["self", "dna"],
+        "set_endospore": ["self", "flag"],
+    }.items():
+        assert list(inspect.signature(getattr(MicroAgent, name)).parameters) == args, name
+
+
+def test_hijo_con_el_adn_de_un_donante() -> None:
+    donor_dna = with_extra(FROZEN_DNA_CFG, encode_codon(0x00, 0x02, payload=10), plasmids=(77,))
+    parent = MicroAgent(1, FROZEN_DNA_CFG)
+    parent.set_endospore(True)
+    generator, reference = rng(5), rng(5)
+    child = parent.create_offspring(child_id=9, tick=40, rng=generator, dna_source=donor_dna)
+    assert child.dna == donor_dna
+    assert child.birth_tick == 40
+    assert child.is_endospore is False
+    assert child.last_stress_tick is None
+    assert child.epigenetic_role is NONE
+    assert generator.bit_generator.state == reference.bit_generator.state  # puerta de R13
+
+
+def test_hijo_muta_el_adn_propio_con_la_configuracion_base() -> None:
+    cfg = replace(DNA_CFG, dna_point_mutation_rate=0.5, dna_duplication_rate=0.5)
+    parent = dna_agent(encode_codon(0x19, 0x04, payload=64), config=cfg)
+    parent.express(SURPLUS, 3)  # la configuración fenotípica difiere de la base
+    assert parent.config != cfg
+    child = parent.create_offspring(child_id=2, tick=3, rng=rng(11))
+    assert child.dna == mutate_dna(parent.dna, cfg, rng(11), 1.0)  # type: ignore[arg-type]
+    assert child.base_config is cfg
+
+
+def test_escala_de_mutacion_con_adn() -> None:
+    cfg = replace(DNA_CFG, dna_point_mutation_rate=0.1)
+    parent = MicroAgent(1, cfg)
+    child = parent.create_offspring(child_id=2, tick=0, rng=rng(4), mutation_scale=4.0)
+    assert child.dna == mutate_dna(founder_dna(cfg), cfg, rng(4), 4.0)
+
+
+def test_expresion_del_hijo_al_nacer_en_estres() -> None:
+    cfg = replace(FROZEN_DNA_CFG, reproduction_threshold=2.2, stress_energy_ratio=0.35)
+    parent = dna_agent(encode_codon(0x18, 0x05, payload=64), config=cfg)
+    parent.apply_energy_delta(1.1 - parent.energy)
+    child = parent.create_offspring(child_id=2, tick=12, rng=rng())
+    assert child.energy == pytest.approx(0.55, abs=1e-9)
+    expected = transcribe_phenotype(child.dna, EpigeneticContext(0, NONE, 0.25), cfg)  # type: ignore[arg-type]
+    assert child.phenotype == expected
+    assert child.genome.perception_radius == 3  # el codón de estrés está activo
+    assert child.config == phenotype_config(cfg, expected.genome)
+    assert child.memory.capacity == expected.genome.memory_capacity
+    assert child.base_config is cfg
+
+
+def test_expresion_del_hijo_al_nacer_sin_estres() -> None:
+    cfg = replace(FROZEN_DNA_CFG, reproduction_threshold=2.2)
+    parent = dna_agent(encode_codon(0x18, 0x05, payload=64), config=cfg)
+    parent.apply_energy_delta(3.0 - parent.energy)
+    child = parent.create_offspring(child_id=2, tick=12, rng=rng())
+    assert child.genome.perception_radius == 2
+    assert child.phenotype == transcribe_phenotype(
+        child.dna,  # type: ignore[arg-type]
+        EpigeneticContext(0, NONE, child.energy / 2.2),
+        cfg,
+    )
+
+
+def test_hijo_nace_con_rol_none_y_sin_endospora() -> None:
+    parent = MicroAgent(1, FROZEN_DNA_CFG)
+    parent.set_epigenetic_role(EpigeneticRole.LIBRARIAN)
+    child = parent.create_offspring(child_id=2, tick=3, rng=rng())
+    assert child.epigenetic_role is NONE
+    assert parent.epigenetic_role is EpigeneticRole.LIBRARIAN
+
+
+def test_hijo_sin_adn_recibe_birth_tick_y_la_configuracion_base() -> None:
+    parent = MicroAgent(1, CFG)
+    child = parent.create_offspring(child_id=2, tick=17, rng=rng())
+    grandchild = child.create_offspring(child_id=3, tick=30, rng=rng(1))
+    assert (child.birth_tick, grandchild.birth_tick) == (17, 30)
+    assert child.base_config is CFG and grandchild.base_config is CFG
+    assert child.dna is None and grandchild.dna is None
+    assert child.phenotype == phenotype_from_genome(child.genome, CFG)
+
+
+def test_escala_neutra_bit_a_bit() -> None:
+    cfg = replace(CFG, mutation_rate=0.2, discrete_mutation_prob=0.5)
+    a, b = MicroAgent(1, cfg), MicroAgent(1, cfg)
+    ra, rb = rng(21), rng(21)
+    child_a = a.create_offspring(child_id=2, tick=0, rng=ra, mutation_scale=1.0)
+    child_b = b.create_offspring(child_id=2, tick=0, rng=rb)
+    assert child_a.genome == child_b.genome
+    assert ra.bit_generator.state == rb.bit_generator.state
+
+
+def test_escala_neutra_pasa_la_configuracion_intacta(monkeypatch: pytest.MonkeyPatch) -> None:
+    import ide.agent.micro_agent as module
+
+    seen: list[SimulationConfig] = []
+
+    def spy(genome: AgentGenome, config: SimulationConfig, generator: np.random.Generator):
+        seen.append(config)
+        return mutate_genome(genome, config, generator)
+
+    monkeypatch.setattr(module, "mutate_genome", spy)
+    parent = MicroAgent(1, CFG)
+    parent.create_offspring(child_id=2, tick=0, rng=rng(), mutation_scale=1.0)
+    assert seen == [CFG] and seen[0] is parent.config
+
+
+def test_hipermutacion_del_genoma_plano(monkeypatch: pytest.MonkeyPatch) -> None:
+    import ide.agent.micro_agent as module
+
+    seen: list[SimulationConfig] = []
+
+    def spy(genome: AgentGenome, config: SimulationConfig, generator: np.random.Generator):
+        seen.append(config)
+        return mutate_genome(genome, config, generator)
+
+    monkeypatch.setattr(module, "mutate_genome", spy)
+    cfg = replace(CFG, mutation_rate=0.05, discrete_mutation_prob=0.10)
+    parent = MicroAgent(1, cfg)
+    child = parent.create_offspring(child_id=2, tick=0, rng=rng(6), mutation_scale=4.0)
+    (used,) = seen
+    assert used.mutation_rate == pytest.approx(4 * 0.05, abs=1e-9)
+    assert used.discrete_mutation_prob == pytest.approx(0.40, abs=1e-9)
+    assert used == replace(cfg, mutation_rate=4 * 0.05, discrete_mutation_prob=min(1.0, 0.4))
+    assert child.genome == mutate_genome(parent.genome, used, rng(6))
+    assert child.base_config is cfg
+
+
+def test_hipermutacion_satura_la_probabilidad_discreta() -> None:
+    cfg = replace(CFG, mutation_rate=0.0, discrete_mutation_prob=0.5)
+    child = MicroAgent(1, cfg).create_offspring(2, 0, rng(2), mutation_scale=4.0)
+    scaled = replace(cfg, discrete_mutation_prob=1.0)
+    assert child.genome == mutate_genome(genome_from_config(cfg), scaled, rng(2))
+
+
+def test_herencia_de_plasmidos_y_firmas_sin_ensayos_pendientes() -> None:
+    parent = MicroAgent(1, FROZEN_DNA_CFG)
+    parent.set_dna(CompactDNA(founder_dna(FROZEN_DNA_CFG).chromosome, (11,), (13,)))
+    parent.open_plasmid_trial(11, 5)
+    child = parent.create_offspring(child_id=2, tick=8, rng=rng())
+    assert child.dna is not None
+    assert (child.dna.plasmids, child.dna.crispr_memory) == ((11,), (13,))
+    assert child.plasmid_trials == {}
+    assert list(parent.plasmid_trials) == [11]
+
+
+def test_ensayos_crispr_del_agente() -> None:
+    a = MicroAgent(1, FROZEN_DNA_CFG)
+    a.apply_energy_delta(2.4 - a.energy)
+    a.open_plasmid_trial(30, 5)
+    a.apply_energy_delta(-0.4)
+    a.open_plasmid_trial(20, 6)
+    a.open_plasmid_trial(30, 9)  # no reabre: conserva el original
+    assert a.plasmid_trials == {
+        20: (6, pytest.approx(2.0, abs=1e-9), 0.0),
+        30: (5, pytest.approx(2.4, abs=1e-9), 0.0),
+    }
+    assert list(a.plasmid_trials) == [20, 30]
+    child = a.create_offspring(child_id=2, tick=10, rng=rng())
+    assert child.energy == pytest.approx(1.0, abs=1e-9)
+    assert a.plasmid_trials == {
+        20: (6, pytest.approx(2.0, abs=1e-9), pytest.approx(1.0, abs=1e-9)),
+        30: (5, pytest.approx(2.4, abs=1e-9), pytest.approx(1.0, abs=1e-9)),
+    }
+    a.close_plasmid_trial(30)
+    assert list(a.plasmid_trials) == [20]
+    copy = a.plasmid_trials
+    copy.clear()
+    assert list(a.plasmid_trials) == [20]  # devuelve una copia
+
+
+def test_from_lineage_con_adn_y_configuracion_base() -> None:
+    dna = with_extra(DNA_CFG, encode_codon(0x00, 0x04, payload=43))
+    phenotype = transcribe_phenotype(dna, EpigeneticContext(0, NONE, 0.5), DNA_CFG)
+    child = MicroAgent.from_lineage(
+        4, DNA_CFG, phenotype.genome, 1.1, 2, 1, dna=dna, base_config=DNA_CFG
+    )
+    assert child.dna == dna and child.base_config is DNA_CFG
+    assert child.phenotype == phenotype
+    assert child.genome.memory_capacity == 4 == child.memory.capacity
+
+
+def test_from_lineage_sin_adn_conserva_la_fase_ii() -> None:
+    genome = AgentGenome(0.2, 0.5, 0.3, 0.9, 5, 1, 3)
+    child = MicroAgent.from_lineage(11, CFG, genome, 0.8, 3, 4)
+    assert child.dna is None
+    assert child.base_config is CFG
+    assert child.phenotype == phenotype_from_genome(genome, CFG)
+
+
+def test_from_lineage_rechaza_un_genoma_que_el_adn_no_expresa() -> None:
+    with pytest.raises(ValueError, match="genome"):
+        MicroAgent.from_lineage(
+            4, DNA_CFG, AgentGenome(memory_capacity=5), 1.1, 2, 1, dna=founder_dna(DNA_CFG)
+        )
+
+
+def test_create_offspring_rechaza_fuentes_incoherentes() -> None:
+    with pytest.raises(ValueError, match="dna_source"):
+        MicroAgent(1, CFG).create_offspring(2, 0, rng(), dna_source=founder_dna(DNA_CFG))
+    with pytest.raises(ValueError, match="genome_source"):
+        MicroAgent(1, DNA_CFG).create_offspring(2, 0, rng(), genome_source=AgentGenome())
+
+
+def test_agente_sin_adn_comportamiento_de_fase_ii_intacto() -> None:
+    # Sin ADN, `config` sigue siendo el mismo objeto y el hijo, el de la Fase II.
+    cfg = replace(CFG, mutation_rate=0.2, discrete_mutation_prob=1.0)
+    parent = MicroAgent(1, cfg)
+    assert parent.config is cfg
+    child = parent.create_offspring(child_id=2, tick=0, rng=rng(8))
+    assert child.genome == mutate_genome(parent.genome, cfg, rng(8))
+    assert child.config == phenotype_config(cfg, child.genome)
+
+
+@pytest.mark.parametrize("scale", [-1.0, float("nan"), float("inf")])
+@pytest.mark.parametrize("config", [CFG, DNA_CFG])
+def test_create_offspring_rechaza_escala_invalida(scale: float, config: SimulationConfig) -> None:
+    parent = MicroAgent(1, config)
+    generator, reference = rng(), rng()
+    with pytest.raises(ValueError, match="mutation_scale"):
+        parent.create_offspring(2, 0, generator, mutation_scale=scale)
+    assert parent.energy == config.initial_energy  # no partió la energía
+    assert generator.bit_generator.state == reference.bit_generator.state
+
+
+def count_transcriptions(monkeypatch: pytest.MonkeyPatch) -> list[CompactDNA]:
+    """Espía sobre `transcribe_phenotype` en `micro_agent`: registra el ADN de cada llamada."""
+    import ide.agent.micro_agent as module
+
+    calls: list[CompactDNA] = []
+
+    def spy(dna: CompactDNA, context: EpigeneticContext, config: SimulationConfig):
+        calls.append(dna)
+        return transcribe_phenotype(dna, context, config)
+
+    monkeypatch.setattr(module, "transcribe_phenotype", spy)
+    return calls
+
+
+def test_nacimiento_con_adn_transcribe_una_sola_vez(monkeypatch: pytest.MonkeyPatch) -> None:
+    parent = dna_agent(encode_codon(0x18, 0x05, payload=64), config=FROZEN_DNA_CFG)
+    reference = parent.create_offspring(child_id=2, tick=4, rng=rng())
+    parent.apply_energy_delta(reference.energy)  # mismo estado energético para el segundo hijo
+    calls = count_transcriptions(monkeypatch)
+    child = parent.create_offspring(child_id=3, tick=5, rng=rng())
+    assert calls == [child.dna]
+    assert child.phenotype == reference.phenotype and child.config == reference.config
+    child.express(EpigeneticContext(0, NONE, child.energy / 2.2), 6)  # misma banda: del caché
+    assert calls == [child.dna]
+
+
+def test_from_lineage_con_adn_transcribe_una_sola_vez(monkeypatch: pytest.MonkeyPatch) -> None:
+    dna = with_extra(DNA_CFG, encode_codon(0x00, 0x04, payload=43))
+    genome = transcribe_phenotype(dna, EpigeneticContext(0, NONE, 0.5), DNA_CFG).genome
+    calls = count_transcriptions(monkeypatch)
+    MicroAgent.from_lineage(4, DNA_CFG, genome, 1.1, 2, 1, dna=dna, base_config=DNA_CFG)
+    assert calls == [dna]
+
+
+def test_from_lineage_rechaza_adn_sin_enable_compact_dna() -> None:
+    dna = founder_dna(DNA_CFG)
+    genome = genome_from_config(CFG)
+    with pytest.raises(ValueError, match="enable_compact_dna"):
+        MicroAgent.from_lineage(4, CFG, genome, 1.1, 2, 1, dna=dna)
+    with pytest.raises(ValueError, match="enable_compact_dna"):
+        MicroAgent.from_lineage(4, DNA_CFG, genome, 1.1, 2, 1, dna=dna, base_config=CFG)
+
+
+def test_el_cache_nunca_sirve_el_fenotipo_de_otro_adn() -> None:
+    a = dna_agent(encode_codon(0x00, 0x00, payload=64))
+    a.express(NORMAL, 1)
+    for payload in (-64, 32, 64):
+        a.set_dna(with_extra(DNA_CFG, encode_codon(0x00, 0x00, payload=payload)))
+        a.express(NORMAL, 2)
+        assert a.phenotype == transcribe_phenotype(a.dna, NORMAL, DNA_CFG)  # type: ignore[arg-type]
+
+
+def test_set_dna_rechaza_sin_enable_compact_dna() -> None:
+    a = MicroAgent(1, CFG)
+    with pytest.raises(ValueError, match="enable_compact_dna"):
+        a.set_dna(founder_dna(DNA_CFG))
+    assert a.dna is None
+
+
+def test_create_offspring_con_adn_delega_en_from_lineage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = MicroAgent.from_lineage.__func__  # type: ignore[attr-defined]
+    seen: list[dict[str, object]] = []
+
+    def spy(cls: type[MicroAgent], *args: object, **kwargs: object) -> MicroAgent:
+        seen.append(kwargs)
+        return original(cls, *args, **kwargs)
+
+    monkeypatch.setattr(MicroAgent, "from_lineage", classmethod(spy))
+    parent = MicroAgent(1, FROZEN_DNA_CFG)
+    child = parent.create_offspring(child_id=2, tick=3, rng=rng())
+    assert len(seen) == 1
+    assert seen[0]["dna"] == child.dna and seen[0]["base_config"] is FROZEN_DNA_CFG
+
+
+def test_create_offspring_rechaza_adn_con_base_sin_la_bandera() -> None:
+    parent = MicroAgent(1, CFG)
+    parent._dna = founder_dna(DNA_CFG)  # estado inalcanzable por la API pública
+    with pytest.raises(ValueError, match="enable_compact_dna"):
+        parent.create_offspring(child_id=2, tick=0, rng=rng())
+
+
+def test_from_lineage_con_adn_deriva_el_genoma() -> None:
+    dna = with_extra(DNA_CFG, encode_codon(0x00, 0x04, payload=43))
+    child = MicroAgent.from_lineage(4, DNA_CFG, None, 1.1, 2, 1, dna=dna, base_config=DNA_CFG)
+    expected = transcribe_phenotype(dna, EpigeneticContext(0, NONE, 0.5), DNA_CFG)
+    assert child.phenotype == expected and child.genome == expected.genome
+
+
+def test_from_lineage_sin_adn_exige_el_genoma() -> None:
+    with pytest.raises(ValueError, match="genome"):
+        MicroAgent.from_lineage(4, CFG, None, 1.1, 2, 1)
+
+
+def test_configuracion_fenotipica_con_adn_sale_de_la_base() -> None:
+    # Un `config` del llamador con campos no fenotípicos distintos no se mezcla con la base.
+    dna = founder_dna(DNA_CFG)
+    other = replace(DNA_CFG, message_cost=0.5, move_cost=0.3)
+    child = MicroAgent.from_lineage(
+        4, other, genome_from_config(DNA_CFG), 1.1, 2, 1, dna=dna, base_config=DNA_CFG
+    )
+    assert child.config == phenotype_config(DNA_CFG, child.genome)
+    assert (child.config.message_cost, child.config.move_cost) == (
+        DNA_CFG.message_cost,
+        DNA_CFG.move_cost,
+    )
+
+
+@pytest.mark.parametrize("config", [CFG, FROZEN_DNA_CFG])
+def test_paridad_de_estado_entre_fundador_hijo_y_linaje(config: SimulationConfig) -> None:
+    founder = MicroAgent(1, config)
+    child = founder.create_offspring(child_id=2, tick=1, rng=rng())
+    lineage = MicroAgent.from_lineage(
+        3, config, child.genome, child.energy, 1, 1, dna=child.dna, base_config=config
+    )
+    assert vars(founder).keys() == vars(child).keys() == vars(lineage).keys()

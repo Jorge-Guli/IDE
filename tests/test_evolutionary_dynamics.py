@@ -10,7 +10,9 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from ide.agent.dna import encode_codon, founder_dna
 from ide.agent.evolution import (
+    compute_dna_cost,
     compute_metabolic_cost,
     genome_from_config,
     transfer_cultural_heritage,
@@ -19,7 +21,14 @@ from ide.agent.memory import BoundedMemory
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
 from ide.domain.extensions import mutate_genome
-from ide.domain.types import AgentGenome, KnowledgeUnit, Pattern
+from ide.domain.types import (
+    AgentGenome,
+    CompactDNA,
+    EpigeneticContext,
+    EpigeneticRole,
+    KnowledgeUnit,
+    Pattern,
+)
 
 CFG = SimulationConfig()
 INHERIT = replace(CFG, enable_cultural_inheritance=True)
@@ -295,3 +304,69 @@ def test_transferencia_rechaza_capacidad_negativa(cfg: SimulationConfig) -> None
     # También con la herencia apagada: la ablación no oculta un error del motor.
     with pytest.raises(ValueError, match="child_capacity"):
         transfer_cultural_heritage(memory_with(ku(0)), -1, 0, cfg)
+
+
+# --- Fase II-B: costo del ADN y costo sobre el fenotipo expresado (R24, design D34.5) -----------
+
+DNA_CFG = replace(CFG, enable_evolution=True, enable_compact_dna=True)
+
+
+def test_costo_lineal_por_codon() -> None:
+    cfg = replace(DNA_CFG, dna_codon_cost=0.0002)
+    dna = CompactDNA(founder_dna(cfg).chromosome, (101, 102), (103,))
+    assert len(dna.chromosome) == 9
+    assert compute_dna_cost(dna, cfg) == pytest.approx(0.0024, abs=1e-9)
+    assert compute_dna_cost(None, cfg) == 0.0
+
+
+def test_costo_del_adn_por_defecto_y_sin_adn() -> None:
+    dna = founder_dna(DNA_CFG)
+    assert compute_dna_cost(dna, DNA_CFG) == pytest.approx(9 * 0.0002, abs=1e-12)
+    assert compute_dna_cost(None, CFG) == 0.0
+    assert compute_dna_cost(dna, replace(DNA_CFG, dna_codon_cost=0.0)) == 0.0
+
+
+@given(
+    chromosome=st.lists(st.integers(0, 2**32 - 1), min_size=1, max_size=32),
+    plasmids=st.sets(st.integers(0, 2**32 - 1), max_size=4),
+    crispr=st.sets(st.integers(0, 2**32 - 1), max_size=4),
+    cost=st.floats(0.0, 0.01),
+)
+def test_propiedad_costo_del_adn_lineal(
+    chromosome: list[int], plasmids: set[int], crispr: set[int], cost: float
+) -> None:
+    dna = CompactDNA(tuple(chromosome), tuple(sorted(plasmids)), tuple(sorted(crispr)))
+    total = len(chromosome) + len(plasmids) + len(crispr)
+    cfg = replace(DNA_CFG, dna_codon_cost=cost)
+    assert compute_dna_cost(dna, cfg) == pytest.approx(cost * total, abs=1e-12)
+
+
+def test_costo_cuadratico_sobre_la_capacidad_expresada() -> None:
+    cfg = replace(
+        DNA_CFG,
+        metabolic_base_cost=0.01,
+        memory_capacity_cost=0.005,
+        sensory_radius_cost=0.0,
+        dna_codon_cost=0.0,
+    )
+    agent = MicroAgent(1, cfg)
+    agent.set_dna(CompactDNA((*founder_dna(cfg).chromosome, encode_codon(0x18, 0x04, 0, 0, -86))))
+    agent.express(EpigeneticContext(0, EpigeneticRole.NONE, 0.1), 1)
+    assert agent.genome.memory_capacity == 1
+    cost = compute_metabolic_cost(agent.genome, cfg) + compute_dna_cost(agent.dna, cfg)
+    assert cost == pytest.approx(0.01 + 0.005 * 1, abs=1e-9)
+    assert cost != pytest.approx(0.01 + 0.005 * 9, abs=1e-9)
+
+
+def test_costo_basal_con_adn_sin_senescencia() -> None:
+    # Parte de R24 del escenario "Costo basal con ADN y senescencia"; R29 llega en el bloque 6.
+    cfg = replace(
+        DNA_CFG,
+        metabolic_base_cost=0.01,
+        memory_capacity_cost=0.005,
+        sensory_radius_cost=0.0,
+        dna_codon_cost=0.0002,
+    )
+    agent = MicroAgent(1, cfg)
+    cost = compute_metabolic_cost(agent.genome, cfg) + compute_dna_cost(agent.dna, cfg)
+    assert cost == pytest.approx(0.01 + 0.045 + 0.0018, abs=1e-9)

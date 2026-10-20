@@ -262,3 +262,100 @@ def test_la_penalizacion_decide_el_desalojo() -> None:
     m.set_redundant_patterns(frozenset({pat(0)}), penalty=0.2)
     assert m.upsert(ku(2, conf=0.6), 0) is True
     assert sorted(u.pattern for u in m.all_units()) == [pat(1), pat(2)]
+
+
+# --- Fase II-B: cambio de capacidad en vida (R24, design D34.3) --------------------------------
+
+
+def test_resize_achica_desalojando_por_menor_utilidad() -> None:
+    m = BoundedMemory(capacity=3)
+    for unit in (ku(1, conf=0.9, tau=10), ku(2, conf=0.2, tau=10), ku(3, conf=0.6, tau=10)):
+        m.upsert(unit, 10)
+    m.resize(1, 10)
+    assert m.capacity == 1
+    assert m.all_units() == [ku(1, conf=0.9, tau=10)]
+
+
+def test_resize_aplica_la_penalizacion_de_redundancia() -> None:
+    m = BoundedMemory(capacity=2)
+    m.upsert(ku(0, conf=0.9, tau=4), 4)
+    m.upsert(ku(1, conf=0.5, tau=4), 4)
+    m.set_redundant_patterns(frozenset({pat(0)}), penalty=0.2)
+    m.resize(1, 4)
+    assert m.all_units() == [ku(1, conf=0.5, tau=4)]  # 0.18 < 0.5
+
+
+def test_resize_desempata_por_tau_y_luego_por_patron() -> None:
+    # Las tres con la misma utilidad en t=10 (sin decaimiento): primero cae la de menor τ y,
+    # entre las de igual τ, la de menor patrón, como en el desalojo de R2.
+    m = BoundedMemory(capacity=3, lambda_decay=0.0)
+    for unit in (ku(5, tau=7), ku(1, tau=9), ku(2, tau=9)):
+        m.upsert(unit, 9)
+    m.resize(2, 10)
+    assert [u.pattern for u in m.all_units()] == [pat(1), pat(2)]
+    m.resize(1, 10)
+    assert [u.pattern for u in m.all_units()] == [pat(2)]
+
+
+def test_resize_usa_la_utilidad_en_el_tick_indicado() -> None:
+    # En t=0 gana la más confiable; en t=400, la reciente: la edad entra en la utilidad.
+    vieja, reciente = ku(0, conf=0.9, tau=0), ku(1, conf=0.5, tau=400)
+    m = BoundedMemory(capacity=2)
+    m.upsert(vieja, 0)
+    m.upsert(reciente, 0)
+    m.resize(1, 400)
+    assert m.all_units() == [reciente]
+
+
+def test_resize_agranda_sin_borrar() -> None:
+    m = BoundedMemory(capacity=2)
+    m.upsert(ku(0), 0)
+    m.upsert(ku(1), 0)
+    m.resize(5, 3)
+    assert m.capacity == 5
+    assert [u.pattern for u in m.all_units()] == [pat(0), pat(1)]
+    for i in range(2, 5):
+        assert m.upsert(ku(i, conf=0.01), 3) is True  # sin competir por utilidad
+    assert len(m) == 5
+
+
+def test_resize_a_la_misma_capacidad_no_cambia_nada() -> None:
+    m = BoundedMemory(capacity=2)
+    m.upsert(ku(0), 0)
+    m.upsert(ku(1), 0)
+    m.resize(2, 50)
+    assert (m.capacity, [u.pattern for u in m.all_units()]) == (2, [pat(0), pat(1)])
+
+
+@pytest.mark.parametrize("capacity", [0, -1])
+def test_resize_rechaza_capacidad_menor_que_uno(capacity: int) -> None:
+    m = BoundedMemory(capacity=2)
+    m.upsert(ku(0), 0)
+    m.upsert(ku(1), 0)
+    with pytest.raises(ValueError, match="capacity"):
+        m.resize(capacity, 0)
+    assert (m.capacity, len(m)) == (2, 2)
+
+
+@given(
+    capacity=st.integers(1, 8),
+    new_capacity=st.integers(1, 8),
+    confs=st.lists(st.floats(0.05, 1.0), min_size=0, max_size=8),
+    tick=st.integers(0, 50),
+)
+def test_propiedad_resize_conserva_las_de_mayor_utilidad(
+    capacity: int, new_capacity: int, confs: list[float], tick: int
+) -> None:
+    m = BoundedMemory(capacity=capacity)
+    for i, conf in enumerate(confs[:capacity]):
+        m.upsert(ku(i, conf=conf, tau=i), 0)
+    before = m.all_units()
+    m.resize(new_capacity, tick)
+    after = m.all_units()
+    assert m.capacity == new_capacity
+    assert len(after) == min(len(before), new_capacity)
+    assert set(after) <= set(before)
+    kept = {u.pattern for u in after}
+    rank = {u.pattern: (m.compute_utility(u, tick), u.last_updated_tick, u.pattern) for u in before}
+    for dropped in (u for u in before if u.pattern not in kept):
+        assert all(rank[dropped.pattern] < rank[p] for p in kept)
