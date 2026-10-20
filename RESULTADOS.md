@@ -129,7 +129,7 @@ Semillas viables (de 10) por condición. Entre paréntesis, las semillas con pob
 
 ### Grilla refinada (Enmienda 1b)
 
-- **Código y equipo:** `d60ffa6` (mergeado en main como `f8cdad3`), corrido en el equipo del responsable del proyecto con `python -m ide.experiments.phase2_calibration --refined --jobs $env:NUMBER_OF_PROCESSORS` (el resultado no depende de `--jobs`). Mismo criterio y mismas semillas (0 a 9) que la grilla original. Salida de consola completa en `registros/phase2_calibration_refinada_consola.txt`.
+- **Código y equipo:** `d60ffa6` (mergeado en main como `f8cdad3`), corrido en el equipo del responsable del proyecto con `python -m ide.experiments.phase2_calibration --refined --jobs $env:NUMBER_OF_PROCESSORS` (el resultado no depende de `--jobs`). Mismo criterio y mismas semillas (0 a 9) que la grilla original. Salida completa en `registros/phase2_calibration_refinada.json` (390 corridas, `chosen: null`, `fallback: 20`) y `registros/phase2_calibration_refinada_consola.txt`; se verificó que las 39 líneas de la consola coinciden con el JSON.
 
 | Condición | 25 | 30 | 35 |
 | :--- | ---: | ---: | ---: |
@@ -148,6 +148,7 @@ Semillas viables (de 10) por condición. Entre paréntesis, las semillas con pob
 - **Resultado:** ningún valor es viable. Con 25 sólo falla el control nulo de 003 (5 de 10); con 30 y 35 las condiciones de 002 y 003-A `individual` siguen vivas pero casi no llegan a la generación 5, el mismo patrón que con 40 y 80.
 - **Salida de respaldo, fijada antes de esta corrida:** `resources_per_pattern = 20` (`PHASE2_RESOURCES_PER_PATTERN`), con E4 de C5 a C8 no interpretable (`ClaimEvaluation.e4_interpretable = False`) y cada `rule_effect` leído después de revisar su demografía (`ClaimEvaluation.demography`). Con 20, todas las condiciones de los runners son viables (9 o 10 de 10), pero el control nulo se extingue en 8 o 9 de 10.
 - La extinción del control nulo con 20 es una observación demográfica de la calibración, con las semillas 0 a 9. No es una medición de C5 a C8, y el control nulo aleatoriza a la vez todos los canales (horizontal, herencia, estigmergia y vista), así que no aísla un mecanismo.
+- **Sobre la hipótesis de saturación** (población final de los JSON, sin contar el control nulo): con 20, 80 de las 90 corridas terminan exactamente en el tope `max_population = 160`; con 40 y 80, las 90; con 25, 30 y 35, 267 de 270. Que la población llegue al tope es casi universal desde 20, incluso con 20, donde esas mismas condiciones sí llegan a las generaciones 7 a 12. Por lo tanto, alcanzar el tope **no explica por sí solo** la falta de recambio con más recursos. La causa sigue sin verificar (una posibilidad es que con abundancia casi nadie muere y el cupo no se libera, pero no se midió la mortalidad).
 
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 

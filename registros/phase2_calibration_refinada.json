@@ -1,0 +1,3133 @@
+{
+  "chosen": null,
+  "fallback": 20,
+  "grid": [
+    25,
+    30,
+    35
+  ],
+  "parameter": "resources_per_pattern",
+  "runs": [
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 30,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 25,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 20,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 20,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 9,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 7,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 16,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 8,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 24,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 20,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 26,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 16,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 28,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 24,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 85,
+      "max_generation": 24,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 137,
+      "max_generation": 21,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 6,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 158,
+      "max_generation": 24,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 76,
+      "max_generation": 22,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 6,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 128,
+      "max_generation": 24,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 2,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 3,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 20,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 26,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 16,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 28,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 24,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 119,
+      "max_generation": 27,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 95,
+      "max_generation": 20,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 124,
+      "max_generation": 26,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 28,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 85,
+      "max_generation": 24,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 137,
+      "max_generation": 21,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 158,
+      "max_generation": 24,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 76,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 5,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 128,
+      "max_generation": 24,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 2,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 25
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 0,
+      "max_generation": 3,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 25
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 16,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 16,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 13,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 16,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 16,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 13,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 13,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 9,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 152,
+      "max_generation": 30,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 26,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 25,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 9,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 9,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 9,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 152,
+      "max_generation": 30,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 26,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 25,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 30
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 30
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "evolved",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "frozen_genome",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "drift",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002a",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002a",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "002a",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 13,
+      "protocol": "002a",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002a",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "002a",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "002a",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002a",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002a",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002a",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "cultural",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "tabula_rasa",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 13,
+      "protocol": "002b",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002b",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 15,
+      "protocol": "002b",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002b",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002b",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "002b",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 11,
+      "protocol": "002b",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002b",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002b",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 12,
+      "protocol": "002b",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "holonic",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 5,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 3,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "individual",
+      "final_agents": 160,
+      "max_generation": 4,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "003a",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "003a",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "003a",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 13,
+      "protocol": "003a",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003a",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "003a",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "003a",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "003a",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "003a",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003a",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "with_view",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 10,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 7,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 8,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "without_view",
+      "final_agents": 160,
+      "max_generation": 6,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "003b",
+      "seed": 0,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "003b",
+      "seed": 1,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 19,
+      "protocol": "003b",
+      "seed": 2,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 13,
+      "protocol": "003b",
+      "seed": 3,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 22,
+      "protocol": "003b",
+      "seed": 4,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "003b",
+      "seed": 5,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 14,
+      "protocol": "003b",
+      "seed": 6,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "003b",
+      "seed": 7,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 17,
+      "protocol": "003b",
+      "seed": 8,
+      "value": 35
+    },
+    {
+      "condition": "null_content",
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "003b",
+      "seed": 9,
+      "value": 35
+    }
+  ],
+  "total_ticks": 2000
+}
