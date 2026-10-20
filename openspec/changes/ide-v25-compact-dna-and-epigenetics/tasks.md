@@ -301,7 +301,7 @@
 > Ejecuta: implementador-delicado
 
 - [ ] 18.1 **[RED]** Ampliar `tests/test_metrics.py` y `tests/test_simulation_engine.py` con tests para:
-  - `GeneticTickMetrics` de D53.2, incluidas `regulated_expression_fraction` y `mean_expressible_codons` con los codones expresables de la precisión 42, `policy_divergence` (sin extraer de `rng`), `communicating_fraction`, `distinct_genotypes`, `mean_functional_codons`, la actividad de Bedau–Packard sin los codones fundadores, `cumulative_births`, `new_activity_per_birth` y `mean_age_at_death` (precisiones 43 y 49);
+  - `GeneticTickMetrics` de D53.2, incluidas `mean_conditional_codons`, `mean_expressible_nonattack_codons`, `regulated_expression_fraction` y `mean_expressible_codons` con los valores canónicos expresables de la precisión 42, `policy_divergence` (sin extraer de `rng`), `communicating_fraction`, `distinct_genotypes`, `mean_functional_codons`, la actividad de Bedau–Packard por nacimientos portadores y sin los codones fundadores, `cumulative_births`, `new_activity_per_birth` y `mean_age_at_death` (precisiones 43 y 49);
   - `EcologyTickMetrics` de D53.3;
   - el registro en cada tick con cualquier combinación de banderas y los valores con la población vacía;
   - que `TickMetrics` y `EvolutionaryTickMetrics` no cambian.
