@@ -3,6 +3,10 @@
 from dataclasses import asdict, dataclass
 from typing import Any
 
+# Longitud del ADN fundador (D32): un codón por cada rasgo 0x00-0x08. `ide.agent.dna` reutiliza
+# este valor; vive aquí porque la configuración lo necesita y no puede importar del agente.
+FOUNDER_DNA_LENGTH = 9
+
 _TAU_POLICIES = ("validation", "evidence_age")
 _UPDATE_SCHEMES = ("synchronous", "asynchronous")
 _REPRODUCTION_MODES = ("energy", "neutral")
@@ -25,6 +29,14 @@ _UNIT_INTERVAL_FIELDS = (
     "inheritance_discount",
     "stigmergy_deposit_rate",
     "stigmergy_decay",
+    "dna_point_mutation_rate",
+    "dna_duplication_rate",
+    "dna_deletion_rate",
+    "dna_excision_rate",
+    "hgt_rate",
+    "spore_cost_fraction",
+    "sos_high_fidelity_factor",
+    "lock_coord_discount",
 )
 _MIN_ONE_FIELDS = (
     "num_agents",
@@ -33,12 +45,23 @@ _MIN_ONE_FIELDS = (
     "grid_height",
     "max_population",
     "composite_resources_per_pattern",
+    "max_plasmids",
+    "crispr_eval_ticks",
+    "crispr_memory_size",
+    "sos_window",
+    "lock_composite_threshold",
+    "telomere_min_lifespan",
 )
 _POSITIVE_FIELDS = (
     "initial_energy",
     "reproduction_threshold",
     "energy_gain_scale",
     "composite_reward_exponent",
+    "stress_energy_ratio",
+    "surplus_energy_ratio",
+    "hgt_energy_ratio",
+    "sos_hypermutation_factor",
+    "sos_high_fidelity_energy_ratio",
 )
 _NON_NEGATIVE_FIELDS = (
     "seed",  # PCG64 no acepta semillas negativas
@@ -58,6 +81,10 @@ _NON_NEGATIVE_FIELDS = (
     "holon_min_energy_per_leaf",
     "composite_failure_penalty",
     "num_composite_patterns",
+    "dna_codon_cost",
+    "crispr_toxicity_threshold",
+    "senescence_cost_rate",
+    "spore_energy_threshold",
 )
 
 
@@ -142,6 +169,53 @@ class SimulationConfig:
     stigmergy_deposit_rate: float = 0.50
     stigmergy_decay: float = 0.02
 
+    # --- Fase II-B: ADN compacto y expresión condicional (R24) ---
+    enable_compact_dna: bool = False
+    dna_codon_cost: float = 0.0002  # c_dna por codón (cromosoma + plásmidos + CRISPR) y por tick
+    dna_point_mutation_rate: float = (
+        0.05  # probabilidad por codón de invertir un bit al reproducirse
+    )
+    dna_duplication_rate: float = 0.02
+    dna_deletion_rate: float = 0.02
+    dna_min_length: int = 1
+    dna_max_length: int = 32
+    stress_energy_ratio: float = 0.35  # promotor 0x18 y estrés de R30
+    surplus_energy_ratio: float = 0.85  # promotor 0x19
+    # --- R25 ---
+    enable_epigenetic_roles: bool = False
+    # --- R26 y R27 ---
+    enable_plasmid_hgt: bool = False
+    dna_excision_rate: float = 0.02  # copia de un codón del cromosoma a un plásmido al reproducirse
+    max_plasmids: int = 4
+    hgt_rate: float = 0.05  # probabilidad por tick de que un donante elegible conjugue
+    hgt_energy_ratio: float = (
+        0.85  # el donante necesita E >= hgt_energy_ratio * reproduction_threshold
+    )
+    enable_crispr_immunity: bool = False
+    crispr_eval_ticks: int = 20
+    crispr_toxicity_threshold: float = 0.20
+    crispr_memory_size: int = 4
+    # --- R28 ---
+    enable_sporulation: bool = False
+    spore_energy_threshold: float = 0.30
+    spore_cost_fraction: float = 0.05  # costo de la endospora = fracción de metabolic_base_cost
+    # --- R29 ---
+    enable_telomere_senescence: bool = False
+    telomere_base_lifespan: int = 600
+    telomere_min_lifespan: int = 150
+    telomere_max_lifespan: int = 1200
+    senescence_cost_rate: float = 1e-5  # costo extra = rate * (edad - T_max)^2
+    # --- R30 ---
+    enable_sos_mutation: bool = False
+    sos_window: int = 50
+    sos_hypermutation_factor: float = 4.0
+    sos_high_fidelity_factor: float = 0.25
+    sos_high_fidelity_energy_ratio: float = 1.5
+    # --- R31 ---
+    enable_symbiotic_ratchet: bool = False
+    lock_composite_threshold: int = 3
+    lock_coord_discount: float = 0.5
+
     def __post_init__(self) -> None:
         if self.memory_capacity < 1:
             raise ValueError(f"memory_capacity debe ser >= 1, recibido {self.memory_capacity}")
@@ -185,6 +259,7 @@ class SimulationConfig:
             )
 
         self._validate_phase2()
+        self._validate_phase25()
 
     def _validate_phase2(self) -> None:
         for name in _POSITIVE_FIELDS:
@@ -238,6 +313,60 @@ class SimulationConfig:
             raise ValueError(
                 f"composite_order ({self.composite_order}) debe ser <= num_world_patterns // 2 "
                 f"({self.num_world_patterns // 2}) cuando num_composite_patterns > 0"
+            )
+
+    def _validate_phase25(self) -> None:
+        # Los rangos de D31 se validan siempre con las tuplas de campos de `__post_init__`.
+        if not self.stress_energy_ratio < self.surplus_energy_ratio:
+            raise ValueError(
+                f"stress_energy_ratio ({self.stress_energy_ratio}) debe ser menor que "
+                f"surplus_energy_ratio ({self.surplus_energy_ratio})"
+            )
+        if not 1 <= self.dna_min_length <= FOUNDER_DNA_LENGTH:
+            raise ValueError(
+                f"dna_min_length debe estar en [1, {FOUNDER_DNA_LENGTH}], "
+                f"recibido {self.dna_min_length}"
+            )
+        if self.dna_max_length < FOUNDER_DNA_LENGTH:
+            raise ValueError(
+                f"dna_max_length debe ser >= {FOUNDER_DNA_LENGTH}, recibido {self.dna_max_length}"
+            )
+        if not (
+            self.telomere_min_lifespan <= self.telomere_base_lifespan <= self.telomere_max_lifespan
+        ):
+            raise ValueError(
+                f"telomere_min_lifespan ({self.telomere_min_lifespan}) <= "
+                f"telomere_base_lifespan ({self.telomere_base_lifespan}) <= "
+                f"telomere_max_lifespan ({self.telomere_max_lifespan}) no se cumple"
+            )
+        if self.enable_compact_dna:
+            self._validate_compact_dna()
+
+    def _validate_compact_dna(self) -> None:
+        if not self.enable_evolution:
+            raise ValueError("enable_compact_dna exige enable_evolution=True")
+        if self.perception_radius < 1:
+            raise ValueError(
+                f"perception_radius debe ser >= 1 con enable_compact_dna, "
+                f"recibido {self.perception_radius}"
+            )
+        if self.comm_radius < 1:
+            raise ValueError(
+                f"comm_radius debe ser >= 1 con enable_compact_dna, recibido {self.comm_radius}"
+            )
+        if not 0.01 <= self.alpha_learning <= 1.0:
+            raise ValueError(
+                f"alpha_learning debe estar en [0.01, 1] con enable_compact_dna, "
+                f"recibido {self.alpha_learning}"
+            )
+        # Las cotas de D31 para C_max y los radios ya las garantizan las validaciones previas:
+        # `2 * max(r) < min(grid)` equivale a `r <= (min(grid) - 1) // 2`;
+        # `max_genome_memory_capacity >= memory_capacity` y, con `enforce_memory_constraint`,
+        # `memory_capacity < num_world_patterns`.
+        if self.spore_energy_threshold > self.reproduction_threshold:
+            raise ValueError(
+                f"spore_energy_threshold ({self.spore_energy_threshold}) debe ser <= "
+                f"reproduction_threshold ({self.reproduction_threshold}) con enable_compact_dna"
             )
 
     def to_dict(self) -> dict[str, Any]:

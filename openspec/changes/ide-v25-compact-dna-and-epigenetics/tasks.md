@@ -53,13 +53,13 @@
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 1.1 **[RED]** Ampliar `tests/test_domain_contracts.py` con tests para:
+- [x] 1.1 **[RED]** Ampliar `tests/test_domain_contracts.py` con tests para:
   - los tipos `EpigeneticRole`, `CompactDNA` (validación de codones, cromosoma no vacío y plásmidos y firmas sin repetidos), `EpigeneticContext` y `ExpressedPhenotype`, todos inmutables;
   - los campos de D31 con sus valores por defecto y la validación siempre activa;
   - la validación condicionada a `enable_compact_dna=True`: requisitos, bases dentro de sus cotas y mensajes que mencionan el campo;
   - que las dependencias apagadas dejan las banderas inertes y no lanzan error (D30.3).
-- [ ] 1.2 **[GREEN]** Implementar los tipos en `src/ide/domain/types.py` y los campos y validaciones en `src/ide/config.py`.
-- [ ] 1.3 **[REFACTOR]** Verificación del bloque, con `tests/test_performance_equivalence.py` intacto.
+- [x] 1.2 **[GREEN]** Implementar los tipos en `src/ide/domain/types.py` y los campos y validaciones en `src/ide/config.py`.
+- [x] 1.3 **[REFACTOR]** Verificación del bloque, con `tests/test_performance_equivalence.py` intacto. (778 tests, cobertura 99 %; `FOUNDER_DNA_LENGTH` vive en `config.py` y `dna.py` lo reexporta.)
 
 ## 2. Codón, ADN fundador y transcripción (`compact-dna`)
 

@@ -15,6 +15,10 @@ from ide.domain.types import (
     ActionResult,
     AgentAction,
     AgentGenome,
+    CompactDNA,
+    EpigeneticContext,
+    EpigeneticRole,
+    ExpressedPhenotype,
     HolonSnapshot,
     KnowledgeUnit,
     Message,
@@ -504,3 +508,370 @@ def test_config_de_estigmergia_aceptada_deja_el_rastro_de_una_creencia_directa_n
             SimulationConfig(**kwargs)  # type: ignore[arg-type]
     else:
         SimulationConfig(**kwargs)  # type: ignore[arg-type]
+
+
+# --- Fase II-B: ADN compacto, contexto epigenético y configuración (D30, D31) ------------------
+
+_PHASE25_FLAGS = (
+    "enable_compact_dna",
+    "enable_epigenetic_roles",
+    "enable_plasmid_hgt",
+    "enable_crispr_immunity",
+    "enable_sporulation",
+    "enable_telomere_senescence",
+    "enable_sos_mutation",
+    "enable_symbiotic_ratchet",
+)
+
+
+def test_epigenetic_role_miembros_y_valores() -> None:
+    assert [m.name for m in EpigeneticRole] == ["NONE", "EXPLORER", "LIBRARIAN", "NERVE"]
+    assert all(m.value == m.name for m in EpigeneticRole)
+    assert EpigeneticRole.NERVE.value == "NERVE"
+
+
+@pytest.mark.parametrize("cls", [CompactDNA, EpigeneticContext, ExpressedPhenotype])
+def test_tipos_de_fase_iib_son_frozen(cls: type) -> None:
+    assert cls.__dataclass_params__.frozen  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"chromosome": ()},
+        {"chromosome": (2**32,)},
+        {"chromosome": (-1,)},
+        {"chromosome": (1,), "plasmids": (3, 3)},
+        {"chromosome": (1,), "crispr_memory": (5, 5)},
+        {"chromosome": (1,), "plasmids": (2**32,)},
+        {"chromosome": (1,), "crispr_memory": (-1,)},
+    ],
+)
+def test_compact_dna_rechaza_construcciones_invalidas(kwargs: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        CompactDNA(**kwargs)  # type: ignore[arg-type]
+
+
+def test_compact_dna_acepta_bordes_y_repetidos_en_el_cromosoma() -> None:
+    dna = CompactDNA(chromosome=(7, 7))
+    assert dna.plasmids == () and dna.crispr_memory == ()
+    CompactDNA(chromosome=(0, 2**32 - 1), plasmids=(0, 2**32 - 1), crispr_memory=(1, 2))
+    with pytest.raises(FrozenInstanceError):
+        dna.plasmids = (1,)  # type: ignore[misc]
+
+
+def test_compact_dna_no_valida_longitudes() -> None:
+    assert len(CompactDNA(chromosome=tuple(range(40))).chromosome) == 40
+    assert len(CompactDNA(chromosome=(1,), plasmids=tuple(range(10))).plasmids) == 10
+
+
+def test_campos_de_los_tipos_de_fase_iib() -> None:
+    assert [f.name for f in fields(CompactDNA)] == ["chromosome", "plasmids", "crispr_memory"]
+    assert [f.name for f in fields(EpigeneticContext)] == ["holon_level", "role", "energy_ratio"]
+    assert [f.name for f in fields(ExpressedPhenotype)] == [
+        "genome",
+        "lifespan",
+        "spore_threshold",
+        "expressed_codons",
+    ]
+
+
+def test_epigenetic_context_por_defecto() -> None:
+    ctx = EpigeneticContext()
+    assert ctx.holon_level == 0
+    assert ctx.role is EpigeneticRole.NONE
+    assert ctx.energy_ratio == 1.0
+    assert not hasattr(ctx, "z_layer")
+    assert not any("spore" in f.name or "endospore" in f.name for f in fields(ctx))
+    with pytest.raises(FrozenInstanceError):
+        ctx.holon_level = 1  # type: ignore[misc]
+
+
+def test_expressed_phenotype_inmutable() -> None:
+    phen = ExpressedPhenotype(AgentGenome(), 600, 0.30, 9)
+    assert (phen.lifespan, phen.spore_threshold, phen.expressed_codons) == (600, 0.30, 9)
+    assert phen.genome == AgentGenome()
+    with pytest.raises(FrozenInstanceError):
+        phen.lifespan = 1  # type: ignore[misc]
+
+
+def test_config_fase_iib_valores_por_defecto() -> None:
+    cfg = SimulationConfig()
+    for flag in _PHASE25_FLAGS:
+        assert getattr(cfg, flag) is False
+    expected: dict[str, object] = {
+        "dna_codon_cost": 0.0002,
+        "dna_point_mutation_rate": 0.05,
+        "dna_duplication_rate": 0.02,
+        "dna_deletion_rate": 0.02,
+        "dna_min_length": 1,
+        "dna_max_length": 32,
+        "stress_energy_ratio": 0.35,
+        "surplus_energy_ratio": 0.85,
+        "dna_excision_rate": 0.02,
+        "max_plasmids": 4,
+        "hgt_rate": 0.05,
+        "hgt_energy_ratio": 0.85,
+        "crispr_eval_ticks": 20,
+        "crispr_toxicity_threshold": 0.20,
+        "crispr_memory_size": 4,
+        "spore_energy_threshold": 0.30,
+        "spore_cost_fraction": 0.05,
+        "telomere_base_lifespan": 600,
+        "telomere_min_lifespan": 150,
+        "telomere_max_lifespan": 1200,
+        "senescence_cost_rate": 1e-5,
+        "sos_window": 50,
+        "sos_hypermutation_factor": 4.0,
+        "sos_high_fidelity_factor": 0.25,
+        "sos_high_fidelity_energy_ratio": 1.5,
+        "lock_composite_threshold": 3,
+        "lock_coord_discount": 0.5,
+    }
+    for name, value in expected.items():
+        assert getattr(cfg, name) == value, name
+    assert SimulationConfig(**json.loads(json.dumps(cfg.to_dict()))) == cfg
+
+
+def test_config_fase_iib_campos_al_final_en_orden() -> None:
+    esperados = [
+        "enable_compact_dna",
+        "dna_codon_cost",
+        "dna_point_mutation_rate",
+        "dna_duplication_rate",
+        "dna_deletion_rate",
+        "dna_min_length",
+        "dna_max_length",
+        "stress_energy_ratio",
+        "surplus_energy_ratio",
+        "enable_epigenetic_roles",
+        "enable_plasmid_hgt",
+        "dna_excision_rate",
+        "max_plasmids",
+        "hgt_rate",
+        "hgt_energy_ratio",
+        "enable_crispr_immunity",
+        "crispr_eval_ticks",
+        "crispr_toxicity_threshold",
+        "crispr_memory_size",
+        "enable_sporulation",
+        "spore_energy_threshold",
+        "spore_cost_fraction",
+        "enable_telomere_senescence",
+        "telomere_base_lifespan",
+        "telomere_min_lifespan",
+        "telomere_max_lifespan",
+        "senescence_cost_rate",
+        "enable_sos_mutation",
+        "sos_window",
+        "sos_hypermutation_factor",
+        "sos_high_fidelity_factor",
+        "sos_high_fidelity_energy_ratio",
+        "enable_symbiotic_ratchet",
+        "lock_composite_threshold",
+        "lock_coord_discount",
+    ]
+    names = [f.name for f in fields(SimulationConfig)]
+    assert names[-len(esperados) :] == esperados
+    assert names[-len(esperados) - 1] == "stigmergy_decay"
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"hgt_rate": 1.5},
+        {"lock_coord_discount": -0.1},
+        {"dna_codon_cost": -0.001},
+        {"dna_point_mutation_rate": 1.1},
+        {"dna_point_mutation_rate": -0.1},
+        {"dna_duplication_rate": 1.1},
+        {"dna_deletion_rate": -0.1},
+        {"dna_excision_rate": 2.0},
+        {"spore_cost_fraction": 1.1},
+        {"sos_high_fidelity_factor": -0.1},
+        {"crispr_toxicity_threshold": -0.1},
+        {"senescence_cost_rate": -1e-6},
+        {"spore_energy_threshold": -0.1},
+        {"stress_energy_ratio": 0.0},
+        {"surplus_energy_ratio": 0.0},
+        {"hgt_energy_ratio": 0.0},
+        {"sos_hypermutation_factor": 0.0},
+        {"sos_high_fidelity_energy_ratio": 0.0},
+        {"stress_energy_ratio": 0.9, "surplus_energy_ratio": 0.85},
+        {"stress_energy_ratio": 0.5, "surplus_energy_ratio": 0.5},
+        {"dna_max_length": 8},
+        {"dna_min_length": 10},
+        {"dna_min_length": 0},
+        {"max_plasmids": 0},
+        {"crispr_eval_ticks": 0},
+        {"crispr_memory_size": 0},
+        {"sos_window": 0},
+        {"lock_composite_threshold": 0},
+        {"telomere_min_lifespan": 0},
+        {"telomere_base_lifespan": 100},
+        {"telomere_base_lifespan": 1300},
+        {"telomere_max_lifespan": 500},
+    ],
+)
+def test_config_fase_iib_validacion_siempre_activa(overrides: dict[str, object]) -> None:
+    with pytest.raises(ValueError, match=next(iter(overrides))):
+        SimulationConfig(**overrides)  # type: ignore[arg-type]
+
+
+def test_config_fase_iib_acepta_bordes() -> None:
+    SimulationConfig(
+        dna_point_mutation_rate=0.0,
+        hgt_rate=1.0,
+        lock_coord_discount=1.0,
+        dna_codon_cost=0.0,
+        spore_energy_threshold=0.0,
+        dna_min_length=9,
+        dna_max_length=9,
+        telomere_min_lifespan=600,
+        telomere_max_lifespan=600,
+    )
+
+
+_DNA_ON: dict[str, object] = {"enable_evolution": True, "enable_compact_dna": True}
+
+
+def test_config_adn_compacto_valido_por_defecto() -> None:
+    cfg = SimulationConfig(**_DNA_ON)  # type: ignore[arg-type]
+    assert cfg.enable_compact_dna
+
+
+@pytest.mark.parametrize(
+    ("overrides", "campo"),
+    [
+        ({"enable_evolution": False}, "enable_evolution"),
+        ({"perception_radius": 0}, "perception_radius"),
+        ({"comm_radius": 0}, "comm_radius"),
+        ({"alpha_learning": 0.005}, "alpha_learning"),
+        ({"memory_capacity": 5, "max_genome_memory_capacity": 4}, "max_genome_memory_capacity"),
+        ({"spore_energy_threshold": 3.0, "reproduction_threshold": 2.2}, "spore_energy_threshold"),
+    ],
+)
+def test_config_adn_compacto_rechaza_con_mensaje_del_campo(
+    overrides: dict[str, object], campo: str
+) -> None:
+    kwargs = {**_DNA_ON, **overrides}
+    with pytest.raises(ValueError, match=campo):
+        SimulationConfig(**kwargs)  # type: ignore[arg-type]
+
+
+def test_config_adn_compacto_radio_sobre_la_cota_de_expresion() -> None:
+    # r_tope = (min(grid) - 1) // 2 = 4 con grilla 10: el borde es válido y 5 lo rechaza la
+    # validación de la Fase I (`2 * max(r) < min(grid)`), que garantiza la cota de D31.
+    cfg = SimulationConfig(grid_width=10, grid_height=10, perception_radius=4, **_DNA_ON)  # type: ignore[arg-type]
+    assert cfg.perception_radius == 4
+    for campo in ("perception_radius", "comm_radius"):
+        with pytest.raises(ValueError, match=campo):
+            SimulationConfig(grid_width=10, grid_height=10, **{campo: 5}, **_DNA_ON)  # type: ignore[arg-type]
+
+
+def test_config_adn_compacto_capacidad_sobre_la_cota_de_expresion() -> None:
+    # La cota de C_max la garantizan las validaciones de la Fase I y la Fase II.
+    with pytest.raises(ValueError, match="memory_capacity"):
+        SimulationConfig(
+            num_world_patterns=12,
+            memory_capacity=12,
+            max_genome_memory_capacity=20,
+            **_DNA_ON,  # type: ignore[arg-type]
+        )
+    with pytest.raises(ValueError, match="max_genome_memory_capacity"):
+        SimulationConfig(memory_capacity=5, max_genome_memory_capacity=4, **_DNA_ON)  # type: ignore[arg-type]
+
+
+def test_config_adn_compacto_bordes_de_las_bases() -> None:
+    SimulationConfig(alpha_learning=0.01, **_DNA_ON)  # type: ignore[arg-type]
+    SimulationConfig(alpha_learning=1.0, **_DNA_ON)  # type: ignore[arg-type]
+    SimulationConfig(spore_energy_threshold=2.2, reproduction_threshold=2.2, **_DNA_ON)  # type: ignore[arg-type]
+    SimulationConfig(
+        memory_capacity=5,
+        max_genome_memory_capacity=5,
+        **_DNA_ON,  # type: ignore[arg-type]
+    )
+
+
+def test_config_sin_adn_no_valida_las_bases_de_expresion() -> None:
+    SimulationConfig(alpha_learning=0.005)
+    SimulationConfig(spore_energy_threshold=3.0, reproduction_threshold=2.2)
+
+
+def test_config_dependencias_apagadas_dejan_banderas_inertes() -> None:
+    SimulationConfig(
+        enable_evolution=True,
+        enable_holonic_hierarchy=True,
+        enable_epigenetic_roles=True,
+        enable_compact_dna=False,
+    )
+    SimulationConfig(enable_crispr_immunity=True, enable_sporulation=True)
+    SimulationConfig(enable_epigenetic_roles=True, enable_plasmid_hgt=True)
+    SimulationConfig(enable_symbiotic_ratchet=True)
+    SimulationConfig(
+        enable_telomere_senescence=True, enable_sos_mutation=True, enable_evolution=False
+    )
+    SimulationConfig(**{flag: True for flag in _PHASE25_FLAGS if flag != "enable_compact_dna"})  # type: ignore[arg-type]
+
+
+# --- CompactDNA: tipos estrictos (D32) y propiedades -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"chromosome": [1, 2]},
+        {"chromosome": (1,), "plasmids": [3]},
+        {"chromosome": (1,), "crispr_memory": {5}},
+        {"chromosome": (True,)},
+        {"chromosome": (1.0,)},
+        {"chromosome": (np.uint32(1),)},
+        {"chromosome": (1,), "plasmids": (np.int64(3),)},
+        {"chromosome": (1,), "crispr_memory": (False,)},
+        {"chromosome": ("1",)},
+    ],
+)
+def test_compact_dna_exige_tuplas_de_int_de_python(kwargs: dict[str, object]) -> None:
+    with pytest.raises((TypeError, ValueError)):
+        CompactDNA(**kwargs)  # type: ignore[arg-type]
+
+
+_codons = st.integers(min_value=0, max_value=2**32 - 1)
+_out_of_range = st.one_of(st.integers(max_value=-1), st.integers(min_value=2**32))
+
+
+@given(
+    chromosome=st.lists(_codons, min_size=1, max_size=40),
+    plasmids=st.lists(_codons, unique=True, max_size=10),
+    crispr=st.lists(_codons, unique=True, max_size=10),
+)
+def test_compact_dna_acepta_toda_tupla_valida(
+    chromosome: list[int], plasmids: list[int], crispr: list[int]
+) -> None:
+    dna = CompactDNA(tuple(chromosome), tuple(plasmids), tuple(crispr))
+    assert dna.chromosome == tuple(chromosome)
+    assert dna.plasmids == tuple(plasmids)
+    assert dna.crispr_memory == tuple(crispr)
+
+
+@given(
+    codon=_out_of_range,
+    where=st.sampled_from(["chromosome", "plasmids", "crispr_memory"]),
+    prefix=st.lists(_codons, unique=True, max_size=5),
+)
+def test_compact_dna_rechaza_todo_codon_fuera_de_rango(
+    codon: int, where: str, prefix: list[int]
+) -> None:
+    kwargs: dict[str, tuple[int, ...]] = {"chromosome": (1,)}
+    kwargs[where] = (*prefix, codon) if where != "chromosome" else (1, codon)
+    with pytest.raises(ValueError, match=where):
+        CompactDNA(**kwargs)
+
+
+@given(
+    codon=_codons,
+    where=st.sampled_from(["plasmids", "crispr_memory"]),
+)
+def test_compact_dna_rechaza_repetidos_en_plasmidos_y_crispr(codon: int, where: str) -> None:
+    with pytest.raises(ValueError, match=where):
+        CompactDNA(chromosome=(1,), **{where: (codon, codon)})
