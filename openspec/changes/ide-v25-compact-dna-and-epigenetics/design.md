@@ -379,7 +379,7 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - **Sesgo declarado.** $R_{28}$ está diseñada para que poblaciones que la Fase II extinguía sobrevivan. La supervivencia que produzca es programada.
 
 ### Decisión 39: Senescencia Telomérica (R29) y Mutación SOS (R30)
-**Senescencia.** Con `enable_evolution` y `enable_telomere_senescence` activas, al cobrar el metabolismo:
+**Senescencia.** `compute_senescence_cost(age: int, lifespan: int, config: SimulationConfig) -> float`, en `evolution.py`, devuelve `config.senescence_cost_rate * (age - lifespan) ** 2` si `config.enable_telomere_senescence` y `age > lifespan`, y `0.0` en otro caso. Con `enable_evolution` y `enable_telomere_senescence` activas, al cobrar el metabolismo:
 - La edad es `age = tick - birth_tick`.
 - Si `age > phenotype.lifespan`, el costo suma `senescence_cost_rate * (age - lifespan) ** 2`.
 - Se cobra también a las endosporas.
@@ -398,7 +398,7 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - **Atributo.** `CompositeAgent` incorpora `is_locked: bool = False`.
 - **Cuándo se suelda un holón.** Con `enable_holonic_hierarchy` y `enable_symbiotic_ratchet` activas, un holón **raíz** queda soldado en dos casos:
   - (a) al reproducirse por $R_{17}$: se sueldan el progenitor y su réplica;
-  - (b) en el paso de coordinación de la Fase 5, antes de evaluar `SPLIT`, si `cooperative_completions >= lock_composite_threshold`.
+  - (b) en el paso de coordinación de la Fase 5, si `cooperative_completions >= lock_composite_threshold`. El sello se aplica **antes** de cobrar el costo de coordinación y de evaluar `SPLIT`, así que el descuento y la protección rigen desde ese mismo tick.
 - **Efectos de un holón soldado:**
   - `should_split_holon` devuelve `False`, por paciencia y por energía;
   - su costo de coordinación se multiplica por `lock_coord_discount`.

@@ -25,7 +25,7 @@
   - según el diagnóstico de 0.1, decidir si $R_{29}$ y C10 se mantienen;
   - aprobar los sesgos declarados (P6) y el tratamiento del Exp 004 (P7).
   - Registrar las decisiones con fecha en `proposal.md`.
-- [ ] 0.3 **Reflejar el diseño aprobado en los documentos raíz:**
+- [x] 0.3 **Reflejar el diseño aprobado en los documentos raíz** (hecho el 2026-10-20: pre-registro aprobado en `93004ff`):
   - `docs/DEFINICIONES_FORMALES.md`: §3.1 con el inventario $R_{24}$–$R_{31}$ y las afirmaciones C9–C12, más una sección del modelo genético;
   - `docs/DEFINICIONES_TECNICAS.md`: tipos, configuración y ciclo del tick;
   - `docs/vision/ROADMAP.md` y `docs/vision/ARQUITECTURA_ADN_HOLONICO.md`, si cambió algo respecto del borrador.

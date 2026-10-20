@@ -7,7 +7,7 @@ Este documento establece de manera rigurosa y sin ambigüedades qué significa c
 > 2. **Herencia Dual:** herencia genética con mutación sobre $\Theta_i$ y capacidades $\mathcal{G}_i$ + herencia cultural vertical de creencias $\mathcal{M}_{\text{padre}} \to \mathcal{M}_{\text{hijo}}$.
 > 3. **Arquitectura Holónica / Jerarquía Recursiva ($L \in \mathbb{N}_0$):** formalización del **Holón** (`AgentNode`) mediante el patrón recursivo *Composite*, donde tanto un agente elemental ($L=0$) como una coalición de coaliciones de nivel arbitrario ($L = 1, 2, \dots, K$, sin tope de niveles codificado) exponen la misma interfaz estructural (`node_id`, `holon_level`, `leaf_agents`, `effective_capacity`, `collective_memory`). Percibir, decidir y actuar siguen siendo operaciones de las hojas ($L = 0$); los holones se forman y disuelven con los operadores `BOND` y `SPLIT`.
 
-> **Estado (2026-10-20).** Fase I (Experimento 001): implementada, verificada y archivada. Fase II (Experimentos 002 y 003): implementada, corrida y archivada; sus resultados, negativos para C5–C8, están en [RESULTADOS.md](RESULTADOS.md). La Fase II-B (ADN compacto) está especificada en el cambio activo [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/) y aún no se refleja en este documento: se incorporará al aprobar su pre-registro (tarea 0 de su `tasks.md`).
+> **Estado (2026-10-20).** Fase I (Experimento 001): implementada, verificada y archivada. Fase II (Experimentos 002 y 003): implementada, corrida y archivada; sus resultados, negativos para C5–C8, están en [RESULTADOS.md](RESULTADOS.md). La Fase II-B (v2.5, ADN compacto de 32 bits) está especificada en el cambio activo [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/), con su pre-registro aprobado el 2026-10-20 (design D42), y **sin implementar**. Se refleja en este documento: su inventario $R_{24}$–$R_{31}$ y sus afirmaciones C9–C12 en §3.1, y su modelo genético en §9. Para sus valores rige el `design.md` de ese cambio (Decisiones D30–D42 y sus "Precisiones"), que es la fuente única de sus fórmulas, nombres, valores por defecto y desempates.
 
 > **Relación con los demás documentos.** La visión está en el [Documento Fundacional](DOCUMENTO_FUNDACIONAL.md) y la arquitectura en las [Definiciones Técnicas](DEFINICIONES_TECNICAS.md). Los requisitos vigentes de la Fase I están en [`openspec/specs/`](../openspec/specs/), y sus valores numéricos, firmas y reglas de desempate exactos, en el diseño archivado [`design.md`](../openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md) (Decisiones D1–D18). Los requisitos vigentes de la Fase II también están sincronizados en [`openspec/specs/`](../openspec/specs/), y para sus valores rige el diseño archivado [`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/design.md`](../openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/design.md) (Decisiones D19–D29), que es la fuente única de sus fórmulas, nombres, valores por defecto y desempates: §6–§8 lo resumen y, ante una discrepancia, rige el design. Los valores que aparecen aquí como "ej." son ilustrativos.
 
@@ -225,7 +225,7 @@ Para que el proyecto tenga rigor científico, no usaremos palabras vagas. Cada f
 
 **Regla central:** *toda propiedad que se afirme como emergente debe poder distinguirse de una capacidad programada explícitamente en el agente.*
 
-**Presupuestos de diseño (Fase I: $R_1 \dots R_{11}$; Fase II añade $R_{12} \dots R_{23}$).** Sea $\mathcal{R}$ el conjunto de reglas diseñadas del agente, cada una con un **propósito declarado**. Las reglas $R_1$ y $R_2$ son nucleares: no se ablacionan (en la Fase II, también $R_{20}$).
+**Presupuestos de diseño (Fase I: $R_1 \dots R_{11}$; Fase II añade $R_{12} \dots R_{23}$; Fase II-B añade $R_{24} \dots R_{31}$).** Sea $\mathcal{R}$ el conjunto de reglas diseñadas del agente, cada una con un **propósito declarado**. Las reglas $R_1$ y $R_2$ son nucleares: no se ablacionan (en la Fase II, también $R_{20}$).
 
 | Regla | Fase | Descripción | Propósito declarado |
 | :--- | :---: | :--- | :--- |
@@ -324,6 +324,50 @@ Ningún parámetro de este perfil se cambia a la vista de los resultados de las 
 - **Enmienda 1b (2026-10-19, decisión del responsable del proyecto, antes de correrla).** Con la grilla original ningún valor fue viable (`RESULTADOS.md`): con 20 se extingue el control nulo y con 40 y 80 casi no hay recambio generacional. Se evalúa, con el mismo criterio, las mismas semillas y el mismo procedimiento, la grilla refinada 25, 30, 35 (`CALIBRATION_REFINED_GRID`, `python -m ide.experiments.phase2_calibration --refined`, que escribe `phase2_calibration_refinada.json`), en orden ascendente y con parada en el primer valor viable. **Salida fijada de antemano:** si tampoco hay un valor viable, se usa `resources_per_pattern = 20` (todas las condiciones de los runners son viables) y la comparación E4 de C5 a C8 se declara **no interpretable**, porque con 20 se extingue el control nulo. No cambia ninguna clasificación: las cuatro afirmaciones son programadas por construcción, y en la clasificación de la Decisión 13 su estado se decide antes de E4; el p de E4 se informa con esa advertencia. Las variantes de `rule_effects` no entran en el criterio y con 20 también podrían extinguirse: su `ClaimEvaluation.demography` se revisa antes de interpretar cada efecto, y un efecto con la variante extinguida se informa como no interpretable.
 - **Resultado de la grilla refinada y salida de respaldo (2026-10-19).** La grilla refinada de la Enmienda 1b se corrió en el equipo del responsable del proyecto, sobre el código de `d60ffa6` (`--refined`, salida en `registros/phase2_calibration_refinada_consola.txt`), y **ningún valor es viable**: con 25 todas las condiciones de los runners son viables en al menos 8 de 10 semillas, pero el control nulo de 003 sólo en 5 de 10; con 30 y 35 las condiciones de 002 y 003-A `individual` casi no llegan a la generación 5. Por la regla fijada de antemano en la Enmienda 1b, `PHASE2_PROTOCOL_CONFIGS` toma `resources_per_pattern = 20` (`PHASE2_RESOURCES_PER_PATTERN`) sobre `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`. Con 20 todas las condiciones de los runners son viables en al menos 9 de 10 semillas de calibración, pero el valor **no cumple el criterio**: el control nulo se extingue en 8 o 9 de 10. Por eso la comparación E4 de C5 a C8 se declara **no interpretable** (`ClaimEvaluation.e4_interpretable = False` cuando la configuración base usa la abundancia del perfil; no cambia ninguna clasificación, porque las cuatro son programadas por construcción y su estado se decide antes de E4), y cada efecto de `rule_effects` se interpreta sólo después de revisar su `ClaimEvaluation.demography`. La extinción del control nulo es una observación demográfica de la calibración, no una medición de las afirmaciones.
 - **Incorporación.** El valor elegido (la salida de respaldo de la Enmienda 1b, 20) se incorpora a `PHASE2_PROTOCOL_CONFIGS` en un commit que lo justifica, antes de correr los protocolos con `PHASE2_SEEDS`. Las configuraciones originales quedan en `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`: su inviabilidad queda registrada como resultado, y los protocolos y la atribución también se corren con ellas como referencia (`--reference` en la CLI de los runners, que escribe `expNNN_reference_*.json`, y `run_phase2_attribution(configs=PHASE2_PROTOCOL_CONFIGS_ORIGINAL)`).
+
+**Inventario de la Fase II-B (`PHASE25_DESIGN_RULES`, design D42, pre-registro aprobado el 2026-10-20, sin implementar).** Se agrega en `attribution.py` sin tocar `DESIGN_RULES`, `PHASE2_DESIGN_RULES` ni `ALL_DESIGN_RULES`. `PHASE25_ALL_RULES = ALL_DESIGN_RULES + PHASE25_DESIGN_RULES`, y `ablate()` busca las reglas en un índice que incluye las dos tuplas. El modelo de cada regla está en §9.
+
+| Regla | Descripción (`name`) | Propósito declarado (`purpose`) | Ablación (`ablation`) |
+| :--- | :--- | :--- | :--- |
+| $R_{24}$ | ADN compacto y expresión condicional (§9.1–§9.4) | Rasgos codificados en codones de 32 bits, expresados según el contexto, con costo cuadrático sólo sobre lo expresado. **Sesgo declarado:** abarata la complejidad latente. | `(("enable_compact_dna", False),)`. Apagarla deja inertes $R_{25}$, $R_{26}$ y $R_{27}$. |
+| $R_{25}$ | Roles epigenéticos intra-holón (§9.5) | Especializar hojas con el mismo ADN en castas según su posición y su conocimiento en el holón. La especialización que produzca es programada. | `(("enable_epigenetic_roles", False),)` |
+| $R_{26}$ | Conjugación de plásmidos (§9.6) | Transferir codones entre vecinos en vida. | `(("enable_plasmid_hgt", False),)`. Apagarla deja inerte $R_{27}$. |
+| $R_{27}$ | Inmunidad CRISPR (§9.6) | Purgar plásmidos con balance energético negativo y bloquear su reingreso. | `(("enable_crispr_immunity", False),)` |
+| $R_{28}$ | Esporulación (§9.7) | Reducir el gasto en hambruna sin estímulos. **Sesgo declarado:** rescata poblaciones que la Fase II extinguía; la supervivencia que produzca es programada. | `(("enable_sporulation", False),)` |
+| $R_{29}$ | Senescencia telomérica (§9.8) | Garantizar el recambio generacional limitando la vida. | `(("enable_telomere_senescence", False),)` |
+| $R_{30}$ | Mutación SOS (§9.8) | Aumentar la variación bajo estrés y reducirla en abundancia. | `(("enable_sos_mutation", False),)` |
+| $R_{31}$ | Trinquete simbiótico (§9.9) | Volver indisolubles los holones consolidados. **Sesgo declarado:** estabilidad por decreto, no un hallazgo. | `(("enable_symbiotic_ratchet", False),)` |
+
+- **Dependencias inertes, no inválidas (design D30.3).** $R_{25}$, $R_{26}$ y $R_{27}$ sólo actúan con $R_{24}$; $R_{25}$ y $R_{31}$, sólo con $R_{15}$; $R_{27}$, sólo con $R_{26}$; $R_{28}$, $R_{29}$ y $R_{30}$, sólo con `enable_evolution=True`. Con su requisito apagado la bandera es inerte y no lanza `ValueError`, igual que $R_{16}$–$R_{18}$ sin $R_{15}$.
+- **Lo que no son.** El ADN y los plásmidos **no transportan creencias**: el conocimiento social sigue entrando sólo por `assimilate_testimony`. Por eso el control nulo de E4 no los altera, y así se declara.
+- **Mantenimiento de $R_{29}$ y C10.** Dependían del diagnóstico previo de la tarea 0.1 (decisión P5). El diagnóstico confirmó el "Tapón de Matusalén" en las 10 semillas de los dos protocolos ([RESULTADOS.md](RESULTADOS.md)), y la regla y la afirmación se mantienen.
+
+**Afirmaciones pre-registradas de la Fase II-B (`PHASE25_CLAIMS`, design D42).** Se evalúan con el mismo marco (E1–E5) y con el criterio ampliado de la Fase II: son por construcción si su canal no es vacío y está contenido en $R_C$.
+
+| Afirmación | Protocolo | Métrica $m_C$ (dirección) | $R_C$ | Canal | Variante **aislada** | Clasificación esperable |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| C9: adaptación con genoma regulado | `002c` | `evolved_accuracy` (mayor es mejor) | $\{R_{24}\}$ | $(R_{24})$ | `ablate(config, ["R24"])`: genoma plano, todo lo demás igual | Programada por construcción. |
+| C10: adaptación con recambio en abundancia | `002d` | `evolved_accuracy` (mayor es mejor) | $\{R_{29}\}$ | $(R_{29})$ | `ablate(config, ["R29"])` | Programada por construcción. |
+| C11: supervivencia activa en el desierto | `002e` | `final_active_population` (mayor es mejor) | $\{R_{28}\}$ | $(R_{28})$ | `ablate(config, ["R28"])` | Programada por construcción. Cuenta sólo hojas activas: una endospora no es población activa (decisión del 2026-10-20). |
+| C12: superávit cooperativo con castas | `003c` | `holonic_composite_completions` (mayor es mejor) | $\{R_{25}\}$ | $(R_{25})$ | `ablate(config, ["R25"])` | Programada por construcción; potencia baja, porque en la Fase II los compuestos fueron 0 a 2 por corrida. |
+
+- **Sin prueba genuina pre-registrada.** Como en la Fase II, las cuatro afirmaciones verifican que mecanismos diseñados funcionan. Se declara así.
+- **Configuraciones (`PHASE25_PROTOCOL_CONFIGS`)**, sobre `PHASE2_PROTOCOL_CONFIGS` (`resources_per_pattern = 20`):
+  - `"002c"`: `"002a"` con `enable_compact_dna`, `enable_plasmid_hgt`, `enable_crispr_immunity` y `enable_sos_mutation`.
+  - `"002d"`: `"002c"` con `enable_telomere_senescence=True` y `resources_per_pattern=40`.
+  - `"002e"`: `"002c"` con `enable_sporulation=True` y `resources_per_pattern=10`.
+  - `"003c"`: `"003a"` con `enable_compact_dna`, `enable_epigenetic_roles`, `enable_symbiotic_ratchet`, `enable_plasmid_hgt`, `enable_crispr_immunity` y `enable_sos_mutation`.
+- **Variantes.** `isolated` (la de la tabla), `null_content` y `rule_effects`, como en la Fase II. `rule_effects` recorre las reglas ablacionables de `PHASE25_ALL_RULES`, salvo las inactivas (`PHASE25_INACTIVE_RULES`):
+  - `"002c"`: $R_{14}$–$R_{19}$, $R_{22}$, $R_{23}$, $R_{25}$, $R_{28}$, $R_{29}$ y $R_{31}$;
+  - `"002d"`: las de `"002c"` salvo $R_{29}$;
+  - `"002e"`: las de `"002c"` salvo $R_{28}$;
+  - `"003c"`: $R_{14}$, $R_{18}$, $R_{19}$, $R_{28}$ y $R_{29}$.
+- **E4 por protocolo (`PHASE25_E4_INTERPRETABLE`).** Se fija por protocolo, sin derivarlo de la abundancia:
+  - `002c`, `002e` y `003c`: **no interpretable** de antemano, porque en la calibración de la Fase II el control nulo se extingue con 20 y con 10 recursos por patrón.
+  - `002d`: interpretable **sólo si** la variante `null_content` termina con población viva en al menos 8 de las 10 semillas, según `ClaimEvaluation.demography`. Si no, se informa como no interpretable. La condición se evalúa sobre la demografía, sin mirar la métrica de C10 (decisión del 2026-10-20).
+- **Perfil.** `phase2`, con 2000 ticks y `PHASE2_SEEDS` (42–51). La atribución corre con `run_phase25_attribution` sobre `PHASE25_ALL_RULES`, y el camino de la Fase II no cambia: los reportes de C5–C8 deben quedar idénticos.
+- **Prueba de humo.** Antes de los runners, como en la Fase II: registra si la corrida termina, la generación máxima y, salvo en `002e`, la población final, sin calcular ni mirar las métricas de las afirmaciones. En `002e` no registra la población, porque la población activa final es la métrica de C11. Si un protocolo resulta inviable, se reporta como resultado; `002e` no se recalibra en ningún caso.
+- **Experimento 004 (decisión P7).** Con $R_{25}$ activa, toda especialización es programada. El Exp 004 (especialización) se medirá con $R_{25}$ ablacionada, y lo que muestre la Fase II-B con $R_{25}$ activa no cuenta como evidencia de especialización.
 
 ---
 
@@ -609,3 +653,130 @@ Además se registra `stigmergy_active_cells` (celdas con al menos un rastro esti
 - **002-B** (`run_protocol_002b_cultural_inheritance`, `CulturalInheritanceReport`): herencia cultural frente a *tabula rasa* (ablación de $R_{14}$), con `cultural_accuracy_surplus`, la M9 final de ambas condiciones y su diferencia `social_ratio_gain`, y los ticks de convergencia (el menor tick con oportunidades de decisión y precisión acumulada $\ge 0.70$, o ninguno).
 - **003-A** (`run_protocol_003a_holonic_transition`, `HolonicTransitionReport`): jerarquía holónica frente a individuos (ablación de $R_{15}$) ante recursos compuestos de orden $m > C_{\max}$, con las completaciones compuestas de ambas condiciones y su diferencia, la precisión de ambas, `max_holon_level` y el pico de M11.
 - **003-B** (`run_protocol_003b_orthogonalization`, `OrthogonalizationReport`): dos condiciones con $R_{18}$ apagada, `with_view` = `config` y `without_view` = `ablate(config, ["R22"])` (holones formados por la misma `BOND`, sin vista compartida). Reporta `mean_acquired_coverage` y `mean_acquired_coverage_without_view` (medias de M13 por par tick-holón elegible de cada condición, o `None`), `coverage_advantage` (con vista − sin vista, o `None`), las reducciones de redundancia medias de ambas condiciones (descriptivas), `holon_ticks` y `holon_ticks_without_view` (la exposición de cada condición), `max_holon_level` y el pico de conteos por nivel (para cada nivel, el mayor número de holones de ese nivel en un mismo tick).
+
+---
+
+## 9. Genética Compacta y Regulación (Fase II-B — Experimentos 002-C, 002-D, 002-E y 003-C)
+
+> **Estado.** Especificada, con pre-registro aprobado el 2026-10-20, y **sin implementar**. Esta sección resume las decisiones D30 a D41 del `design.md` del cambio activo [`ide-v25-compact-dna-and-epigenetics`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/design.md), que rige ante cualquier discrepancia. El pre-registro (D42) está en §3.1.
+
+Con todas las banderas nuevas en `False` (su valor por defecto), el sistema se comporta bit a bit como en la Fase II. El genotipo de cada hoja ($L = 0$) pasa a ser un **ADN compacto** de codones de 32 bits, cuya expresión depende del contexto. Un `CompositeAgent` no tiene ADN propio: su genética es la de sus hojas. El ADN **no transporta creencias**: es un canal genético, no epistémico.
+
+### 9.1. El Codón de 32 bits
+Un codón es un entero $c \in [0, 2^{32} - 1]$, con cinco campos:
+$$\underbrace{c_{31..24}}_{\text{PROMOTER}} \;\Big|\; \underbrace{c_{23..16}}_{\text{TARGET}} \;\Big|\; \underbrace{c_{15..14}}_{\text{MODE}} \;\Big|\; \underbrace{c_{13..8}}_{\text{CHANNEL}} \;\Big|\; \underbrace{c_{7..0}}_{\text{PAYLOAD}}$$
+- $\text{prom} = \lfloor c / 2^{24} \rfloor \bmod 2^8$, $\text{target} = \lfloor c / 2^{16} \rfloor \bmod 2^8$, $\text{mode} = \lfloor c / 2^{14} \rfloor \bmod 4$ y $\text{channel} = \lfloor c / 2^{8} \rfloor \bmod 64$.
+- **Efecto con signo.** Con $p = c \bmod 2^8$, el payload en complemento a dos es $\tilde p = p - 256$ si $p \ge 128$ y $\tilde p = p$ si no, y
+  $$\delta = \tilde p / 128 \in [-1, \; 0.9921875].$$
+- **Modos:** $0$ `ADDITIVE`, $1$ `REPRESSOR`, $2$ `MULTIPLICATIVE`, $3$ `RESERVED` (el `AST_PIPE` de la Fase IV, **inerte**).
+- **Canales.** 6 bits direccionan 64 factores de transcripción ($\text{TF}_0 \dots \text{TF}_{63}$).
+
+El ADN de una hoja es $D = (\text{chromosome}, \text{plasmids}, \text{crispr\_memory})$: un cromosoma no vacío de herencia vertical, a lo sumo `max_plasmids` plásmidos sin repetir (herencia vertical y horizontal, $R_{26}$) y una memoria CRISPR sin repetir de a lo sumo `crispr_memory_size` firmas ($R_{27}$).
+
+### 9.2. Promotores y Destinos
+Sea un contexto epigenético $\chi = (L, \text{rol}, e)$, con $L$ el nivel del holón raíz que contiene a la hoja (0 si está sola), $\text{rol} \in \{\texttt{NONE}, \texttt{EXPLORER}, \texttt{LIBRARIAN}, \texttt{NERVE}\}$ y $e = E_i / E_{\text{reprod}}$. Un promotor está **activo** en $\chi$ según:
+
+| Promotor | Nombre | Activo si |
+| :---: | :--- | :--- |
+| `0x00` | `ALWAYS_BASAL` | siempre |
+| `0x01` | `SOLITARY_L0` | $L = 0$ |
+| `0x02`–`0x0A` | `IN_HOLON_Lk`, $k = \text{prom} - 1$ | $L \ge k$ |
+| `0x10`, `0x11`, `0x12` | `ROLE_EXPLORER`, `ROLE_LIBRARIAN`, `ROLE_NERVE` | el rol coincide |
+| `0x18` | `STRESS_LOW_ENERGY` | $e <$ `stress_energy_ratio` |
+| `0x19` | `SURPLUS_HIGH_ENERGY` | $e \ge$ `surplus_energy_ratio` |
+| `0x80`–`0xBF` | $\text{TF}_{\text{prom} - \texttt{0x80}}$ | en la pasada 2, si ese canal está encendido (§9.3) |
+| resto | reservados | **nunca** (`0x0B`–`0x0F`, `0x13`–`0x17`, `0x1A`–`0x7F`, `0xC0`–`0xFF`) |
+
+Los promotores espaciales o ecológicos de la Fase III (`0x20`–`0x7F`) quedan dentro de los reservados inertes.
+
+Los destinos `0x00`–`0x08` son rasgos, con base $b_T$ tomada de la configuración base de la población, escala $k_T$ y cotas $[\text{lo}_T, \text{hi}_T]$:
+
+| Destino | Rasgo | $b_T$ | $k_T$ | Cotas | Tipo |
+| :---: | :--- | :--- | ---: | :--- | :--- |
+| `0x00` | $\alpha$ | `alpha_learning` | 0.40 | $[0.01, 1]$ | real |
+| `0x01` | $\gamma$ | `gamma_social_discount` | 0.40 | $[0, 1]$ | real |
+| `0x02` | $\epsilon$ | `epsilon_explore` | 0.35 | $[0, 1]$ | real |
+| `0x03` | $\omega_{\text{bond}}$ | `initial_bond_affinity` | 0.50 | $[0, 1]$ | real |
+| `0x04` | $C_{\max}$ | `memory_capacity` | 3.0 | $[1, C^{\text{tope}}]$ | entero |
+| `0x05` | $r_{\text{perc}}$ | `perception_radius` | 2.0 | $[1, r^{\text{tope}}]$ | entero |
+| `0x06` | $r_{\text{com}}$ | `comm_radius` | 2.0 | $[1, r^{\text{tope}}]$ | entero |
+| `0x07` | $T_{\max}$ | `telomere_base_lifespan` | 250 | $[T_{\min}, T_{\text{tope}}]$ (`telomere_min_lifespan`, `telomere_max_lifespan`) | entero |
+| `0x08` | $E_{\text{espora}}$ | `spore_energy_threshold` | 0.50 | $[0, E_{\text{reprod}}]$ | real |
+
+- `0x09` es `EMIT_TF`: emite el canal `channel` (§9.3). `0x0A`–`0xFF` son reservados e **inertes** (órganos y operadores lógicos de la Fase IV).
+- $C^{\text{tope}}$ y $r^{\text{tope}}$ son las cotas de `mutate_genome` de la Fase II (§6.2): `max_genome_memory_capacity`, acotado por $N - 1$ si `enforce_memory_constraint`, y $\lfloor(\min(W, H) - 1)/2\rfloor$.
+
+### 9.3. Transcripción en Dos Pasadas
+La transcripción $\Phi(D, \chi) \to$ fenotipo es una función **pura**. Recorre los codones en el orden `chromosome + plasmids`; la memoria CRISPR no se transcribe.
+1. **Pasada 1 (contexto).** Son activos los codones con $\text{prom} < \texttt{0x80}$ cuyo promotor está activo en $\chi$.
+2. **Factores de transcripción.** Entre los activos de la pasada 1, cada codón con destino `EMIT_TF` y modo $\ne 3$ suma 1 a $\text{act}[\text{channel}]$ si su modo es 0 o 2, y a $\text{rep}[\text{channel}]$ si es 1. El canal $j$ está **encendido** si y sólo si
+   $$\text{act}[j] > \text{rep}[j].$$
+3. **Pasada 2 (regulados).** Son activos los codones con promotor en `0x80`–`0xBF` cuyo canal $\text{prom} - \texttt{0x80}$ está encendido. Sus `EMIT_TF` **no** encienden canales: la red regulatoria tiene **un solo nivel**, y se declara así.
+
+### 9.4. Fenotipo Expresado, Costo y ADN Fundador ($R_{24}$)
+Para cada destino $T \in \{\texttt{0x00}, \dots, \texttt{0x08}\}$, sea $A_T$ el conjunto de codones activos (pasadas 1 y 2) con ese destino, y $\delta_a$ el efecto de cada uno:
+$$S = \sum_{a \in A_T,\ \text{mode}=0} \delta_a, \qquad \rho = \prod_{a \in A_T,\ \text{mode}=1} (1 - |\delta_a|), \qquad \mu = \prod_{a \in A_T,\ \text{mode}=2} (1 + \delta_a),$$
+$$x_T = b_T \cdot \mu + k_T \cdot \rho \cdot S.$$
+- Los codones de modo 3 se ignoran. Con $A_T = \emptyset$, $x_T = b_T$.
+- El represor atenúa sólo la parte aditiva, no la multiplicativa: se declara.
+- **Cotas y redondeo.** Un rasgo real vale $\min(\text{hi}_T, \max(\text{lo}_T, x_T))$. Un rasgo entero vale $\min(\text{hi}_T, \max(\text{lo}_T, \lfloor x_T + 0.5 \rfloor))$; no se redondea al par.
+- La suma y los productos se acumulan en el orden de recorrido, para que el resultado en coma flotante sea determinista.
+- **Fenotipo.** Los destinos `0x00`–`0x06` forman el genoma expresado `AgentGenome`; `0x07` da la vida máxima $T_{\max}$ y `0x08` el umbral de esporulación $E_{\text{espora}}$. `expressed_codons` cuenta los codones activos con destino en `0x00`–`0x08` y modo $\ne 3$ (telemetría).
+- **Bases fijas.** $b_T$ sale siempre de la configuración base de la población, nunca de la del agente, para que la expresión no se acumule de un tick a otro.
+
+**ADN fundador neutro.** El cromosoma fundador tiene $9$ codones (`FOUNDER_DNA_LENGTH`), uno `ALWAYS_BASAL`, `ADDITIVE`, de canal 0 y payload 0 por cada destino `0x00`–`0x08`, sin plásmidos ni memoria CRISPR. Como $\delta = 0$, expresa exactamente la base en todo contexto:
+$$\Phi(D_0, \chi).\text{genome} = \texttt{genome\_from\_config}(\text{config}) \quad \forall \chi.$$
+
+**Expresión en vida.** Al empezar cada tick (Fase 0), cada hoja se expresa con su contexto del final del tick anterior. Si cambia el genoma expresado, cambian su configuración fenotípica y sus radios, y su memoria se ajusta a la nueva $C_{\max}$: si se achica, se desalojan las creencias de menor utilidad con el criterio de $R_2$ (§2.2, con la penalización de $R_{18}$). Ese **olvido forzado** es parte declarada de $R_{24}$. Al nacer, el hijo se expresa con $\chi = (0, \texttt{NONE}, E_{\text{hijo}} / E_{\text{reprod}})$.
+
+**Costo.** El costo cuadrático de $R_{21}$ (§6.1) se cobra sobre el genoma **expresado**, más un costo lineal por codón:
+$$c_{\text{base}}(i) = c_{\text{fijo}} + c_{\text{mem}} C_{\max, i}^2 + c_{\text{sens}}(r_{\text{perc}, i}^2 + r_{\text{com}, i}^2) + c_{\text{dna}} \cdot \left(|\text{chromosome}_i| + |\text{plasmids}_i| + |\text{crispr\_memory}_i|\right) + c_{\text{sen}}(i)$$
+con $c_{\text{dna}}$ = `dna_codon_cost` y $c_{\text{sen}}$ la senescencia (§9.8). Sin ADN, el término de codones vale 0. Abaratar lo latente (los codones no expresados sólo pagan $c_{\text{dna}}$) es el **sesgo declarado** de $R_{24}$.
+
+**Operadores de mutación (`mutate_dna`).** Al reproducirse, con la escala $s$ de $R_{30}$ (1 si no actúa) y $p_x = \min(1, s \cdot \texttt{dna\_}x\texttt{\_rate})$, sobre `evo_rng` y en este orden:
+0. **Puerta de $R_{13}$.** Si `mutation_rate` $= 0$ y `discrete_mutation_prob` $= 0$ (la ablación pre-registrada de $R_{13}$), el ADN se hereda intacto y no se consume el generador.
+1. **Mutación puntual del cromosoma:** cada codón, con probabilidad $p_{\text{point}}$, invierte un bit uniforme de sus 32 ($c \leftarrow c \oplus 2^{b}$).
+2. **Mutación puntual de los plásmidos:** igual; después se descartan los repetidos (queda el primero) y los que estén en la memoria CRISPR.
+3. **Duplicación:** con probabilidad $p_{\text{dup}}$, si $|\text{chromosome}| <$ `dna_max_length`, un codón uniforme se copia en la posición siguiente.
+4. **Deleción:** con probabilidad $p_{\text{del}}$, si $|\text{chromosome}| >$ `dna_min_length`, se elimina un codón uniforme.
+5. **Escisión a plásmido** (sólo con $R_{26}$): con probabilidad $p_{\text{exc}}$, un codón uniforme del cromosoma se copia al final de los plásmidos, si no está ya en ellos ni en la memoria CRISPR, con descarte FIFO a `max_plasmids`.
+
+La memoria CRISPR se hereda sin mutar. Los pasos 3 a 5 consumen siempre su extracción de decisión; el índice sólo se extrae si el operador se aplica. En la reproducción neutral ($R_{12}$ ablacionada), el donante sorteado aporta su ADN en lugar de su genoma.
+
+### 9.5. Roles Epigenéticos e Impronta ($R_{25}$)
+Para un holón raíz $U$, sea $K(\ell)$ el conjunto de patrones de la memoria de la hoja $\ell$ con $c \ge c_{\text{umbral}}$, $\text{unique}(\ell) = \left|K(\ell) \setminus \bigcup_{\ell' \ne \ell} K(\ell')\right|$ y $\deg(\ell) = |\text{loc}(\ell) \setminus \{\ell\}|$, con $\text{loc}$ el alcance local de §7.2. Con $R_{24}$ y $R_{25}$ activas:
+1. `LIBRARIAN` es la hoja que maximiza $(\text{unique}(\ell), |K(\ell)|, -\text{id}_\ell)$;
+2. `EXPLORER` es, entre las restantes, la que maximiza $(-\deg(\ell), -\text{id}_\ell)$;
+3. `NERVE` es, si quedan, la que maximiza $(\deg(\ell), -\text{id}_\ell)$;
+4. las demás quedan en `NONE`.
+
+El rol se reasigna sólo cuando cambia el conjunto de hojas de la raíz, y una hoja que queda sola vuelve a `NONE`. **Impronta:** en la reproducción holónica ($R_{17}$), cada hoja hija recibe el rol de su progenitora, y la réplica lo conserva hasta que su composición cambie. El rol sólo actúa a través de los promotores `0x10`–`0x12`: la especialización que produzca es **programada**.
+
+### 9.6. Plásmidos ($R_{26}$) e Inmunidad CRISPR ($R_{27}$)
+- **Conjugación.** Son donantes las hojas que no están en endospora, tienen plásmidos y cumplen $E \ge$ `hgt_energy_ratio` $\cdot E_{\text{reprod}}$. Cada donante, con probabilidad `hgt_rate`, transfiere un plásmido uniforme a un receptor uniforme entre los vecinos a distancia $\le 1$ que no están en endospora. Las extracciones usan el generador dedicado `hgt_rng` (`spawn_key=(5,)`). Las transferencias se sortean todas antes de aplicarlas, y se aplican en el orden de una permutación de `hgt_rng`: varias llegadas al mismo receptor son un conflicto, y se resuelve por sorteo.
+- **Recepción.** Un codón que ya está en los plásmidos no cambia nada. Uno nuevo se agrega con FIFO a `max_plasmids`. Con $R_{27}$, un codón que está en la memoria CRISPR se **bloquea**.
+- **Ensayo CRISPR.** Con $R_{27}$, cada plásmido recibido abre un ensayo $(t_0, e_0, \text{cedida} = 0)$ en el receptor. Cada hijo que el receptor engendra durante la ventana suma su energía a la cedida de todos sus ensayos abiertos. Al vencer ($t - t_0 \ge$ `crispr_eval_ticks`), si el plásmido sigue presente y
+  $$\Delta E = E(t) - e_0 + \text{cedida} < -\,\texttt{crispr\_toxicity\_threshold},$$
+  se **purga**: sale de los plásmidos y entra en la memoria CRISPR, con FIFO a `crispr_memory_size`. Si el plásmido ya se perdió, el ensayo se cierra sin purga. Los ensayos no se heredan.
+- **Por qué se descuenta lo cedido (decisión del 2026-10-20).** Reproducirse cede `offspring_energy_share` de una energía de al menos $E_{\text{reprod}}$. Sin el descuento, todo receptor que se reproduce en la ventana purgaría el plásmido sin relación con su efecto, y $R_{27}$ castigaría a los exitosos.
+
+### 9.7. Esporulación ($R_{28}$)
+Con evolución y $R_{28}$ activas, una hoja entra en **endospora** después de la muerte y antes de la reproducción si $E_i \le E_{\text{espora}, i}$, no ve recursos y, con $R_{19}$, su celda no tiene rastros positivos. **Germina** en la Fase 1 en cuanto ve un recurso o, con $R_{19}$, un rastro positivo en su celda, y actúa normalmente ese tick. Mientras es endospora no emite, no recibe mensajes, no decide (su acción es `IDLE`, sin consumir el generador ni sumar oportunidad en M2), no se reproduce ni conjuga, sigue en su holón y su memoria decae. Paga `spore_cost_fraction` $\cdot\, c_{\text{fijo}}$ más la senescencia, en lugar del costo basal, el de ADN, el de movimiento y el de mensajes; sigue pagando su alícuota de coordinación ($R_{23}$). **Sesgo declarado:** $R_{28}$ está diseñada para rescatar poblaciones; la supervivencia que produzca es programada. La población **activa** excluye las endosporas (métrica de C11).
+
+### 9.8. Senescencia Telomérica ($R_{29}$) y Mutación SOS ($R_{30}$)
+- **Edad.** $\text{age}_i(t) = t - t_{\text{nac}, i}$, con $t_{\text{nac}} = 0$ en los fundadores. La Fase II-B registra el tick de nacimiento en el agente (`birth_tick`).
+- **Senescencia ($R_{29}$).** Con evolución y $R_{29}$ activas, el cobro metabólico suma
+  $$c_{\text{sen}}(i) = \texttt{senescence\_cost\_rate} \cdot \max(0, \text{age}_i - T_{\max, i})^2,$$
+  también a las endosporas. Con ADN, $T_{\max, i}$ se expresa por el destino `0x07`; sin ADN, vale `telomere_base_lifespan`. Motivación: el "Tapón de Matusalén" confirmado en la tarea 0.1 ([RESULTADOS.md](RESULTADOS.md)).
+- **Registro del estrés.** Siempre que hay metabolismo (aunque $R_{30}$ esté apagada), cada sobreviviente con $E_i <$ `stress_energy_ratio` $\cdot E_{\text{reprod}}$ registra $t_{\text{estrés}, i} = t$.
+- **SOS ($R_{30}$).** Al reproducirse, con el estado del progenitor antes de partir la energía, la escala de mutación es
+  $$s = \begin{cases} \texttt{sos\_hypermutation\_factor} & \text{si } t - t_{\text{estrés}} \le \texttt{sos\_window}, \\ \texttt{sos\_high\_fidelity\_factor} & \text{si no, y } E \ge \texttt{sos\_high\_fidelity\_energy\_ratio} \cdot E_{\text{reprod}}, \\ 1 & \text{en otro caso.} \end{cases}$$
+  Con ADN escala las probabilidades de `mutate_dna`; sin ADN escala `mutation_rate` y `discrete_mutation_prob` de `mutate_genome` (recortando la segunda a 1). Con $R_{30}$ apagada, $s = 1$.
+
+### 9.9. Trinquete Simbiótico ($R_{31}$)
+Con la jerarquía y $R_{31}$ activas, un holón raíz queda **soldado** al reproducirse por $R_{17}$ (progenitor y réplica) o cuando sus `cooperative_completions` alcanzan `lock_composite_threshold`. En este segundo caso, el sello se aplica antes de cobrar la coordinación y de evaluar `SPLIT`, así que rige desde ese mismo tick. Un holón soldado no se disuelve por `SPLIT` (ni por paciencia ni por energía) y su costo de coordinación se multiplica por `lock_coord_discount`, sólo si es la raíz la soldada. La poda por muerte sigue actuando (con una sola hoja sobreviviente, colapsa), y un holón soldado puede fusionarse por `BOND` en un nivel superior. **Sesgo declarado:** la estabilidad que produzca es por decreto, no un hallazgo.
+
+### 9.10. Orden del Tick y Telemetría
+- **Fase 0 (nueva):** expresión de todas las hojas, sin consumir generadores ni introducir efectos de orden. Fases 1 a 4: como en la Fase II, con la germinación y la exclusión de las endosporas.
+- **Fase 5:** (i) olvido; (ii) coordinación (con el sello y el descuento de $R_{31}$), `SPLIT` y `BOND`; (iii) metabolismo (con el costo del ADN, la senescencia y la endospora); (iv) muerte, registro del estrés y entrada en endospora; (v) reproducción (con SOS, ADN e impronta); (vi) conjugación y ensayo CRISPR; (vii) $R_{18}$ y asignación de roles; (viii) dinámica del entorno; (ix) métricas. Sin las banderas nuevas, el orden se reduce exactamente al de la Fase II.
+- **Telemetría.** Va aparte, en `GeneticTickMetrics`, sin tocar `TickMetrics` ni `EvolutionaryTickMetrics`: longitud media del cromosoma, codones expresados y plásmidos; endosporas y senescentes ($\text{age} > T_{\max}$); edad media y máxima; conteo de cada rol; holones soldados; y los eventos de conjugación, rechazo CRISPR y purga del tick. No consume generadores.
