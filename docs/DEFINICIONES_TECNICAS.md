@@ -493,7 +493,7 @@ def evaluate_drives(dna: CompactDNA, context: EpigeneticContext, signals: Sensor
                     config: SimulationConfig) -> tuple[float, ...]: ...  # un impulso por Behavior, en su orden
 def recombine_dna(parent: CompactDNA, partner: CompactDNA, a: int, b: int, config: SimulationConfig) -> CompactDNA: ...
 # Previsto por la precisión 42 (métricas de C13 y C17):
-def expressible_codons(dna: CompactDNA, holonic: bool) -> tuple[tuple[int, bool], ...]: ...  # (valor, promotor condicional)
+def expressible_codons(dna: CompactDNA, holonic: bool, roles: bool) -> tuple[tuple[int, bool], ...]: ...  # (valor, promotor condicional)
 ```
 - **Transcripción** (dos pasadas, un solo nivel de regulación, $x_T = b_T \mu + k_T \rho S$, cotas y redondeo `floor(x + 0.5)`): ver [Definiciones Formales](DEFINICIONES_FORMALES.md) §9.3 y §9.4. Las bases salen siempre de la configuración base de la población.
 - **`founder_dna`** expresa exactamente la base en todo contexto: `transcribe_phenotype(founder_dna(c), ctx, c).genome == genome_from_config(c)`. Con `enable_genetic_policy=True` agrega, en este orden, `encode_codon(0x00, 0x40, 0, 0, 127)`, `encode_codon(0x00, 0x41, 0, 0, 96)`, `encode_codon(0x00, 0x42, 0, 0, 64)` y `encode_codon(0x00, 0x43, 0, 0, 32)`: impulsos 0.9921875, 0.75, 0.5 y 0.25 para `CONSUME`, `EXPLORE`, `NAVIGATE` y `WANDER`. `FOUNDER_DNA_LENGTH = 9` se conserva para la validación de D31.
@@ -1085,11 +1085,11 @@ Los protocolos `002c`, `002d`, `002e` y `003c` de la versión anterior (D41) se 
 | `hgt_transfers`, `crispr_rejections`, `crispr_purges` | Eventos del tick (§6, "Trabajo de la Fase II-B dentro del tick"). |
 | `distinct_genotypes` | Cromosomas distintos entre las hojas vivas. |
 | `mean_functional_codons` | Media de codones con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`) o de conducta (`0x40`–`0x47`) y modo distinto de 3, cualquiera sea su promotor (descriptiva). |
-| `regulated_expression_fraction` | Media, sobre las hojas con ADN, de la fracción de los valores de `expressible_codons(dna, enable_holonic_hierarchy)` cuyo promotor es condicional; una hoja sin codones expresables aporta 0.0. Depende sólo del genotipo y del protocolo (C13, precisión 42). |
+| `regulated_expression_fraction` | Media, sobre las hojas con ADN, de la fracción de los valores de `expressible_codons(dna, enable_holonic_hierarchy, enable_epigenetic_roles)` cuyo promotor es condicional; una hoja sin codones expresables aporta 0.0. Depende sólo del genotipo y del protocolo (C13, precisión 42). |
 | `policy_divergence` | Entre las decisiones del tick con la política genética, fracción en que la primera conducta factible según el ADN del agente difiere de la del ADN fundador, con las mismas señales y factibilidades, `EXPLORE` tomada como factible si hay recursos desconocidos alcanzables y sin extraer de `rng`; 0.0 sin decisiones (C14). |
 | `communicating_fraction` | Fracción de hojas vivas no endosporas con `comm_propensity >= 0.5` (C15). |
 | `new_activity`, `cumulative_new_activity` | Actividad evolutiva de Bedau–Packard: para cada codón distinto **ausente del cromosoma de `founder_dna(config)`** (precisión 43), su actividad acumula, tick a tick, las hojas vivas que lo portan en el cromosoma o en los plásmidos (cada hoja aporta 1 por codón distinto, aunque lo porte varias veces). Un codón cruza el umbral en $t$ si $a_c(t-1) <$ `activity_threshold` $\le a_c(t)$. `new_activity` cuenta los que lo cruzaron en el tick; `cumulative_new_activity` es su suma acumulada. |
-| `mean_expressible_codons` | Media, sobre las hojas con ADN, de `len(expressible_codons(dna, enable_holonic_hierarchy))`: valores distintos de codones funcionales expresables. Duplicados e inertes no suman, y no depende del estado del tick (métrica de C17, precisión 42). |
+| `mean_expressible_codons` | Media, sobre las hojas con ADN, de `len(expressible_codons(dna, enable_holonic_hierarchy, enable_epigenetic_roles))`: valores distintos de codones funcionales expresables. Duplicados e inertes no suman, y no depende del estado del tick (métrica de C17, precisión 42). |
 | `cumulative_births`, `new_activity_per_birth` | Suma, desde el tick 0, de `births` de `evolutionary_history` (individuales y holónicos), y `cumulative_new_activity / cumulative_births` (0.0 sin nacimientos), que normaliza la actividad por el aporte de variación (C16, precisiones 43 y 49). |
 | `mean_age_at_death` | Media acumulada de `tick - birth_tick` de las muertes desde el tick 0 (0.0 sin muertes): covariable de la longevidad (precisión 49). |
 

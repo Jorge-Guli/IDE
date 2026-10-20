@@ -46,14 +46,14 @@ Con la población vacía, los promedios de `GeneticTickMetrics` SHALL valer `0.0
 - **THEN** ese codón no cuenta en `mean_functional_codons`.
 
 ### Requirement: Codones Expresables de una Hoja
-Para cada hoja viva con ADN, las métricas de C13 y C17 SHALL usar `expressible_codons(agent.dna, config.enable_holonic_hierarchy)`, que depende sólo del genotipo y del protocolo: SHALL NOT depender de si la hoja decidió en el tick, de si está en endospora, de su `last_context` ni de las señales del entorno (design precisión 42).
+Para cada hoja viva con ADN, las métricas de C13 y C17 SHALL usar `expressible_codons(agent.dna, config.enable_holonic_hierarchy, config.enable_epigenetic_roles)`, que depende sólo del genotipo y del protocolo: SHALL NOT depender de si la hoja decidió en el tick, de si está en endospora, de su `last_context` ni de las señales del entorno (design precisión 42).
 
 #### Scenario: Independencia del estado del tick
 - **WHEN** dos hojas vivas portan el mismo ADN, una en endospora y sin decidir en el tick y otra activa, con distinta energía y distinto rol
 - **THEN** las dos aportan los mismos valores a `mean_expressible_codons` y a `regulated_expression_fraction`.
 
 ### Requirement: Complejidad Genética Expresable
-`mean_expressible_codons` SHALL ser la media, sobre las hojas vivas con ADN, de `len(expressible_codons(agent.dna, config.enable_holonic_hierarchy))`, la cantidad de valores distintos de sus codones funcionales expresables, de modo que duplicar un codón o acumular codones inertes no suma complejidad (design precisión 42).
+`mean_expressible_codons` SHALL ser la media, sobre las hojas vivas con ADN, de `len(expressible_codons(agent.dna, config.enable_holonic_hierarchy, config.enable_epigenetic_roles))`, la cantidad de valores distintos de sus codones funcionales expresables, de modo que duplicar un codón o acumular codones inertes no suma complejidad (design precisión 42).
 
 #### Scenario: Fundador conductual
 - **WHEN** se registra un tick en el que todas las hojas portan el ADN fundador de `enable_genetic_policy=True`, sin mutación
@@ -68,7 +68,7 @@ Para cada hoja viva con ADN, las métricas de C13 y C17 SHALL usar `expressible_
 - **THEN** `mean_expressible_codons == 13.0`, porque ese codón no es expresable.
 
 ### Requirement: Fracción de Expresión Regulada
-`regulated_expression_fraction` SHALL ser la media, sobre las hojas vivas con ADN, de la fracción de los valores de `expressible_codons(agent.dna, config.enable_holonic_hierarchy)` cuyo promotor es condicional; una hoja sin codones expresables SHALL aportar 0.0 (design precisión 42).
+`regulated_expression_fraction` SHALL ser la media, sobre las hojas vivas con ADN, de la fracción de los valores de `expressible_codons(agent.dna, config.enable_holonic_hierarchy, config.enable_epigenetic_roles)` cuyo promotor es condicional; una hoja sin codones expresables SHALL aportar 0.0 (design precisión 42).
 
 #### Scenario: Fundador sin regulación
 - **WHEN** se registra un tick con el ADN fundador sin mutación
