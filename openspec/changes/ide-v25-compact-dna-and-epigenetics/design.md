@@ -568,7 +568,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
 ## Reformulación del 2026-10-20 (D43–D56)
 
 ### Decisión 43: Principio, Alcance y Estado de las Decisiones Anteriores
-1. **Principio.** *La regla da la capacidad y el ADN decide su uso.* Cada regla nueva o reformulada pone a disposición del agente una capacidad física o sensorial; ningún codón del ADN fundador la usa, salvo para reproducir la conducta de la Fase II (D46.5). Lo que la población haga con esa capacidad lo produce la selección, y se mide contra la deriva neutral.
+1. **Principio.** *La regla da la capacidad y el ADN decide su uso.* Cada regla nueva o reformulada pone a disposición del agente una capacidad física o sensorial; ningún codón del ADN fundador la usa, salvo para reproducir la conducta de la Fase II (D46.5). Lo que la población haga con esa capacidad lo produce la selección, y se mide contra la reproducción neutral (precisión 44).
 2. **Lo que se conserva sin cambios:** D30–D35 (implementadas en la etapa A), D37 ($R_{26}$ y $R_{27}$) y D39 ($R_{29}$ y $R_{30}$).
 3. **Lo que se reinterpreta o sustituye:**
    - D36 ($R_{25}$): misma asignación, reinterpretada como señal (D50.1);
@@ -688,9 +688,11 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
 
    | Destino | Rasgo | Base $b$ | Escala $k$ | Cotas |
    | :---: | :--- | :--- | ---: | :--- |
-   | `0x0A` | compromiso simbiótico ($R_{31}$) | `symbiotic_commitment_base` | 0.50 | $[0, 1]$ |
-   | `0x0B` | propensión a recombinar ($R_{38}$) | `recombination_base` | 0.50 | $[0, 1]$ |
-   | `0x0C` | propensión a comunicar ($R_{32}$) | `comm_propensity_base` | 0.50 | $[0, 1]$ |
+   | `0x0A` | compromiso simbiótico ($R_{31}$) | `symbiotic_commitment_base` | 0.60 | $[0, 1]$ |
+   | `0x0B` | propensión a recombinar ($R_{38}$) | `recombination_base` | 0.60 | $[0, 1]$ |
+   | `0x0C` | propensión a comunicar ($R_{32}$) | `comm_propensity_base` | 0.60 | $[0, 1]$ |
+
+   La escala 0.60 (y no 0.50) hace que un solo codón aditivo con $\delta \ge 0.84$ lleve un rasgo de base 0 al umbral de 0.5: con 0.50, el máximo de un codón es $0.5 \cdot 0.9921875 < 0.5$, y comunicar, soldarse o recombinar exigiría dos mutaciones coordinadas, cada una neutral por separado (revisión cruzada, hallazgo 7).
 
    `ExpressedPhenotype` agrega `symbiotic_commitment`, `recombination_propensity` y `comm_propensity`, con valores por defecto `0.0`, `0.0` y `1.0` (las bases por defecto de D52.1; el agente siempre los recibe transcriptos desde su configuración), y `expressed_codons` pasa a contar los destinos `0x00`–`0x08` y `0x0A`–`0x0C`. El ADN fundador no tiene codones sobre ellos: expresa las bases. `phenotype_from_genome` también devuelve las bases.
 8. **Caché.** `MicroAgent` puede memoizar los impulsos por `(clave de contexto de D34.2, signals)`, invalidando al cambiar el ADN. Un test exige que coincida con la evaluación directa.
@@ -864,7 +866,7 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
 1. **Qué mide.** Sólo demografía: si la corrida termina con población viva y la generación máxima. No calcula ninguna métrica de afirmación.
 2. **Semillas.** `PHASE25_VIABILITY_SEEDS = tuple(range(0, 10))`, disjuntas de `PHASE25_SEEDS`.
 3. **Criterio.** Cada corrida dura el perfil `phase25` (5000 ticks). Una corrida es viable si termina con al menos una hoja viva **que no esté en endospora** y `max_generation >= 20`. Una configuración es viable si, para **cada** protocolo de D56 y **cada** una de sus condiciones `full`, `drift` y `no_predation`, al menos 8 de las 10 semillas son viables. La condición `null_content` se corre y se registra, pero **no** decide la viabilidad: sólo decide si E4 es interpretable (D56).
-4. **Grilla declarada**, en orden de preferencia (menos abundancia primero), sobre `(resources_per_pattern, resource_regen_delay)`: `(20, 10)`, `(20, 20)`, `(30, 10)`, `(30, 20)`, `(40, 20)` y `(40, 40)`. Se elige la **primera** viable, y se detiene al encontrarla.
+4. **Grilla declarada**, en orden de preferencia (menos abundancia primero: menos recursos por patrón y, a igual cantidad, mayor retardo), sobre `(resources_per_pattern, resource_regen_delay)`: `(20, 20)`, `(20, 10)`, `(30, 20)`, `(30, 10)`, `(40, 40)` y `(40, 20)`. Se elige la **primera** viable, y se detiene al encontrarla.
 5. **Sin viables.** Si ninguna lo es, se reporta como resultado y decide el responsable del proyecto. No se prueba nada fuera de la grilla sin una enmienda.
 6. **Registro.** La salida completa va a `registros/` y a `docs/RESULTADOS.md` antes de la prueba de humo.
 
@@ -900,23 +902,24 @@ Esta decisión es **pre-registro**. Se aprueba antes de implementar los bloques 
 
 **Condiciones de comparación:**
 - `full`: la configuración del protocolo;
-- `drift`: `ablate(config, ["R12"])`, reproducción neutral;
+- `drift`: `ablate(config, ["R12"])`, **reproducción neutral**. Con `enable_compact_dna` activa, la reproducción holónica ($R_{17}$) también es neutral: cada hoja hija recibe el ADN de un donante sorteado con `donor_rng`, en el orden de las hojas del holón (precisión 41). Así `drift` quita la selección también en `25b`.
 - `no_predation` (sólo `"25a"`): `ablate(config, ["R37"])`;
 - `null_content`: el control nulo de contenido, para E4.
 
-**Afirmaciones `PHASE25_CLAIMS`.** Son **pruebas genuinas**: ninguna regla persigue la métrica, y la comparación es contra la deriva neutral o contra la ablación de un mecanismo ecológico. Cada métrica es la media de la ventana final (el último 10 % de los ticks) de su campo de `GeneticTickMetrics` o `EcologyTickMetrics`.
+**Afirmaciones `PHASE25_CLAIMS`.** Son **pruebas genuinas**: ninguna regla persigue la métrica, y la comparación es contra la reproducción neutral o contra la ablación de un mecanismo ecológico. La reproducción neutral **no es deriva pura**: conserva sesgos residuales que se declaran en la precisión 44. Cada métrica es la media de la ventana final (el último 10 % de los ticks) de su campo de `GeneticTickMetrics` o `EcologyTickMetrics`.
 
 | Afirmación | Protocolo | Métrica (↑) | Comparación | $R_C$ | Canal | $\delta_{\min}$ (propuesto) |
 | :--- | :--- | :--- | :--- | :--- | :--- | ---: |
-| `C13` La regulación génica evoluciona | `25a` | `regulated_expression_fraction` | `full` frente a `drift` | `("R12",)` | `()` | 0.05 |
+| `C13` La regulación génica evoluciona | `25a` | `regulated_expression_fraction` (precisión 42) | `full` frente a `drift` | `("R12",)` | `()` | 0.05 |
 | `C14` La conducta evoluciona | `25a` | `policy_divergence` | `full` frente a `drift` | `("R12",)` | `()` | 0.05 |
 | `C15` La comunicación evoluciona desde cero | `25c` | `communicating_fraction` | `full` frente a `drift` | `("R12",)` | `()` | 0.10 |
-| `C16` Actividad evolutiva por encima de la deriva | `25a` | `cumulative_new_activity` (último tick) | `full` frente a `drift` | `("R12",)` | `()` | 5 |
-| `C17` La depredación aumenta la complejidad genética | `25a` | `mean_functional_codons` | `full` frente a `no_predation` | `("R37",)` | `()` | 1.0 |
+| `C16` Actividad evolutiva por encima de la reproducción neutral | `25a` | `new_activity_per_birth` (último tick, precisión 43) | `full` frente a `drift` | `("R12",)` | `()` | 0.01 |
+| `C17` La depredación aumenta la complejidad genética | `25a` | `mean_active_functional_codons` (precisión 42) | `full` frente a `no_predation` | `("R37",)` | `()` | 1.0 |
 | `C18` La cooperación material evoluciona en los holones | `25b` | `share_rate` | `full` frente a `drift` | `("R12",)` | `()` | 0.01 |
 
 - **Clasificación.** Con canal vacío, ninguna es programada por construcción.
-- **Prueba.** Prueba de signo unilateral sobre las diferencias pareadas por semilla, descartando empates.
+- **Pares válidos (precisión 45).** Se excluye el par de una semilla si alguna de sus dos condiciones termina sin hojas activas. Si quedan menos de 20 pares válidos, la afirmación es `NOT_OBSERVED` con `evaluable = False`, y sigue contando en la corrección de Holm.
+- **Prueba.** Prueba de signo unilateral sobre las diferencias de los pares válidos, descartando empates.
 - **Corrección.** Holm–Bonferroni sobre `C13`–`C18` con $\alpha = 0.05$.
 - **Estado.** `OBSERVED` si el p-valor ajustado es menor que $\alpha$ **y** la mediana de las diferencias pareadas es al menos $\delta_{\min}$; `NOT_OBSERVED` en otro caso. Se informan siempre el p-valor crudo, el ajustado, la mediana y la demografía.
 - **E4.** Se informa contra `null_content`. Es interpretable en un protocolo sólo si, con la configuración elegida por la compuerta, su condición `null_content` fue viable en al menos 8 de las 10 semillas de viabilidad; si no, se declara no interpretable sin mirar la métrica.
@@ -982,6 +985,16 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
 38. **Semillas de E4 (D56).** `e4_p_value` se calcula con `PHASE25_SEEDS`, pareando `full` con `null_content` por semilla.
 39. **Conjuntos del `TickFrame` (D44.1).** `moved`, `surplus` y cualquier otro `set` del marco se recorren siempre con `sorted(...)`, como exige `CLAUDE.md`.
 40. **Oscilación de la endospora (D50.2).** Un agente puede entrar en endospora con `SPORULATE` y germinar al tick siguiente si ve un recurso, y alternar así. Es física declarada: el costo reducido de la endospora es una capacidad disponible, y su uso lo decide el ADN.
+41. **Reproducción holónica neutral (D56, `drift`).** Con `reproduction_mode == "neutral"` y `enable_compact_dna` activa, `_reproduce` sortea, para cada hoja progenitora de una reproducción holónica ($R_{17}$) y en el orden de `leaf_agents`, un donante con `donor_rng` entre los mismos donantes que la reproducción individual. El hijo de esa hoja recibe el ADN del donante, que después se muta. Sin ADN, $R_{17}$ se comporta como en la Fase II, así que sus historiales no cambian.
+42. **Codones activos y expresión regulada (C13 y C17).** Para cada hoja con ADN, sus **codones activos** son la unión, por posición en `chromosome + plasmids`, de:
+    - los codones con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`) y modo distinto de 3 activos en la transcripción del fenotipo con `last_context`;
+    - los codones con destino de conducta (`0x40`–`0x47`) y modo distinto de 3 activos en la última evaluación de impulsos de la hoja (vacío si no decidió).
+    - `mean_active_functional_codons` es la media, sobre las hojas con ADN, de la cantidad de **valores distintos** entre sus codones activos. Así, duplicar un codón o acumular codones inertes no suma complejidad.
+    - `regulated_expression_fraction` es la media, sobre las hojas con ADN, de la fracción de sus codones activos cuyo promotor es **condicional en el protocolo**: `0x18`, `0x19`, `0x20`–`0x27` y `0x80`–`0xBF` siempre, y `0x01`–`0x0A` y `0x10`–`0x12` sólo si `enable_holonic_hierarchy` está activa (sin holones equivalen a `ALWAYS_BASAL` o nunca se activan). Una hoja sin codones activos aporta 0.0.
+    - `mean_functional_codons` de D53.2 se conserva como descriptiva.
+43. **Actividad por nacimiento (C16).** `GeneticTickMetrics` agrega `cumulative_births` y `new_activity_per_birth = cumulative_new_activity / cumulative_births` (0.0 sin nacimientos). Normaliza la actividad por el aporte de variación, que crece con los nacimientos y difiere entre `full` y `drift`.
+44. **Sesgos residuales de la reproducción neutral (D56).** En `drift` siguen actuando: la selección por supervivencia (los donantes son los vivos al empezar la reproducción), la purga de plásmidos de $R_{27}$ y la escala de mutación de $R_{30}$, que depende de la energía del progenitor. Actúan igual en las dos condiciones, salvo la supervivencia. El sesgo esperable es **conservador**: la supervivencia en `drift` acerca su resultado al de `full`, y la selección purificadora en `full` reduce `policy_divergence` (C14). Por eso las pruebas unilaterales sólo detectan selección positiva neta.
+45. **Pares válidos y demografía (D56).** Un par (semilla) es válido si las dos condiciones terminan con al menos una hoja activa. `Phase25ClaimEvaluation` agrega `excluded_pairs` y `evaluable`, y su `demography` contiene, por semilla y condición, `final_agents`, `final_active_agents`, `max_generation`, `cumulative_births` y `cumulative_deaths`, que se informan siempre como covariables.
 
 ---
 

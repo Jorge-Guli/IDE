@@ -138,7 +138,7 @@ El responsable del proyecto decidió que cada entregable acerque el proyecto a s
 - **ADN mejorado:** recombinación ($R_{38}$, D51) y tres rasgos nuevos (compromiso simbiótico, propensión a recombinar y propensión a comunicar).
 - **Reglas reformuladas (D50):** $R_{25}$ pasa a ser una señal posicional; $R_{28}$, una conducta disponible; $R_{31}$, un sello que depende del compromiso expresado.
 - **Medición (D53–D56):** métricas de evolución abierta (actividad de Bedau–Packard, divergencia de la conducta, regulación expresada), compuerta de viabilidad antes de cualquier afirmación, 30 semillas, corrección de Holm y tamaño de efecto mínimo.
-- **Pre-registro:** D42 queda sustituido por el borrador D56. C9–C12 se retiran sin medir. Las afirmaciones nuevas, C13–C18, son pruebas genuinas contra la deriva neutral o contra la ablación de un mecanismo ecológico.
+- **Pre-registro:** D42 queda sustituido por el borrador D56. C9–C12 se retiran sin medir. Las afirmaciones nuevas, C13–C18, son pruebas genuinas contra la reproducción neutral o contra la ablación de un mecanismo ecológico.
 
 ### Qué no cambia
 - D30–D35 (etapa A, implementada), $R_{26}$, $R_{27}$, $R_{29}$ y $R_{30}$.
