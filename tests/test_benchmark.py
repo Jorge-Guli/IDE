@@ -1,11 +1,13 @@
 """Tests de la línea base de rendimiento (`quality-tooling`)."""
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from ide.config import SimulationConfig
+from ide.experiments.attribution import PHASE2_PROTOCOL_CONFIGS
 from ide.experiments.benchmark import BENCHMARK_REPETITIONS, BENCHMARK_TICKS, main
 
 
@@ -37,3 +39,36 @@ def test_ticks_no_positivos_se_rechazan(
     assert exc.value.code == 2
     assert "debe ser >= 1" in capsys.readouterr().err
     assert not out.exists()
+
+
+def test_medicion_con_adn_compacto(tmp_path: Path) -> None:
+    out = tmp_path / "benchmark_adn.json"
+    assert main(["--ticks", "3", "--out", str(out), "--compact-dna"]) == 0
+    data = json.loads(out.read_text())
+    assert data["median_ticks_per_second"] > 0
+    assert data["ticks"] == 3
+    expected = replace(PHASE2_PROTOCOL_CONFIGS["002a"], enable_compact_dna=True)
+    assert data["config"] == expected.to_dict()
+    assert data["mode"] == "002a+compact_dna"
+
+
+@pytest.mark.parametrize(
+    ("flags", "written", "untouched"),
+    [
+        ([], "benchmark.json", "benchmark_compact_dna.json"),
+        (["--compact-dna"], "benchmark_compact_dna.json", "benchmark.json"),
+    ],
+)
+def test_salida_por_defecto_segun_el_modo(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    flags: list[str],
+    written: str,
+    untouched: str,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    assert main(["--ticks", "2", *flags]) == 0
+    assert (tmp_path / written).exists()
+    assert not (tmp_path / untouched).exists()
+    mode = json.loads((tmp_path / written).read_text())["mode"]
+    assert mode == ("002a+compact_dna" if flags else "exp001")

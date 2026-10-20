@@ -125,6 +125,7 @@ python -m pytest -m empirical                # expectativas empíricas: pueden f
 python -m ide.experiments.exp001_runner --profile quick --seeds 42
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4
 python -m ide.experiments.benchmark          # línea base de rendimiento (ticks por segundo)
+python -m ide.experiments.benchmark --compact-dna   # rendimiento de 002a con ADN compacto (Fase II-B)
 # Fase II: perfil pre-registrado `phase2` (2000 ticks) y configuraciones de PHASE2_PROTOCOL_CONFIGS
 python -m ide.experiments.exp002_runner --seeds 42 43 44 45 46 47 48 49 50 51 --jobs 4   # 002-A y 002-B
 python -m ide.experiments.exp003_runner --seeds 42 43 44 45 46 47 48 49 50 51 --jobs 4   # 003-A y 003-B

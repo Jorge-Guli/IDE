@@ -8,7 +8,11 @@ from typing import cast
 import numpy as np
 
 from ide.agent.epistemology import is_known
-from ide.agent.evolution import compute_metabolic_cost, transfer_cultural_heritage
+from ide.agent.evolution import (
+    compute_dna_cost,
+    compute_metabolic_cost,
+    transfer_cultural_heritage,
+)
 from ide.agent.holon import (
     AgentNode,
     CompositeAgent,
@@ -27,7 +31,7 @@ from ide.domain.ports import EnvironmentPort, EvolutionaryEnvironmentPort
 from ide.domain.types import (
     ActionType,
     AgentAction,
-    AgentGenome,
+    EpigeneticContext,
     KnowledgeUnit,
     Message,
     Observation,
@@ -69,6 +73,8 @@ class SimulationEngine:
 
     Los mecanismos de la Fase II usan sus generadores derivados (D19) y sólo actúan con sus
     banderas activas: con los valores por defecto, `step()` reproduce bit a bit la Fase I.
+    Con `enable_compact_dna` (R24, design D34), cada tick empieza por la Fase 0 de expresión
+    del fenotipo; sin la bandera, no corre y la Fase II no cambia en un bit.
     """
 
     def __init__(
@@ -142,6 +148,9 @@ class SimulationEngine:
         holonic = config.enable_holonic_hierarchy
         view = holonic and config.enable_holon_view
         rules = self._composite_rules
+        # 0. Expresión del fenotipo (R24), antes de la permutación y del alcance local.
+        if config.enable_compact_dna:
+            self._express_phenotypes(tick)
         order = cast(
             list[int],
             self.rng.permutation(np.array(sorted(self.agents), dtype=np.int64)).tolist(),  # pyright: ignore[reportUnknownMemberType]
@@ -303,6 +312,32 @@ class SimulationEngine:
         if not has_truthful_query_channel(self.config):
             return {aid: [] for aid in self.agents}
         return {aid: self.env.get_communication_neighbors(aid) for aid in self.agents}
+
+    # --- Fase II-B: expresión del fenotipo (R24) ----------------------------------------------
+
+    def _express_phenotypes(self, tick: int) -> None:
+        """Fase 0 (design D34.4): expresa el ADN de cada agente en su contexto del tick.
+
+        El contexto se arma con el estado de fin del tick anterior: el nivel del holón raíz que
+        contiene a la hoja (0 si es su propia raíz), su rol epigenético y su energía relativa al
+        umbral de reproducción. La expresión de un agente no altera el contexto de otro, así que
+        el recorrido por `agent_id` no introduce efectos de orden, y no consume generadores. El
+        entorno sólo se actualiza cuando cambian los radios expresados.
+        """
+        env = self._evo
+        threshold = self.config.reproduction_threshold
+        # Un nivel por raíz: `holon_level` recorre el árbol, y todas sus hojas lo comparten.
+        levels = {nid: node.holon_level for nid, node in self.root_nodes.items()}
+        for aid in sorted(self.agents):
+            agent = self.agents[aid]
+            context = EpigeneticContext(
+                levels[self.agent_to_root[aid]],
+                agent.epigenetic_role,
+                agent.energy / threshold,
+            )
+            if agent.express(context, tick):
+                genome = agent.genome
+                env.set_agent_radii(aid, genome.perception_radius, genome.comm_radius)
 
     # --- Fase II: canales de conocimiento (R19, R22) -------------------------------------------
 
@@ -528,11 +563,18 @@ class SimulationEngine:
     # --- Fase II: metabolismo, muerte y reproducción (R12-R14, R17, R20, R21) -----------------
 
     def _metabolize(self, tick: int, moved: set[int], sent: Mapping[int, int]) -> int:
-        """Cobra el costo basal, de movimiento y de mensajes; elimina a quien queda en E <= 0."""
+        """Cobra el costo basal, de movimiento y de mensajes; elimina a quien queda en E <= 0.
+
+        Con ADN (design D34.5), el costo basal se calcula sobre el genoma expresado en la Fase 0
+        del tick y se le suma el costo del ADN; sin la bandera, la suma no se hace.
+        """
         config = self.config
+        dna = config.enable_compact_dna
         for aid in sorted(self.agents):
             agent = self.agents[aid]
             cost = compute_metabolic_cost(agent.genome, config)
+            if dna:
+                cost += compute_dna_cost(agent.dna, config)
             cost += config.move_cost * (aid in moved) + config.message_cost * sent.get(aid, 0)
             agent.apply_energy_delta(-cost)
         dead = [aid for aid in sorted(self.agents) if self.agents[aid].energy <= 0]
@@ -574,18 +616,36 @@ class SimulationEngine:
                 continue
             if len(self.agents) >= config.max_population:
                 break
-            source = donors[int(self.donor_rng.integers(len(donors)))].genome if neutral else None
-            child = self._give_birth(agent, tick, source)
+            donor = donors[int(self.donor_rng.integers(len(donors)))] if neutral else None
+            child = self._give_birth(agent, tick, donor)
             self._set_root(child)
             reproduced.update((aid, child.agent_id))
             births += 1
         return births
 
     def _give_birth(
-        self, parent: MicroAgent, tick: int, genome_source: AgentGenome | None = None
+        self, parent: MicroAgent, tick: int, donor: MicroAgent | None = None
     ) -> MicroAgent:
-        """Hijo con ID nuevo, ubicado junto al progenitor y con su herencia cultural (D22, D26)."""
-        child = parent.create_offspring(self.next_agent_id, tick, self.evo_rng, genome_source)
+        """Hijo con ID nuevo, ubicado junto al progenitor y con su herencia cultural (D22, D26).
+
+        `donor` es el donante de la reproducción neutral: aporta su genoma o, si el progenitor
+        tiene ADN, su ADN (design D34.7). El hijo nace expresado en su contexto de nacimiento
+        (`create_offspring`) y `spawn_agent_near` recibe los radios de ese fenotipo (D34.6).
+        """
+        rng = self.evo_rng
+        if donor is None:
+            child = parent.create_offspring(self.next_agent_id, tick, rng)
+        elif (parent.dna is None) != (donor.dna is None):
+            # Una población mixta no la produce el motor: heredar en silencio el ADN propio o el
+            # genoma expresado del donante falsearía la deriva neutral.
+            raise ValueError(
+                f"población mixta en la reproducción neutral: el progenitor {parent.agent_id} "
+                f"y el donante {donor.agent_id} deben tener ADN los dos o ninguno"
+            )
+        elif parent.dna is None:  # la misma fuente de verdad que valida `create_offspring`
+            child = parent.create_offspring(self.next_agent_id, tick, rng, donor.genome)
+        else:
+            child = parent.create_offspring(self.next_agent_id, tick, rng, dna_source=donor.dna)
         self.next_agent_id += 1
         genome = child.genome
         self._evo.spawn_agent_near(

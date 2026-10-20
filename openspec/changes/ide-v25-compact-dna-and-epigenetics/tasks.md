@@ -27,7 +27,7 @@
 >
 > **Decisiones P4–P7** (ver `proposal.md`). Se resuelven en el bloque 0, **antes** del bloque 1. El pre-registro es design D42. Las constantes de `attribution.py` del bloque 10 deben coincidir **exactamente** con él.
 >
-> **Etapa actual:** el bloque 0 está completo; sigue la etapa A.
+> **Etapa actual:** la etapa A (bloques 1 a 5) está completa y espera el punto de control; después sigue la etapa B.
 
 ## 0. Decisiones y pre-registro
 
@@ -115,15 +115,15 @@
 >
 > Punto de control: fin de la etapa A. Mostrar que los historiales de los protocolos de la Fase II son idénticos con las banderas por defecto, los hashes dorados intactos y los ticks por segundo con y sin ADN del benchmark.
 
-- [ ] 5.1 **[RED]** Ampliar `tests/test_simulation_engine.py` con tests para:
+- [x] 5.1 **[RED]** Ampliar `tests/test_simulation_engine.py` con tests para:
   - (a) la Fase 0: contexto con nivel, rol y energía; `set_agent_radii` sólo si cambian los radios; sin consumo de generadores;
   - (b) el costo metabólico sobre el genoma expresado más `compute_dna_cost`;
   - (c) el nacimiento con ADN mutado por `evo_rng` y expresado en el acto;
   - (d) la reproducción neutral con el ADN del donante;
   - (e) la igualdad de historiales entre procesos con distinto `PYTHONHASHSEED` con `enable_compact_dna=True`;
   - (f) con las banderas por defecto, historiales de los protocolos `002a` y `003a` idénticos a los de la Fase II.
-- [ ] 5.2 **[GREEN]** Extender `SimulationEngine`: `_express_phenotypes`, el costo y el nacimiento.
-- [ ] 5.3 **[REFACTOR]** Correr `python -m pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py` y `python -m ide.experiments.benchmark` con y sin ADN, y registrar los ticks por segundo. Verificación del bloque.
+- [x] 5.2 **[GREEN]** Extender `SimulationEngine`: `_express_phenotypes`, el costo y el nacimiento.
+- [x] 5.3 **[REFACTOR]** Correr `python -m pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py` y `python -m ide.experiments.benchmark` con y sin ADN, y registrar los ticks por segundo. Verificación del bloque. (960 tests, cobertura 99 %; benchmark sin ADN 253.8 y 272.6 ticks/s, `--compact-dna` sobre `002a` 148.9 y 136.0 ticks/s; historiales de la Fase II idénticos a 20305df en 8 huellas doradas.)
 
 ## 6. Senescencia (R29) y mutación SOS (R30) (`evolutionary-dynamics`, `simulation-engine`)
 
