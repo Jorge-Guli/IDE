@@ -185,7 +185,7 @@
   - (c) `evaluate_drives`: las dos pasadas con sensores, $d_B = \mu_B \cdot \rho_B \cdot S_B$, impulsos nulos sin codones y destinos de conducta inertes en el fenotipo (D46.3);
   - (d) `founder_dna` y `founder_dna_length` con y sin la política genética, y los cuatro impulsos fundadores (D46.5);
   - (e) `recombine_dna`, con el truncado y el mínimo de longitud (D51.2);
-  - (e2) `active_codon_indices` (precisión 46);
+  - (e2) `expressible_codons`: promotores expresables y condicionales según el protocolo, valores distintos y la aproximación de los canales regulados (precisión 42);
   - (f) propiedades con Hypothesis: impulsos deterministas e independientes de `PYTHONHASHSEED`.
 - [ ] 9.2 **[GREEN]** Implementar en `dna.py`.
 - [ ] 9.3 **[REFACTOR]** Actualizar los tests de los bloques 2 y 3 que la reformulación modifica (destinos `0x0A`–`0x0C` y conteo de `expressed_codons`, D46.7) y verificación del bloque.
@@ -301,8 +301,7 @@
 > Ejecuta: implementador-delicado
 
 - [ ] 18.1 **[RED]** Ampliar `tests/test_metrics.py` y `tests/test_simulation_engine.py` con tests para:
-  - `GeneticTickMetrics` de D53.2, incluidas `regulated_expression_fraction` y `mean_active_functional_codons` con los codones activos de la precisión 42, `policy_divergence` (sin extraer de `rng`), `communicating_fraction`, `distinct_genotypes`, `mean_functional_codons`, la actividad de Bedau–Packard, `cumulative_births` y `new_activity_per_birth` (precisiones 43 y 49);
-  - `last_behavior_codons` del agente (precisión 46);
+  - `GeneticTickMetrics` de D53.2, incluidas `regulated_expression_fraction` y `mean_expressible_codons` con los codones expresables de la precisión 42, `policy_divergence` (sin extraer de `rng`), `communicating_fraction`, `distinct_genotypes`, `mean_functional_codons`, la actividad de Bedau–Packard sin los codones fundadores, `cumulative_births`, `new_activity_per_birth` y `mean_age_at_death` (precisiones 43 y 49);
   - `EcologyTickMetrics` de D53.3;
   - el registro en cada tick con cualquier combinación de banderas y los valores con la población vacía;
   - que `TickMetrics` y `EvolutionaryTickMetrics` no cambian.
@@ -316,7 +315,7 @@
 - [ ] 19.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
   - `PHASE25_DESIGN_RULES` (`R24`–`R38`) con sus `purpose`, `PHASE25_ALL_RULES` y `ablate()` con las reglas nuevas;
   - `PHASE25_PROTOCOL_CONFIGS` (`25a`, `25b` y `25c`), sus condiciones y `PHASE25_CLAIMS` (C13–C18) con métricas, comparaciones, $R_C$, canales y $\delta_{\min}$;
-  - la ventana final, los pares válidos con `excluded_seeds`, `excluded_pairs` y `evaluable` (precisiones 45 y 47), la prueba de signo pareada sobre los pares válidos, la corrección de Holm–Bonferroni con las afirmaciones no evaluables (precisión 48) y el estado `OBSERVED` sólo con significancia ajustada y mediana $\ge \delta_{\min}$;
+  - la ventana final, los pares válidos con `excluded_seeds`, `excluded_pairs` y `evaluable` (precisiones 45 y 47), la prueba de signo pareada sobre los pares válidos, la corrección de Holm–Bonferroni con las afirmaciones no evaluables (precisión 48) y el estado `OBSERVED` sólo con significancia ajustada y mediana mayor o igual que el umbral de efecto, incluido el umbral relativo de C16 (`delta_relative`);
   - `demography` con sus covariables (precisiones 45 y 49);
   - la clasificación no programada de C13–C18 y E4 condicionado a la compuerta;
   - los `rule_effects` exploratorios con las semillas 42–51;
