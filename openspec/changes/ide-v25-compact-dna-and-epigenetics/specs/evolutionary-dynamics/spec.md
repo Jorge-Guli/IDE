@@ -14,9 +14,9 @@ Con `enable_compact_dna=True`, el costo basal de cada agente SHALL ser `compute_
 - **THEN** su costo basal del tick es `0.01 + 0.005 * 1 = 0.015` y no `0.01 + 0.005 * 9` (con tolerancia `1e-9`).
 
 ### Requirement: Reproducción Neutral con el ADN del Donante
-Con `enable_compact_dna=True` y `reproduction_mode="neutral"`, el donante sorteado con `donor_rng` SHALL aportar su ADN, en lugar de su genoma, como `dna_source` del hijo, sin cambiar la secuencia de `donor_rng`.
+Con `enable_compact_dna=True` y `reproduction_mode="neutral"`, el donante sorteado con `donor_rng` SHALL aportar su ADN, en lugar de su genoma, como `dna_source` del hijo, sin cambiar la secuencia de `donor_rng` de la reproducción individual; la reproducción holónica neutral agrega sus propios sorteos (design precisión 41).
 
-#### Scenario: Donante de ADN en la deriva
+#### Scenario: Donante de ADN en la reproducción neutral
 - **WHEN** con `enable_compact_dna=True`, `reproduction_mode="neutral"` y la ablación de $R_{13}$ se reproduce un agente y `donor_rng` sortea al agente 5
 - **THEN** el ADN del hijo es igual al ADN del agente 5, y `donor_rng` hace las mismas extracciones que con `enable_compact_dna=False`.
 
@@ -125,11 +125,26 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
 - **THEN** no busca pareja y la reproducción es asexual.
 
 ### Requirement: Sin Recombinación en la Reproducción Holónica
-La reproducción holónica ($R_{17}$) SHALL NOT recombinar: cada hoja hija deriva su ADN sólo del de su hoja progenitora.
+La reproducción holónica ($R_{17}$) SHALL NOT recombinar: cada hoja hija deriva su ADN sólo del de su hoja progenitora o, en la reproducción neutral con ADN, sólo del de su donante.
 
 #### Scenario: Réplica sin cruce
 - **WHEN** con $R_{38}$ y $R_{17}$ activas y todas las hojas con `recombination_propensity = 1.0` se reproduce un holón
 - **THEN** ninguna hoja hija recombina y `evo_rng` no hace extracciones de recombinación en esa reproducción.
+
+### Requirement: Reproducción Holónica Neutral con ADN
+Con `reproduction_mode="neutral"` y `enable_compact_dna=True`, la reproducción holónica ($R_{17}$) SHALL sortear con `donor_rng`, para cada hoja progenitora y en el orden de `leaf_agents`, un donante entre los mismos donantes que la reproducción individual, y la hoja hija SHALL recibir el ADN de ese donante, mutado después; sin ADN, $R_{17}$ SHALL conservar la herencia de la Fase II sin extraer de `donor_rng` (design D56 y precisión 41).
+
+#### Scenario: Un donante por hoja
+- **WHEN** con ADN, `reproduction_mode="neutral"`, `mutation_rate = 0` y `discrete_mutation_prob = 0` se reproduce un holón cuyas `leaf_agents` son 2, 5 y 7, y `donor_rng` sortea en ese orden a los agentes 9, 3 y 9
+- **THEN** las hojas hijas de 2, 5 y 7 tienen el ADN de los agentes 9, 3 y 9, y conservan el `parent_id`, la topología, el rol y la partición de energía de $R_{17}$.
+
+#### Scenario: Orden de los sorteos del tick
+- **WHEN** con ADN y `reproduction_mode="neutral"` en un tick se reproducen un holón de 3 hojas y después 2 agentes individuales
+- **THEN** `donor_rng` hace 5 extracciones: las 3 primeras para las hojas del holón, en el orden de `leaf_agents`, y las 2 siguientes para los agentes individuales, en orden de `agent_id`.
+
+#### Scenario: Sin ADN, como en la Fase II
+- **WHEN** con `enable_compact_dna=False` y `reproduction_mode="neutral"` se reproduce un holón
+- **THEN** cada hoja hija deriva su genoma del de su hoja progenitora, `donor_rng` no extrae para el holón y los historiales son idénticos a los de la Fase II.
 
 ## MODIFIED Requirements
 

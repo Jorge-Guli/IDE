@@ -11,7 +11,7 @@ El proyecto es una herramienta de investigación, no una demostración: los resu
 - **Fase II-B (v2.5):** en implementación, en el cambio activo [`ide-v25-compact-dna-and-epigenetics`](openspec/changes/ide-v25-compact-dna-and-epigenetics/).
   - **Etapa A completa:** el genotipo de cada hoja puede ser un ADN compacto de codones de 32 bits, con expresión condicional y una red regulatoria de un nivel ($R_{24}$), compatible bit a bit con la Fase II cuando está apagado.
   - **Reformulada el 2026-10-20:** *la regla da la capacidad y el ADN decide su uso.* La conducta del agente pasa a codificarse en el ADN (un ADN fundador reproduce exactamente la política escrita a mano), el entorno gana escasez, nichos, estaciones, cadáveres, transferencia de energía y depredación, el ADN gana recombinación, y el motor se reorganiza en sistemas y observadores.
-  - **Pre-registro:** el borrador D56 propone seis afirmaciones (C13–C18) que se contrastan con la deriva neutral o con la ablación de un mecanismo ecológico, con 30 semillas, corrección de Holm y un tamaño de efecto mínimo. Se aprueba antes del bloque 6. Las afirmaciones anteriores (C9–C12) se retiraron sin medir, porque eran programadas por construcción.
+  - **Pre-registro:** el borrador D56 propone seis afirmaciones (C13–C18) que se contrastan con la reproducción neutral o con la ablación de un mecanismo ecológico, con 30 semillas, corrección de Holm y un tamaño de efecto mínimo. Se aprueba antes del bloque 6. Las afirmaciones anteriores (C9–C12) se retiraron sin medir, porque eran programadas por construcción.
 
 ## Instalación
 

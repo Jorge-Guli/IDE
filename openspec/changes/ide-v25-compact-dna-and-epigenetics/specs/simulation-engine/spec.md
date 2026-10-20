@@ -174,7 +174,7 @@ Con $R_{38}$ activa, si un progenitor de $R_{12}$ tiene candidatas a pareja, el 
 ### Requirement: Recombinación en la Reproducción Neutral
 Con $R_{38}$ activa y `reproduction_mode="neutral"`, el primer ADN del cruce SHALL ser el del donante sorteado con `donor_rng`, mientras la búsqueda de pareja y la propensión son las del agente que se reproduce; el orden de extracciones SHALL ser el donante con `donor_rng`, el cruce con `evo_rng` y la mutación con `evo_rng`.
 
-#### Scenario: Deriva con recombinación
+#### Scenario: Reproducción neutral con recombinación
 - **WHEN** con `reproduction_mode="neutral"` el agente 4, con una candidata a pareja, se reproduce y `donor_rng` sortea al agente 9
 - **THEN** el cromosoma recombinado empieza con un prefijo del cromosoma del agente 9, y `evo_rng` hace las extracciones del cruce antes de las de la mutación.
 

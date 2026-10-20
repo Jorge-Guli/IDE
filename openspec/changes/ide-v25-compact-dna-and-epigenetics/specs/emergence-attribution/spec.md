@@ -64,7 +64,7 @@ Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_PROTOCOL_
 - **THEN** son exactamente esos ocho, y asignar uno lanza `dataclasses.FrozenInstanceError`.
 
 ### Requirement: Tipos de Evaluación y Reporte de la Fase II-B
-`Phase25ClaimEvaluation` SHALL ser `frozen` con `claim_id`, `status`, `p_value`, `p_adjusted`, `median_difference`, `values`, `comparison_values`, `demography`, `e4_p_value` y `e4_interpretable`; `Phase25Report` SHALL ser `frozen` con `profile = "phase25"`, `rules = PHASE25_ALL_RULES`, `evaluations` y `rule_effects`.
+`Phase25ClaimEvaluation` SHALL ser `frozen` con `claim_id`, `status`, `p_value`, `p_adjusted`, `median_difference`, `values`, `comparison_values`, `demography`, `e4_p_value`, `e4_interpretable`, `excluded_pairs` y `evaluable` (design precisión 45); `Phase25Report` SHALL ser `frozen` con `profile = "phase25"`, `rules = PHASE25_ALL_RULES`, `evaluations` y `rule_effects`.
 
 #### Scenario: Campos de la evaluación y del reporte
 - **WHEN** se inspeccionan los campos de `Phase25ClaimEvaluation` y de `Phase25Report`
@@ -92,14 +92,14 @@ Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` S
 - **THEN** tienen esos protocolos, métricas, comparaciones, $R_C$, canales y $\delta_{\min}$, con métrica creciente.
 
 ### Requirement: Afirmaciones Pre-Registradas C16 a C18
-Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` SHALL contener, con métrica creciente y canal `()`: `C16` (`25a`, `cumulative_new_activity`, `full` frente a `drift`, $R_C$ `("R12",)`, $\delta_{\min} = 5$), `C17` (`25a`, `mean_functional_codons`, `full` frente a `no_predation`, `("R37",)`, $1.0$) y `C18` (`25b`, `share_rate`, `full` frente a `drift`, `("R12",)`, $0.01$), y ninguna otra salvo `C13`–`C15`.
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` SHALL contener, con métrica creciente y canal `()`: `C16` (`25a`, `new_activity_per_birth`, `full` frente a `drift`, $R_C$ `("R12",)`, $\delta_{\min} = 0.01$), `C17` (`25a`, `mean_active_functional_codons`, `full` frente a `no_predation`, `("R37",)`, $1.0$) y `C18` (`25b`, `share_rate`, `full` frente a `drift`, `("R12",)`, $0.01$), y ninguna otra salvo `C13`–`C15`.
 
 #### Scenario: Registro de C16 a C18
 - **WHEN** se inspecciona `PHASE25_CLAIMS`
 - **THEN** contiene exactamente `C13`..`C18`, y `C16`, `C17` y `C18` tienen esos protocolos, métricas, comparaciones, $R_C$, canales y $\delta_{\min}$.
 
 ### Requirement: Métrica de Ventana Final
-La métrica de cada afirmación de `PHASE25_CLAIMS` SHALL ser la media de su campo de `GeneticTickMetrics` o `EcologyTickMetrics` sobre la ventana final, los últimos `max(1, math.ceil(0.1 * total_ticks))` ticks; la de `C16` SHALL ser el valor de `cumulative_new_activity` en el último tick.
+La métrica de cada afirmación de `PHASE25_CLAIMS` SHALL ser la media de su campo de `GeneticTickMetrics` o `EcologyTickMetrics` sobre la ventana final, los últimos `max(1, math.ceil(0.1 * total_ticks))` ticks; la de `C16` SHALL ser el valor de `new_activity_per_birth` en el último tick (design precisión 43).
 
 #### Scenario: Ventana del perfil phase25
 - **WHEN** se mide `C13` en una corrida de 5000 ticks
@@ -107,7 +107,7 @@ La métrica de cada afirmación de `PHASE25_CLAIMS` SHALL ser la media de su cam
 
 #### Scenario: Actividad en el último tick
 - **WHEN** se mide `C16` en una corrida de 5000 ticks
-- **THEN** su valor es `cumulative_new_activity` del último registro, no una media.
+- **THEN** su valor es `new_activity_per_birth` del último registro, no una media.
 
 #### Scenario: Ventana de perfiles cortos
 - **WHEN** se mide `C14` en corridas de 45 y de 5 ticks
@@ -121,11 +121,43 @@ Como su canal es vacío, `is_by_construction` SHALL ser falso para `C13`..`C18`,
 - **THEN** es falso para las seis, y las afirmaciones de las Fases I y II conservan su clasificación previa.
 
 ### Requirement: Prueba de Signo Pareada de la Fase II-B
-Para cada afirmación de `PHASE25_CLAIMS`, el p-valor crudo SHALL ser el de una prueba de signo unilateral (`sign_test_p_value`) sobre las diferencias pareadas por semilla entre `full` y su comparación, descartando los empates.
+Para cada afirmación de `PHASE25_CLAIMS`, el p-valor crudo SHALL ser el de una prueba de signo unilateral (`sign_test_p_value`) sobre las diferencias pareadas por semilla entre `full` y su comparación, sólo en los pares válidos y descartando los empates.
 
 #### Scenario: Diferencias con empates
-- **WHEN** sobre 30 semillas hay 20 diferencias positivas, 5 negativas y 5 nulas
+- **WHEN** sobre 30 pares válidos hay 20 diferencias positivas, 5 negativas y 5 nulas
 - **THEN** el p-valor crudo es `pytest.approx(0.0020386576652526855, abs=1e-9)`, calculado con $n = 25$.
+
+### Requirement: Pares Válidos de la Fase II-B
+Un par (semilla) de una afirmación de `PHASE25_CLAIMS` SHALL ser válido si sus dos condiciones terminan con al menos una hoja activa (`final_active_agents >= 1`); los demás SHALL excluirse de la prueba de signo y de la mediana, y SHALL informarse en `excluded_pairs` (design precisión 45).
+
+#### Scenario: Extinción en una condición
+- **WHEN** en `C14` la condición `drift` de la semilla 50 termina sin hojas activas y las demás 29 semillas terminan con hojas activas en `full` y en `drift`
+- **THEN** la prueba de signo y la mediana usan 29 pares, y `excluded_pairs` informa el par de la semilla 50.
+
+### Requirement: Afirmación No Evaluable
+Si una afirmación de `PHASE25_CLAIMS` tiene menos de 20 pares válidos, SHALL quedar `NOT_OBSERVED` con `evaluable = False`, y SHALL seguir contando en la corrección de Holm con $m = 6$; con 20 o más, `evaluable` SHALL ser `True` (design D56 y precisión 45).
+
+#### Scenario: Demasiadas extinciones
+- **WHEN** `C18` tiene 19 pares válidos y una mediana de diferencias de 0.05
+- **THEN** su estado es `NOT_OBSERVED`, `evaluable == False` y la corrección de Holm de las demás se calcula con $m = 6$.
+
+#### Scenario: Pares suficientes
+- **WHEN** `C13` tiene 20 pares válidos
+- **THEN** `evaluable == True` y su estado lo deciden el p-valor ajustado y $\delta_{\min}$.
+
+### Requirement: Demografía de la Evaluación
+La `demography` de cada `Phase25ClaimEvaluation` SHALL contener, por semilla y condición, incluidos los pares excluidos, `final_agents`, `final_active_agents`, `max_generation`, `cumulative_births` y `cumulative_deaths`, que se informan siempre como covariables y no deciden el estado (design precisión 45).
+
+#### Scenario: Covariables siempre presentes
+- **WHEN** se evalúa `C16` con `PHASE25_SEEDS`
+- **THEN** su `demography` tiene, para cada una de las 30 semillas y para `full` y `drift`, esos cinco valores, también para los pares excluidos.
+
+### Requirement: Sesgos Residuales de la Reproducción Neutral
+La condición `drift` SHALL ser la reproducción neutral de `ablate(config, ["R12"])`, que no es deriva pura: SHALL conservar la selección por supervivencia (los donantes son los vivos al empezar la reproducción), la purga de plásmidos de $R_{27}$ y la escala de mutación de $R_{30}$, sesgos conservadores que se declaran en la documentación (design D56 y precisión 44).
+
+#### Scenario: Mecanismos conservados en drift
+- **WHEN** se compara la condición `drift` de `25a` con la `full`
+- **THEN** difieren sólo en `reproduction_mode == "neutral"`, y `enable_crispr_immunity` y `enable_sos_mutation` siguen en `True`.
 
 ### Requirement: Corrección de Holm–Bonferroni
 Los p-valores crudos de `C13`..`C18` SHALL corregirse por Holm–Bonferroni con $m = 6$ y $\alpha = 0.05$: ordenados de menor a mayor, el ajustado de la posición $i$ es $\max_{j \le i} \min(1, (m - j + 1)\, p_{(j)})$.

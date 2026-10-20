@@ -65,18 +65,22 @@ Los destinos `0x00`–`0x08` SHALL modular, con escalas $k$ de 0.40, 0.40, 0.35,
 - **THEN** el `alpha_learning` expresado vale `0.40 + 0.40 * 0.5 = 0.60` (con tolerancia `1e-9`).
 
 ### Requirement: Destinos de Rasgo de Compromiso, Recombinación y Comunicación
-Los destinos `0x0A`, `0x0B` y `0x0C` SHALL modular, como rasgos reales con escala $k = 0.50$, el compromiso simbiótico ($R_{31}$), la propensión a recombinar ($R_{38}$) y la propensión a comunicar ($R_{32}$), con bases `symbiotic_commitment_base`, `recombination_base` y `comm_propensity_base`, con la misma fórmula, el mismo recorrido y las mismas pasadas que los destinos `0x00`–`0x08` (design D46.7).
+Los destinos `0x0A`, `0x0B` y `0x0C` SHALL modular, como rasgos reales con escala $k = 0.60$, el compromiso simbiótico ($R_{31}$), la propensión a recombinar ($R_{38}$) y la propensión a comunicar ($R_{32}$), con bases `symbiotic_commitment_base`, `recombination_base` y `comm_propensity_base`, con la misma fórmula, el mismo recorrido y las mismas pasadas que los destinos `0x00`–`0x08` (design D46.7).
 
 #### Scenario: Codones sobre los rasgos de la reformulación
 - **WHEN** con `symbiotic_commitment_base = 0.0`, `recombination_base = 0.0` y `comm_propensity_base = 1.0` se transcribe el ADN fundador más `encode_codon(0x00, 0x0A, 0, 0, 64)`, `encode_codon(0x00, 0x0B, 0, 0, 32)` y `encode_codon(0x00, 0x0C, 0, 0, -64)`
-- **THEN** `symbiotic_commitment == 0.25`, `recombination_propensity == 0.125` y `comm_propensity == 0.75` (con tolerancia `1e-9`).
+- **THEN** `symbiotic_commitment == 0.30`, `recombination_propensity == 0.15` y `comm_propensity == 0.70` (con tolerancia `1e-9`).
+
+#### Scenario: Un solo codón alcanza el umbral de 0.5
+- **WHEN** con `recombination_base = 0.0` se transcribe el ADN fundador más `encode_codon(0x00, 0x0B, 0, 0, 108)` ($\delta = 0.84375$)
+- **THEN** `recombination_propensity == 0.50625` (con tolerancia `1e-9`), que es $\ge 0.5$, mientras que con $k = 0.50$ el máximo de un codón sería $0.5 \cdot 0.9921875 < 0.5$.
 
 ### Requirement: Cotas de los Rasgos Expresados
 La transcripción SHALL acotar $\alpha$ a $[0.01, 1]$; $\gamma$, $\epsilon$, $\omega_{\text{bond}}$ y los rasgos de `0x0A`–`0x0C` a $[0, 1]$; $C_{\max}$ a $[1, C^{\text{tope}}]$; los radios a $[1, r^{\text{tope}}]$; $T_{\max}$ a [`telomere_min_lifespan`, `telomere_max_lifespan`]; y $E_{\text{espora}}$ a [0, `reproduction_threshold`], con $C^{\text{tope}}$ y $r^{\text{tope}}$ iguales a las cotas de `mutate_genome` en la Fase II.
 
 #### Scenario: Saturación de la propensión a comunicar
 - **WHEN** con `comm_propensity_base = 1.0` se transcribe el ADN fundador más `encode_codon(0x00, 0x0C, 0, 0, 127)`
-- **THEN** $x = 1.0 + 0.50 \cdot 0.9921875 \approx 1.496$ y `comm_propensity` vale `1.0` (con tolerancia `1e-9`).
+- **THEN** $x = 1.0 + 0.60 \cdot 0.9921875 = 1.5953125$ y `comm_propensity` vale `1.0` (con tolerancia `1e-9`).
 
 #### Scenario: Saturación en la cota inferior
 - **WHEN** con `alpha_learning = 0.40` se transcribe el ADN fundador más tres codones `encode_codon(0x00, 0x00, 0, 0, -128)`

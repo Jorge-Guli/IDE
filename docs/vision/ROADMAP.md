@@ -76,8 +76,8 @@ flowchart LR
   - **Etapa A completa** (bloques 1 a 5): ADN compacto y expresión condicional ($R_{24}$, D30–D35), verificados contra la Fase II con las banderas por defecto.
   - **Reformulada el 2026-10-20** (design D43–D56), con la etapa A terminada. El plan original repetía el experimento de la Fase II a mayor costo: la conducta era código fijo, las capacidades se otorgaban por decreto, el entorno no tenía física entre agentes, el motor era monolítico y la medición sólo preguntaba si una hipótesis pasaba.
   - **Pre-registro D56 pendiente de aprobación** (tarea 0.5, antes del bloque 6). Sustituye al D42, aprobado el mismo día: sus afirmaciones C9–C12 se **retiraron sin medir**, porque eran programadas por construcción.
-- **Principio (D43):** *la regla da la capacidad y el ADN decide su uso.* Cada regla nueva o reformulada pone a disposición del agente una capacidad física o sensorial; ningún codón del ADN fundador la usa, salvo para reproducir la conducta de la Fase II. Lo que la población haga con ella lo produce la selección, y se mide contra la deriva neutral.
-- **Pregunta científica:** si, con conducta heredable y un entorno con escasez e interacciones, la regulación génica, la conducta, la comunicación, la actividad evolutiva y la cooperación material evolucionan por encima de la deriva.
+- **Principio (D43):** *la regla da la capacidad y el ADN decide su uso.* Cada regla nueva o reformulada pone a disposición del agente una capacidad física o sensorial; ningún codón del ADN fundador la usa, salvo para reproducir la conducta de la Fase II. Lo que la población haga con ella lo produce la selección, y se mide contra la reproducción neutral (que no es deriva pura: conserva sesgos residuales declarados y conservadores, precisión 44).
+- **Pregunta científica:** si, con conducta heredable y un entorno con escasez e interacciones, la regulación génica, la conducta, la comunicación, la actividad evolutiva y la cooperación material evolucionan por encima de la reproducción neutral.
 - **Lo que absorbe de fases posteriores:** la conducta evolucionable (antes, "políticas de decisión que reemplazan la heurística fija", Fase IV), la ecología con escasez e interacciones entre agentes (antes, parte de la "ecología abierta" de la Fase III) y el motor por sistemas.
 - **Mecanismos (inventario `R24`–`R38`):**
   1. **ADN compacto y expresión condicional ($R_{24}$, implementada):**
@@ -100,12 +100,12 @@ flowchart LR
      - **Recombinación ($R_{38}$):** cruce de cromosomas con una pareja vecina, si ambos lo expresan.
 - **Motor y medición:**
   - **Motor por sistemas y observadores** (D44) y **puerto de política** (D45), sin cambio de conducta: los hashes dorados y las huellas de la Fase II son el test de aceptación.
-  - **Métricas de evolución abierta** (D53): actividad evolutiva de Bedau–Packard, divergencia de la conducta respecto del fundador, fracción de expresión regulada, codones funcionales y telemetría ecológica.
-  - **Compuerta de viabilidad** (D55) antes de cualquier afirmación, sólo demográfica y sobre una grilla declarada de `(resources_per_pattern, resource_regen_delay)`.
+  - **Métricas de evolución abierta** (D53): actividad evolutiva de Bedau–Packard, divergencia de la conducta respecto del fundador, fracción de expresión regulada (sólo promotores condicionales en el protocolo), codones funcionales activos distintos, actividad por nacimiento y telemetría ecológica.
+  - **Compuerta de viabilidad** (D55) antes de cualquier afirmación, sólo demográfica y sobre una grilla declarada de `(resources_per_pattern, resource_regen_delay)`, recorrida de menos a más abundancia.
 - **Protocolos y afirmaciones propuestos (borrador D56):**
-  - `25a` (ecología individual), `25b` (ecología holónica) y `25c` (comunicación desde cero), con las condiciones `full`, `drift`, `no_predation` (sólo `25a`) y `null_content`;
+  - `25a` (ecología individual), `25b` (ecología holónica) y `25c` (comunicación desde cero), con las condiciones `full`, `drift` (reproducción neutral, también holónica con ADN), `no_predation` (sólo `25a`) y `null_content`;
   - C13–C18: la regulación génica, la conducta, la comunicación desde cero, la actividad evolutiva, la complejidad genética bajo depredación y la cooperación material en los holones. Son **pruebas genuinas**: ninguna regla persigue la métrica.
-  - Perfil `phase25` de 5000 ticks, 30 semillas (42–71), prueba de signo con corrección de Holm y tamaño de efecto mínimo.
+  - Perfil `phase25` de 5000 ticks, 30 semillas (42–71), prueba de signo sobre los pares válidos (sin extinciones; con menos de 20, la afirmación no es evaluable) con corrección de Holm y tamaño de efecto mínimo, y la demografía como covariable.
 
 ---
 
@@ -121,7 +121,7 @@ En la Fase II-B, el ADN expresa **impulsos** sobre un repertorio fijo de conduct
 
 - **Política como programa.** Se implementa como una política más detrás del `PolicyPort` de la Fase II-B, con un presupuesto de instrucciones por tick que cobra el metabolismo.
 - **Compatibilidad.** La política genética de impulsos sigue disponible como caso particular, y un programa fundador debe reproducir su conducta, igual que el ADN fundador de la Fase II-B reproduce la política escrita a mano.
-- **Atribución.** Las instrucciones del lenguaje son reglas de diseño con propósito y ablación; lo que la población compute con ellas se mide contra la deriva neutral, con el mismo criterio de la Fase II-B.
+- **Atribución.** Las instrucciones del lenguaje son reglas de diseño con propósito y ablación; lo que la población compute con ellas se mide contra la reproducción neutral, con el mismo criterio de la Fase II-B.
 - **Aislamiento.** La máquina virtual vive en `src/ide/agent/` y cumple sus invariantes: no ve coordenadas ni `true_value` y no construye `Message`.
 
 ## 3.1. Inmortalidad y Persistencia Transaccional (*Crash-Proofing* y Portabilidad)
