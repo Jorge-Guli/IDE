@@ -861,7 +861,7 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
 ### Decisión 55: Compuerta de Viabilidad (antes de cualquier afirmación)
 1. **Qué mide.** Sólo demografía: si la corrida termina con población viva y la generación máxima. No calcula ninguna métrica de afirmación.
 2. **Semillas.** `PHASE25_VIABILITY_SEEDS = tuple(range(0, 10))`, disjuntas de `PHASE25_SEEDS`.
-3. **Criterio.** Una corrida es viable si termina con al menos una hoja viva y `max_generation >= 20`. Una configuración es viable si, para **cada** protocolo de D56 y **cada** una de sus condiciones (incluida `null_content`), al menos 8 de las 10 semillas son viables.
+3. **Criterio.** Cada corrida dura el perfil `phase25` (5000 ticks). Una corrida es viable si termina con al menos una hoja viva **que no esté en endospora** y `max_generation >= 20`. Una configuración es viable si, para **cada** protocolo de D56 y **cada** una de sus condiciones `full`, `drift` y `no_predation`, al menos 8 de las 10 semillas son viables. La condición `null_content` se corre y se registra, pero **no** decide la viabilidad: sólo decide si E4 es interpretable (D56).
 4. **Grilla declarada**, en orden de preferencia (menos abundancia primero), sobre `(resources_per_pattern, resource_regen_delay)`: `(20, 10)`, `(20, 20)`, `(30, 10)`, `(30, 20)`, `(40, 20)` y `(40, 40)`. Se elige la **primera** viable, y se detiene al encontrarla.
 5. **Sin viables.** Si ninguna lo es, se reporta como resultado y decide el responsable del proyecto. No se prueba nada fuera de la grilla sin una enmienda.
 6. **Registro.** La salida completa va a `registros/` y a `docs/RESULTADOS.md` antes de la prueba de humo.
@@ -917,7 +917,7 @@ Esta decisión es **pre-registro**. Se aprueba antes de implementar los bloques 
 - **Prueba.** Prueba de signo unilateral sobre las diferencias pareadas por semilla, descartando empates.
 - **Corrección.** Holm–Bonferroni sobre `C13`–`C18` con $\alpha = 0.05$.
 - **Estado.** `OBSERVED` si el p-valor ajustado es menor que $\alpha$ **y** la mediana de las diferencias pareadas es al menos $\delta_{\min}$; `NOT_OBSERVED` en otro caso. Se informan siempre el p-valor crudo, el ajustado, la mediana y la demografía.
-- **E4.** Se informa contra `null_content` sólo si esa condición pasó la compuerta de viabilidad; si no, es no interpretable de antemano.
+- **E4.** Se informa contra `null_content`. Es interpretable en un protocolo sólo si, con la configuración elegida por la compuerta, su condición `null_content` fue viable en al menos 8 de las 10 semillas de viabilidad; si no, se declara no interpretable sin mirar la métrica.
 - **Efectos de regla.** `rule_effects` (una variante por regla de `PHASE25_ALL_RULES`, salvo las inactivas del protocolo) son **exploratorios**: se miden sólo con las semillas 42–51 y no entran en la corrección de Holm.
 
 **Perfil.**
@@ -926,6 +926,26 @@ Esta decisión es **pre-registro**. Se aprueba antes de implementar los bloques 
 - `PHASE2_SEEDS` no cambia.
 
 **Prueba de humo.** Después de la compuerta y antes de los runners. Registra, por protocolo, condición y semilla, sólo la terminación, la generación máxima y la población final, sin calcular ni mirar las métricas de las afirmaciones.
+
+
+### Precisiones de la reformulación (2026-10-20, surgidas de la redacción de los specs)
+Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador que se aprueba en la tarea 0.5.
+1. **Estado `OBSERVED`.** `ClaimStatus` agrega el miembro `OBSERVED = "OBSERVED"`, que sólo usan las afirmaciones de D56. Los estados de las Fases I y II no cambian.
+2. **Reglas inactivas (`PHASE25_INACTIVE_RULES`).** `"25a"` y `"25c"`: `R14`–`R19`, `R22`, `R23`, `R25` y `R31` (sin herencia cultural, holones ni estigmergia, como `002a`). `"25b"`: `R14`, `R18` y `R19`, como `003a`. Un test las contrasta con las configuraciones.
+3. **Tipos y función de la atribución.**
+   - `Phase25Claim` (`frozen`): `claim_id`, `statement`, `protocol`, `metric`, `comparison` (`"drift"` o `"no_predation"`), `rule_ids`, `channel` y `delta_min`.
+   - `Phase25ClaimEvaluation` (`frozen`): `claim_id`, `status`, `p_value`, `p_adjusted`, `median_difference`, `values`, `comparison_values`, `demography`, `e4_p_value` y `e4_interpretable`.
+   - `Phase25Report` (`frozen`): `profile = "phase25"`, `rules = PHASE25_ALL_RULES`, `evaluations` y `rule_effects` (exploratorios).
+   - `run_phase25_attribution(seeds=PHASE25_SEEDS, claims=PHASE25_CLAIMS, jobs=1, configs=None, rule_effect_seeds=PHASE25_RULE_EFFECT_SEEDS) -> Phase25Report`, con `PHASE25_RULE_EFFECT_SEEDS = tuple(range(42, 52))` y `PROFILES["phase25"]`.
+4. **Ventana final.** Son los últimos `max(1, math.ceil(0.1 * total_ticks))` ticks.
+5. **Denominadores.** Las "decisiones del tick" son las de las hojas vivas que no estaban en endospora en la Fase 3, incluidas las que terminan en `IDLE`.
+   - `policy_divergence` y `share_rate` valen 0.0 sin decisiones; `policy_divergence` sólo cuenta las tomadas con la política genética.
+   - En `regulated_expression_fraction`, una hoja sin codones activos aporta 0.0.
+6. **Actividad de Bedau–Packard.** Un codón "cruza" el umbral en el tick $t$ si $a_c(t-1) < $ `activity_threshold` $\le a_c(t)$. Una hoja aporta 1 por codón distinto que porta, aunque lo porte en el cromosoma y en un plásmido, o varias veces.
+7. **`GeneticTickMetrics`.** Conserva todos los campos de D41, incluido `locked_holons`, y agrega los de D53.2.
+8. **Resumen del runner.** Por condición: `final_accuracy`, `final_agents`, `final_active_agents`, `max_generation` y el último registro de `genetic_history` y de `ecology_history`. La CLI usa por defecto `PHASE25_SEEDS`.
+9. **Control nulo.** `null_content` aleatoriza el contenido de las creencias en todos los canales epistémicos, como en la Fase II (mensajes, estigmergia, herencia cultural y vista del holón). No altera el ADN, los plásmidos, la política ni la puerta de comunicación.
+10. **Benchmark.** El criterio del 10 % de D54.2 se aplica a las dos variantes, con y sin `--compact-dna`.
 
 ---
 
