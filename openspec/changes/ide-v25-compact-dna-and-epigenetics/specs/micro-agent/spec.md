@@ -83,3 +83,16 @@ El hijo SHALL heredar `plasmids` y `crispr_memory` dentro del ADN mutado, y SHAL
 #### Scenario: Ensayos no heredados
 - **WHEN** un progenitor con `plasmids = (11,)`, `crispr_memory = (13,)` y un ensayo CRISPR abierto sobre el codón `11` se reproduce sin mutaciones
 - **THEN** el hijo tiene `plasmids == (11,)`, `crispr_memory == (13,)` y ningún ensayo abierto.
+
+## MODIFIED Requirements
+
+### Requirement: Creación de Descendiente con Herencia Genética
+`MicroAgent.create_offspring(child_id, tick, rng, genome_source=None, dna_source=None, mutation_scale=1.0) -> MicroAgent` SHALL particionar la energía con `offspring_energy_share`, asignar `generation + 1` y `parent_id = self.agent_id` y, sin ADN, mutar con `mutate_genome` el genoma de `genome_source` o, si es `None`, el propio; con ADN, sigue "Descendencia con ADN y Escala de Mutación"; no transfiere creencias: la herencia cultural la entrega el motor por `assimilate_testimony`.
+
+#### Scenario: Creación de descendiente con conservación de energía
+- **WHEN** un `MicroAgent` con `energy = 2.0` y `generation = 1` invoca `create_offspring(child_id=99, tick=25, rng=rng)` con `offspring_energy_share = 0.5`
+- **THEN** el progenitor queda con `energy == 1.0` y el hijo retornado tiene `agent_id == 99`, `parent_id == parent.agent_id`, `generation == 2`, `energy == 1.0` y `len(child.memory) == 0`.
+
+#### Scenario: Firma extendida con valores por defecto neutros
+- **WHEN** se inspecciona `MicroAgent.create_offspring` con `inspect.signature`
+- **THEN** sus parámetros, en orden, son `child_id`, `tick`, `rng`, `genome_source=None`, `dna_source=None` y `mutation_scale=1.0`.

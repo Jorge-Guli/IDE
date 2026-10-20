@@ -64,18 +64,22 @@ Para cada donante en orden, `_conjugate` SHALL extraer `u = float(hgt_rng.random
 - **THEN** sólo se extrae su `u` y no se registra transferencia.
 
 ### Requirement: Aplicación de las Transferencias de Plásmidos
-Después de sortear todas las transferencias, el motor SHALL aplicarlas en el orden registrado con `receive_plasmid`, guardar con `set_dna` el ADN que cambió y, con $R_{27}$ activa, abrir en el receptor el ensayo `trials[codón] = (tick, energía actual)`; un `None` de `receive_plasmid` bloquea la transferencia y cuenta como rechazo.
+Después de sortear todas las transferencias, el motor SHALL aplicarlas con `receive_plasmid` en el orden de `hgt_rng.permutation(len(transferencias))` sobre la lista registrada si hay dos o más, guardar con `set_dna` el ADN que cambió y, con $R_{27}$ activa, abrir en el receptor el ensayo `trials[codón] = (tick, energía actual)`; un `None` de `receive_plasmid` bloquea la transferencia y cuenta como rechazo.
 
 #### Scenario: Transferencia aplicada con ensayo
 - **WHEN** con $R_{26}$ y $R_{27}$ activas el agente 2, con `energy = 1.4`, recibe en el tick 30 un codón que no tiene
 - **THEN** el codón queda al final de sus `plasmids` y se abre el ensayo `trials[codón] = (30, 1.4)`.
+
+#### Scenario: Conflicto de llegada resuelto por sorteo
+- **WHEN** con `max_plasmids = 1` dos donantes registran transferencias de codones distintos al mismo receptor sin plásmidos
+- **THEN** el motor extrae `hgt_rng.permutation(2)` después de sortear todas las transferencias, las aplica en ese orden, y el receptor queda con el codón de la transferencia aplicada en último lugar.
 
 #### Scenario: Transferencia bloqueada
 - **WHEN** con $R_{27}$ activa el codón transferido está en `crispr_memory` del receptor
 - **THEN** el ADN del receptor no cambia, no se abre ensayo y se cuenta un rechazo CRISPR del tick.
 
 ### Requirement: Ensayo CRISPR (R27)
-Con `enable_crispr_immunity` activa, después de la conjugación, para cada agente en orden de `agent_id` y cada ensayo en orden de codón, un ensayo vencido (`tick - t0 >= crispr_eval_ticks`) SHALL purgar el codón con `purge_plasmid` si sigue en `plasmids` y `energy - e0 < -crispr_toxicity_threshold`, y SHALL cerrarse en cualquier caso; si el plásmido se perdió antes, se cierra sin purga.
+Con `enable_crispr_immunity` activa, después de la conjugación, para cada agente en orden de `agent_id` y cada ensayo en orden de codón, un ensayo vencido (`tick - t0 >= crispr_eval_ticks`) SHALL purgar el codón con `purge_plasmid` si sigue en `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold` (`cedida`: energía dada a hijos en la ventana), y SHALL cerrarse siempre; un plásmido perdido por FIFO se cierra al vencer, sin purga.
 
 #### Scenario: Plásmido tóxico purgado
 - **WHEN** con `crispr_eval_ticks = 20` y `crispr_toxicity_threshold = 0.20` un ensayo abierto en el tick 30 con `e0 = 1.4` llega al tick 50 con `energy = 1.1` y el codón en `plasmids`
@@ -84,6 +88,10 @@ Con `enable_crispr_immunity` activa, después de la conjugación, para cada agen
 #### Scenario: Plásmido inocuo
 - **WHEN** el mismo ensayo llega al tick 50 con `energy = 1.3`
 - **THEN** el codón sigue en `plasmids` y el ensayo se cierra sin purga.
+
+#### Scenario: La reproducción no cuenta como toxicidad
+- **WHEN** el mismo ensayo llega al tick 50 con `energy = 1.1` después de que el agente cediera `1.2` de energía a un hijo dentro de la ventana
+- **THEN** el balance es `1.1 - 1.4 + 1.2 = 0.9`, el codón sigue en `plasmids` y el ensayo se cierra sin purga.
 
 ### Requirement: Plásmidos sin Contenido Epistémico
 La conjugación SHALL transportar sólo codones y SHALL NOT pasar por `assimilate_testimony` ni por el control nulo de contenido; el control nulo de E4 no altera los plásmidos.
@@ -105,3 +113,46 @@ Con `enable_compact_dna=True` y las reglas de la Fase II-B activas, los historia
 #### Scenario: Igualdad entre procesos
 - **WHEN** se ejecuta la misma configuración de `003c` con la misma semilla en dos procesos con `PYTHONHASHSEED=0` y `PYTHONHASHSEED=123`
 - **THEN** `history`, `evolutionary_history` y `genetic_history` son idénticos.
+
+## MODIFIED Requirements
+
+### Requirement: Orden de Fases del Tick
+`step()` SHALL ejecutar el tick `next_tick` en este orden y luego incrementarlo: (0) sólo con `enable_compact_dna=True`, la expresión de "Fase 0 de Expresión del Fenotipo"; (1) observación y emisión; (2) intercambio social en dos pasadas; (3) decisión de todos los agentes; (4) ejecución y aprendizaje directo; (5) decaimiento, `step_dynamics` y registro de `TickMetrics`. Con $R_{28}$, las endosporas siguen en (1) a (3) lo que fijan "Germinación de la Endospora" y "Física de la Endospora".
+
+#### Scenario: Decisiones sobre la misma instantánea
+- **WHEN** dos agentes de la misma celda observan el mismo recurso benéfico
+- **THEN** ambos deciden a partir de la observación de la fase 1, aunque el primero lo consuma en la fase 4.
+
+#### Scenario: Sin Fase 0 con las banderas por defecto
+- **WHEN** se ejecuta un tick con `enable_compact_dna=False`
+- **THEN** no se invoca `_express_phenotypes` y el tick empieza por la observación de la fase 1, como en la Fase II.
+
+#### Scenario: Fase 0 antes de la observación
+- **WHEN** con `enable_compact_dna=True` un agente cambia su `perception_radius` expresado de 2 a 3 en la Fase 0 del tick
+- **THEN** su observación de la fase 1 de ese mismo tick se calcula con `perception_radius = 3`.
+
+### Requirement: Intercambio Social en Dos Pasadas
+Con `comm_enabled`, el motor SHALL entregar cada mensaje emitido a los `neighbor_ids` de la observación de la fase 1 del emisor (o sólo a `recipient_id` si figura entre ellos), recolectar los `QUERY_RESPONSE` de la primera pasada y entregarlos en una segunda pasada antes de la fase de decisión; con $R_{28}$ activa, una endospora no emite ni recibe en ninguna pasada, según "Física de la Endospora".
+
+#### Scenario: Consulta resuelta en el mismo tick
+- **WHEN** el agente 1 consulta por $\rho_5$ y su vecino 2 lo conoce como dañino con `c = 0.85`
+- **THEN** en la fase de decisión del mismo tick el agente 1 ya tiene una creencia efectiva sobre $\rho_5$.
+
+#### Scenario: Ruteo con los vecinos de la observación
+- **WHEN** un entorno de prueba devuelve en cada observación `neighbor_ids == (0,)`, salvo para el agente 0, que recibe `(1,)`, distintos de los vecinos reales
+- **THEN** en la primera pasada sólo los agentes 0 y 1 reciben mensajes, y el agente 0 recibe los de los demás emisores.
+
+#### Scenario: Endospora excluida del ruteo
+- **WHEN** con $R_{28}$ activa el agente 3, endospora que no germina en el tick, figura en los `neighbor_ids` del agente 1, que emite un `BROADCAST_BELIEF`
+- **THEN** el agente 3 no recibe ese mensaje en ninguna de las dos pasadas, y los demás vecinos del agente 1 sí lo reciben.
+
+### Requirement: Ciclo Metabólico, Reproductivo y Holónico en Fase 5 y Poda en Perturbaciones
+En la Fase 5 de `step()`, el motor SHALL ejecutar en orden determinista: (a) coordinación ($R_{23}$), `SPLIT` ($R_{16}$) y `BOND` ($R_{15}$), (b) metabolismo, muerte (poda con `prune_dead_leaves`) y reproducción ($R_{17}$, $R_{12}$), (c) $R_{18}$ sobre el bosque resultante, todo entre `decay_memory` y `env.step_dynamics`; y (d) tras `step_dynamics`, registro en `evolutionary_history`. La Fase II-B intercala sus pasos según "Orden de la Fase 5 con la Fase II-B".
+
+#### Scenario: Sucesión generacional y formación de holones en una corrida evolutiva
+- **WHEN** se ejecuta `SimulationEngine` con `enable_evolution=True`, `enable_cultural_inheritance=True` y `enable_holonic_hierarchy=True` durante 100 ticks en un entorno con recursos abundantes
+- **THEN** `len(engine.evolutionary_history) == 100`, la población se mantiene `<= max_population` y se registran nacimientos (`births_this_tick > 0`) con `max_generation >= 1`.
+
+#### Scenario: Pasos de la Fase II-B intercalados
+- **WHEN** se ejecuta un tick con `enable_compact_dna`, `enable_plasmid_hgt`, `enable_epigenetic_roles` y `enable_holonic_hierarchy` activas
+- **THEN** la conjugación ocurre después de la reproducción y antes de $R_{18}$, y la asignación de roles después de $R_{18}$ y antes de `env.step_dynamics`.

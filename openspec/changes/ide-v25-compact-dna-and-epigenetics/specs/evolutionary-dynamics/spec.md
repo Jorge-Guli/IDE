@@ -90,3 +90,61 @@ Una endospora SHALL pagar por tick `spore_cost_fraction * metabolic_base_cost`, 
 #### Scenario: Gasto reducido en endospora
 - **WHEN** con `metabolic_base_cost = 0.01`, `spore_cost_fraction = 0.05`, $R_{29}$ apagada y `enable_compact_dna=True` una endospora con 12 codones atraviesa un tick
 - **THEN** su energía baja exactamente `0.0005` (con tolerancia `1e-9`).
+
+## MODIFIED Requirements
+
+### Requirement: Metabolismo Energético con Penalización Cuadrática de Capacidad y Radios
+Cuando `enable_evolution=True`, cada `MicroAgent` SHALL iniciar con energía `initial_energy` ($E_0$), descontar por tick el costo basal $c_{\text{fijo}} + c_{\text{mem}} C_{\max, i}^2 + c_{\text{sens}}(r_{\text{perc}, i}^2 + r_{\text{com}, i}^2)$ más $c_{\text{move}}$ (si se movió) y $c_{\text{msg}} m_i$, y sumar $\eta_E \cdot v$ al consumir un recurso de valor $v$; el costo basal suma el del ADN ($R_{24}$) y la senescencia ($R_{29}$), y una endospora ($R_{28}$) paga en su lugar su costo.
+
+#### Scenario: Penalización cuadrática del cerebro individual
+- **WHEN** dos agentes en reposo y sin emitir mensajes tienen capacidades $C_{\max} = 3$ y $C_{\max} = 6$ respectivamente, con `metabolic_base_cost = 0.02`, `memory_capacity_cost = 0.005` y `sensory_radius_cost = 0.0`
+- **THEN** tras un tick el primero pierde `0.02 + 0.005 * 9 = 0.065` de energía y el segundo pierde `0.02 + 0.005 * 36 = 0.200` de energía (con tolerancia `1e-9`).
+
+#### Scenario: Ganancia y pérdida por interacción con recursos
+- **WHEN** un agente con energía `1.0` consume un recurso benéfico de valor `+1.0` con `energy_gain_scale = 0.5`
+- **THEN** antes del descuento basal su energía aumenta a `1.5`, y si consume uno dañino de valor `-1.0` disminuye a `0.5`.
+
+#### Scenario: Costo basal con ADN y senescencia
+- **WHEN** con `metabolic_base_cost = 0.01`, `memory_capacity_cost = 0.005`, `sensory_radius_cost = 0.0`, `dna_codon_cost = 0.0002` y `senescence_cost_rate = 1e-5`, un agente en reposo y sin mensajes, con 9 codones, `memory_capacity = 3` expresada y `age - lifespan = 10`, paga el metabolismo con $R_{24}$ y $R_{29}$ activas
+- **THEN** pierde `0.01 + 0.045 + 0.0018 + 0.001 = 0.0578` de energía (con tolerancia `1e-9`).
+
+### Requirement: Reproducción Diferencial con Partición Conservativa y Límite de Un Evento por Tick (R12)
+En la Fase 5 con `enable_evolution=True`, todo `MicroAgent` sobreviviente no reproducido aún en ese tick y que no esté en endospora ($R_{28}$) cuya energía cumpla $E_i(t) \ge E_{\text{reprod}}$ SHALL engendrar a lo sumo un hijo (en orden ascendente de `agent_id`) si `len(agents) < max_population`, reteniendo $(1 - \kappa_{\text{part}}) E_i(t)$ y transfiriendo $\kappa_{\text{part}} E_i(t)$ al hijo.
+
+#### Scenario: Partición exacta de energía y linaje
+- **WHEN** el agente 4 con generación `g = 2` alcanza energía `2.4` con `reproduction_threshold = 2.0`, `offspring_energy_share = 0.5` y hay cupo bajo `max_population`
+- **THEN** nace un nuevo agente con `parent_id == 4`, `generation == 3`, `energy == 1.2`, y el agente 4 queda con `energy == 1.2` (con tolerancia `1e-9`), conservando la suma total `2.4`.
+
+#### Scenario: Respeto estricto de la capacidad de carga
+- **WHEN** la población activa ya tiene `len(engine.agents) == max_population` y un agente supera `reproduction_threshold`
+- **THEN** no nace ningún descendiente y el agente conserva su energía íntegra.
+
+#### Scenario: Una endospora no se reproduce
+- **WHEN** con $R_{28}$ activa una endospora llega a la reproducción con energía `2.4`, `reproduction_threshold = 2.0` y cupo bajo `max_population`
+- **THEN** no nace ningún descendiente suyo y su energía no se parte.
+
+### Requirement: Reproducción Neutral como Ablación de R12 y Control de Deriva
+Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL reproducirse con la misma partición de energía, ubicación, linaje y herencia cultural, pero el genoma de cada hijo (su ADN, con `enable_compact_dna=True`) SHALL mutarse a partir del de un donante sorteado con `donor_rng` (`spawn_key=(4,)`) entre los agentes vivos que no están en endospora al empezar la reproducción del tick.
+
+#### Scenario: Misma demografía, genoma independiente del éxito
+- **WHEN** se corren dos motores con la misma semilla y `reproduction_mode` `"energy"` y `"neutral"`, con `mutation_rate = 0`, `discrete_mutation_prob = 0` y genomas fundadores distintos
+- **THEN** en el primer tick con nacimientos las dos corridas tienen los mismos `parent_id`, energías y posiciones de los hijos, y en `"neutral"` el genoma de cada hijo es el de su donante sorteado, no necesariamente el de su progenitor.
+
+#### Scenario: Endosporas fuera del sorteo de donantes
+- **WHEN** con $R_{28}$ activa y `reproduction_mode="neutral"` los agentes vivos al empezar la reproducción son 1, 2 y 3, y el agente 2 está en endospora
+- **THEN** el donante se sortea con `donor_rng` sobre la lista ordenada `[1, 3]`.
+
+### Requirement: Herencia Genética con Mutación Acotada (R13)
+Al reproducirse un agente sin ADN con `mutation_rate > 0` o `discrete_mutation_prob > 0` (escalados por $R_{30}$), el `AgentGenome` del hijo SHALL derivarse del parental aplicando ruido normal $\mathcal{N}(0, \sigma_{\text{mut}}^2)$ a los rasgos continuos y saltos en $\{-1, 0, +1\}$ a los discretos dentro de sus cotas válidas; si ambos son `0.0`, SHALL clonarse sin consumir extracciones del RNG. Con ADN, el hijo SHALL derivar su ADN con `mutate_dna`, con la misma puerta de $R_{13}$.
+
+#### Scenario: Clonación exacta bajo ablación de mutación
+- **WHEN** un agente sin ADN se reproduce con `mutation_rate = 0.0` y `discrete_mutation_prob = 0.0`
+- **THEN** `child.genome == parent.genome`.
+
+#### Scenario: Mutación acotada dentro de invariantes de dominio
+- **WHEN** se muta repetidamente un `AgentGenome` durante 500 eventos reproductivos con `mutation_rate = 0.2` y `discrete_mutation_prob = 0.5`
+- **THEN** todos los coeficientes continuos permanecen en `[0.0, 1.0]` (`alpha_learning` en `[0.01, 1.0]`), `memory_capacity` permanece en `[1, max_genome_memory_capacity]` y además `< num_world_patterns` cuando `enforce_memory_constraint=True`, y los radios permanecen en `[1, (min(grid_width, grid_height) - 1) // 2]` (o con el valor parental si ese intervalo es vacío), de modo que `SimulationConfig` acepta el genoma del hijo.
+
+#### Scenario: ADN congelado bajo ablación de mutación
+- **WHEN** con `enable_compact_dna=True`, `mutation_rate = 0.0` y `discrete_mutation_prob = 0.0` un agente se reproduce
+- **THEN** `child.dna == parent.dna` y la mutación no consume extracciones de `evo_rng`.
