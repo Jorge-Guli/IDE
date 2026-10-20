@@ -70,6 +70,11 @@ Delegar en subagentes (herramienta `Agent`) está **habilitado, sin preguntar**,
   - Ningún subagente decide sobre el pre-registro ni sobre cambios de diseño no obvios: los informa, y la decisión se consulta como indica la revisión automática.
   - Dos subagentes en paralelo no editan los mismos archivos. Si hace falta aislarlos, usa `isolation: "worktree"`.
   - No repitas una búsqueda que ya delegaste: espera su resultado.
+- **Ejecución de bloques (automatizada).** Los bloques de `tasks.md` se ejecutan con la skill de proyecto `ejecutar-bloque` (`.claude/skills/ejecutar-bloque/`):
+  - **Uso:** `/ejecutar-bloque N`, `/ejecutar-bloque N-M` o `/ejecutar-bloque --etapa X`.
+  - **Delegación.** Delega cada bloque en el subagente de su línea `> Ejecuta:`. Los subagentes están en `.claude/agents/` y fijan su modelo en el encabezado: `implementador-mecanico` usa Sonnet, para bloques con firmas y fórmulas exactas; `implementador-delicado` usa Opus, para integración, determinismo y atribución.
+  - **Verificación.** El agente principal verifica, corre `/code-review` (con el modelo de la sesión), commitea un bloque por commit y se detiene en cada línea `> Punto de control:`.
+  - **Cambios de reparto.** Cambiar el subagente o el modelo de un bloque es editar su anotación en `tasks.md`, o la definición en `.claude/agents/`, en un commit.
 
 ## Reglas de arquitectura (invariantes)
 
