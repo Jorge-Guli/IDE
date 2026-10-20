@@ -643,7 +643,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
    | `0x41` | `EXPLORE` | `INTERACT` sobre el recurso alcanzable desconocido de menor `resource_id` | existe alguno **y** `rng.random() < epsilon_explore` expresado; la extracción ocurre sólo si existe alguno |
    | `0x42` | `NAVIGATE` | `MOVE` con el `recommended_move` del objetivo conocido benéfico no alcanzable más cercano (desempate por `resource_id`) | `enable_navigation` y existe alguno |
    | `0x43` | `WANDER` | `MOVE` a `available_moves[int(rng.integers(len(available_moves)))]` | hay movimientos disponibles |
-   | `0x44` | `SHARE` | `SHARE` sobre `social.weakest_adjacent` | $R_{36}$ activa y `social.adjacent` no vacío |
+   | `0x44` | `SHARE` | `SHARE` sobre `social.weakest_adjacent` | $R_{36}$ activa, `social.adjacent` no vacío y energía propia $> 0$ |
    | `0x45` | `ATTACK` | `ATTACK` sobre `social.weakest_adjacent` | $R_{37}$ activa y `social.weaker_adjacent` |
    | `0x46` | `FLEE` | `MOVE` con `social.flee_move` | `social.flee_move is not None` |
    | `0x47` | `SPORULATE` | `SPORULATE` | $R_{28}$ activa y `energy <= phenotype.spore_threshold` |
@@ -759,7 +759,7 @@ Se ejecutan en la Fase 4, en el orden de la permutación del tick, junto con las
    - con éxito, `stolen = min(attack_power, max(0, energía_del_objetivo))`: el objetivo pierde `stolen` y el atacante gana `predation_efficiency * stolen`.
    - Un objetivo que queda con energía $\le 0$ muere en el paso de muerte de la Fase 5, y con $R_{35}$ deja un cadáver.
 3. **`SPORULATE`.** Pone al agente en endospora al ejecutarse (D50.2).
-4. **Sin efecto en M2.** Estas acciones no son oportunidades de decisión de M2: M2 sigue juzgando sólo las decisiones con recursos elementales alcanzables, como hoy.
+4. **M2.** M2 sigue juzgando las decisiones con recursos elementales alcanzables, como hoy, cualquiera sea la conducta elegida (precisión 21).
 5. **Cotas.** `share_efficiency <= 1` y `predation_efficiency <= 1`: ninguna interacción crea energía.
 
 ### Decisión 50: Reformulación de R25, R28 y R31
@@ -946,6 +946,21 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
 8. **Resumen del runner.** Por condición: `final_accuracy`, `final_agents`, `final_active_agents`, `max_generation` y el último registro de `genetic_history` y de `ecology_history`. La CLI usa por defecto `PHASE25_SEEDS`.
 9. **Control nulo.** `null_content` aleatoriza el contenido de las creencias en todos los canales epistémicos, como en la Fase II (mensajes, estigmergia, herencia cultural y vista del holón). No altera el ADN, los plásmidos, la política ni la puerta de comunicación.
 10. **Benchmark.** El criterio del 10 % de D54.2 se aplica a las dos variantes, con y sin `--compact-dna`.
+11. **Donante sin energía (D49.1).** `SHARE` es factible sólo si la energía del agente es estrictamente positiva. Al ejecutarse, si la energía del donante es $\le 0$, no ocurre nada.
+12. **"Sigue vivo" en la Fase 4 (D49).** Nadie muere en la Fase 4: "sigue vivo" quiere decir "sigue en `engine.agents`". Un objetivo con energía $\le 0$ puede ser atacado, y rinde `stolen = 0`.
+13. **Parejas de la recombinación (D51.1).** El progenitor no es candidato de sí mismo. Las candidatas se fijan al empezar el paso de reproducción, entre las hojas vivas en ese momento: los nacidos en el mismo paso no cuentan.
+14. **Recombinación en la deriva (D51 y D34.7).** Con la reproducción neutral, el primer cromosoma del cruce es el ADN del donante sorteado con `donor_rng`. La búsqueda de pareja y la propensión son las del agente que se reproduce. El orden de extracciones es: el donante con `donor_rng`, el cruce con `evo_rng` (D51.2) y la mutación con `evo_rng`. Así, `drift` sólo quita la selección y conserva la recombinación.
+15. **Índice del patrón (D48.2).** Es el $i$ del nombre `p_i` con que el entorno crea el patrón, no su posición en el orden de `Pattern`.
+16. **Estación del retardo (D48.2).** Es la del tick en que se consume el recurso, cuando se agenda su `due`.
+17. **Cadáveres (D48.3).**
+    - Reciben `resource_id` del contador monótono del entorno.
+    - Varios cadáveres del mismo tick se depositan en orden de `agent_id`.
+    - Las perturbaciones (`ablate_population` y `ablate_discoverers`) no dejan cadáver: sólo el hambre y la depredación.
+    - Comer un cadáver sigue el camino de cualquier recurso elemental: suma a `direct_discoverers` y, con $R_{19}$, deposita estigmergia.
+18. **`get_resource_count` (D47.2).** Cuenta todos los recursos presentes en el tablero, incluidos los compuestos y los cadáveres.
+19. **Momento del sello (D50.3 y D53.1).** El sello de $R_{31}$ se aplica en el paso de coordinación **antes** de cobrar el costo de coordinación y de evaluar `SPLIT`, como en D40: el descuento y la protección rigen desde ese mismo tick.
+20. **Nombres de los eventos (D44.1).** Las claves de `frame.events` son los nombres de los campos contadores de `EcologyTickMetrics` (D53.3). Los nombres de los sistemas los fija la implementación y no son contrato.
+21. **M2 con las conductas nuevas (D49.4).** M2 juzga **decisiones**, no acciones: si un agente tiene recursos elementales alcanzables y elige `FLEE`, `SHARE`, `ATTACK` o `SPORULATE`, la decisión cuenta como oportunidad y `judge_decision` la juzga como hoy (no es un `INTERACT` sobre el mejor recurso). Los cadáveres son recursos elementales alcanzables y entran en el oráculo de M2.
 
 ---
 
