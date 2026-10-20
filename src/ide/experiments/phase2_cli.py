@@ -218,6 +218,12 @@ def _main_attribution(
     def fmt(p: float | None) -> str:
         return "—" if p is None else f"{p:.5f}"
 
+    if any(not e.e4_interpretable for e in report.evaluations):
+        print(
+            "Nota: E4 no interpretable (Enmienda 1b de D29): con la abundancia del perfil el "
+            "control nulo se extingue; revisar la demografía de cada variante antes de leer "
+            "rule_effects."
+        )
     print(f"{'Afirmación':<11}{'Estado':<30}{'Por construcción':<18}{'p E2':>9}{'p E4':>9}")
     for e in report.evaluations:
         # Sólo las comparaciones de la tabla (E2 y E4): una ablación sin medición no las afecta.

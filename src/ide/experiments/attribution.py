@@ -71,6 +71,9 @@ class ClaimEvaluation:
     demography: dict[str, tuple[tuple[int, int], ...]] = field(
         default_factory=dict[str, tuple[tuple[int, int], ...]]
     )
+    # Salida de respaldo de la Enmienda 1b (D29): en Fase II el control nulo se extingue y E4 se
+    # informa sin interpretar
+    e4_interpretable: bool = True
 
 
 @dataclass(frozen=True)
@@ -315,7 +318,17 @@ PHASE2_PROTOCOL_CONFIGS_ORIGINAL: dict[str, SimulationConfig] = {
     "003b": replace(_HOLONIC_PROTOCOL, enable_downward_causation=False),
 }
 
-PHASE2_PROTOCOL_CONFIGS: dict[str, SimulationConfig] = dict(PHASE2_PROTOCOL_CONFIGS_ORIGINAL)
+# Salida de respaldo de la Enmienda 1b (D29): ni la grilla original ni la refinada dieron un
+# valor viable. 20 tampoco cumple el criterio: las condiciones de los runners son viables, pero el
+# control nulo se extingue. Por eso E4 de C5 a C8 se informa como no interpretable
+# (`ClaimEvaluation.e4_interpretable`) y cada `rule_effect` se lee después de revisar su
+# `demography`.
+PHASE2_RESOURCES_PER_PATTERN = 20
+
+PHASE2_PROTOCOL_CONFIGS: dict[str, SimulationConfig] = {
+    key: replace(config, resources_per_pattern=PHASE2_RESOURCES_PER_PATTERN)
+    for key, config in PHASE2_PROTOCOL_CONFIGS_ORIGINAL.items()
+}
 
 _ALL_RULES_BY_ID = {rule.rule_id: rule for rule in ALL_DESIGN_RULES}
 
@@ -650,8 +663,11 @@ def _attribute(
             if is_phase2_claim(claim):
                 demography[name] = tuple((o.final_agents, o.max_generation) for o in outcomes)
         evaluation = classify(claim, values, by_construction, seeds=seeds)
-        if demography:
-            evaluation = replace(evaluation, demography=demography)
+        if is_phase2_claim(claim):
+            # Con la abundancia del perfil, el control nulo se extingue (calibración, D29).
+            abundance = per_variant["full"][0].resources_per_pattern
+            e4_ok = abundance != PHASE2_RESOURCES_PER_PATTERN
+            evaluation = replace(evaluation, demography=demography, e4_interpretable=e4_ok)
         evaluations.append(evaluation)
     return evaluations
 

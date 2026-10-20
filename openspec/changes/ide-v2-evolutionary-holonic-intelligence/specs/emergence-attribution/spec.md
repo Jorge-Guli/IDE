@@ -64,3 +64,17 @@ Si la grilla original no da un valor viable, `run_calibration` SHALL evaluar con
 #### Scenario: Grilla refinada sin valor viable
 - **WHEN** se ejecuta `run_calibration(grid=CALIBRATION_REFINED_GRID)` y ningún valor es viable
 - **THEN** `chosen is None`, `grid == (25, 30, 35)` y `fallback == 20`; con la grilla original, `fallback is None`.
+
+### Requirement: Abundancia Incorporada al Perfil (Salida de Respaldo de la Enmienda 1b)
+`PHASE2_PROTOCOL_CONFIGS` SHALL ser `PHASE2_PROTOCOL_CONFIGS_ORIGINAL` con `resources_per_pattern = PHASE2_RESOURCES_PER_PATTERN = 20`, sin otro cambio.
+
+#### Scenario: Configuraciones enmendadas
+- **WHEN** se compara cada configuración de `PHASE2_PROTOCOL_CONFIGS` con la de `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`
+- **THEN** sólo difieren en `resources_per_pattern`, que vale 20 en las enmendadas y 8 en las originales.
+
+### Requirement: E4 No Interpretable en la Fase II (Salida de Respaldo de la Enmienda 1b)
+Toda `ClaimEvaluation` de una afirmación de Fase II medida con `resources_per_pattern = PHASE2_RESOURCES_PER_PATTERN` SHALL tener `e4_interpretable = False`, y la tabla de la CLI de atribución SHALL advertirlo; en otro caso, y en Fase I, SHALL valer `True`.
+
+#### Scenario: Marca de E4
+- **WHEN** se ejecuta `run_phase2_attribution` para C6 con las configuraciones del perfil y con las originales, y se clasifica una afirmación de Fase I
+- **THEN** C6 tiene `e4_interpretable is False` con el perfil y `True` con las originales, y la de Fase I `True`.

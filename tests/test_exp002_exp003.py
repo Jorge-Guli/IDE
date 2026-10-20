@@ -351,6 +351,8 @@ def test_cli_atribucion_con_pocas_semillas(
     keys: tuple[str, str],
 ) -> None:
     monkeypatch.setattr(attribution, "PHASE2_ATTRIBUTION_PROFILE", tiny)
+    # Las configuraciones chicas usan 6 recursos: se toman como la abundancia del perfil.
+    monkeypatch.setattr(attribution, "PHASE2_RESOURCES_PER_PATTERN", SMALL["resources_per_pattern"])
     argv = ["--seeds", "42", "--attribution", "--profile", "quick", "--out", str(tmp_path)]
     assert runner.main(argv) == 0
     out = capsys.readouterr().out
@@ -361,6 +363,9 @@ def test_cli_atribucion_con_pocas_semillas(
     claims = ("C5", "C6") if name == "exp002" else ("C7", "C8")
     assert [e["claim_id"] for e in data["evaluations"]] == list(claims)
     assert "Aviso" in out and f"perfil {tiny}" in out
+    assert "E4 no interpretable" in out
+    assert out.index("E4 no interpretable") < out.index("Afirmación")  # antes de la tabla
+    assert all(e["e4_interpretable"] is False for e in data["evaluations"])
     for claim in claims:
         assert claim in out
     assert sorted(p.name for p in tmp_path.iterdir()) == [f"{name}_attribution.json"]
