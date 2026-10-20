@@ -3,10 +3,11 @@
 Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en una **arquitectura de software concreta**: stack, estructura, contratos de datos, ciclo de ejecución y parámetros.
 
 > **Fuente normativa.** Este documento es un **resumen orientativo**; ante una discrepancia rigen los specs y el design:
-> - **Fase I (Experimento 001, implementada y verificada):** criterios verificables en [`openspec/specs/*/spec.md`](openspec/specs/) y firmas, fórmulas y desempates en el design archivado [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md) (Decisiones D1–D18).
-> - **Fase II (Experimentos 002 y 003, especificada, sin implementar):** [`openspec/changes/ide-v2-evolutionary-holonic-intelligence/design.md`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/design.md) (Decisiones D19–D29) es la **fuente única** de firmas, nombres, parámetros, valores por defecto y desempates; los criterios verificables están en los `specs/` de ese cambio.
+> - **Fase I (Experimento 001, implementada y verificada):** criterios verificables en [`openspec/specs/*/spec.md`](../openspec/specs/) y firmas, fórmulas y desempates en el design archivado [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md`](../openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md) (Decisiones D1–D18).
+> - **Fase II (Experimentos 002 y 003, implementada, corrida y archivada):** el design archivado [`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/design.md`](../openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/design.md) (Decisiones D19–D29) es la **fuente única** de firmas, nombres, parámetros, valores por defecto y desempates; los criterios verificables están sincronizados en [`openspec/specs/*/spec.md`](../openspec/specs/). Los resultados, negativos para C5–C8, están en [RESULTADOS.md](RESULTADOS.md).
+> - **Fase II-B (ADN compacto):** especificada en el cambio activo [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/). Aún no se refleja en este documento: se incorporará al aprobar su pre-registro (tarea 0 de su `tasks.md`).
 
-> **Novedades en la Versión 2.0.** Conserva la especificación implementada de la **Fase I** y resume la arquitectura técnica prevista para la **Fase II**:
+> **Novedades en la Versión 2.0.** Conserva la especificación implementada de la **Fase I** y resume la arquitectura técnica implementada en la **Fase II**:
 > 1. **Patrón *Composite* recursivo (`AgentNode`, en `agent/holon.py`):** `MicroAgent` ($L=0$) y `CompositeAgent` ($L \ge 1$) implementan el protocolo común `AgentNode`, de modo que un `CompositeAgent` agrupa nodos de cualquier nivel sin un tope de profundidad codificado.
 > 2. **Metabolismo, linaje y herencia dual (`agent/evolution.py`):** genoma inmutable `AgentGenome`, mutación acotada (`mutate_genome`) y herencia cultural vertical que el motor entrega por `assimilate_testimony`.
 > 3. **Recursos compuestos graduados (`CompositeRule`, que ya existe en `domain/extensions.py`):** recursos de orden $m \ge 2$ que exigen conocer $m$ patrones a la vez. Ponen a prueba si la población forma niveles jerárquicos superiores para resolverlos.
@@ -35,14 +36,16 @@ Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en 
 
 ## 2. Estructura de Directorios del Proyecto
 
-Los archivos marcados `[Fase II]` están especificados en el design y todavía no existen.
+Los archivos marcados `[Fase II]` se agregaron en la Fase II. Los documentos normativos y `RESULTADOS.md` están en `docs/`; la visión sin rango normativo, en `docs/vision/`.
 
 ```text
 IDE/
-├── DOCUMENTO_FUNDACIONAL.md         # Visión v2.0 (Horizontal + Vertical + Holónica)
-├── DEFINICIONES_FORMALES.md         # Modelo matemático v2.0 (Fase I + Fase II)
-├── DEFINICIONES_TECNICAS.md         # Arquitectura técnica v2.0 (este documento)
-├── RESULTADOS.md                    # Reporte empírico verificable (Exp 001)
+├── docs/
+│   ├── DOCUMENTO_FUNDACIONAL.md     # Visión v2.0 (Horizontal + Vertical + Holónica)
+│   ├── DEFINICIONES_FORMALES.md     # Modelo matemático v2.0 (Fase I + Fase II)
+│   ├── DEFINICIONES_TECNICAS.md     # Arquitectura técnica v2.0 (este documento)
+│   ├── RESULTADOS.md                # Reporte empírico verificable (Exp 001, 002 y 003)
+│   └── vision/                      # Hoja de ruta y visión (sin rango normativo)
 ├── openspec/                        # Specs vigentes, cambios y archivo (OpenSpec)
 ├── pyproject.toml
 ├── src/
@@ -625,7 +628,7 @@ Se agregan al final de `SimulationConfig`, con los nombres y valores por defecto
 
 ## 8. Protocolos Experimentales
 
-Numeración v2: **001** memoria (completado), **002** evolución y herencia, **003** holones y composición, **004** especialización, **005** shock ambiental (`invert_world_rules`), **006** protocolo emergente. Los docstrings del código que todavía usan la numeración v1 se actualizan en la tarea 1.2 de `tasks.md`.
+Numeración v2: **001** memoria (completado), **002** evolución y herencia, **003** holones y composición, **004** especialización, **005** shock ambiental (`invert_world_rules`), **006** protocolo emergente. La tarea 1.2 del `tasks.md` de la Fase II (archivado) actualizó los docstrings a esta numeración, y los últimos restos de la v1 (comentarios de `config.py`, mensajes de `engine.py` y docstrings de `extensions.py`) se corrigieron al abrir la Fase II-B.
 
 ### 8.1. Experimento 001 (Fase I — Completado)
 `exp001_runner.py` ejecuta los protocolos 001-A a 001-C, y desde su CLI invoca 001-D, que vive en `attribution.py`. Cada uno tiene dos perfiles: **quick**, para tests y valores por defecto de las funciones, y **full**, el valor por defecto de la CLI.
@@ -736,7 +739,7 @@ Cómo paga un recurso compuesto (éxito si el grupo local conoce los fragmentos,
 8. **Atribución:** las reglas ($R_1 \dots R_{23}$) y las afirmaciones se versionan antes de la corrida de atribución correspondiente (en la Fase II, antes del primer commit de los runners 002 y 003), y su tabla de estados se registra tal cual.
 9. **Propiedades:** los invariantes de memoria, epistemología, grilla, evolución, jerarquía holónica y determinismo se verifican con Hypothesis (perfil `ci`, `derandomize=True`).
 10. **Paralelismo inocuo:** la CLI produce archivos idénticos con `--jobs 1` y `--jobs N`.
-11. **Verificaciones de cierre** (las de [CLAUDE.md](CLAUDE.md) y la CI):
+11. **Verificaciones de cierre** (las de [CLAUDE.md](../CLAUDE.md) y la CI):
     ```bash
     ruff check
     ruff format --check

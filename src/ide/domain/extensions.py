@@ -14,7 +14,7 @@ from ide.domain.types import AgentGenome, KnowledgeUnit, Pattern
 
 @runtime_checkable
 class TrustStrategyPort(Protocol):
-    """Confianza que un receptor deposita en un emisor (Exp 002)."""
+    """Confianza que un receptor deposita en un emisor (sin experimento asignado en v2)."""
 
     def compute_sender_trust(
         self, receiver_id: int, sender_id: int, base_gamma: float
@@ -40,7 +40,7 @@ class AgentCapabilities:
 
 @dataclass(frozen=True)
 class CompositeRule:
-    """Regla que sólo se reconstruye con todos los fragmentos requeridos (Exp 005)."""
+    """Regla que sólo se reconstruye con todos los fragmentos requeridos (Exp 003 v2)."""
 
     required_patterns: tuple[Pattern, ...]
     composite_value: float
@@ -68,7 +68,7 @@ class AgentHyperParams:
 
 @runtime_checkable
 class EvolutionaryPort(Protocol):
-    """Operador de reproducción con mutación (Exp 006)."""
+    """Operador de reproducción con mutación (Exp 002 v2)."""
 
     def reproduce_and_mutate(
         self, parent_params: AgentHyperParams, rng: np.random.Generator

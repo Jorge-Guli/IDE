@@ -609,12 +609,14 @@ src/ide/
 
 ## Definition of Done (Checklist de Cierre de Fase II)
 
-- [ ] `ruff check` termina con 0 errores.
-- [ ] `ruff format --check` termina con 0 diferencias.
-- [ ] `pyright` termina con `0 errors, 0 warnings`.
-- [ ] `python -m pytest --cov=ide` pasa en verde: los tests de Fase I más los nuevos de Fase II, incluido `tests/test_performance_equivalence.py` sin cambiar ningún hash dorado. Pasa también con otro `PYTHONHASHSEED`, igual que en CI.
-- [ ] `python -m pytest -m slow` pasa en verde.
-- [ ] Cobertura de código $\ge 90\%$ en `src/ide`.
-- [ ] `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict` pasa sin advertencias.
-- [ ] El pre-registro de Fase II (`PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y el perfil de corrida) está commiteado antes del primer commit de los runners 002 y 003.
-- [ ] `/code-review` sin hallazgos accionables pendientes en cada bloque, según CLAUDE.md.
+Verificado al archivar el cambio (2026-10-20, rama `claude/hopeful-allen-vbl982` sobre `e47b12f`). Los ítems sin salida propia remiten a la tarea de `tasks.md` que los verificó.
+
+- [x] `ruff check` termina con 0 errores (`All checks passed!`).
+- [x] `ruff format --check` termina con 0 diferencias (`47 files already formatted`).
+- [x] `pyright` termina con `0 errors, 0 warnings`.
+- [x] `python -m pytest --cov=ide` pasa en verde: los tests de Fase I más los nuevos de Fase II, incluido `tests/test_performance_equivalence.py` sin cambiar ningún hash dorado (`703 passed, 20 deselected`). La pasada con otro `PYTHONHASHSEED` la corre la CI en cada PR (job `Calidad y tests`).
+- [x] `python -m pytest -m slow` pasa en verde (tarea 6.3).
+- [x] Cobertura de código $\ge 90\%$ en `src/ide` (99 %).
+- [x] `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict` pasa sin advertencias (12 de 12 tras sincronizar las specs).
+- [x] El pre-registro de Fase II (`PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y el perfil de corrida) está commiteado antes del primer commit de los runners 002 y 003 (`7375a8c`, registrado en `RESULTADOS.md`).
+- [x] `/code-review` sin hallazgos accionables pendientes en cada bloque, según CLAUDE.md (bloques 0 a 7 de `tasks.md`).

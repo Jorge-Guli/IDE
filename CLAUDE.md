@@ -4,7 +4,11 @@
 
 Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
 
-**Estado:** la Fase I (Experimento 001) está completa: sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`, con los requisitos vigentes sincronizados en `openspec/specs/`. La Fase II (Experimentos 002 y 003) está implementada y corrida: los bloques 0 a 7 del `tasks.md` de `openspec/changes/ide-v2-evolutionary-holonic-intelligence/` están completos, su pre-registro es la Decisión 29 del `design.md` (con las Enmiendas 1 y 1b del perfil) y sus resultados, negativos para las cuatro afirmaciones C5–C8, están en `RESULTADOS.md`. Ese cambio OpenSpec todavía no está archivado.
+**Estado:**
+- **Fase I (Experimento 001):** completa. Sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`.
+- **Fase II (Experimentos 002 y 003):** completa y corrida. Sus bloques 0 a 7 están completos y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`. Su pre-registro es la Decisión 29 de ese `design.md`, con las Enmiendas 1 y 1b del perfil. Sus resultados, negativos para las cuatro afirmaciones C5–C8, están en `docs/RESULTADOS.md`.
+- Los requisitos vigentes de las dos fases están sincronizados en `openspec/specs/`.
+- **Fase II-B (v2.5, ADN compacto de 32 bits):** especificada en el cambio activo `openspec/changes/ide-v25-compact-dna-and-epigenetics/`. Su pre-registro y sus decisiones abiertas (bloque 0 de su `tasks.md`) esperan la aprobación del responsable del proyecto antes de implementar.
 
 ## Idioma
 
@@ -15,10 +19,14 @@ Plataforma de simulación en Python para investigar si una población de micro-a
 
 Ante una discrepancia entre documentos, rige este orden:
 
-1. Requisitos verificables: `openspec/specs/*/spec.md` (vigentes) y los specs delta del cambio activo, `openspec/changes/ide-v2-evolutionary-holonic-intelligence/specs/*/spec.md`.
-2. Firmas, fórmulas y desempates exactos: el `design.md` del cambio activo para la Fase II (D19 en adelante) y el `design.md` archivado de la Fase I (`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md`, D1–D18).
-3. `DEFINICIONES_TECNICAS.md` y `DEFINICIONES_FORMALES.md`: fundamento.
-4. `DOCUMENTO_FUNDACIONAL.md`: visión y principios.
+1. Requisitos verificables: `openspec/specs/*/spec.md` (vigentes) y los specs delta del cambio activo, `openspec/changes/ide-v25-compact-dna-and-epigenetics/specs/*/spec.md`.
+2. Firmas, fórmulas y desempates exactos:
+   - el `design.md` del cambio activo para la Fase II-B (D30 en adelante);
+   - los `design.md` archivados de la Fase II (`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/design.md`, D19–D29) y de la Fase I (`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md`, D1–D18).
+3. `docs/DEFINICIONES_TECNICAS.md` y `docs/DEFINICIONES_FORMALES.md`: fundamento.
+4. `docs/DOCUMENTO_FUNDACIONAL.md`: visión y principios.
+
+Los documentos de `docs/vision/` (`ROADMAP.md`, `ARQUITECTURA_ADN_HOLONICO.md`, `ESCALA_BIOLOGICA_HOLONICA.md`) son hoja de ruta y propuesta: **no tienen rango normativo**. Ante una discrepancia con los anteriores, se corrigen ellos. Una propuesta de `docs/vision/` sólo rige cuando se especifica en un cambio OpenSpec.
 
 Nunca resuelvas una contradicción en silencio. Corrige el documento de menor rango, o pregunta si la decisión no es obvia. Si implementar exige cambiar el diseño, **primero** actualiza los artefactos OpenSpec y los documentos raíz, y después el código.
 
@@ -68,7 +76,7 @@ Delegar en subagentes (herramienta `Agent`) está **habilitado, sin preguntar**,
 
 ## Determinismo
 
-- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. Las únicas excepciones son generadores derivados de la semilla con `np.random.SeedSequence(seed, spawn_key=(k,))`, cada uno con un uso declarado: `(1,)` control nulo de contenido, `(2,)` dinámica evolutiva del motor (`evo_rng`), `(3,)` recursos compuestos del entorno y `(4,)` sorteo del donante de genoma en la reproducción neutral (`donor_rng`). Sólo se consumen cuando su mecanismo está activo. Un generador nuevo exige declararlo aquí y en `design.md`.
+- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. Las únicas excepciones son generadores derivados de la semilla con `np.random.SeedSequence(seed, spawn_key=(k,))`, cada uno con un uso declarado: `(1,)` control nulo de contenido, `(2,)` dinámica evolutiva del motor (`evo_rng`), `(3,)` recursos compuestos del entorno `(4,)` sorteo del donante de genoma en la reproducción neutral (`donor_rng`) y `(5,)` conjugación de plásmidos de la Fase II-B (`hgt_rng`, regla $R_{26}$, design D30 y D37). Sólo se consumen cuando su mecanismo está activo. Un generador nuevo exige declararlo aquí y en `design.md`.
 - **Prohibido** iterar un `set`, o el resultado de una operación de conjuntos, sin `sorted(...)`. Python aleatoriza el hash de `str` por proceso. `Pattern` tiene `order=True` y es la clave canónica de orden.
 - Toda selección aleatoria (`rng.choice`, `rng.permutation`) opera sobre listas ya ordenadas.
 - Simultaneidad: percepción, comunicación y decisión son sincrónicas; sólo los conflictos físicos se resuelven por la permutación del tick, que funciona como un sorteo. No introduzcas efectos de orden en otras fases.
@@ -81,8 +89,8 @@ Delegar en subagentes (herramienta `Agent`) está **habilitado, sin preguntar**,
 > **Toda propiedad que se afirme como emergente debe poder distinguirse de una capacidad programada explícitamente en el agente.**
 
 - No llames "emergente" a una capacidad que una regla diseñada persigue. El superávit de 001-A es **funcional** (`SurplusReport`, `collective_surplus`).
-- Toda regla nueva del agente se agrega al inventario de reglas (`DESIGN_RULES` en la Fase I; `PHASE2_DESIGN_RULES` en la Fase II, que conserva intacto `DESIGN_RULES`), con su propósito declarado y una ablación, y se documenta en `DEFINICIONES_FORMALES.md` §3.1.
-- `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` (y en la Fase II `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil de corrida) son un **pre-registro**: se versionan antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
+- Toda regla nueva del agente se agrega al inventario de reglas (`DESIGN_RULES` en la Fase I; `PHASE2_DESIGN_RULES` en la Fase II y `PHASE25_DESIGN_RULES` en la Fase II-B, que conservan intactos los inventarios anteriores), con su propósito declarado y una ablación, y se documenta en `docs/DEFINICIONES_FORMALES.md` §3.1.
+- `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` (y sus equivalentes de cada fase: en la Fase II `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil de corrida; en la Fase II-B `PHASE25_DESIGN_RULES`, `PHASE25_CLAIMS` y su perfil) son un **pre-registro**: se versionan antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
 - Si quitar las reglas de una afirmación deja a la población sin comunicación, la afirmación es *programada por construcción*. Se declara así; no se presenta como resultado.
 - **Nunca ajustes parámetros para que una hipótesis "pase".** Un resultado negativo se reporta tal cual: es un hallazgo.
 - Principio de mínima maquinaria: no agregues reglas "inteligentes" al agente sin justificarlas, declararlas y hacerlas ablacionables.

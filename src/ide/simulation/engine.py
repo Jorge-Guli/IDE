@@ -78,10 +78,10 @@ class SimulationEngine:
         trust_strategy: TrustStrategyPort | None = None,
     ) -> None:
         if config.enable_specialization:
-            raise NotImplementedError("Especialización (Exp 003) fuera de alcance del Exp 001")
+            raise NotImplementedError("Especialización (Exp 004) fuera de alcance del Exp 001")
         if config.epsilon_recheck > 0 or config.tau_policy != "validation":
             raise NotImplementedError(
-                "Mecanismos anti-trampa de evitación (Exp 004) fuera de alcance del Exp 001"
+                "Mecanismos anti-trampa de evitación (Exp 005) fuera de alcance del Exp 001"
             )
         if config.update_scheme != "synchronous":
             raise NotImplementedError(

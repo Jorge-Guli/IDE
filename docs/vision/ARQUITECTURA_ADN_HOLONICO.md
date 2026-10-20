@@ -1,6 +1,15 @@
 # Arquitectura de ADN Bacteriano Comprimido, Redes Regulatorias (GRN), Epigenética Multinivel y Plásmidos (`CompactDNA` — Fase II-B / v2.5)
 
-> **Propósito de este documento:** Definir la arquitectura formal y técnica del sistema genético comprimido (`CompactDNA`) que se implementará **inmediatamente al finalizar la Fase II (`v2.0`)**, evolucionando el vector fenotípico plano actual (`AgentGenome` de 7 parámetros) hacia un código genético bacteriano real basado en **codones de 32 bits (`uint32`), operones condicionales, redes de regulación génica (GRN), diferenciación epigenética en holones ($L = 0 \dots K$), transferencia horizontal de plásmidos (HGT), inmunidad CRISPR-Cas y senescencia telomérica**.
+> **Propósito de este documento:** Definir la arquitectura formal y técnica del sistema genético comprimido (`CompactDNA`) propuesto para la Fase II-B, evolucionando el vector fenotípico plano actual (`AgentGenome` de 7 parámetros) hacia un código genético bacteriano real basado en **codones de 32 bits (`uint32`), operones condicionales, redes de regulación génica (GRN), diferenciación epigenética en holones ($L = 0 \dots K$), transferencia horizontal de plásmidos (HGT), inmunidad CRISPR-Cas y senescencia telomérica**.
+
+> **Estado y rango (2026-10-20).** Este documento es **visión**, sin rango normativo. La especificación que rige es el cambio OpenSpec [`ide-v25-compact-dna-and-epigenetics`](../../openspec/changes/ide-v25-compact-dna-and-epigenetics/) (design D30–D42), cuyo pre-registro espera aprobación. Al especificarlo se corrigió esta propuesta en estos puntos:
+> - **Canales de factores de transcripción.** Son **64** (promotores `0x80`–`0xBF`), no 128: el canal se codifica en los 6 bits bajos de `REG_MODE`, y 6 bits sólo direccionan 64 canales. `0xC0`–`0xFF` quedan reservados.
+> - **Destino `EMIT_TF`.** Es sólo `0x09`. `0x0A`–`0xFF` (incluidos los operadores y órganos de la Fase IV) quedan reservados e **inertes** en v2.5, igual que el modo `AST_PIPE`.
+> - **Profundidad de la red regulatoria.** Con dos pasadas hay **un solo nivel** de regulación: los factores emitidos en la segunda pasada no encienden otros genes. No hay cascadas de múltiples etapas.
+> - **Contexto epigenético.** `EpigeneticContext` no incluye `is_endospore`, que maneja el motor, ni `z_layer`, que es de la Fase III.
+> - **Inventario.** Telómeros y SOS son reglas separadas ($R_{29}$ y $R_{30}$), y el trinquete simbiótico pasa a ser $R_{31}$: una regla, un propósito y una ablación.
+> - **"Tapón de Matusalén".** Es una **hipótesis no verificada**, no un hecho demostrado (punto 4 de §1). Se diagnostica antes de pre-registrar su afirmación.
+> - **Sesgos.** Se declaran como sesgos de diseño el abaratamiento de la complejidad latente ($R_{24}$), el rescate de poblaciones ($R_{28}$) y la estabilidad por decreto ($R_{31}$). Lo que persigan es programado, no emergente.
 
 ---
 
@@ -17,7 +26,7 @@ En la Fase II (`v2.0`), la herencia genética ($R_{13}$) se modela mediante `Age
 3. **Falta de Evolución Horizontal en Vida (Plásmidos / Conjugación Bacteriana):**
    - Las bacterias reales no esperan a reproducirse ($g \to g+1$) para compartir adaptaciones: intercambian **plásmidos** (anillos cortos de ADN funcional) de par a par en vida.
 4. **El "Tapón de Matusalén" en Abundancia de Recursos (Ausencia de Telómeros / Senescencia):**
-   - Como demostró la calibración empírica de la Fase II (`resources_per_pattern >= 40`), cuando abundan los recursos y no existe envejecimiento celular, las primeras 2–3 generaciones saturan el cupo `max_population = 160` y sobreviven indefinidamente ($E_i > 0$), deteniendo el recambio generacional. Incorporar **telómeros** en el ADN introduce senescencia programada y garantiza rotación evolutiva continua en cualquier régimen ecológico.
+   - En la calibración de la Fase II, con abundancia (`resources_per_pattern` ≥ 30) la población llega al tope `max_population = 160`, pero casi no llega a la generación 5. **Hipótesis no verificada** ([RESULTADOS.md](../RESULTADOS.md)): con abundancia casi nadie muere y el cupo no se libera. Llegar al tope no lo explica por sí solo, porque también ocurre con 20, donde sí hay recambio, y la mortalidad no se midió. Si el diagnóstico la confirma, los **telómeros** introducirían senescencia programada para forzar la rotación generacional.
 
 ---
 
@@ -69,7 +78,7 @@ Determina bajo qué condición ambiental, jerárquica o regulatoria interna se t
 | `0x19` | `SURPLUS_HIGH_ENERGY` | Operón de abundancia: se enciende cuando $E_i(t) \ge 0.85 \cdot E_{\text{reprod}}$. |
 | `0x20..0x3F` | `SPATIAL_3D_STIGMERGY` | Señales estigmérgicas ($R_{19}$) y estratos de profundidad del eje $Z$ en `ToroidalGrid3D` (Fase III). |
 | `0x40..0x7F` | `RESERVED_ECOLOGY` | Reservados para señales del Telescopio a Internet y puente simbólico (Fase III-B). |
-| `0x80..0xFF` | `TRANSCRIPTION_FACTORS` | **Redes de Regulación Génica (GRN, 128 canales internos `TF_0..TF_127`):** Se activan sólo si otro codón expresado en la misma célula o en el holón emitió el factor de transcripción `TF_k`. Permite evolucionar circuitos lógicos genéticos de múltiples etapas. |
+| `0x80..0xBF` | `TRANSCRIPTION_FACTORS` | **Red regulatoria (64 canales internos `TF_0..TF_63`):** se activan en la segunda pasada sólo si en la primera hubo más activadores que represores de `TF_k` en la misma célula. Un solo nivel de regulación. `0xC0..0xFF` quedan reservados. |
 
 ### 3.2. Campo `TARGET` — Rasgo Fenotípico, Factor GRN u Operador Funcional (`bits 23..16`, 256 destinos)
 
@@ -86,7 +95,7 @@ Determina qué parámetro del fenotipo, qué factor de transcripción o qué ope
 | `0x06` | `COMM_RADIUS` | Modula el radio comunicativo: $r_{\text{com}} = \text{clip}(r_{\text{com}, 0} + \text{round}(2.0 \cdot \sum \delta), 1, 4)$. |
 | `0x07` | `TELOMERE_LONGEVITY` | Modula la vida máxima antes de senescencia: $T_{\max} = \text{clip}(T_0 + \text{round}(250 \cdot \sum \delta), 150, 1200)$. |
 | `0x08` | `SPORULATION_THRESH` | Ajusta el umbral energético $E_{\text{espora}}$ para entrar en criptobiosis (`ENDOSPORE`). |
-| `0x09..0x1F` | `EMIT_TF_SIGNAL` | Emite un factor de transcripción interno (`TF_0..TF_127` seleccionado por `REG_MODE`) para encender o reprimir otros operones de la red génica (GRN). |
+| `0x09` | `EMIT_TF_SIGNAL` | Emite el factor de transcripción `TF_k` (canal `k` en los 6 bits bajos de `REG_MODE`); el modo represor lo reprime. `0x0A..0x1F` quedan reservados. |
 | `0x20..0x7F` | `LOGIC_MATH_OPS` | **Fase IV (96 operadores):** Operadores formales (`ADD`, `SUB`, `MUL`, `DIV`, `EMA`, `DIFF`, `GT`, `EQ`, `AND`, `OR`, `XOR`, `MATCH`) para el AST del holón. |
 | `0x80..0xFF` | `SANDBOX_ORGANS` | **Fase IV (128 slots):** Invocación de módulos y órganos funcionales evolucionados en `SkillSandboxPort`. |
 
@@ -187,7 +196,7 @@ class CompactDNA:
 
 ---
 
-## 6. Inventario de Reglas de Diseño (`R24`–`R30`) y Ablaciones (Cumplimiento de `CLAUDE.md`)
+## 6. Inventario de Reglas de Diseño (`R24`–`R31`) y Ablaciones (Cumplimiento de `CLAUDE.md`)
 
 Siguiendo la regla metodológica central del proyecto (*toda capacidad diseñada debe declararse en el inventario con su propósito y su ablación explícita*):
 
@@ -198,17 +207,17 @@ Siguiendo la regla metodológica central del proyecto (*toda capacidad diseñada
 | `R26` | Transferencia horizontal de plásmidos (HGT) | Compartir codones `uint32` ventajosos en vida entre pares sin esperar a la reproducción vertical. | `(("enable_plasmid_hgt", False),)` |
 | `R27` | Inmunidad genética CRISPR-Cas | Purgar plásmidos con balance energético negativo y bloquear su reinfección. | `(("enable_crispr_immunity", False),)` |
 | `R28` | Esporulación bacteriana (`ENDOSPORE`) | Reducir el gasto metabólico en hambruna extrema hasta que reaparezcan estímulos locales. | `(("enable_sporulation", False),)` |
-| `R29` | Senescencia telomérica y mutación SOS adaptativa | Garantizar recambio generacional bajo abundancia (`Telómeros`) y modular la tasa de mutación según el estrés (`SOS`). | `(("enable_telomere_senescence", False), ("enable_sos_mutation", False))` |
-| `R30` | Trinquete simbiótico evolutivo (*Symbiotic Ratchet*) | Soldar (`is_locked = True`) los holones consolidados por reproducción simbiótica o especialización para que actúen como individuos indivisibles del nivel siguiente. | `(("enable_symbiotic_ratchet", False),)` |
+| `R29` | Senescencia telomérica | Garantizar recambio generacional limitando la vida. | `(("enable_telomere_senescence", False),)` |
+| `R30` | Mutación SOS adaptativa | Modular la tasa de mutación según el estrés. | `(("enable_sos_mutation", False),)` |
+| `R31` | Trinquete simbiótico evolutivo (*Symbiotic Ratchet*) | Soldar (`is_locked = True`) los holones consolidados por reproducción simbiótica o especialización para que actúen como individuos indivisibles del nivel siguiente. | `(("enable_symbiotic_ratchet", False),)` |
 
 ---
 
-## 7. Plan de Ejecución al Cerrar la Fase II (`v2.0` $\to$ `v2.5`)
+## 7. Plan de Ejecución
 
-Sí: **podemos implementarlo exactamente al terminar el Bloque 7 de la Fase II**, antes de pasar al cubo 3D de la Fase III, como un cambio OpenSpec autocontenido (`ide-v25-compact-dna-and-epigenetics`):
-
-1. **Paso 1 (Hoy):** Claude cierra el Bloque 7 de la Fase II (`v2.0`) y archiva los resultados pre-registrados de `002` y `003`.
-2. **Paso 2 (Fase II-B / `v2.5`):** Abrimos el cambio OpenSpec de `CompactDNA`:
-   - Nuevo módulo `src/ide/agent/dna.py` (`CompactDNA`, `EpigeneticRole`, `EpigeneticContext`, `transcribe_phenotype` en 2 pasadas con soporte GRN, mutación sobre 32 bits por SNP/duplicación/deleción + SOS, conjugación de plásmidos con inmunidad CRISPR, esporulación, senescencia telomérica y trinquete simbiótico).
-   - Retrocompatibilidad total: si `enable_compact_dna=False` (por defecto), el motor usa el `AgentGenome` directo de Fase II sin alterar un solo test ni hash previo.
-   - Nuevos experimentos **Exp 002-C / 003-C**: miden cómo un holón de clones con **idéntico ADN** se diferencia en castas epigenéticas (*Explorador / Bibliotecario / Nervio*), cómo la esporulación sobrevive en `resources_per_pattern = 10` y cómo la senescencia telomérica destraba las generaciones en `resources_per_pattern = 40 / 80`.
+1. **Fase II cerrada y archivada** (2026-10-20): `openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`, con resultados en [RESULTADOS.md](../RESULTADOS.md).
+2. **Fase II-B especificada** en el cambio OpenSpec `ide-v25-compact-dna-and-epigenetics`:
+   - **Ubicación.** `CompactDNA`, la transcripción, la mutación, los plásmidos y CRISPR viven en `src/ide/agent/dna.py`; los roles y el trinquete, en `holon.py`; la expresión en vida, la esporulación, la senescencia y SOS, en el motor.
+   - **Retrocompatibilidad.** Con `enable_compact_dna=False` y las demás banderas en `False` (por defecto), el motor se comporta exactamente como en la Fase II.
+   - **Protocolos.** `002c` (genoma regulado frente a plano), `002d` (senescencia con abundancia), `002e` (esporulación con escasez) y `003c` (roles en holones), con las afirmaciones C9–C12 propuestas como programadas por construcción.
+   - **Orden de implementación.** Primero se aprueba el pre-registro (bloque 0 del `tasks.md`); después se implementa por etapas, empezando por $R_{24}$ sola.

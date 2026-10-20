@@ -61,7 +61,9 @@ src/ide/
 └── config.py      SimulationConfig (todos los parámetros, validados)
 tests/             escenarios de las specs y pruebas por propiedades (Hypothesis)
 openspec/          especificación verificable (specs, diseño y plan de tareas)
-RESULTADOS.md      registro de resultados empíricos, positivos o negativos
+docs/              fundamento normativo y registro empírico (RESULTADOS.md)
+docs/vision/       hoja de ruta y propuestas, sin rango normativo
+registros/         salidas completas de las corridas registradas
 ```
 
 Reglas de arquitectura verificadas por tests: `ide.agent` no importa `environments`, `simulation` ni `experiments`; sólo `protocol.py` construye `Message`; el agente nunca ve `Resource.true_value`.
@@ -72,18 +74,20 @@ Reglas de arquitectura verificadas por tests: `ide.agent` no importa `environmen
 
 Cada regla del agente se declara en el inventario `DESIGN_RULES` con su propósito y una ablación. El módulo de atribución (001-D) compara, para cada afirmación de `EXP001_CLAIMS`, la población completa contra la población aislada, la población sin las reglas diseñadas para esa afirmación y un control nulo de contenido. Si quitar esas reglas deja a la población sin comunicación, la afirmación es *programada por construcción* y se declara así, no como resultado. `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` son un pre-registro: se versionan antes de mirar resultados. En la Fase II el pre-registro equivalente es `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS`, sus canales y el perfil `phase2`; sus cuatro afirmaciones (C5–C8) se declararon programadas por construcción y ninguna se observó con el perfil pre-registrado.
 
-Los resultados vigentes están en [`RESULTADOS.md`](RESULTADOS.md).
+Los resultados vigentes están en [`RESULTADOS.md`](docs/RESULTADOS.md).
 
 ## Documentos de fundamento
 
 Orden de jerarquía normativa ante cualquier discrepancia:
 
-1. Requisitos verificables: los vigentes de la Fase I en [`openspec/specs/`](openspec/specs/), más los specs delta del cambio en curso de la Fase II en [`openspec/changes/ide-v2-evolutionary-holonic-intelligence/specs/`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/specs).
-2. Firmas, fórmulas, desempates y checklist de aceptación: el [`design.md` de la Fase I](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md) (archivado, Decisiones D1–D18) y el [`design.md` de la Fase II](openspec/changes/ide-v2-evolutionary-holonic-intelligence/design.md) (D19–D29).
-3. [`DEFINICIONES_TECNICAS.md`](DEFINICIONES_TECNICAS.md) y [`DEFINICIONES_FORMALES.md`](DEFINICIONES_FORMALES.md): fundamento.
-4. [`DOCUMENTO_FUNDACIONAL.md`](DOCUMENTO_FUNDACIONAL.md): visión y principios.
+1. Requisitos verificables: los vigentes de las Fases I y II en [`openspec/specs/`](openspec/specs/), más los specs delta del cambio activo de la Fase II-B en [`openspec/changes/ide-v25-compact-dna-and-epigenetics/specs/`](openspec/changes/ide-v25-compact-dna-and-epigenetics/specs).
+2. Firmas, fórmulas, desempates y checklist de aceptación: el [`design.md` de la Fase I](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md) (archivado, Decisiones D1–D18), el [`design.md` de la Fase II](openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/design.md) (archivado, D19–D29) y el [`design.md` de la Fase II-B](openspec/changes/ide-v25-compact-dna-and-epigenetics/design.md) (activo, D30 en adelante).
+3. [`DEFINICIONES_TECNICAS.md`](docs/DEFINICIONES_TECNICAS.md) y [`DEFINICIONES_FORMALES.md`](docs/DEFINICIONES_FORMALES.md): fundamento.
+4. [`DOCUMENTO_FUNDACIONAL.md`](docs/DOCUMENTO_FUNDACIONAL.md): visión y principios.
 
-El plan de la Fase I está completo ([`tasks.md` archivado](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)). El plan de la Fase II, [`tasks.md`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/tasks.md), también está completo; su cambio OpenSpec todavía no está archivado. Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
+Los documentos de [`docs/vision/`](docs/vision/) ([`ROADMAP.md`](docs/vision/ROADMAP.md), [`ARQUITECTURA_ADN_HOLONICO.md`](docs/vision/ARQUITECTURA_ADN_HOLONICO.md) y [`ESCALA_BIOLOGICA_HOLONICA.md`](docs/vision/ESCALA_BIOLOGICA_HOLONICA.md)) son hoja de ruta y propuesta, sin rango normativo.
+
+Los planes de la Fase I ([`tasks.md`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)) y de la Fase II ([`tasks.md`](openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/tasks.md)) están completos y archivados. El plan de la Fase II-B es el [`tasks.md`](openspec/changes/ide-v25-compact-dna-and-epigenetics/tasks.md) del cambio activo; su bloque 0 (decisiones y pre-registro) espera aprobación. Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
 
 ## Integración continua
 

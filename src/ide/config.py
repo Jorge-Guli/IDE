@@ -90,8 +90,8 @@ class SimulationConfig:
     max_broadcast_per_tick: int = 1
     max_queries_per_tick: int = 2
     enable_specialization: bool = False
-    epsilon_recheck: float = 0.0  # contrato Exp 004 (Decisión 12)
-    tau_policy: str = "validation"  # contrato Exp 004: "validation" | "evidence_age"
+    epsilon_recheck: float = 0.0  # contrato Exp 005 (Decisión 12)
+    tau_policy: str = "validation"  # contrato Exp 005: "validation" | "evidence_age"
     anti_echo_enabled: bool = True  # ablación de R6 (Decisión 13)
     enable_navigation: bool = True  # ablación de R11 (Decisión 13)
     comm_content_null: bool = False  # control nulo E4 (Decisión 13)
