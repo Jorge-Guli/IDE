@@ -8,7 +8,11 @@ Plataforma de simulación en Python para investigar si una población de micro-a
 - **Fase I (Experimento 001):** completa. Sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`.
 - **Fase II (Experimentos 002 y 003):** completa y corrida. Sus bloques 0 a 7 están completos y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`. Su pre-registro es la Decisión 29 de ese `design.md`, con las Enmiendas 1 y 1b del perfil. Sus resultados, negativos para las cuatro afirmaciones C5–C8, están en `docs/RESULTADOS.md`.
 - Los requisitos vigentes de las dos fases están sincronizados en `openspec/specs/`.
-- **Fase II-B (v2.5, ADN compacto de 32 bits):** especificada en el cambio activo `openspec/changes/ide-v25-compact-dna-and-epigenetics/`. Su pre-registro (design D42) se aprobó el 2026-10-20, y el diagnóstico previo confirmó el "Tapón de Matusalén". La implementación sigue su `tasks.md` desde el bloque 1.
+- **Fase II-B (v2.5, ADN compacto, conducta evolucionable y ecología):** especificada en el cambio activo `openspec/changes/ide-v25-compact-dna-and-epigenetics/`.
+  - **Etapa A completa:** bloques 1 a 5, con $R_{24}$ (D30–D35) implementada y verificada contra la Fase II.
+  - **Reformulada el 2026-10-20 (design D43–D56):** la regla da la capacidad y el ADN decide su uso. Agrega conducta codificada en el ADN, ecología con interacciones físicas, recombinación, motor por sistemas y métricas de evolución abierta; $R_{25}$, $R_{28}$ y $R_{31}$ se reformulan.
+  - **Pre-registro vigente:** el borrador D56 (inventario $R_{24}$–$R_{38}$, afirmaciones C13–C18), que se aprueba en la tarea 0.5, antes del bloque 6. El pre-registro D42 quedó sustituido y sus afirmaciones C9–C12 se retiraron sin medir. El diagnóstico previo (tarea 0.1) confirmó el "Tapón de Matusalén".
+  - La implementación sigue su `tasks.md`: tarea 0.5 y después la etapa R (bloques 6 y 7).
 
 ## Idioma
 
@@ -100,7 +104,7 @@ Delegar en subagentes (herramienta `Agent`) está **habilitado, sin preguntar**,
 
 - No llames "emergente" a una capacidad que una regla diseñada persigue. El superávit de 001-A es **funcional** (`SurplusReport`, `collective_surplus`).
 - Toda regla nueva del agente se agrega al inventario de reglas (`DESIGN_RULES` en la Fase I; `PHASE2_DESIGN_RULES` en la Fase II y `PHASE25_DESIGN_RULES` en la Fase II-B, que conservan intactos los inventarios anteriores), con su propósito declarado y una ablación, y se documenta en `docs/DEFINICIONES_FORMALES.md` §3.1.
-- `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` (y sus equivalentes de cada fase: en la Fase II `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil de corrida; en la Fase II-B `PHASE25_DESIGN_RULES`, `PHASE25_CLAIMS` y su perfil) son un **pre-registro**: se versionan antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
+- `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` (y sus equivalentes de cada fase: en la Fase II `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil de corrida; en la Fase II-B `PHASE25_DESIGN_RULES`, `PHASE25_CLAIMS` (C13–C18, borrador D56) y su perfil) son un **pre-registro**: se versionan antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
 - Si quitar las reglas de una afirmación deja a la población sin comunicación, la afirmación es *programada por construcción*. Se declara así; no se presenta como resultado.
 - **Nunca ajustes parámetros para que una hipótesis "pase".** Un resultado negativo se reporta tal cual: es un hallazgo.
 - Principio de mínima maquinaria: no agregues reglas "inteligentes" al agente sin justificarlas, declararlas y hacerlas ablacionables.

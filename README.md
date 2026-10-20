@@ -4,6 +4,15 @@ Plataforma de simulación en Python para investigar si una población de micro-a
 
 El proyecto es una herramienta de investigación, no una demostración: los resultados negativos se reportan tal cual y no se ajustan parámetros para que una hipótesis "pase".
 
+## Estado
+
+- **Fase I (Experimento 001):** completa y archivada. Memoria acotada, epistemología social y marco de atribución.
+- **Fase II (Experimentos 002 y 003):** completa, corrida y archivada. Metabolismo, selección, herencia dual, holones recursivos y estigmergia. Sus cuatro afirmaciones pre-registradas (C5–C8) dieron `NOT_OBSERVED`.
+- **Fase II-B (v2.5):** en implementación, en el cambio activo [`ide-v25-compact-dna-and-epigenetics`](openspec/changes/ide-v25-compact-dna-and-epigenetics/).
+  - **Etapa A completa:** el genotipo de cada hoja puede ser un ADN compacto de codones de 32 bits, con expresión condicional y una red regulatoria de un nivel ($R_{24}$), compatible bit a bit con la Fase II cuando está apagado.
+  - **Reformulada el 2026-10-20:** *la regla da la capacidad y el ADN decide su uso.* La conducta del agente pasa a codificarse en el ADN (un ADN fundador reproduce exactamente la política escrita a mano), el entorno gana escasez, nichos, estaciones, cadáveres, transferencia de energía y depredación, el ADN gana recombinación, y el motor se reorganiza en sistemas y observadores.
+  - **Pre-registro:** el borrador D56 propone seis afirmaciones (C13–C18) que se contrastan con la deriva neutral o con la ablación de un mecanismo ecológico, con 30 semillas, corrección de Holm y un tamaño de efecto mínimo. Se aprueba antes del bloque 6. Las afirmaciones anteriores (C9–C12) se retiraron sin medir, porque eran programadas por construcción.
+
 ## Instalación
 
 Requiere Python 3.11 o superior.
@@ -32,8 +41,9 @@ python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --out results/ --
 # siempre usa `quick`, ignora `--profile` e imprime una nota, para no romper el pre-registro
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4
 
-# Línea base de rendimiento (ticks por segundo)
+# Línea base de rendimiento (ticks por segundo); --compact-dna mide 002a con ADN compacto (Fase II-B)
 python -m ide.experiments.benchmark
+python -m ide.experiments.benchmark --compact-dna
 
 # Fase II: Experimentos 002 (selección y herencia cultural) y 003 (holones y cobertura colectiva),
 # con el perfil pre-registrado `phase2` (2000 ticks); --attribution mide C5-C8 sobre las 10 semillas
@@ -72,7 +82,7 @@ Reglas de arquitectura verificadas por tests: `ide.agent` no importa `environmen
 
 > **Toda propiedad que se afirme como emergente debe poder distinguirse de una capacidad programada explícitamente en el agente.**
 
-Cada regla del agente se declara en el inventario `DESIGN_RULES` con su propósito y una ablación. El módulo de atribución (001-D) compara, para cada afirmación de `EXP001_CLAIMS`, la población completa contra la población aislada, la población sin las reglas diseñadas para esa afirmación y un control nulo de contenido. Si quitar esas reglas deja a la población sin comunicación, la afirmación es *programada por construcción* y se declara así, no como resultado. `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` son un pre-registro: se versionan antes de mirar resultados. En la Fase II el pre-registro equivalente es `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS`, sus canales y el perfil `phase2`; sus cuatro afirmaciones (C5–C8) se declararon programadas por construcción y ninguna se observó con el perfil pre-registrado.
+Cada regla del agente se declara en el inventario `DESIGN_RULES` con su propósito y una ablación. El módulo de atribución (001-D) compara, para cada afirmación de `EXP001_CLAIMS`, la población completa contra la población aislada, la población sin las reglas diseñadas para esa afirmación y un control nulo de contenido. Si quitar esas reglas deja a la población sin comunicación, la afirmación es *programada por construcción* y se declara así, no como resultado. `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` son un pre-registro: se versionan antes de mirar resultados. En la Fase II el pre-registro equivalente es `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS`, sus canales y el perfil `phase2`; sus cuatro afirmaciones (C5–C8) se declararon programadas por construcción y ninguna se observó con el perfil pre-registrado. En la Fase II-B es `PHASE25_DESIGN_RULES` ($R_{24}$–$R_{38}$), `PHASE25_CLAIMS` (C13–C18) y el perfil `phase25`, todavía en borrador (design D56).
 
 Los resultados vigentes están en [`RESULTADOS.md`](docs/RESULTADOS.md).
 
@@ -87,7 +97,7 @@ Orden de jerarquía normativa ante cualquier discrepancia:
 
 Los documentos de [`docs/vision/`](docs/vision/) ([`ROADMAP.md`](docs/vision/ROADMAP.md), [`ARQUITECTURA_ADN_HOLONICO.md`](docs/vision/ARQUITECTURA_ADN_HOLONICO.md) y [`ESCALA_BIOLOGICA_HOLONICA.md`](docs/vision/ESCALA_BIOLOGICA_HOLONICA.md)) son hoja de ruta y propuesta, sin rango normativo.
 
-Los planes de la Fase I ([`tasks.md`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)) y de la Fase II ([`tasks.md`](openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/tasks.md)) están completos y archivados. El plan de la Fase II-B es el [`tasks.md`](openspec/changes/ide-v25-compact-dna-and-epigenetics/tasks.md) del cambio activo; su pre-registro (design D42) se aprobó el 2026-10-20, y la implementación sigue ese plan desde el bloque 1. Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
+Los planes de la Fase I ([`tasks.md`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)) y de la Fase II ([`tasks.md`](openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/tasks.md)) están completos y archivados. El plan de la Fase II-B es el [`tasks.md`](openspec/changes/ide-v25-compact-dna-and-epigenetics/tasks.md) del cambio activo: la etapa A (bloques 1 a 5) está completa, y la reformulación del 2026-10-20 (design D43–D56) reemplazó los bloques siguientes. Su pre-registro vigente es el borrador D56, que sustituye al D42 y se aprueba en la tarea 0.5, antes del bloque 6. Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
 
 ## Integración continua
 

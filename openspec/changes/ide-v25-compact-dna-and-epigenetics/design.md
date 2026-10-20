@@ -690,7 +690,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
    | `0x0B` | propensión a recombinar ($R_{38}$) | `recombination_base` | 0.50 | $[0, 1]$ |
    | `0x0C` | propensión a comunicar ($R_{32}$) | `comm_propensity_base` | 0.50 | $[0, 1]$ |
 
-   `ExpressedPhenotype` agrega `symbiotic_commitment`, `recombination_propensity` y `comm_propensity`, con valores por defecto iguales a sus bases, y `expressed_codons` pasa a contar los destinos `0x00`–`0x08` y `0x0A`–`0x0C`. El ADN fundador no tiene codones sobre ellos: expresa las bases. `phenotype_from_genome` también devuelve las bases.
+   `ExpressedPhenotype` agrega `symbiotic_commitment`, `recombination_propensity` y `comm_propensity`, con valores por defecto `0.0`, `0.0` y `1.0` (las bases por defecto de D52.1; el agente siempre los recibe transcriptos desde su configuración), y `expressed_codons` pasa a contar los destinos `0x00`–`0x08` y `0x0A`–`0x0C`. El ADN fundador no tiene codones sobre ellos: expresa las bases. `phenotype_from_genome` también devuelve las bases.
 8. **Caché.** `MicroAgent` puede memoizar los impulsos por `(clave de contexto de D34.2, signals)`, invalidando al cambiar el ADN. Un test exige que coincida con la evaluación directa.
 
 ### Decisión 47: Percepción Social, Señales y Acciones Nuevas
