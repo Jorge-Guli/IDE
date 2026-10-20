@@ -9,7 +9,7 @@ import subprocess
 import sys
 import textwrap
 from collections.abc import Callable
-from dataclasses import replace
+from dataclasses import astuple, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -1861,28 +1861,44 @@ PHASE2_CASES: dict[str, SimulationConfig] = {
 # Huellas SHA-256 de `phase2_digest` tras 100 ticks, calculadas con el motor de la Fase II previo
 # al bloque 5 de la Fase II-B (commit 20305df, en una copia aparte), nunca con el motor nuevo.
 # Igual que las de `test_performance_equivalence.py`, exigen igualdad de bits en la plataforma de
-# referencia (Linux x86-64, Python 3.13, numpy 2.x).
+# referencia (Linux x86-64, numpy 2.x), en Python 3.11 a 3.13.
 PHASE2_GOLDEN = {
-    "002a": "67612af8919f93801e338b8ff6156b313e91537f603942cebaa05ae5665f709a",
-    "002a-R12": "e91481b7a832b1fde308564ff853497d276b55dd32628146b360592190b43199",
-    "002a-R13": "a1bfe9a1477267e8a4561a3b0ff44e7485443fd3924041be5b7cf93dd5532c3a",
-    "002b-null": "728906b91a0b024e88a68ca1e3a84713b10ad3f90bb4ba9026f87315183d2086",
-    "003a": "f5b196b4a9a5d4401922451376209b571d3687e2435a6c3374e9a542b6c5f3fe",
-    "003a-R12": "bfb8a876c457eea603d30bc0652f025868d7e9308b94440c147adb514425f2b5",
-    "003a-R15": "d9bfc7785c77707f761e773f19afb7eb7cbab185d014ffc011d9748be2f06f1c",
-    "003a-stigmergy": "d501a1d455c0cab17382d61bf71426580f1cdcdf2c1c7f20adc3c95c654c6e5b",
+    "002a": "0713ae8104d511d78f2adc1bf103587475f201507f87ea9d43c58e4f61ae7c21",
+    "002a-R12": "74cbe3f2b1127aac8b4fd5f50a50ea8ef5a50c2cff83821f32cfa704faa01f31",
+    "002a-R13": "16ab387fe754cfeef939a818e7f83131cd08aa6f2eac9ed8538d128de5fed363",
+    "002b-null": "a58b0acb02d989283e67b36f6fee133c6ceba5d59c5bc0ccb46429dfa8d42663",
+    "003a": "d826324c494031926dff7b7208a3f0bc5c9e45bab8560c676937aa1d3fac70b0",
+    "003a-R12": "1be881f85f7ab8b8407c988552fc9417e1303e9ad6e86b27ced402521fcd820d",
+    "003a-R15": "807f11edd8071fd246204935c46ca11174709d4b302614147af323ad09e13761",
+    "003a-stigmergy": "690c71362abc0841c454a52478a1f991f122604b7bbc14f2f956bd6125ae770e",
 }
 
 
+def _rounded(value: Any) -> Any:
+    """Redondea a 9 decimales los floats de una tupla de métricas, recursivamente."""
+    if isinstance(value, float):
+        return round(value, 9) + 0.0  # `+ 0.0` normaliza `-0.0`
+    if isinstance(value, tuple):
+        return tuple(_rounded(v) for v in cast(tuple[Any, ...], value))
+    return value
+
+
 def phase2_digest(config: SimulationConfig, ticks: int = 100) -> str:
-    """Historiales, posiciones, memorias, genomas, bosque, descubridores y generadores."""
+    """Historiales, posiciones, memorias, genomas, bosque, descubridores y generadores.
+
+    Los floats de `evolutionary_history` se redondean a 9 decimales: desde Python 3.12, `sum()`
+    de floats usa suma compensada y el último bit de esos promedios difiere entre versiones. El
+    resto exige igualdad de bits. El motor también usa `sum()` en su dinámica (por ejemplo, la
+    energía de un holón), así que la igualdad entre versiones sólo está verificada para estos
+    casos, en Python 3.11, 3.12 y 3.13.
+    """
     engine = SimulationEngine(config)
     engine.run(ticks)
     grid = grid_of(engine)
     ids = sorted(engine.agents)
     state = (
         engine.history,
-        engine.evolutionary_history,
+        [_rounded(astuple(m)) for m in engine.evolutionary_history],
         [grid.get_agent_position(a) for a in ids],
         [engine.agents[a].memory.all_units() for a in ids],
         [engine.agents[a].genome for a in ids],
