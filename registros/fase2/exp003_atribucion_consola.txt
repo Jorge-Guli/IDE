@@ -1,0 +1,5 @@
+Atribución de exp003 con el perfil phase2 (pre-registrado; ignora --profile)
+Nota: E4 no interpretable (Enmienda 1b de D29): con la abundancia del perfil el control nulo se extingue; revisar la demografía de cada variante antes de leer rule_effects.
+Afirmación Estado                        Por construcción       p E2     p E4
+C7         NOT_OBSERVED                  sí                  0.14453  0.01562
+C8         NOT_OBSERVED                  sí                  0.82812  1.00000

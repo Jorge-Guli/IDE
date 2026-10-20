@@ -34,6 +34,17 @@ python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --j
 
 # Línea base de rendimiento (ticks por segundo)
 python -m ide.experiments.benchmark
+
+# Fase II: Experimentos 002 (selección y herencia cultural) y 003 (holones y cobertura colectiva),
+# con el perfil pre-registrado `phase2` (2000 ticks); --attribution mide C5-C8 sobre las 10 semillas
+# pre-registradas y --reference repite todo con las configuraciones previas a la Enmienda 1
+python -m ide.experiments.exp002_runner --seeds 42 43 44 45 46 47 48 49 50 51 --jobs 4
+python -m ide.experiments.exp003_runner --seeds 42 43 44 45 46 47 48 49 50 51 --jobs 4
+python -m ide.experiments.exp002_runner --attribution --jobs 4
+python -m ide.experiments.exp003_runner --attribution --jobs 4
+
+# Calibración de viabilidad del perfil de la Fase II (Enmiendas 1 y 1b de D29)
+python -m ide.experiments.phase2_calibration --jobs 4
 ```
 
 El paralelismo (`--jobs`) es sólo entre corridas independientes: el diseño exige salida idéntica para cualquier número de procesos y para cualquier `PYTHONHASHSEED`. La suite lo comprueba con `--jobs 1` frente a `--jobs 2` y con `PYTHONHASHSEED` 0 frente a 1 (perfil `quick`). No se comparan historiales entre versiones distintas de Python o de NumPy: el determinismo vale dentro de un mismo entorno.
@@ -43,10 +54,10 @@ El paralelismo (`--jobs`) es sólo entre corridas independientes: el diseño exi
 ```
 src/ide/
 ├── domain/        tipos inmutables, puertos y extensiones de la hoja de ruta
-├── agent/         MicroAgent, memoria acotada, epistemología y protocolo de mensajes
+├── agent/         MicroAgent, memoria acotada, epistemología, protocolo, evolución y holones
 ├── environments/  grilla 2D toroidal (ToroidalGrid2D)
 ├── simulation/    SimulationEngine y control nulo de contenido
-├── experiments/   métricas, protocolos 001-A/B/C, atribución 001-D, CLI y benchmark
+├── experiments/   métricas M1-M13, protocolos 001, 002 y 003, atribución, calibración, CLI y benchmark
 └── config.py      SimulationConfig (todos los parámetros, validados)
 tests/             escenarios de las specs y pruebas por propiedades (Hypothesis)
 openspec/          especificación verificable (specs, diseño y plan de tareas)
@@ -59,7 +70,7 @@ Reglas de arquitectura verificadas por tests: `ide.agent` no importa `environmen
 
 > **Toda propiedad que se afirme como emergente debe poder distinguirse de una capacidad programada explícitamente en el agente.**
 
-Cada regla del agente se declara en el inventario `DESIGN_RULES` con su propósito y una ablación. El módulo de atribución (001-D) compara, para cada afirmación de `EXP001_CLAIMS`, la población completa contra la población aislada, la población sin las reglas diseñadas para esa afirmación y un control nulo de contenido. Si quitar esas reglas deja a la población sin comunicación, la afirmación es *programada por construcción* y se declara así, no como resultado. `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` son un pre-registro: se versionan antes de mirar resultados.
+Cada regla del agente se declara en el inventario `DESIGN_RULES` con su propósito y una ablación. El módulo de atribución (001-D) compara, para cada afirmación de `EXP001_CLAIMS`, la población completa contra la población aislada, la población sin las reglas diseñadas para esa afirmación y un control nulo de contenido. Si quitar esas reglas deja a la población sin comunicación, la afirmación es *programada por construcción* y se declara así, no como resultado. `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` son un pre-registro: se versionan antes de mirar resultados. En la Fase II el pre-registro equivalente es `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS`, sus canales y el perfil `phase2`; sus cuatro afirmaciones (C5–C8) se declararon programadas por construcción y ninguna se observó con el perfil pre-registrado.
 
 Los resultados vigentes están en [`RESULTADOS.md`](RESULTADOS.md).
 
@@ -72,7 +83,7 @@ Orden de jerarquía normativa ante cualquier discrepancia:
 3. [`DEFINICIONES_TECNICAS.md`](DEFINICIONES_TECNICAS.md) y [`DEFINICIONES_FORMALES.md`](DEFINICIONES_FORMALES.md): fundamento.
 4. [`DOCUMENTO_FUNDACIONAL.md`](DOCUMENTO_FUNDACIONAL.md): visión y principios.
 
-El plan de la Fase I está completo ([`tasks.md` archivado](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)). El plan de la Fase II es [`tasks.md`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/tasks.md); tiene decisiones abiertas que bloquean parte de su implementación (ver su `proposal.md`). Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
+El plan de la Fase I está completo ([`tasks.md` archivado](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)). El plan de la Fase II, [`tasks.md`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/tasks.md), también está completo; su cambio OpenSpec todavía no está archivado. Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
 
 ## Integración continua
 

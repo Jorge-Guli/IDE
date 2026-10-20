@@ -97,5 +97,5 @@
 
 ## 7. Corridas y registro
 
-- [ ] 7.1 Correr los protocolos 002 y 003 y su atribución con el perfil pre-registrado enmendado (Enmiendas 1 y 1b de D29; E4 se informa como no interpretable y cada `rule_effect` se lee después de revisar su demografía) y, como referencia, con `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`, y registrar los resultados, incluidos los negativos, en `RESULTADOS.md`, sin tocar el pre-registro.
-- [ ] 7.2 Actualizar `CLAUDE.md` (estado y comandos nuevos) y `README.md`.
+- [x] 7.1 Correr los protocolos 002 y 003 y su atribución con el perfil pre-registrado enmendado (Enmiendas 1 y 1b de D29; E4 se informa como no interpretable y cada `rule_effect` se lee después de revisar su demografía) y, como referencia, con `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`, y registrar los resultados, incluidos los negativos, en `RESULTADOS.md`, sin tocar el pre-registro.
+- [x] 7.2 Actualizar `CLAUDE.md` (estado y comandos nuevos) y `README.md`.

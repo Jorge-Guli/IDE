@@ -4,7 +4,7 @@
 
 Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
 
-**Estado:** la Fase I (Experimento 001) está completa: sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`, con los requisitos vigentes sincronizados en `openspec/specs/`. La Fase II está en diseño en `openspec/changes/ide-v2-evolutionary-holonic-intelligence/`. Su plan es el `tasks.md` de ese cambio. Sus decisiones P1–P3 están resueltas (ver su `proposal.md`) y su pre-registro es la Decisión 29 del `design.md`.
+**Estado:** la Fase I (Experimento 001) está completa: sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`, con los requisitos vigentes sincronizados en `openspec/specs/`. La Fase II (Experimentos 002 y 003) está implementada y corrida: los bloques 0 a 7 del `tasks.md` de `openspec/changes/ide-v2-evolutionary-holonic-intelligence/` están completos, su pre-registro es la Decisión 29 del `design.md` (con las Enmiendas 1 y 1b del perfil) y sus resultados, negativos para las cuatro afirmaciones C5–C8, están en `RESULTADOS.md`. Ese cambio OpenSpec todavía no está archivado.
 
 ## Idioma
 
@@ -79,7 +79,7 @@ Cada sesión de Claude Code en la nube arranca con un contenedor limpio. El hook
 
 ## Comandos
 
-Disponibles en la Fase I (los comandos de los runners 002 y 003 se agregarán al implementar la Fase II):
+Fase I y Fase II:
 
 ```bash
 pip install -e ".[dev]"                     # instalación manual (en la nube la hace el hook de inicio)
@@ -90,6 +90,13 @@ python -m pytest -m empirical                # expectativas empíricas: pueden f
 python -m ide.experiments.exp001_runner --profile quick --seeds 42
 python -m ide.experiments.exp001_runner --seeds 42 43 44 45 46 --attribution --jobs 4
 python -m ide.experiments.benchmark          # línea base de rendimiento (ticks por segundo)
+# Fase II: perfil pre-registrado `phase2` (2000 ticks) y configuraciones de PHASE2_PROTOCOL_CONFIGS
+python -m ide.experiments.exp002_runner --seeds 42 43 44 45 46 47 48 49 50 51 --jobs 4   # 002-A y 002-B
+python -m ide.experiments.exp003_runner --seeds 42 43 44 45 46 47 48 49 50 51 --jobs 4   # 003-A y 003-B
+python -m ide.experiments.exp002_runner --attribution --jobs 4   # atribución de C5 y C6 (por defecto PHASE2_SEEDS)
+python -m ide.experiments.exp003_runner --attribution --jobs 4   # atribución de C7 y C8
+# --reference: lo mismo sobre PHASE2_PROTOCOL_CONFIGS_ORIGINAL (referencia de la Enmienda 1)
+python -m ide.experiments.phase2_calibration --jobs 4            # calibración de viabilidad (--refined: Enmienda 1b)
 ```
 
 ## Integración continua
