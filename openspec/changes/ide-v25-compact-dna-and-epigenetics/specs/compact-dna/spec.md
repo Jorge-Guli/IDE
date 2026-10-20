@@ -332,6 +332,39 @@ Sólo con `enable_plasmid_hgt=True`, después de la deleción, `mutate_dna` SHAL
 - **WHEN** con `dna_min_length = 5` se invoca `recombine_dna` con `parent.chromosome == (1, 2, 3, 4, 5, 6)`, `partner.chromosome == (7, 8, 9)`, `a = 1` y `b = 1`
 - **THEN** el recombinado `(1, 8, 9)` tiene menos de 5 codones y el resultado tiene `chromosome == (1, 2, 3, 4, 5, 6)`.
 
+### Requirement: Codones Funcionales Expresables
+`expressible_codons(dna, holonic) -> tuple[tuple[int, bool], ...]` SHALL ser pura, sin contexto, señales ni generador, y devolver en orden ascendente y sin repetidos los valores de los codones de `chromosome + plasmids` con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`) o de conducta (`0x40`–`0x47`), modo distinto de 3 y promotor expresable, cada uno con si su promotor es condicional (design precisión 42).
+
+#### Scenario: ADN fundador
+- **WHEN** se invoca `expressible_codons(founder_dna(config), False)` con `enable_genetic_policy=False`
+- **THEN** devuelve `tuple((encode_codon(0x00, t), False) for t in range(0x00, 0x09))`.
+
+#### Scenario: Duplicados, inertes y firmas fuera
+- **WHEN** al ADN fundador se le agregan en el cromosoma una copia de `encode_codon(0x00, 0x00)`, un `EMIT_TF`, un codón de modo 3 sobre `0x01` y uno aditivo sobre `0x0D`, la misma copia en `plasmids` y una firma en `crispr_memory`
+- **THEN** el resultado tiene los mismos 9 elementos que el del fundador.
+
+### Requirement: Promotores Expresables en el Protocolo
+Para `expressible_codons`, con `holonic`, un promotor SHALL ser expresable si es `0x00`, `0x01`, `0x18` o `0x19`; `0x02`–`0x0A` o `0x10`–`0x12` sólo si `holonic`; `0x20`–`0x27` sólo sobre destinos de conducta; y `0x80`–`0xBF` si `chromosome + plasmids` tiene un emisor activador de su canal (`EMIT_TF` de modo 0 o 2) con promotor expresable menor que `0x80`. Los reservados SHALL NOT ser expresables (design precisión 42).
+
+#### Scenario: Promotores según el protocolo
+- **WHEN** un ADN tiene codones aditivos de promotor `0x02` sobre `0x00`, `0x20` sobre `0x01`, `0x20` sobre `0x40` y `0x0B` sobre `0x41`, y se invoca `expressible_codons` con `holonic=False` y con `holonic=True`
+- **THEN** con `False` es expresable sólo el de `0x20` sobre `0x40`, y con `True` también el de `0x02`.
+
+#### Scenario: Canal sin emisor activador
+- **WHEN** un ADN tiene un codón aditivo de promotor `0x85` sobre `0x02`, y su única emisión del canal 5 es un `EMIT_TF` de modo 1 con promotor `0x00`
+- **THEN** ese codón no es expresable.
+
+### Requirement: Promotores Condicionales y Aproximación de los Canales Regulados
+Un promotor expresable SHALL ser condicional salvo que sea constitutivo: `0x00`, `0x01` con `holonic=False` y `0x80`–`0xBF` cuando algún emisor activador de su canal tiene promotor constitutivo. Esta última es una aproximación declarada: SHALL NOT considerar los represores del canal, que en la transcripción pueden apagarlo (design precisión 42).
+
+#### Scenario: Canal con activador constitutivo y represor
+- **WHEN** un ADN tiene un codón aditivo de promotor `0x85` sobre `0x02`, un `EMIT_TF` de modo 0 y promotor `0x00` sobre el canal 5 y dos `EMIT_TF` de modo 1 y promotor `0x00` sobre el mismo canal
+- **THEN** el codón es expresable y no condicional, aunque en la transcripción el canal 5 quede apagado.
+
+#### Scenario: Canal con activador condicional
+- **WHEN** un ADN tiene un codón aditivo de promotor `0x85` sobre `0x02` y su único activador del canal 5 es un `EMIT_TF` de modo 0 con promotor `0x18`
+- **THEN** el codón es expresable y condicional.
+
 ### Requirement: Aislamiento del Módulo dna.py
 `src/ide/agent/dna.py` SHALL importar sólo `ide.domain`, `ide.config`, `numpy` y la biblioteca estándar, y SHALL NOT importar `micro_agent`, `policy`, `holon`, `ide.environments`, `ide.simulation` ni `ide.experiments`; no ve coordenadas ni `true_value`.
 

@@ -3,11 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: Telemetría Genética GeneticTickMetrics
-`metrics.py` SHALL definir `GeneticTickMetrics` como `@dataclass(frozen=True)` con los 15 campos de design D41 (`tick`, `mean_chromosome_length`, `mean_expressed_codons`, `mean_plasmids`, `endospores`, `senescent_agents`, `mean_age`, `max_age`, `explorers`, `librarians`, `nerves`, `locked_holons`, `hgt_transfers`, `crispr_rejections` y `crispr_purges`) más los 7 de D53.2 y los 3 de las precisiones 42 y 43, 25 en total.
+`metrics.py` SHALL definir `GeneticTickMetrics` como `@dataclass(frozen=True)` con los 15 de D41 (`tick`, `mean_chromosome_length`, `mean_expressed_codons`, `mean_plasmids`, `endospores`, `senescent_agents`, `mean_age`, `max_age`, `explorers`, `librarians`, `nerves`, `locked_holons`, `hgt_transfers`, `crispr_rejections` y `crispr_purges`) más los 7 de D53.2 y, al final y en orden, los 4 de las precisiones 42, 43 y 49 (D53.2), 26 en total.
 
 #### Scenario: Campos de la telemetría genética
 - **WHEN** se inspeccionan los campos de `GeneticTickMetrics`
-- **THEN** son exactamente los 15 de D41 más `distinct_genotypes`, `mean_functional_codons`, `regulated_expression_fraction`, `policy_divergence`, `communicating_fraction`, `new_activity`, `cumulative_new_activity`, `mean_active_functional_codons`, `cumulative_births` y `new_activity_per_birth`, y asignar uno de ellos lanza `dataclasses.FrozenInstanceError`.
+- **THEN** son exactamente los 15 de D41 más `distinct_genotypes`, `mean_functional_codons`, `regulated_expression_fraction`, `policy_divergence`, `communicating_fraction`, `new_activity` y `cumulative_new_activity`, seguidos de `mean_expressible_codons`, `cumulative_births`, `new_activity_per_birth` y `mean_age_at_death` como los cuatro últimos, en ese orden, y asignar uno de ellos lanza `dataclasses.FrozenInstanceError`.
 
 ### Requirement: Historial Genético Separado
 El motor SHALL registrar un `GeneticTickMetrics` en cada tick, con cualquier combinación de banderas, en `engine.genetic_history: list[GeneticTickMetrics]`, sin agregar campos a `TickMetrics` (14 campos) ni a `EvolutionaryTickMetrics`.
@@ -32,7 +32,7 @@ Con la población vacía, los promedios de `GeneticTickMetrics` SHALL valer `0.0
 
 #### Scenario: Población extinguida
 - **WHEN** se registra un tick en el que no queda ninguna hoja viva
-- **THEN** `mean_age == 0.0`, `max_age == 0`, `distinct_genotypes == 0`, `mean_functional_codons == 0.0`, `mean_active_functional_codons == 0.0`, `regulated_expression_fraction == 0.0` y `communicating_fraction == 0.0`.
+- **THEN** `mean_age == 0.0`, `max_age == 0`, `distinct_genotypes == 0`, `mean_functional_codons == 0.0`, `mean_expressible_codons == 0.0`, `regulated_expression_fraction == 0.0` y `communicating_fraction == 0.0`.
 
 ### Requirement: Genotipos Distintos y Codones Funcionales
 `distinct_genotypes` SHALL contar los cromosomas distintos entre las hojas vivas, y `mean_functional_codons`, que es descriptiva y no mide ninguna afirmación (design precisión 42), SHALL ser la media de los codones con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`) o de conducta (`0x40`–`0x47`) y modo distinto de 3, cualquiera sea su promotor.
@@ -45,49 +45,49 @@ Con la población vacía, los promedios de `GeneticTickMetrics` SHALL valer `0.0
 - **WHEN** una hoja porta un codón con destino `0x40` y modo 3
 - **THEN** ese codón no cuenta en `mean_functional_codons`.
 
-### Requirement: Codones Activos de una Hoja
-Para cada hoja viva con ADN, sus codones activos SHALL ser la unión, por posición en `chromosome + plasmids`, de los codones con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`) y modo distinto de 3 activos en la transcripción del fenotipo con su `last_context`, y de los codones con destino de conducta (`0x40`–`0x47`) y modo distinto de 3 activos en su última evaluación de impulsos (ninguno si no decidió) (design precisión 42).
+### Requirement: Codones Expresables de una Hoja
+Para cada hoja viva con ADN, las métricas de C13 y C17 SHALL usar `expressible_codons(agent.dna, config.enable_holonic_hierarchy)`, que depende sólo del genotipo y del protocolo: SHALL NOT depender de si la hoja decidió en el tick, de si está en endospora, de su `last_context` ni de las señales del entorno (design precisión 42).
 
-#### Scenario: Fundador sin política genética
-- **WHEN** una hoja porta el ADN fundador sin política genética
-- **THEN** sus codones activos son los 9 codones de rasgo `0x00`–`0x08`.
+#### Scenario: Independencia del estado del tick
+- **WHEN** dos hojas vivas portan el mismo ADN, una en endospora y sin decidir en el tick y otra activa, con distinta energía y distinto rol
+- **THEN** las dos aportan los mismos valores a `mean_expressible_codons` y a `regulated_expression_fraction`.
 
-#### Scenario: Codón de conducta con promotor inactivo
-- **WHEN** una hoja con la política genética decidió en el tick y porta, además del ADN fundador conductual, un codón aditivo de destino `0x43` con el promotor reservado `0x0B`
-- **THEN** ese codón no es activo, y sí lo son los 9 de rasgo y los 4 de conducta del fundador.
-
-### Requirement: Complejidad Genética Activa
-`mean_active_functional_codons` SHALL ser la media, sobre las hojas vivas con ADN, de la cantidad de valores distintos entre sus codones activos, de modo que duplicar un codón o acumular codones inertes no suma complejidad (design precisión 42).
+### Requirement: Complejidad Genética Expresable
+`mean_expressible_codons` SHALL ser la media, sobre las hojas vivas con ADN, de `len(expressible_codons(agent.dna, config.enable_holonic_hierarchy))`, la cantidad de valores distintos de sus codones funcionales expresables, de modo que duplicar un codón o acumular codones inertes no suma complejidad (design precisión 42).
 
 #### Scenario: Fundador conductual
-- **WHEN** se registra un tick en el que todas las hojas portan el ADN fundador de `enable_genetic_policy=True`, sin mutación, y todas decidieron
-- **THEN** `mean_active_functional_codons == 13.0`.
+- **WHEN** se registra un tick en el que todas las hojas portan el ADN fundador de `enable_genetic_policy=True`, sin mutación
+- **THEN** `mean_expressible_codons == 13.0`.
 
 #### Scenario: Duplicados e inertes no suman
 - **WHEN** la única hoja viva porta, sin política genética, el ADN fundador más una copia de su codón sobre el destino `0x00`, un codón de modo 3 sobre el destino `0x01` y un codón aditivo sobre el destino reservado `0x0D`
-- **THEN** `mean_active_functional_codons == 9.0` y `mean_functional_codons == 10.0`, que cuenta la copia.
+- **THEN** `mean_expressible_codons == 9.0` y `mean_functional_codons == 10.0`, que cuenta la copia.
+
+#### Scenario: Codón con promotor reservado
+- **WHEN** la única hoja viva porta el ADN fundador conductual más un codón aditivo de destino `0x43` con el promotor reservado `0x0B`
+- **THEN** `mean_expressible_codons == 13.0`, porque ese codón no es expresable.
 
 ### Requirement: Fracción de Expresión Regulada
-`regulated_expression_fraction` SHALL ser la media, sobre las hojas vivas con ADN, de la fracción de sus codones activos cuyo promotor es condicional en el protocolo: `0x18`, `0x19`, `0x20`–`0x27` y `0x80`–`0xBF` siempre, y `0x01`–`0x0A` y `0x10`–`0x12` sólo con `enable_holonic_hierarchy=True`; una hoja sin codones activos SHALL aportar 0.0 (design precisión 42).
+`regulated_expression_fraction` SHALL ser la media, sobre las hojas vivas con ADN, de la fracción de los valores de `expressible_codons(agent.dna, config.enable_holonic_hierarchy)` cuyo promotor es condicional; una hoja sin codones expresables SHALL aportar 0.0 (design precisión 42).
 
 #### Scenario: Fundador sin regulación
 - **WHEN** se registra un tick con el ADN fundador sin mutación
-- **THEN** `regulated_expression_fraction == 0.0`, porque todos sus codones usan el promotor `0x00`.
+- **THEN** `regulated_expression_fraction == 0.0`, porque todos sus codones usan el promotor constitutivo `0x00`.
 
-#### Scenario: Codón regulado activo con holones
-- **WHEN** con `enable_holonic_hierarchy=True` la única hoja viva, solitaria, tiene 4 codones activos y 1 de ellos tiene el promotor `0x01` (`SOLITARY_L0`)
+#### Scenario: Promotor de nivel con holones
+- **WHEN** con `enable_holonic_hierarchy=True` la única hoja viva tiene 4 codones expresables distintos y 1 de ellos tiene el promotor `0x01` (`SOLITARY_L0`)
 - **THEN** `regulated_expression_fraction == pytest.approx(0.25, abs=1e-9)`.
 
 #### Scenario: Promotor de nivel sin holones
-- **WHEN** con `enable_holonic_hierarchy=False` la única hoja viva tiene 4 codones activos y 1 de ellos tiene el promotor `0x01` (`SOLITARY_L0`)
-- **THEN** `regulated_expression_fraction == 0.0`, porque sin holones ese promotor equivale a `ALWAYS_BASAL`.
+- **WHEN** con `enable_holonic_hierarchy=False` la única hoja viva tiene 4 codones expresables distintos y 1 de ellos tiene el promotor `0x01` (`SOLITARY_L0`)
+- **THEN** `regulated_expression_fraction == 0.0`, porque sin holones ese promotor es constitutivo.
 
 #### Scenario: Promotor de estrés
-- **WHEN** con `enable_holonic_hierarchy=False` la única hoja viva tiene 5 codones activos y 1 de ellos tiene el promotor `0x18`
+- **WHEN** con `enable_holonic_hierarchy=False` la única hoja viva tiene 5 codones expresables distintos y 1 de ellos tiene el promotor `0x18`
 - **THEN** `regulated_expression_fraction == pytest.approx(0.2, abs=1e-9)`.
 
-#### Scenario: Hoja sin codones activos
-- **WHEN** hay dos hojas vivas con ADN, una con fracción 0.5 y otra sin ningún codón activo
+#### Scenario: Hoja sin codones expresables
+- **WHEN** hay dos hojas vivas con ADN, una con fracción 0.5 y otra sin ningún codón expresable
 - **THEN** `regulated_expression_fraction == pytest.approx(0.25, abs=1e-9)`.
 
 ### Requirement: Divergencia de la Conducta
@@ -113,26 +113,41 @@ Para cada hoja viva con ADN, sus codones activos SHALL ser la unión, por posici
 - **THEN** `communicating_fraction == 0.0`.
 
 ### Requirement: Actividad Evolutiva de Bedau–Packard
-Para cada codón distinto $c$, la actividad $a_c(t)$ SHALL ser la suma, sobre los ticks $s \le t$, de las hojas vivas que portan $c$, en el cromosoma o en los plásmidos, en $s$; cada hoja aporta 1 por codón distinto. `new_activity` SHALL contar los codones con $a_c(t-1) <$ `activity_threshold` $\le a_c(t)$, y `cumulative_new_activity` SHALL ser su suma acumulada.
+Para cada codón distinto $c$ ausente del cromosoma de `founder_dna(config)`, la actividad $a_c(t)$ SHALL ser la suma, sobre los ticks $s \le t$, de las hojas vivas que portan $c$, en el cromosoma o en los plásmidos, en $s$; cada hoja aporta 1 por codón distinto. `new_activity` SHALL contar los codones con $a_c(t-1) <$ `activity_threshold` $\le a_c(t)$, y `cumulative_new_activity` SHALL ser su suma acumulada (design precisión 43).
 
 #### Scenario: Cruce del umbral
-- **WHEN** con `activity_threshold = 500` y 100 hojas vivas que portan sólo el ADN fundador de 9 codones distintos durante 5 ticks
-- **THEN** en el quinto tick `new_activity == 9` y `cumulative_new_activity == 9`, y en los ticks anteriores `new_activity == 0`.
+- **WHEN** con `activity_threshold = 500`, 100 hojas vivas portan durante 5 ticks el ADN fundador más un mismo codón $c$ ausente del fundador
+- **THEN** en el quinto tick `new_activity == 1` y `cumulative_new_activity == 1`, y en los ticks anteriores `new_activity == 0`.
+
+#### Scenario: Los codones fundadores no cuentan
+- **WHEN** con `activity_threshold = 500` y 100 hojas vivas que portan sólo el ADN fundador durante 5 ticks
+- **THEN** en los 5 ticks `new_activity == 0` y `cumulative_new_activity == 0`.
 
 #### Scenario: Una hoja cuenta una vez por codón
 - **WHEN** una hoja porta el mismo codón dos veces en el cromosoma y una vez en un plásmido
 - **THEN** aporta 1, no 2, a la actividad de ese codón en el tick.
 
 ### Requirement: Actividad Evolutiva por Nacimiento
-`cumulative_births` SHALL ser la suma de los nacimientos, individuales y holónicos, desde el primer tick hasta el tick registrado, y `new_activity_per_birth` SHALL ser `cumulative_new_activity / cumulative_births`, o 0.0 sin nacimientos (design precisión 43).
+`cumulative_births` SHALL ser la suma de `births` de `evolutionary_history` desde el tick 0 hasta el tick registrado (nacimientos individuales y holónicos; las perturbaciones no cuentan), y `new_activity_per_birth` SHALL ser `cumulative_new_activity / cumulative_births`, o 0.0 sin nacimientos (design precisiones 43 y 49).
 
 #### Scenario: Sin nacimientos
-- **WHEN** en el quinto tick `cumulative_new_activity == 9` y todavía no nació ningún agente
+- **WHEN** en el quinto tick, con hojas iniciales construidas con codones ausentes del fundador, `cumulative_new_activity == 2` y todavía no nació ningún agente
 - **THEN** `cumulative_births == 0` y `new_activity_per_birth == 0.0`.
 
 #### Scenario: Normalización por nacimientos
 - **WHEN** un tick registra `cumulative_new_activity == 12` y, hasta ese tick, nacieron 300 agentes
 - **THEN** `cumulative_births == 300` y `new_activity_per_birth == pytest.approx(0.04, abs=1e-9)`.
+
+### Requirement: Edad Media al Morir
+`mean_age_at_death` SHALL ser la media acumulada, sobre todas las muertes desde el tick 0 hasta el tick registrado (por hambre y por depredación), de `tick - birth_tick` del agente muerto, y 0.0 sin muertes; se informa como covariable de la longevidad (design precisiones 43 y 49).
+
+#### Scenario: Sin muertes
+- **WHEN** se registra un tick sin ninguna muerte desde el tick 0
+- **THEN** `mean_age_at_death == 0.0`.
+
+#### Scenario: Media acumulada
+- **WHEN** muere en el tick 50 un agente nacido en el tick 10 y en el tick 80 otro nacido en el tick 0
+- **THEN** el registro del tick 50 tiene `mean_age_at_death == pytest.approx(40.0, abs=1e-9)` y el del tick 80, `pytest.approx(60.0, abs=1e-9)`.
 
 ### Requirement: Telemetría Ecológica EcologyTickMetrics
 `metrics.py` SHALL definir `EcologyTickMetrics` como `@dataclass(frozen=True)` con `tick`, `resources_available`, `shares`, `attacks`, `successful_attacks`, `predation_deaths`, `starvation_deaths`, `carcasses_deposited`, `carcasses_eaten`, `sporulations`, `recombinations`, `share_rate` y `behavior_counts`, y el motor SHALL registrar uno en cada tick en `engine.ecology_history`.
@@ -196,10 +211,10 @@ Antes de la compuerta de viabilidad SHALL medirse el costo de un tick con todas 
 - **THEN** su salida contiene, por protocolo, condición y semilla, sólo la población final y la generación máxima, y ningún valor de las métricas de `C13`–`C18`.
 
 ### Requirement: Criterio de Viabilidad
-Una corrida SHALL ser viable si termina con al menos una hoja viva que no está en endospora y `max_generation >= 20`. Una configuración SHALL ser viable si, para cada protocolo de design D56 y cada una de sus condiciones `full`, `drift` y `no_predation`, al menos 8 de las 10 semillas son viables; `null_content` SHALL correrse y registrarse sin decidir la viabilidad.
+Una corrida SHALL ser viable si termina con al menos una hoja viva que no está en endospora y `max_generation >= 20`. Una configuración SHALL ser viable si, para cada protocolo de design D56 y cada una de sus condiciones `full`, `drift` y `no_predation`, al menos 9 de las 10 semillas son viables; `null_content` SHALL correrse y registrarse sin decidir la viabilidad.
 
 #### Scenario: Una condición inviable descarta la configuración
-- **WHEN** con una configuración de la grilla todas las condiciones son viables en 10 semillas salvo `no_predation` de `25a`, viable en 7
+- **WHEN** con una configuración de la grilla todas las condiciones son viables en 10 semillas salvo `no_predation` de `25a`, viable en 8
 - **THEN** la configuración no es viable.
 
 #### Scenario: Generación insuficiente

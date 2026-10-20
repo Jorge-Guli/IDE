@@ -17,8 +17,8 @@ Con `enable_compact_dna=True`, el costo basal de cada agente SHALL ser `compute_
 Con `enable_compact_dna=True` y `reproduction_mode="neutral"`, el donante sorteado con `donor_rng` SHALL aportar su ADN, en lugar de su genoma, como `dna_source` del hijo, sin cambiar la secuencia de `donor_rng` de la reproducción individual; la reproducción holónica neutral agrega sus propios sorteos (design precisión 41).
 
 #### Scenario: Donante de ADN en la reproducción neutral
-- **WHEN** con `enable_compact_dna=True`, `reproduction_mode="neutral"` y la ablación de $R_{13}$ se reproduce un agente y `donor_rng` sortea al agente 5
-- **THEN** el ADN del hijo es igual al ADN del agente 5, y `donor_rng` hace las mismas extracciones que con `enable_compact_dna=False`.
+- **WHEN** con `enable_compact_dna=True`, `reproduction_mode="neutral"`, la ablación de $R_{13}$ y sin reproducción holónica ($R_{17}$ apagada) se reproduce un agente y `donor_rng` sortea al agente 5
+- **THEN** el ADN del hijo es igual al ADN del agente 5, y `donor_rng` hace las mismas extracciones que con `enable_compact_dna=False`; con $R_{17}$ activa la secuencia difiere por los sorteos de las hojas (design precisión 41).
 
 ### Requirement: Costo de Senescencia Telomérica (R29)
 Con `enable_evolution` y `enable_telomere_senescence` activas, al cobrar el metabolismo, con `age = tick - birth_tick`, el costo SHALL sumar `senescence_cost_rate * (age - lifespan) ** 2` si `age > phenotype.lifespan`; `lifespan` se expresa por el destino `0x07` con ADN y vale `telomere_base_lifespan` sin ADN; con la regla apagada, la senescencia SHALL valer 0.
@@ -190,10 +190,10 @@ En la Fase 5 con `enable_evolution=True`, todo `MicroAgent` sobreviviente no rep
 - **THEN** no nace ningún descendiente suyo y su energía no se parte.
 
 ### Requirement: Reproducción Neutral como Ablación de R12 y Control de Deriva
-Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL reproducirse con la misma partición de energía, ubicación, linaje y herencia cultural, pero el genoma de cada hijo (su ADN, con `enable_compact_dna=True`) SHALL mutarse a partir del de un donante sorteado con `donor_rng` (`spawn_key=(4,)`) entre los agentes vivos que no están en endospora al empezar la reproducción del tick; con $R_{38}$, ese ADN es el primero del cruce.
+Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL reproducirse con igual partición de energía, ubicación, linaje y herencia cultural, pero el genoma (o ADN) de cada hijo individual SHALL mutarse a partir del de un donante sorteado con `donor_rng` (`spawn_key=(4,)`) entre los vivos no endosporas al empezar la reproducción, primero del cruce con $R_{38}$. Una hoja hija de $R_{17}$ recibe con ADN el de su donante y sin ADN el de su progenitora (precisión 41).
 
 #### Scenario: Misma demografía, genoma independiente del éxito
-- **WHEN** se corren dos motores con la misma semilla y `reproduction_mode` `"energy"` y `"neutral"`, con `mutation_rate = 0`, `discrete_mutation_prob = 0` y genomas fundadores distintos
+- **WHEN** se corren dos motores con la misma semilla y `reproduction_mode` `"energy"` y `"neutral"`, sin reproducción holónica, con `mutation_rate = 0`, `discrete_mutation_prob = 0` y genomas fundadores distintos
 - **THEN** en el primer tick con nacimientos las dos corridas tienen los mismos `parent_id`, energías y posiciones de los hijos, y en `"neutral"` el genoma de cada hijo es el de su donante sorteado, no necesariamente el de su progenitor.
 
 #### Scenario: Endosporas fuera del sorteo de donantes
