@@ -70,11 +70,11 @@
 - **THEN** la construcción lanza `TypeError` y el diccionario no tiene la clave `lock_composite_threshold`.
 
 ### Requirement: Hiperparámetros de la Conducta, el Compromiso, la Recombinación y la Telemetría
-`SimulationConfig` SHALL incorporar al final `comm_propensity_base=1.0`, `crowding_threshold=3`, `symbiotic_commitment_base=0.0`, `recombination_base=0.0` y `activity_threshold=500` (design D52.1).
+`SimulationConfig` SHALL incorporar al final `comm_propensity_base=1.0`, `crowding_threshold=3`, `symbiotic_commitment_base=0.0`, `recombination_base=0.0` y `activity_threshold=10`, que cuenta nacimientos portadores (design D52.1 y precisión 43).
 
 #### Scenario: Valores por defecto de R31, R32, R38 y la telemetría
 - **WHEN** se construye `SimulationConfig()`
-- **THEN** `comm_propensity_base == 1.0`, `crowding_threshold == 3`, `symbiotic_commitment_base == 0.0`, `recombination_base == 0.0` y `activity_threshold == 500`.
+- **THEN** `comm_propensity_base == 1.0`, `crowding_threshold == 3`, `symbiotic_commitment_base == 0.0`, `recombination_base == 0.0` y `activity_threshold == 10`.
 
 ### Requirement: Hiperparámetros de la Ecología y de las Interacciones
 `SimulationConfig` SHALL incorporar al final `resource_regen_delay=20`, `num_regions=3`, `season_length=0` (sin estaciones), `winter_regen_factor=3.0`, `carcass_value=0.6`, `carcass_lifetime=50`, `share_fraction=0.25`, `share_efficiency=0.9`, `attack_power=0.5`, `predation_efficiency=0.6` y `attack_cost=0.01` (design D52.1).

@@ -85,14 +85,14 @@ La condición `null_content` SHALL aleatorizar el contenido de las creencias en 
 - **THEN** difieren sólo en la aleatorización de contenido, y el ADN fundador, la política genética y `comm_propensity_base` son los mismos.
 
 ### Requirement: Afirmaciones Pre-Registradas C13 a C15
-Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` SHALL contener, con métrica creciente, $R_C$ `("R12",)`, canal `()` y comparación `full` frente a `drift`: `C13` (`25a`, `regulated_expression_fraction`, $\delta_{\min} = 0.05$), `C14` (`25a`, `policy_divergence`, $0.05$) y `C15` (`25c`, `communicating_fraction`, $0.10$), las tres con `delta_relative = 0.0`.
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` SHALL contener, con métrica creciente, $R_C$ `("R12",)`, canal `()` y comparación `full` frente a `drift`: `C13` (`25a`, `mean_conditional_codons`, $\delta_{\min} = 1.0$), `C14` (`25a`, `policy_divergence`, $0.05$) y `C15` (`25c`, `communicating_fraction`, $0.10$), las tres con `delta_relative = 0.0`.
 
 #### Scenario: Registro de C13 a C15
 - **WHEN** se inspeccionan `C13`, `C14` y `C15` en `PHASE25_CLAIMS`
 - **THEN** tienen esos protocolos, métricas, comparaciones, $R_C$, canales y $\delta_{\min}$, `delta_relative == 0.0` y métrica creciente.
 
 ### Requirement: Afirmaciones Pre-Registradas C16 a C18
-Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` SHALL contener, con métrica creciente y canal `()`: `C16` (`25a`, `new_activity_per_birth`, `full` frente a `drift`, $R_C$ `("R12",)`, $\delta_{\min} = 0.001$, `delta_relative = 0.25`), `C17` (`25a`, `mean_expressible_codons`, `full` frente a `no_predation`, `("R37",)`, $1.0$) y `C18` (`25b`, `share_rate`, `full` frente a `drift`, `("R12",)`, $0.01$), éstas con `delta_relative = 0.0`; ninguna más salvo `C13`–`C15`.
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` SHALL contener, crecientes y con canal `()`: `C16` (`25a`, `new_activity_per_birth`, `full` frente a `drift`, $R_C$ `("R12",)`, $\delta_{\min} = 0.001$, `delta_relative = 0.25`), `C17` (`25a`, `mean_expressible_nonattack_codons`, frente a `no_predation`, `("R37",)`, $1.0$) y `C18` (`25b`, `share_rate`, frente a `drift`, `("R12",)`, $0.01$), éstas con `delta_relative = 0.0`; ninguna más salvo `C13`–`C15`.
 
 #### Scenario: Registro de C16 a C18
 - **WHEN** se inspecciona `PHASE25_CLAIMS`
@@ -103,7 +103,7 @@ La métrica de cada afirmación de `PHASE25_CLAIMS` SHALL ser la media de su cam
 
 #### Scenario: Ventana del perfil phase25
 - **WHEN** se mide `C13` en una corrida de 5000 ticks
-- **THEN** su valor es la media de `regulated_expression_fraction` en los últimos 500 registros de `engine.genetic_history`.
+- **THEN** su valor es la media de `mean_conditional_codons` en los últimos 500 registros de `engine.genetic_history`.
 
 #### Scenario: Actividad en el último tick
 - **WHEN** se mide `C16` en una corrida de 5000 ticks
@@ -181,7 +181,7 @@ Los p-valores crudos de `C13`..`C18` SHALL corregirse por Holm–Bonferroni con 
 `ClaimStatus` SHALL agregar `OBSERVED = "OBSERVED"`, sólo para la Fase II-B. Una afirmación de `PHASE25_CLAIMS` SHALL ser `OBSERVED` si su p-valor ajustado es menor que $\alpha = 0.05$ y la mediana de sus diferencias pareadas es al menos su umbral de efecto, y `NOT_OBSERVED` en otro caso; su evaluación SHALL informar siempre el p-valor crudo, el ajustado, la mediana y la demografía.
 
 #### Scenario: Significativa pero con efecto chico
-- **WHEN** `C13` tiene p-valor ajustado 0.006 y mediana de diferencias 0.03, menor que su umbral de efecto $\delta_{\min} = 0.05$
+- **WHEN** `C13` tiene p-valor ajustado 0.006 y mediana de diferencias 0.5, menor que su umbral de efecto $\delta_{\min} = 1.0$
 - **THEN** su estado es `NOT_OBSERVED`, y la evaluación informa los dos p-valores, la mediana y la demografía.
 
 #### Scenario: Efecto grande sin significancia
@@ -191,6 +191,13 @@ Los p-valores crudos de `C13`..`C18` SHALL corregirse por Holm–Bonferroni con 
 #### Scenario: Estados previos intactos
 - **WHEN** se evalúan `C1`..`C8`
 - **THEN** ninguna recibe `ClaimStatus.OBSERVED`, y los demás miembros de `ClaimStatus` no cambian.
+
+### Requirement: Mediana de las Diferencias con Empates
+La mediana de las diferencias pareadas de una afirmación de `PHASE25_CLAIMS` SHALL tomarse sobre todas las diferencias de sus pares válidos, incluidas las nulas, aunque la prueba de signo descarte los empates (design D56).
+
+#### Scenario: Mediana con empates
+- **WHEN** `C17` tiene 30 pares válidos, 14 diferencias de 2.0 y 16 nulas, y p-valor ajustado 0.0004
+- **THEN** la prueba de signo usa $n = 14$, la mediana de las diferencias es 0.0 porque incluye las 16 nulas, y su estado es `NOT_OBSERVED`.
 
 ### Requirement: Umbral de Efecto de la Fase II-B
 El umbral de efecto de una afirmación de `PHASE25_CLAIMS` SHALL ser $\max(\delta_{\min},\ \text{delta\_relative} \cdot M)$, con $M$ la mediana de los valores de su condición de comparación sobre los pares válidos; con `delta_relative = 0.0` SHALL ser $\delta_{\min}$ (design D56).
@@ -209,6 +216,13 @@ E4 de una afirmación de `PHASE25_CLAIMS` SHALL informarse contra `null_content`
 #### Scenario: Control nulo inviable
 - **WHEN** con la configuración elegida, la condición `null_content` de `25b` fue viable en 8 de 10 semillas de viabilidad
 - **THEN** `C18` tiene `e4_interpretable == False`, sin depender de su métrica, y las afirmaciones de `25a` dependen sólo de su propio `null_content`.
+
+### Requirement: Pares Válidos de E4
+`e4_p_value` SHALL calcularse con `PHASE25_SEEDS`, pareando por semilla `full` con `null_content` del mismo protocolo, sólo sobre los pares válidos (las dos condiciones con `final_active_agents >= 1`), con la prueba de signo unilateral que descarta empates; un control nulo extinguido SHALL NOT contar como un 0.0 a favor de `full` (design D56 y precisiones 38 y 45).
+
+#### Scenario: Control nulo extinguido excluido
+- **WHEN** en `C14` la condición `null_content` de la semilla 45 termina sin hojas activas y las otras 29 semillas terminan con hojas activas en `full` y en `null_content`
+- **THEN** `e4_p_value` se calcula sólo sobre esos 29 pares, y la semilla 45 no aporta una diferencia positiva.
 
 ### Requirement: Efectos de Regla Exploratorios
 Los `rule_effects` de la Fase II-B SHALL tener una variante por regla de `PHASE25_ALL_RULES`, salvo las de `PHASE25_INACTIVE_RULES` del protocolo, SHALL medirse sólo con `PHASE25_RULE_EFFECT_SEEDS = tuple(range(42, 52))` y SHALL quedar fuera de la corrección de Holm y del estado de las afirmaciones.

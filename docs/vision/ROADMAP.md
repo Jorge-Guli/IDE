@@ -100,12 +100,12 @@ flowchart LR
      - **Recombinación ($R_{38}$):** cruce de cromosomas con una pareja vecina, si ambos lo expresan.
 - **Motor y medición:**
   - **Motor por sistemas y observadores** (D44) y **puerto de política** (D45), sin cambio de conducta: los hashes dorados y las huellas de la Fase II son el test de aceptación.
-  - **Métricas de evolución abierta** (D53): actividad evolutiva de Bedau–Packard (sin los codones fundadores), divergencia de la conducta respecto del fundador, fracción de expresión regulada y codones funcionales expresables distintos (las dos sobre el genotipo, con los promotores expresables y condicionales en el protocolo), actividad por nacimiento, edad media al morir como covariable y telemetría ecológica.
+  - **Métricas de evolución abierta** (D53): actividad evolutiva de Bedau–Packard por nacimientos portadores (sin los codones fundadores, de modo que una hoja longeva no basta para cruzar el umbral), divergencia de la conducta respecto del fundador, codones condicionales y codones funcionales expresables sin `ATTACK` (sobre el genotipo, por valor canónico sin el campo `channel`, con los promotores expresables y condicionales en el protocolo), actividad por nacimiento, edad media al morir como covariable y telemetría ecológica. La fracción de expresión regulada y el total de codones expresables quedan como descriptivas.
   - **Compuerta de viabilidad** (D55) antes de cualquier afirmación, sólo demográfica y sobre una grilla declarada de `(resources_per_pattern, resource_regen_delay)`, recorrida de menos a más abundancia; una configuración es viable con 9 de 10 semillas viables en cada condición.
 - **Protocolos y afirmaciones propuestos (borrador D56):**
   - `25a` (ecología individual), `25b` (ecología holónica) y `25c` (comunicación desde cero), con las condiciones `full`, `drift` (reproducción neutral, también holónica con ADN), `no_predation` (sólo `25a`) y `null_content`;
   - C13–C18: la regulación génica, la conducta, la comunicación desde cero, la actividad evolutiva, la complejidad genética bajo depredación y la cooperación material en los holones. Son **pruebas genuinas**: ninguna regla persigue la métrica.
-  - Perfil `phase25` de 5000 ticks, 30 semillas (42–71), prueba de signo sobre los pares válidos (sin extinciones; con menos de 20, la afirmación no es evaluable) con corrección de Holm y tamaño de efecto mínimo (relativo a la mediana de `drift` en C16), y la demografía como covariable.
+  - Perfil `phase25` de 5000 ticks, 30 semillas (42–71), prueba de signo sobre los pares válidos (sin extinciones; con menos de 20, la afirmación no es evaluable) con corrección de Holm y tamaño de efecto mínimo (relativo a la mediana de `drift` en C16) sobre la mediana de todas las diferencias, incluidas las nulas, y la demografía como covariable. E4 usa la misma regla de pares válidos.
 
 ---
 
