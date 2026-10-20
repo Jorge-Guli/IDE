@@ -19,7 +19,7 @@ flowchart LR
 | :--- | :---: | :---: | :--- |
 | **Fase I** | `v1.0` | **Completada y Archivada** | Micro-agentes inmortales con memoria acotada ($C_{\max} < N$), protocolo epistémico (`R1`–`R11`), entorno `ToroidalGrid2D` y marco de atribución `001-D`. |
 | **Fase II** | `v2.0` | **Completada y Archivada (resultados negativos para C5–C8)** | Metabolismo energético ($R_{20}, R_{21}$), selección y deriva ($R_{12}$), mutación genética ($R_{13}$), herencia cultural ($R_{14}$), holones recursivos $L = 0 \dots K$ (`BOND`/`SPLIT`, $R_{15}$–$R_{18}, R_{22}, R_{23}$) y estigmergia ($R_{19}$). |
-| **Fase II-B** | `v2.5` | **Especificada; pre-registro pendiente de aprobación** ([cambio OpenSpec](../../openspec/changes/ide-v25-compact-dna-and-epigenetics/)) | ADN compacto en codones de 32 bits con expresión condicional y red regulatoria de un nivel ($R_{24}$), roles epigenéticos intra-holón ($R_{25}$), conjugación de plásmidos ($R_{26}$) con inmunidad CRISPR ($R_{27}$), esporulación ($R_{28}$), senescencia telomérica ($R_{29}$), mutación SOS ($R_{30}$) y trinquete simbiótico ($R_{31}$). |
+| **Fase II-B** | `v2.5` | **Especificada; pre-registro aprobado (2026-10-20)** ([cambio OpenSpec](../../openspec/changes/ide-v25-compact-dna-and-epigenetics/)) | ADN compacto en codones de 32 bits con expresión condicional y red regulatoria de un nivel ($R_{24}$), roles epigenéticos intra-holón ($R_{25}$), conjugación de plásmidos ($R_{26}$) con inmunidad CRISPR ($R_{27}$), esporulación ($R_{28}$), senescencia telomérica ($R_{29}$), mutación SOS ($R_{30}$) y trinquete simbiótico ($R_{31}$). |
 | **Fase III** | `v3.0` | **Planificada** | Inmortalidad ante apagones (checkpoints atómicos + telemetría en streaming), espacio 3D (`ToroidalGrid3D`), **auto-detección y escalado de hardware (CPU/Multicore/CUDA)**, interfaz viva (Web UI + consola), ecología abierta y **Telescopio a Internet** (sub-etapa 3.6). |
 | **Fase IV** | `v4.0` | **Horizonte** | Automejora de **capacidades lógicas** (síntesis holónica de operadores matemáticos y algoritmos) y **capacidades físicas** (generación evolutiva de nuevos módulos y herramientas en `SkillSandboxPort`). |
 
@@ -72,7 +72,7 @@ flowchart LR
 
 > **Especificación normativa:** el cambio OpenSpec activo [`ide-v25-compact-dna-and-epigenetics`](../../openspec/changes/ide-v25-compact-dna-and-epigenetics/), con firmas, fórmulas y desempates en su `design.md` (D30–D42) y el plan en su `tasks.md`. La visión original está en [`ARQUITECTURA_ADN_HOLONICO.md`](ARQUITECTURA_ADN_HOLONICO.md); ante cualquier diferencia, rige el cambio OpenSpec.
 
-- **Estado:** especificada. El pre-registro (D42) y las decisiones P4–P7 esperan la aprobación del responsable del proyecto (bloque 0 de `tasks.md`) antes de implementar.
+- **Estado:** especificada, con el pre-registro (D42) aprobado el 2026-10-20. Lista para implementar por etapas (`tasks.md` desde el bloque 1).
 - **Objetivo:** reemplazar, de forma opcional y ablacionable, el vector fenotípico plano (`AgentGenome`, 7 escalares) por un ADN compacto en las hojas ($L = 0$, `CompactDNA`), hecho de codones de 32 bits con expresión condicional.
 - **Pregunta científica:** si un genoma regulado cambia lo que la Fase II no pudo mostrar. Todas las reglas nuevas son maquinaria diseñada: lo que persigan es **programado**, y sus cuatro afirmaciones (C9–C12) se proponen como programadas por construcción.
 - **Mecanismos (inventario `R24`–`R31`):**
@@ -85,7 +85,7 @@ flowchart LR
   2. **Roles epigenéticos intra-holón ($R_{25}$):** el holón asigna `LIBRARIAN`, `EXPLORER` y `NERVE` a sus hojas según su conocimiento único y su grado interno. La réplica de un holón hereda los roles (impronta).
   3. **Conjugación de plásmidos ($R_{26}$) e inmunidad CRISPR ($R_{27}$):** intercambio de codones entre vecinos en vida, con un generador propio (`hgt_rng`). Un plásmido con balance energético negativo se purga y su reingreso queda bloqueado.
   4. **Esporulación ($R_{28}$):** gasto mínimo en hambruna sin estímulos, hasta que reaparecen recursos. Sesgo declarado: rescata poblaciones.
-  5. **Senescencia telomérica ($R_{29}$):** costo creciente después de la longevidad expresada. Su motivación, el "Tapón de Matusalén", es una **hipótesis no verificada**: se diagnostica antes de pre-registrar su afirmación (tarea 0.1).
+  5. **Senescencia telomérica ($R_{29}$):** costo creciente después de la longevidad expresada. Su motivación, el "Tapón de Matusalén", quedó **confirmada** por el diagnóstico previo (tarea 0.1): con abundancia, la población se congela en el tope porque los agentes establecidos casi no mueren.
   6. **Mutación SOS ($R_{30}$):** más variación bajo estrés energético reciente y menos en abundancia.
   7. **Trinquete simbiótico ($R_{31}$):** un holón consolidado, por reproducción simbiótica o por compuestos resueltos, no se disuelve por `SPLIT` y paga menos coordinación. Sesgo declarado: estabilidad por decreto.
 - **Protocolos propuestos:**

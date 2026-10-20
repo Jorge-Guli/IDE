@@ -436,8 +436,8 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - `002e`: `sporulation` (base) y `no_sporulation` (sin $R_{28}$);
 - `003c`: `roles` (base), `no_roles` (sin $R_{25}$) y `unlocked` (sin $R_{31}$).
 
-### Decisión 42: Pre-Registro de la Fase II-B (BORRADOR — requiere aprobación, decisión P4)
-Esta decisión es un **borrador de pre-registro**. Se aprueba o se corrige en la tarea 0.2, **antes** de implementar los runners y de mirar cualquier resultado. Una vez aprobada, cambiarla exige un commit que lo justifique.
+### Decisión 42: Pre-Registro de la Fase II-B (APROBADO el 2026-10-20, decisión P4)
+Esta decisión es **pre-registro**. El responsable del proyecto la aprobó el 2026-10-20 (tarea 0.2), sin cambios respecto del borrador y con las decisiones del 2026-10-20 ya incorporadas. Se aprobó **antes** de implementar y de mirar cualquier resultado: el único dato previo es el diagnóstico demográfico de la tarea 0.1, que no mide ninguna afirmación. Cambiarla exige un commit que lo justifique.
 
 **Inventario `PHASE25_DESIGN_RULES`** (en `attribution.py`; `ALL_DESIGN_RULES` no cambia):
 

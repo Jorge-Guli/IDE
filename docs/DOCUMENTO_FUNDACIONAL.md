@@ -1,7 +1,7 @@
 # Documento Fundacional: Inteligencia Distribuida Emergente (IDE)
 **Versión:** 2.0  
 **Fecha:** 2026-10-17  
-**Estado:** Base Teórica y Hoja de Ruta Evolutiva Multinivel (Fase I verificada / Fase II implementada, corrida y archivada / Fase II-B especificada, con pre-registro pendiente)  
+**Estado:** Base Teórica y Hoja de Ruta Evolutiva Multinivel (Fase I verificada / Fase II implementada, corrida y archivada / Fase II-B especificada, con pre-registro aprobado)  
 
 ---
 
@@ -175,7 +175,7 @@ flowchart LR
 
 ### Fase II-B — ADN Compacto (Experimentos 002-C y 003-C)
 - **Qué es:** una revisión del genoma de la Fase II. El genoma pasa a ser un ADN compacto de codones de 32 bits, con ocho reglas nuevas ($R_{24}$–$R_{31}$), cada una declarada y ablacionable. Se pone a prueba con los protocolos 002c, 002d, 002e y 003c.
-- **Estado:** especificada en el cambio activo [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/). Su pre-registro está pendiente de aprobación; no hay resultados.
+- **Estado:** especificada en el cambio activo [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/). Su pre-registro se aprobó el 2026-10-20; todavía no está implementada ni hay resultados.
 - **Visión:** [hoja de ruta](vision/ROADMAP.md) (sin rango normativo).
 
 ### Experimentos 004 a 006 (Fase III de la hoja de ruta): Especialización, Shock Ambiental y Lenguaje Emergente
@@ -264,5 +264,5 @@ Los documentos normativos y el registro empírico están en `docs/`. Ante una di
    - Requisitos vigentes de las Fases I y II: [`openspec/specs/`](../openspec/specs/).
    - Fase I, archivada: [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`](../openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/) (design D1–D18).
    - Fase II, archivada: [`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`](../openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/) (design D19–D29).
-   - Fase II-B, cambio activo: [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/) (pre-registro pendiente de aprobación).
+   - Fase II-B, cambio activo: [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/) (pre-registro aprobado el 2026-10-20).
 6. **Visión y Hoja de Ruta:** [`docs/vision/`](vision/): [ROADMAP.md](vision/ROADMAP.md), [ARQUITECTURA_ADN_HOLONICO.md](vision/ARQUITECTURA_ADN_HOLONICO.md) y [ESCALA_BIOLOGICA_HOLONICA.md](vision/ESCALA_BIOLOGICA_HOLONICA.md). **No tienen rango normativo:** orientan el trabajo futuro, pero no fijan requisitos ni resultados.

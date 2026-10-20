@@ -87,7 +87,7 @@ Orden de jerarquía normativa ante cualquier discrepancia:
 
 Los documentos de [`docs/vision/`](docs/vision/) ([`ROADMAP.md`](docs/vision/ROADMAP.md), [`ARQUITECTURA_ADN_HOLONICO.md`](docs/vision/ARQUITECTURA_ADN_HOLONICO.md) y [`ESCALA_BIOLOGICA_HOLONICA.md`](docs/vision/ESCALA_BIOLOGICA_HOLONICA.md)) son hoja de ruta y propuesta, sin rango normativo.
 
-Los planes de la Fase I ([`tasks.md`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)) y de la Fase II ([`tasks.md`](openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/tasks.md)) están completos y archivados. El plan de la Fase II-B es el [`tasks.md`](openspec/changes/ide-v25-compact-dna-and-epigenetics/tasks.md) del cambio activo; su bloque 0 (decisiones y pre-registro) espera aprobación. Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
+Los planes de la Fase I ([`tasks.md`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/tasks.md)) y de la Fase II ([`tasks.md`](openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/tasks.md)) están completos y archivados. El plan de la Fase II-B es el [`tasks.md`](openspec/changes/ide-v25-compact-dna-and-epigenetics/tasks.md) del cambio activo; su pre-registro (design D42) se aprobó el 2026-10-20, y la implementación sigue ese plan desde el bloque 1. Las convenciones de desarrollo están en [`CLAUDE.md`](CLAUDE.md).
 
 ## Integración continua
 

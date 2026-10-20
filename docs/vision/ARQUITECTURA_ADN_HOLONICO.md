@@ -2,13 +2,13 @@
 
 > **Propósito de este documento:** Definir la arquitectura formal y técnica del sistema genético comprimido (`CompactDNA`) propuesto para la Fase II-B, evolucionando el vector fenotípico plano actual (`AgentGenome` de 7 parámetros) hacia un código genético bacteriano real basado en **codones de 32 bits (`uint32`), operones condicionales, redes de regulación génica (GRN), diferenciación epigenética en holones ($L = 0 \dots K$), transferencia horizontal de plásmidos (HGT), inmunidad CRISPR-Cas y senescencia telomérica**.
 
-> **Estado y rango (2026-10-20).** Este documento es **visión**, sin rango normativo. La especificación que rige es el cambio OpenSpec [`ide-v25-compact-dna-and-epigenetics`](../../openspec/changes/ide-v25-compact-dna-and-epigenetics/) (design D30–D42), cuyo pre-registro espera aprobación. Al especificarlo se corrigió esta propuesta en estos puntos:
+> **Estado y rango (2026-10-20).** Este documento es **visión**, sin rango normativo. La especificación que rige es el cambio OpenSpec [`ide-v25-compact-dna-and-epigenetics`](../../openspec/changes/ide-v25-compact-dna-and-epigenetics/) (design D30–D42), cuyo pre-registro se aprobó el 2026-10-20. Al especificarlo se corrigió esta propuesta en estos puntos:
 > - **Canales de factores de transcripción.** Son **64** (promotores `0x80`–`0xBF`), no 128: el canal se codifica en los 6 bits bajos de `REG_MODE`, y 6 bits sólo direccionan 64 canales. `0xC0`–`0xFF` quedan reservados.
 > - **Destino `EMIT_TF`.** Es sólo `0x09`. `0x0A`–`0xFF` (incluidos los operadores y órganos de la Fase IV) quedan reservados e **inertes** en v2.5, igual que el modo `AST_PIPE`.
 > - **Profundidad de la red regulatoria.** Con dos pasadas hay **un solo nivel** de regulación: los factores emitidos en la segunda pasada no encienden otros genes. No hay cascadas de múltiples etapas.
 > - **Contexto epigenético.** `EpigeneticContext` no incluye `is_endospore`, que maneja el motor, ni `z_layer`, que es de la Fase III.
 > - **Inventario.** Telómeros y SOS son reglas separadas ($R_{29}$ y $R_{30}$), y el trinquete simbiótico pasa a ser $R_{31}$: una regla, un propósito y una ablación.
-> - **"Tapón de Matusalén".** Es una **hipótesis no verificada**, no un hecho demostrado (punto 4 de §1). Se diagnostica antes de pre-registrar su afirmación.
+> - **"Tapón de Matusalén".** La propuesta lo daba por demostrado sin haberlo medido. El diagnóstico previo (tarea 0.1, 2026-10-20) lo **confirmó**: con abundancia, en el protocolo sin holones el 99 % de los vivos al final nació en la primera mitad de la corrida (punto 4 de §1).
 > - **Sesgos.** Se declaran como sesgos de diseño el abaratamiento de la complejidad latente ($R_{24}$), el rescate de poblaciones ($R_{28}$) y la estabilidad por decreto ($R_{31}$). Lo que persigan es programado, no emergente.
 
 ---

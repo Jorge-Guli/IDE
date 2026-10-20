@@ -8,7 +8,7 @@ Plataforma de simulación en Python para investigar si una población de micro-a
 - **Fase I (Experimento 001):** completa. Sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`.
 - **Fase II (Experimentos 002 y 003):** completa y corrida. Sus bloques 0 a 7 están completos y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`. Su pre-registro es la Decisión 29 de ese `design.md`, con las Enmiendas 1 y 1b del perfil. Sus resultados, negativos para las cuatro afirmaciones C5–C8, están en `docs/RESULTADOS.md`.
 - Los requisitos vigentes de las dos fases están sincronizados en `openspec/specs/`.
-- **Fase II-B (v2.5, ADN compacto de 32 bits):** especificada en el cambio activo `openspec/changes/ide-v25-compact-dna-and-epigenetics/`. Su pre-registro y sus decisiones abiertas (bloque 0 de su `tasks.md`) esperan la aprobación del responsable del proyecto antes de implementar.
+- **Fase II-B (v2.5, ADN compacto de 32 bits):** especificada en el cambio activo `openspec/changes/ide-v25-compact-dna-and-epigenetics/`. Su pre-registro (design D42) se aprobó el 2026-10-20, y el diagnóstico previo confirmó el "Tapón de Matusalén". La implementación sigue su `tasks.md` desde el bloque 1.
 
 ## Idioma
 

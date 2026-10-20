@@ -61,7 +61,7 @@ El pre-registro propuesto (design D42) declara sus cuatro afirmaciones como prog
 - `experimental-suite`: `GeneticTickMetrics` y protocolos `002c`, `002d`, `002e` y `003c`.
 - `emergence-attribution`: `PHASE25_DESIGN_RULES` ($R_{24}$–$R_{31}$), `PHASE25_CLAIMS` (C9–C12) y su ejecución.
 
-## Decisiones pendientes (requieren aprobación antes del bloque 1 de `tasks.md`)
+## Decisiones P4–P7 (resueltas el 2026-10-20; ver el registro al final de esta sección)
 
 - **P4, pre-registro de la Fase II-B (design D42).** Hay que aprobar o corregir:
   - el inventario $R_{24}$–$R_{31}$, con sus propósitos y ablaciones;
@@ -77,6 +77,18 @@ El pre-registro propuesto (design D42) declara sus cuatro afirmaciones como prog
   - $R_{31}$ estabiliza holones por decreto.
   - Ninguna de esas capacidades podrá presentarse como hallazgo.
 - **P7, solapamiento con el Experimento 004.** $R_{25}$ asigna roles por una regla del holón, así que toda especialización que produzca es programada. Propuesta: el Exp 004 (especialización y división del trabajo) se mide con $R_{25}$ ablacionada, y lo que muestre la Fase II-B con $R_{25}$ activa no cuenta como evidencia para el 004.
+
+## Resolución de P4–P7 (2026-10-20, decisión del responsable del proyecto)
+
+- **P4.** Se aprueba el pre-registro de D42 tal como está:
+  - el inventario $R_{24}$–$R_{31}$;
+  - las afirmaciones C9–C12;
+  - las configuraciones de `002c`, `002d`, `002e` y `003c`;
+  - el perfil `phase2` con las semillas 42–51, las reglas inactivas y E4;
+  - los valores por defecto de D31.
+- **P5.** El diagnóstico de la tarea 0.1 confirmó el "Tapón de Matusalén" en las 20 semillas (`docs/RESULTADOS.md`). Se mantienen $R_{29}$ y C10.
+- **P6.** Se aprueban los sesgos declarados de $R_{24}$, $R_{28}$ y $R_{31}$.
+- **P7.** El Exp 004 se medirá con $R_{25}$ ablacionada. Lo que muestre la Fase II-B con $R_{25}$ activa no cuenta como evidencia de especialización.
 
 ## Decisiones tomadas (2026-10-20, tras la revisión cruzada independiente)
 

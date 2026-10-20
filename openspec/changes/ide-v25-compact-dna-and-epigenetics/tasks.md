@@ -19,7 +19,7 @@
   - **No** calcula ninguna métrica de afirmación.
   - Aplica el criterio fijado de antemano en design D42: la hipótesis se confirma si, en al menos 8 de 10 semillas de cada protocolo, más de la mitad de los agentes vivos en el tick 2000 nació antes del tick 1000.
   - Registra la salida en `registros/` y en `docs/RESULTADOS.md` como diagnóstico exploratorio de la hipótesis del "Tapón de Matusalén".
-- [ ] 0.2 **Resolver P4–P7 con el responsable del proyecto:**
+- [x] 0.2 **Resolver P4–P7 con el responsable del proyecto** (resueltas el 2026-10-20: todo aprobado sin cambios, ver `proposal.md`):
   - aprobar o corregir D42: inventario, afirmaciones, configuraciones, perfil, reglas inactivas y E4;
   - aprobar los valores por defecto de D31;
   - según el diagnóstico de 0.1, decidir si $R_{29}$ y C10 se mantienen;
