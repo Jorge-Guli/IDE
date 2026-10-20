@@ -1,4 +1,6 @@
-# Design: Fase II-B (v2.5) — ADN Compacto de 32 bits, Regulación Génica, Epigenética, Plásmidos y Senescencia
+# Design: Fase II-B (v2.5) — ADN Compacto de 32 bits, Conducta Evolucionable y Ecología
+
+> **Reformulación del 2026-10-20 (D43–D56).** Con la etapa A completa (bloques 1 a 5, D30–D35 implementadas), el responsable del proyecto decidió que la Fase II-B corrija las cuestiones de base que hacían de la Fase II un experimento sin salida, en lugar de agregar mecanismos sobre la misma arquitectura. Las decisiones D43–D56, al final de la sección de decisiones, **prevalecen** sobre D30–D42 donde las contradicen, y cada decisión afectada lo indica en su encabezado. El pre-registro D42 queda **sustituido** por el borrador D56, que se aprueba en la tarea 0.5 antes de seguir con el bloque 6. Ninguna afirmación de D42 se midió.
 
 ## Context
 
@@ -27,6 +29,13 @@ Esta fase implementa, como cambio opcional y ablacionable, la propuesta de [`doc
 - `DESIGN_RULES`, `PHASE2_DESIGN_RULES`, `ALL_DESIGN_RULES` y el pre-registro de la Fase II, que no se modifican;
 - la igualdad de historiales entre procesos con distinto `PYTHONHASHSEED`.
 
+**Diagnóstico que motiva la reformulación (2026-10-20).** Una lectura del código de las Fases I y II (`engine.py`, `micro_agent.py`, `ports.py`) y de sus resultados identificó cinco problemas de base. Mientras no se corrijan, cualquier mecanismo nuevo repite el experimento de la Fase II a mayor costo:
+1. **La conducta es código fijo.** `MicroAgent.decide_action` es una política escrita a mano. El genoma, plano o compacto, sólo ajusta sus parámetros, así que la evolución no puede producir una conducta nueva.
+2. **Las capacidades se otorgan por decreto.** Las reglas diseñadas producen directamente lo que se quiere observar (castas, esporulación, estabilidad del holón), y por eso toda afirmación sale programada por construcción.
+3. **El entorno es un problema de clasificación.** Los recursos reaparecen al instante y los agentes no interactúan físicamente entre sí: no hay escasez, competencia ni coevolución.
+4. **El motor es monolítico.** `step()` concentra todos los mecanismos detrás de banderas y llama directamente a la memoria del agente; las métricas se calculan dentro del bucle.
+5. **La medición sólo pregunta si una hipótesis pasa.** No hay métricas de evolución abierta, la potencia estadística es baja (10 semillas) y la viabilidad demográfica se descubre tarde, cuando el control nulo ya se extinguió.
+
 ---
 
 ## Goals / Non-Goals
@@ -34,22 +43,29 @@ Esta fase implementa, como cambio opcional y ablacionable, la propuesta de [`doc
 **Goals:**
 - Representar el genotipo de cada hoja ($L = 0$) como un `CompactDNA` de codones de 32 bits, con expresión condicional al contexto (nivel holónico, rol, energía) y una red regulatoria de un nivel ($R_{24}$).
 - Cobrar el costo cuadrático $R_{21}$ sobre el fenotipo **expresado**, más un costo lineal por codón.
-- Implementar, cada uno con su bandera y su ablación: roles epigenéticos ($R_{25}$), plásmidos ($R_{26}$), inmunidad CRISPR ($R_{27}$), esporulación ($R_{28}$), senescencia ($R_{29}$), mutación SOS ($R_{30}$) y trinquete simbiótico ($R_{31}$).
-- Proveer telemetría genética, cuatro protocolos y su atribución, con un pre-registro que se apruebe antes de mirar resultados (D42).
+- **Principio de la reformulación (D43): la regla da la capacidad y el ADN decide su uso.** Ninguna regla nueva produce por sí sola la conducta que se quiere observar.
+- **Conducta codificada en el ADN ($R_{32}$, D45–D47):** un puerto de política, la política escrita a mano como caso particular y una política genética cuyos impulsos de conducta los expresan codones con promotores de contexto, sensoriales y regulados. El ADN fundador reproduce exactamente la política escrita a mano.
+- **Ecología con interacciones físicas (D48, D49):** recursos agotables ($R_{33}$), heterogeneidad espacial y estacional ($R_{34}$), cadáveres ($R_{35}$), transferencia de energía ($R_{36}$) y depredación ($R_{37}$).
+- **Mecanismos del ADN:** señal posicional epigenética ($R_{25}$), plásmidos ($R_{26}$), inmunidad CRISPR ($R_{27}$), endospora como conducta disponible ($R_{28}$), senescencia ($R_{29}$), mutación SOS ($R_{30}$), compromiso simbiótico expresado ($R_{31}$) y recombinación ($R_{38}$), cada uno con su bandera y su ablación.
+- **Motor por sistemas (D44):** un pipeline ordenado de sistemas y observadores de telemetría, con los hashes dorados como test de aceptación.
+- **Medición de evolución abierta (D53) y pre-registro con potencia (D55, D56):** métricas de actividad evolutiva, compuerta de viabilidad antes de cualquier afirmación, 30 semillas, corrección de Holm y tamaño de efecto mínimo.
 - Compatibilidad bit a bit con las Fases I y II cuando las banderas nuevas están en su valor por defecto.
 
 **Non-Goals:**
-- **Operadores lógicos y órganos de sandbox de la Fase IV** (destinos `0x0A`–`0xFF`, modo `AST_PIPE`): quedan reservados e **inertes**.
-- **Promotores espaciales o ecológicos de la Fase III** (`0x20`–`0x7F`): reservados e inertes.
+- **Operadores lógicos y órganos de sandbox de la Fase IV** (modo `AST_PIPE` y destinos `0x0D`–`0x3F` y `0x48`–`0xFF`): quedan reservados e **inertes**.
+- **Promotores espaciales de la Fase III** (`0x28`–`0x7F`): reservados e inertes. Los promotores sensoriales `0x20`–`0x27` se especifican en D46.
 - **ADN propio de los holones.** Un `CompositeAgent` no tiene ADN: su genética es la de sus hojas.
-- **Comunicación nueva.** El ADN y los plásmidos **no transportan creencias**: el conocimiento social sigue entrando sólo por `assimilate_testimony`.
-- **Recalibración del perfil.** No se recalibra a la vista de las afirmaciones (D42).
+- **Comunicación nueva.** El ADN y los plásmidos **no transportan creencias**: el conocimiento social sigue entrando sólo por `assimilate_testimony`. El ADN sólo decide **si** el agente comunica (D46.6).
+- **Programas en el ADN** (máquina virtual tipo Avida), **espacio 3D**, **interfaz web** y **aceleración en GPU**: son de la Fase III.
+- **Recalibración del perfil a la vista de las afirmaciones.** La única calibración permitida es la compuerta de viabilidad de D55, declarada de antemano y sólo demográfica.
 
 ---
 
-## Decisions (Numeradas D30 a D42, continuando D1–D29)
+## Decisions (Numeradas D30 a D56, continuando D1–D29)
 
 ### Decisión 30: Alcance, Compatibilidad y Generadores
+> **Ampliada por D43 y D52:** las banderas nuevas de la reformulación también valen `False` por defecto y siguen la misma regla de dependencias inertes. La reformulación no agrega generadores.
+
 1. **Banderas inactivas por defecto.** Todas las banderas nuevas valen `False`: `enable_compact_dna`, `enable_epigenetic_roles`, `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sporulation`, `enable_telomere_senescence`, `enable_sos_mutation` y `enable_symbiotic_ratchet`.
 2. **Comportamiento con las banderas por defecto.** El motor, el agente, la memoria, la grilla, `TickMetrics`, `EvolutionaryTickMetrics` y todos los generadores se comportan exactamente como en la Fase II. Ninguna rama nueva consume un generador, ni cambia un valor o un orden de iteración.
 3. **Dependencias inertes, no inválidas.** $R_{25}$, $R_{26}$ y $R_{27}$ sólo actúan con `enable_compact_dna=True`; $R_{25}$ y $R_{31}$, sólo con `enable_holonic_hierarchy=True`; $R_{27}$, sólo con $R_{26}$ activa; $R_{28}$, $R_{29}$ y $R_{30}$, sólo con `enable_evolution=True`. Con su requisito apagado, la bandera es **inerte**: no lanza `ValueError`. Así, ablacionar $R_{24}$ en una configuración con $R_{25}$ activa es válido, y deja inerte a $R_{25}$, igual que ablacionar $R_{15}$ dejaba inertes $R_{16}$–$R_{18}$ en la Fase II.
@@ -320,6 +336,8 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - **Lo que hereda el hijo:** `plasmids` y `crispr_memory` vienen dentro del ADN. Los ensayos CRISPR pendientes (D37) **no** se heredan.
 
 ### Decisión 36: Roles Epigenéticos e Impronta (R25)
+> **Reinterpretada por D50.1:** la asignación no cambia, pero $R_{25}$ pasa a ser una **señal posicional**. Ningún codón del ADN fundador la usa: la especialización que aparezca es la que la selección construya sobre esa señal.
+
 `assign_epigenetic_roles(holon: CompositeAgent, local_reach: Mapping[int, Sequence[int]], config: SimulationConfig) -> dict[int, EpigeneticRole]`, en `holon.py`:
 - **Contrato de `local_reach`.** Es el mismo de D25.1 de la Fase II, con la misma validación: lanza `ValueError` también con la regla apagada.
 - **Regla apagada.** Con `enable_epigenetic_roles=False` o `enable_compact_dna=False`, devuelve `NONE` para todas las hojas.
@@ -363,6 +381,8 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 **Lo que no hacen los plásmidos.** Transportan codones, no creencias. Son un canal genético, no epistémico: no pasan por `assimilate_testimony` ni por el control nulo de contenido. El control nulo de E4 no los altera, y así se declara.
 
 ### Decisión 38: Esporulación (R28)
+> **Entrada sustituida por D50.2:** se entra en endospora sólo cuando la política genética elige la conducta `SPORULATE`. La regla de umbral de abajo queda sin efecto; la germinación, la física y el costo de la endospora se mantienen.
+
 - **Entrada.** Con `enable_evolution` y `enable_sporulation` activas, en la Fase 5, después de la muerte y antes de la reproducción, en orden de `agent_id`, una hoja que no es endospora entra en endospora (`set_endospore(True)`) si cumple tres condiciones:
   - `energy <= phenotype.spore_threshold`;
   - su observación de la Fase 1 de ese tick no tiene recursos visibles;
@@ -395,6 +415,8 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - **Regla apagada.** Con la regla apagada, la escala es 1.0.
 
 ### Decisión 40: Trinquete Simbiótico (R31)
+> **Condición de sellado sustituida por D50.3:** un holón se suelda cuando sus hojas expresan compromiso simbiótico, no por reproducirse ni por contar compuestos. Los efectos de un holón soldado se mantienen. `lock_composite_threshold` se elimina de la configuración.
+
 - **Atributo.** `CompositeAgent` incorpora `is_locked: bool = False`.
 - **Cuándo se suelda un holón.** Con `enable_holonic_hierarchy` y `enable_symbiotic_ratchet` activas, un holón **raíz** queda soldado en dos casos:
   - (a) al reproducirse por $R_{17}$: se sueldan el progenitor y su réplica;
@@ -406,6 +428,8 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - **Sesgo declarado.** La estabilidad que produzca $R_{31}$ es por decreto, no un hallazgo.
 
 ### Decisión 41: Orden de la Fase 5, Telemetría y Protocolos
+> **Sustituida por D44 (pipeline), D53 (orden completo y telemetría) y D56 (protocolos).** Se conserva como antecedente.
+
 **Orden completo del tick con la Fase II-B:**
 - Fase 0: expresión.
 - Fases 1 a 4: como en la Fase II, con la germinación y la exclusión de las endosporas de D38.
@@ -436,7 +460,9 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - `002e`: `sporulation` (base) y `no_sporulation` (sin $R_{28}$);
 - `003c`: `roles` (base), `no_roles` (sin $R_{25}$) y `unlocked` (sin $R_{31}$).
 
-### Decisión 42: Pre-Registro de la Fase II-B (APROBADO el 2026-10-20, decisión P4)
+### Decisión 42: Pre-Registro de la Fase II-B (APROBADO el 2026-10-20, decisión P4; SUSTITUIDO por D56)
+> **Sustituido por el borrador D56 (reformulación del 2026-10-20), antes de medir ninguna afirmación.** Las afirmaciones C9–C12 se **retiran sin medir**: eran programadas por construcción y no acercaban el proyecto a su objetivo. El diagnóstico de la tarea 0.1 se conserva como antecedente de $R_{29}$. El texto de abajo se conserva como registro.
+
 Esta decisión es **pre-registro**. El responsable del proyecto la aprobó el 2026-10-20 (tarea 0.2), sin cambios respecto del borrador y con las decisiones del 2026-10-20 ya incorporadas. Se aprobó **antes** de implementar y de mirar cualquier resultado: el único dato previo es el diagnóstico demográfico de la tarea 0.1, que no mide ninguna afirmación. Cambiarla exige un commit que lo justifique.
 
 **Inventario `PHASE25_DESIGN_RULES`** (en `attribution.py`; `ALL_DESIGN_RULES` no cambia):
@@ -537,38 +563,418 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
 
 ---
 
+## Reformulación del 2026-10-20 (D43–D56)
+
+### Decisión 43: Principio, Alcance y Estado de las Decisiones Anteriores
+1. **Principio.** *La regla da la capacidad y el ADN decide su uso.* Cada regla nueva o reformulada pone a disposición del agente una capacidad física o sensorial; ningún codón del ADN fundador la usa, salvo para reproducir la conducta de la Fase II (D46.5). Lo que la población haga con esa capacidad lo produce la selección, y se mide contra la deriva neutral.
+2. **Lo que se conserva sin cambios:** D30–D35 (implementadas en la etapa A), D37 ($R_{26}$ y $R_{27}$) y D39 ($R_{29}$ y $R_{30}$).
+3. **Lo que se reinterpreta o sustituye:**
+   - D36 ($R_{25}$): misma asignación, reinterpretada como señal (D50.1);
+   - D38 ($R_{28}$): la entrada en endospora pasa a ser una conducta (D50.2);
+   - D40 ($R_{31}$): el sello depende de un rasgo expresado (D50.3);
+   - D41: sustituida por D44, D53 y D56;
+   - D42: sustituida por el borrador D56. C9–C12 se retiran sin medir.
+4. **Lo que se agrega:** el motor por sistemas (D44), el puerto de política (D45), la conducta en el ADN ($R_{32}$, D46), la percepción social y las acciones nuevas (D47), la ecología ($R_{33}$–$R_{35}$, D48), las interacciones ($R_{36}$, $R_{37}$, D49), la recombinación ($R_{38}$, D51), la configuración (D52), la telemetría de evolución abierta (D53), el rendimiento (D54), la compuerta de viabilidad (D55) y el pre-registro (D56).
+5. **Compatibilidad.** Con todas las banderas nuevas en su valor por defecto, las Fases I y II y la etapa A de la Fase II-B se comportan bit a bit como antes: los hashes dorados de la Fase I, las huellas de la Fase II y los tests de los bloques 1 a 5 no cambian, salvo los que la propia reformulación modifica de forma explícita (D46.3, D50.3 y D52.4).
+6. **Generadores.** La reformulación no agrega generadores. Las extracciones nuevas usan el generador principal (la conducta en la Fase 3 y la ubicación de recursos en el entorno) o `evo_rng` (la recombinación al nacer), siempre detrás de su bandera.
+
+### Decisión 44: Motor por Sistemas y Observadores
+1. **Sistemas.** `src/ide/simulation/pipeline.py` define:
+   ```python
+   class EngineSystem(Protocol):
+       name: str
+       def run(self, engine: "SimulationEngine", frame: "TickFrame") -> None: ...
+
+   class TickObserver(Protocol):
+       def on_decisions(self, engine: "SimulationEngine", frame: "TickFrame") -> None: ...
+       def on_tick_end(self, engine: "SimulationEngine", frame: "TickFrame") -> None: ...
+
+   @dataclass
+   class TickFrame:  # estado mutable de un tick; no es una entidad de dominio
+       tick: int
+       order: list[int]
+       reach: dict[int, list[int]]
+       observations: dict[int, Observation]
+       social: dict[int, SocialPerception]
+       emitted: list[Message]
+       responses: list[Message]
+       actions: dict[int, AgentAction]
+       composite_intents: dict[int, Pattern]
+       composite_contexts: dict[int, tuple[bool, list[int], CompositeAgent | None]]
+       moved: set[int]
+       attacks: dict[int, int]       # intentos de ataque por agente, para el costo (D49)
+       surplus: set[int]
+       births: int
+       deaths: int
+       messages_sent: int
+       events: Counter[str]          # eventos ecológicos y genéticos del tick (D53)
+   ```
+   - `build_systems(config) -> tuple[EngineSystem, ...]` arma la lista ordenada de D53. Un mecanismo que vive en su propio sistema no aparece en la lista con su bandera apagada.
+   - `SimulationEngine.step()` crea el `TickFrame`, ejecuta los sistemas en orden, llama a `on_decisions` de cada observador después del sistema de decisión y a `on_tick_end` al final, e incrementa `next_tick`.
+2. **Observadores.** La telemetría sale del bucle:
+   - `TickMetricsObserver` produce `TickMetrics` (M1–M7) y juzga M2 en `on_decisions`, con el oráculo `get_reachable_true_values` consultado **antes** de ejecutar las acciones, como hoy;
+   - `EvolutionaryMetricsObserver`, `GeneticMetricsObserver` y `EcologyMetricsObserver` producen sus historiales (D53).
+   - La API pública del motor no cambia: `history`, `evolutionary_history`, `agents`, `root_nodes`, `step()`, `run()`, `snapshot()` y las perturbaciones.
+3. **Acceso al agente.** Los sistemas no llaman a `agent.memory` directamente salvo en los puntos que hoy lo hacen ($R_{18}$, $R_{19}$, el superávit de conocimiento y las perturbaciones). La lista se fija en un test AST sobre `pipeline.py` y `engine.py`, para que no crezca.
+4. **Aceptación.** El refactor no cambia ningún comportamiento:
+   - los hashes SHA-256 dorados de `tests/test_performance_equivalence.py` son idénticos;
+   - las huellas de la Fase II y los historiales de `002a` y `003a` con y sin ADN (bloque 5) son idénticos;
+   - el consumo de cada generador sigue la misma secuencia;
+   - el benchmark no empeora más de un 10 % en ticks por segundo (D54).
+
+### Decisión 45: Puerto de Política y Política Escrita a Mano
+1. **Puerto.** `src/ide/agent/policy.py` define:
+   ```python
+   class PolicyPort(Protocol):
+       def decide(self, agent: "MicroAgent", obs: Observation, social: SocialPerception | None,
+                  tick: int, rng: np.random.Generator) -> AgentAction: ...
+   ```
+2. **`HandwrittenPolicy`.** Es la lógica actual de `MicroAgent.decide_action`, movida sin cambios: consumir el recurso alcanzable de mayor $\hat{v} \cdot c$, explorar con probabilidad $\epsilon$, navegar hacia un objetivo conocido o caminar al azar, con los mismos desempates y las mismas extracciones de `rng`. Ignora `social`.
+3. **`MicroAgent`.** Recibe `policy: PolicyPort | None` en el constructor (por defecto `HandwrittenPolicy()`), lo propaga a sus descendientes en `create_offspring`, y `decide_action(obs, tick, rng, social=None)` delega en él. La firma vieja de `decide_action` sigue siendo válida.
+4. **Selección.** El motor construye los fundadores con `GeneticPolicy()` si `enable_compact_dna` y `enable_genetic_policy` están activas, y con `HandwrittenPolicy()` en otro caso.
+5. **Aislamiento.** `policy.py` vive en `src/ide/agent/` y cumple sus invariantes: no importa `environments`, `simulation` ni `experiments`, y no construye `Message`.
+
+### Decisión 46: Conducta Codificada en el ADN (R32)
+1. **Conductas.** `Behavior` es un `Enum` en `domain/types.py`, con un destino de codón por conducta. El orden de la tabla es el orden de desempate.
+
+   | Destino | `Behavior` | Acción | Factible si |
+   | :---: | :--- | :--- | :--- |
+   | `0x40` | `CONSUME` | `INTERACT` sobre el recurso alcanzable conocido y benéfico de mayor $\hat{v} \cdot c$ (desempate por menor `resource_id`) | existe alguno |
+   | `0x41` | `EXPLORE` | `INTERACT` sobre el recurso alcanzable desconocido de menor `resource_id` | existe alguno **y** `rng.random() < epsilon_explore` expresado; la extracción ocurre sólo si existe alguno |
+   | `0x42` | `NAVIGATE` | `MOVE` con el `recommended_move` del objetivo conocido benéfico no alcanzable más cercano (desempate por `resource_id`) | `enable_navigation` y existe alguno |
+   | `0x43` | `WANDER` | `MOVE` a `available_moves[int(rng.integers(len(available_moves)))]` | hay movimientos disponibles |
+   | `0x44` | `SHARE` | `SHARE` sobre `social.weakest_adjacent` | $R_{36}$ activa y `social.adjacent` no vacío |
+   | `0x45` | `ATTACK` | `ATTACK` sobre `social.weakest_adjacent` | $R_{37}$ activa y `social.weaker_adjacent` |
+   | `0x46` | `FLEE` | `MOVE` con `social.flee_move` | `social.flee_move is not None` |
+   | `0x47` | `SPORULATE` | `SPORULATE` | $R_{28}$ activa y `energy <= phenotype.spore_threshold` |
+
+   Las definiciones de "conocido", "benéfico" y "alcanzable" son las de `HandwrittenPolicy`, con `get_effective_belief`.
+2. **Promotores sensoriales.** Los promotores `0x20`–`0x27` leen un `SensorySignals` (D47) del tick:
+
+   | Promotor | Nombre | Activo si |
+   | :---: | :--- | :--- |
+   | `0x20` | `SENSE_KNOWN_GOOD` | algún recurso visible es conocido y benéfico |
+   | `0x21` | `SENSE_UNKNOWN` | algún recurso visible es desconocido |
+   | `0x22` | `SENSE_NO_RESOURCE` | no hay recursos visibles |
+   | `0x23` | `SENSE_NEIGHBOR_ADJACENT` | `social.adjacent` no está vacío |
+   | `0x24` | `SENSE_WEAKER_ADJACENT` | `social.weaker_adjacent` |
+   | `0x25` | `SENSE_STRONGER_NEAR` | `social.flee_move is not None` |
+   | `0x26` | `SENSE_CROWDED` | `social.crowded` |
+   | `0x27` | `SENSE_CARCASS` | `social.carcass_visible` |
+
+   En la transcripción del fenotipo de la Fase 0 (D33) los promotores sensoriales están **inactivos**: los rasgos no dependen de la percepción inmediata. Sólo actúan en la evaluación de impulsos.
+3. **Evaluación de impulsos.** `evaluate_drives(dna, context, signals, config) -> tuple[float, ...]`, en `dna.py`, es pura y devuelve un impulso por conducta, en el orden de la tabla:
+   - repite las dos pasadas de D33, con la activación de pasada 1 extendida a los promotores sensoriales;
+   - para cada destino de conducta $B$, con $A_B$ sus codones activos de modo distinto de 3: $S_B$ la suma de $\delta$ de modo 0, $\rho_B$ el producto de $(1 - |\delta|)$ de modo 1 y $\mu_B$ el producto de $(1 + \delta)$ de modo 2;
+   - el impulso es $d_B = \mu_B \cdot \rho_B \cdot S_B$, sin cotas, y vale 0 con $A_B$ vacío;
+   - acumula en el orden de recorrido, como D33.
+   - **Cambio respecto de D32:** los destinos `0x40`–`0x47` dejan de ser reservados. En la transcripción del fenotipo siguen siendo inertes y no cuentan en `expressed_codons`.
+4. **Decisión.** `GeneticPolicy.decide`:
+   - calcula `signals` y los impulsos;
+   - recorre las conductas con $d_B > 0$ en orden de $(-d_B, \text{posición en la tabla})$;
+   - devuelve la acción de la primera conducta factible;
+   - si ninguna lo es, devuelve `IDLE`.
+   - Una endospora no decide (D38).
+5. **Fundador conductual neutro.** Con `enable_genetic_policy=True`, `founder_dna(config)` agrega al cromosoma de D32 cuatro codones `ALWAYS_BASAL` aditivos, en este orden: `encode_codon(0x00, 0x40, 0, 0, 127)`, `encode_codon(0x00, 0x41, 0, 0, 96)`, `encode_codon(0x00, 0x42, 0, 0, 64)` y `encode_codon(0x00, 0x43, 0, 0, 32)`. Los impulsos fundadores son 0.9921875, 0.75, 0.5 y 0.25, y el orden de prueba reproduce exactamente `HandwrittenPolicy`, incluidas las extracciones de `rng`.
+   - **Test de aceptación:** con el ADN fundador y sin mutación, las corridas de `002a` y `003a` con `enable_genetic_policy=True` producen historiales idénticos a los de `enable_genetic_policy=False`.
+   - `founder_dna_length(config)` vale 13 con la política genética y 9 sin ella. `FOUNDER_DNA_LENGTH = 9` se conserva para la validación de D31.
+6. **Propensión a comunicar.** Con la política genética, el rasgo expresado `comm_propensity` (destino `0x0C`, D46.7) decide si el agente comunica en el tick:
+   - con `comm_propensity >= 0.5`, emite y responde consultas como en la Fase I;
+   - con `comm_propensity < 0.5`, no emite ni responde, pero sigue recibiendo y asimilando testimonios.
+   - La puerta vive en `protocol.py` (`agent.communicates`), sin consumir generadores. Con la política escrita a mano, `communicates` vale siempre `True`.
+7. **Rasgos nuevos.** La transcripción del fenotipo (D33) agrega tres destinos de rasgo real:
+
+   | Destino | Rasgo | Base $b$ | Escala $k$ | Cotas |
+   | :---: | :--- | :--- | ---: | :--- |
+   | `0x0A` | compromiso simbiótico ($R_{31}$) | `symbiotic_commitment_base` | 0.50 | $[0, 1]$ |
+   | `0x0B` | propensión a recombinar ($R_{38}$) | `recombination_base` | 0.50 | $[0, 1]$ |
+   | `0x0C` | propensión a comunicar ($R_{32}$) | `comm_propensity_base` | 0.50 | $[0, 1]$ |
+
+   `ExpressedPhenotype` agrega `symbiotic_commitment`, `recombination_propensity` y `comm_propensity`, con valores por defecto iguales a sus bases, y `expressed_codons` pasa a contar los destinos `0x00`–`0x08` y `0x0A`–`0x0C`. El ADN fundador no tiene codones sobre ellos: expresa las bases. `phenotype_from_genome` también devuelve las bases.
+8. **Caché.** `MicroAgent` puede memoizar los impulsos por `(clave de contexto de D34.2, signals)`, invalidando al cambiar el ADN. Un test exige que coincida con la evaluación directa.
+
+### Decisión 47: Percepción Social, Señales y Acciones Nuevas
+1. **Tipos nuevos** en `domain/types.py`, todos `@dataclass(frozen=True)`:
+   ```python
+   class Behavior(Enum): CONSUME, EXPLORE, NAVIGATE, WANDER, SHARE, ATTACK, FLEE, SPORULATE
+
+   @dataclass(frozen=True)
+   class VisibleAgent:
+       agent_id: int
+       distance: int               # Chebyshev toroidal
+       recommended_move: Any       # hacia el agente; None si distance == 0
+       flee_move: Any              # el movimiento de Moore que maximiza la distancia; desempate por orden de MOORE_MOVES
+
+   @dataclass(frozen=True)
+   class SocialPerception:
+       adjacent: tuple[int, ...] = ()            # agentes activos a distancia <= 1, ascendentes
+       weakest_adjacent: int | None = None       # de `adjacent`, el de menor (energía, agent_id)
+       weaker_adjacent: bool = False             # su energía es menor que la propia
+       flee_move: Any = None                     # huida del más cercano con más energía que la propia
+       crowded: bool = False                     # agentes activos visibles >= crowding_threshold
+       carcass_visible: bool = False             # algún recurso visible es un cadáver (R35)
+
+   @dataclass(frozen=True)
+   class SensorySignals:
+       known_good: bool; unknown: bool; no_resource: bool; neighbor_adjacent: bool
+       weaker_adjacent: bool; stronger_near: bool; crowded: bool; carcass: bool
+   ```
+   `ActionType` agrega `SHARE`, `ATTACK` y `SPORULATE`. `AgentAction.target` es el `agent_id` en `SHARE` y `ATTACK`, y `None` en `SPORULATE`.
+2. **Puerto de entorno.** `EcologicalEnvironmentPort(EvolutionaryEnvironmentPort)` agrega:
+   - `get_visible_agents(agent_id) -> tuple[VisibleAgent, ...]`: los agentes dentro del radio de percepción del observador, ordenados por `(distance, agent_id)`, sin él mismo;
+   - `deposit_carcass(agent_id, value, tick) -> None` (D48.3);
+   - `get_resource_count() -> int`, para la telemetría.
+   - Los agentes siguen sin conocer coordenadas: sólo reciben distancias y movimientos.
+3. **Construcción de `SocialPerception`.** La hace el motor en la Fase 1, con `enable_genetic_policy` activa, sobre la instantánea de energías al empezar el tick (percepción sincrónica):
+   - "activo" excluye a las endosporas;
+   - `flee_move` es el de la entrada de `get_visible_agents` del agente activo más cercano con energía estrictamente mayor que la propia, con desempate por `(distance, agent_id)`;
+   - `carcass_visible` mira si algún `VisibleResource` tiene el patrón de cadáver de D48.3.
+   - Sin la política genética, el motor no la construye y pasa `None`.
+4. **Construcción de `SensorySignals`.** La hace `GeneticPolicy` a partir de la observación, de sus creencias efectivas y de `social`.
+
+### Decisión 48: Ecología del Entorno (R33, R34, R35)
+1. **Recursos agotables ($R_{33}$, `enable_resource_depletion`).**
+   - Un recurso elemental consumido no reaparece en el tick siguiente, sino `resource_regen_delay` ticks después: se agenda con `due = tick + delay`.
+   - `step_dynamics(tick)` repone, en orden de `(due, orden de consumo)`, los agendados con `due <= tick`, cada uno en una celda sorteada con el generador del entorno, como hoy.
+   - Con la regla apagada, la reposición es la de la Fase II, sin cambios.
+   - Los recursos compuestos no cambian.
+2. **Heterogeneidad ($R_{34}$, `enable_heterogeneity`).**
+   - **Regiones.** La grilla se divide en `num_regions` franjas verticales de ancho `grid_width // num_regions` (la última absorbe el resto). El patrón elemental de índice $i$ tiene como región propia $i \bmod$ `num_regions`. Sus recursos, al inicio y al reponerse, se ubican en una celda sorteada dentro de su región: `x = x0 + int(rng.integers(ancho))` y `y = int(rng.integers(grid_height))`.
+   - **Estaciones.** Con `season_length > 0`, la estación es `(tick // season_length) % 2`; en la estación 1 (invierno), el retardo de $R_{33}$ se multiplica por `winter_regen_factor` y se redondea con `floor(x + 0.5)`. Sin $R_{33}$, las estaciones son inertes.
+3. **Cadáveres ($R_{35}$, `enable_carcasses`, sólo con `enable_evolution`).**
+   - Al morir un agente, por hambre o por depredación, el motor llama a `env.deposit_carcass(agent_id, carcass_value, tick)` **antes** de quitarlo del entorno. El entorno coloca en su celda un recurso de patrón `CARCASS_PATTERN = Pattern((("id", "carcass"),))` y valor `carcass_value`.
+   - El cadáver se consume con `INTERACT`, como cualquier recurso; da `energy_gain_scale * carcass_value` y se aprende por experiencia directa.
+   - No se repone. Se retira solo `carcass_lifetime` ticks después de depositado, en `step_dynamics`.
+   - `CARCASS_PATTERN` no forma parte de `get_world_patterns()`: las métricas de cobertura y la exactitud de las Fases I y II no lo ven. Sí lo ve el oráculo de M2, porque es un recurso alcanzable.
+
+### Decisión 49: Interacciones entre Agentes (R36, R37)
+Se ejecutan en la Fase 4, en el orden de la permutación del tick, junto con las demás acciones. Las aplica el motor, porque el entorno no conoce la energía.
+1. **Transferencia ($R_{36}$, `enable_energy_transfer`).** `SHARE` sobre `target`:
+   - si el objetivo sigue vivo y no es endospora, `amount = share_fraction * energía_del_donante`;
+   - el donante pierde `amount` y el receptor gana `share_efficiency * amount`;
+   - si no, no ocurre nada.
+2. **Depredación ($R_{37}$, `enable_predation`).** `ATTACK` sobre `target`:
+   - el intento se cuenta en `frame.attacks` y cuesta `attack_cost` en el metabolismo, haya éxito o no;
+   - tiene éxito si el objetivo sigue vivo, no es endospora y la energía del atacante es estrictamente mayor que la del objetivo **en el momento de ejecutarse**;
+   - con éxito, `stolen = min(attack_power, max(0, energía_del_objetivo))`: el objetivo pierde `stolen` y el atacante gana `predation_efficiency * stolen`.
+   - Un objetivo que queda con energía $\le 0$ muere en el paso de muerte de la Fase 5, y con $R_{35}$ deja un cadáver.
+3. **`SPORULATE`.** Pone al agente en endospora al ejecutarse (D50.2).
+4. **Sin efecto en M2.** Estas acciones no son oportunidades de decisión de M2: M2 sigue juzgando sólo las decisiones con recursos elementales alcanzables, como hoy.
+5. **Cotas.** `share_efficiency <= 1` y `predation_efficiency <= 1`: ninguna interacción crea energía.
+
+### Decisión 50: Reformulación de R25, R28 y R31
+1. **$R_{25}$, señal posicional.** La asignación de D36 no cambia. Su propósito pasa a ser "proveer una señal de posición y de conocimiento dentro del holón". Como el ADN fundador no tiene codones con promotores de rol, cualquier diferencia de expresión entre roles la construye la selección.
+2. **$R_{28}$, endospora como conducta.**
+   - Se entra en endospora sólo con la conducta `SPORULATE` (D46), que exige `enable_genetic_policy`, `enable_evolution` y `enable_sporulation`, y `energy <= phenotype.spore_threshold`.
+   - La regla de umbral de D38 (entrada automática en la Fase 5) se elimina.
+   - La germinación, la física de la endospora y su costo de D38 y de las precisiones 6 y 14 se mantienen.
+   - Sin la política genética, $R_{28}$ es inerte.
+3. **$R_{31}$, compromiso simbiótico.**
+   - En el paso de coordinación de la Fase 5, un holón raíz no soldado queda soldado si la media del `symbiotic_commitment` expresado de sus hojas es $\ge 0.5$. El sello es permanente, como en D40.
+   - Las condiciones (a) y (b) de D40 se eliminan, y con ellas `lock_composite_threshold`.
+   - Los efectos (sin `SPLIT` y con descuento de coordinación), la poda y la fusión de D40 y de la precisión 8 se mantienen.
+   - Con `symbiotic_commitment_base = 0.0`, ningún holón fundador se suelda: el compromiso tiene que evolucionar.
+
+### Decisión 51: Recombinación (R38)
+Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, en la reproducción individual ($R_{12}$, no en $R_{17}$):
+1. **Parejas.** El progenitor busca pareja si su `recombination_propensity` expresada es $\ge 0.5$. Las candidatas son, ordenadas por `agent_id`, las hojas vivas, no endosporas, con ADN, a distancia $\le 1$ y con `recombination_propensity >= 0.5`. Sin candidatas, la reproducción es asexual.
+2. **Sorteo y cruce.** Con candidatas, con `evo_rng` y en este orden:
+   - `pareja = candidatas[int(evo_rng.integers(len(candidatas)))]`;
+   - `a = int(evo_rng.integers(1, len(cromosoma_progenitor) + 1))`;
+   - `b = int(evo_rng.integers(0, len(cromosoma_pareja)))`;
+   - el cromosoma recombinado es `progenitor[:a] + pareja[b:]`, truncado a `dna_max_length`; si queda más corto que `dna_min_length`, se usa el del progenitor.
+   - Los plásmidos y `crispr_memory` son los del progenitor.
+3. **Mutación.** El ADN recombinado se muta después con `mutate_dna` (D35), como cualquier hijo.
+4. **Energía.** La pareja no cede energía: la recombinación es un intercambio de material genético, no de recursos.
+5. **`recombine_dna(parent, partner, a, b, config) -> CompactDNA`** es una función pura en `dna.py`; el sorteo lo hace el motor.
+
+### Decisión 52: Configuración de la Reformulación
+1. **Campos nuevos** al final de `SimulationConfig`:
+   ```python
+       # --- R32: conducta en el ADN ---
+       enable_genetic_policy: bool = False
+       comm_propensity_base: float = 1.0
+       crowding_threshold: int = 3
+       # --- R31 reformulada ---
+       symbiotic_commitment_base: float = 0.0
+       # --- R33 y R34 ---
+       enable_resource_depletion: bool = False
+       resource_regen_delay: int = 20
+       enable_heterogeneity: bool = False
+       num_regions: int = 3
+       season_length: int = 0               # 0 = sin estaciones
+       winter_regen_factor: float = 3.0
+       # --- R35 ---
+       enable_carcasses: bool = False
+       carcass_value: float = 0.6
+       carcass_lifetime: int = 50
+       # --- R36 y R37 ---
+       enable_energy_transfer: bool = False
+       share_fraction: float = 0.25
+       share_efficiency: float = 0.9
+       enable_predation: bool = False
+       attack_power: float = 0.5
+       predation_efficiency: float = 0.6
+       attack_cost: float = 0.01
+       # --- R38 ---
+       enable_recombination: bool = False
+       recombination_base: float = 0.0
+       # --- Telemetría de evolución abierta (D53) ---
+       activity_threshold: int = 500
+   ```
+2. **Validación siempre activa:**
+   - en $[0, 1]$: `comm_propensity_base`, `symbiotic_commitment_base`, `recombination_base`, `share_fraction`, `share_efficiency`, `predation_efficiency`;
+   - en $(0, 1]$: `carcass_value`;
+   - no negativos: `attack_power`, `attack_cost`;
+   - $\ge 1$: `crowding_threshold`, `resource_regen_delay`, `num_regions`, `carcass_lifetime`, `activity_threshold`, `winter_regen_factor`;
+   - $\ge 0$: `season_length`;
+   - `num_regions <= grid_width`.
+3. **Dependencias inertes** (D30.3): $R_{32}$ y $R_{38}$ exigen `enable_compact_dna`; $R_{28}$, $R_{36}$ y $R_{37}$ exigen $R_{32}$, porque sólo actúan como conductas; $R_{35}$ y $R_{38}$ exigen `enable_evolution`; las estaciones de $R_{34}$ exigen $R_{33}$. Con el requisito apagado, la bandera es inerte y no lanza error.
+4. **Campo eliminado.** `lock_composite_threshold` se elimina (D50.3); sus tests de validación se retiran en el bloque que implementa D50.
+5. **Valores por defecto propuestos.** Se aprueban con el pre-registro en la tarea 0.5. La compuerta de viabilidad (D55) sólo puede cambiar `resources_per_pattern` y `resource_regen_delay`.
+
+### Decisión 53: Orden del Tick y Telemetría de Evolución Abierta
+1. **Orden de los sistemas** (`build_systems`):
+   - **Fase 0:** expresión del fenotipo (D34.4).
+   - **Fase 1:** percepción, germinación (D38), percepción social (D47.3), emisión con la puerta de comunicación (D46.6), estigmergia y vista del holón (tiempo 1).
+   - **Fase 2:** intercambio social en dos pasadas y vista del holón (tiempo 2).
+   - **Fase 3:** decisión con la política de cada agente; contexto de los compuestos. Observadores: `on_decisions`.
+   - **Fase 4:** ejecución en el orden de la permutación (movimientos, interacciones con recursos, `SHARE`, `ATTACK` y `SPORULATE`), aprendizaje directo, energía y estigmergia.
+   - **Fase 5:** (i) `decay_memory`; (ii) coordinación, sello de $R_{31}$, `SPLIT` y `BOND`; (iii) metabolismo, con ADN, senescencia, endospora y el costo de los ataques; (iv) muerte, cadáveres ($R_{35}$) y registro del estrés; (v) reproducción, con SOS, recombinación, ADN e impronta; (vi) conjugación y ensayo CRISPR; (vii) $R_{18}$ y roles; (viii) `env.step_dynamics`, con la reposición de $R_{33}$, $R_{34}$ y el retiro de cadáveres. Observadores: `on_tick_end`.
+   - Sin las banderas nuevas, el orden se reduce exactamente al de la Fase II.
+2. **`GeneticTickMetrics`** (sustituye a la de D41; se registra en cada tick en `engine.genetic_history`). Además de los campos de D41 y de la precisión 10, salvo `locked_holons`, que se conserva, agrega:
+   - `distinct_genotypes`: cantidad de cromosomas distintos entre las hojas vivas;
+   - `mean_functional_codons`: media de codones con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`) o de conducta (`0x40`–`0x47`) y modo distinto de 3, cualquiera sea su promotor;
+   - `regulated_expression_fraction`: media, sobre las hojas con ADN, de la fracción de codones activos en la transcripción del fenotipo cuyo promotor es distinto de `0x00`;
+   - `policy_divergence`: entre las decisiones del tick con la política genética, la fracción en que la primera conducta factible según el ADN del agente difiere de la del ADN fundador, evaluadas sobre las mismas señales y factibilidades, con `EXPLORE` tomada como factible si hay recursos desconocidos alcanzables, sin extraer de `rng`;
+   - `communicating_fraction`: fracción de hojas vivas no endosporas con `comm_propensity >= 0.5`;
+   - `new_activity` y `cumulative_new_activity` (actividad evolutiva de Bedau–Packard): para cada codón distinto $c$, la actividad $a_c(t) = \sum_{s \le t}$ (hojas vivas que portan $c$ en el cromosoma o en los plásmidos en el tick $s$). `new_activity` cuenta los codones cuya actividad cruzó `activity_threshold` en el tick, y `cumulative_new_activity` es su suma acumulada.
+   - Los valores de la población vacía siguen la precisión 10.
+3. **`EcologyTickMetrics`** (nueva, en `engine.ecology_history`, registrada en cada tick): `tick`, `resources_available`, `shares`, `attacks`, `successful_attacks`, `predation_deaths` (muertes del tick de agentes atacados con éxito en ese tick), `starvation_deaths`, `carcasses_deposited`, `carcasses_eaten`, `sporulations`, `recombinations`, `share_rate` (`shares` dividido por las decisiones del tick; 0.0 sin decisiones) y `behavior_counts` (tupla con la cantidad de decisiones de cada `Behavior` en el tick, en el orden de la tabla de D46).
+4. **Sin efecto en las métricas anteriores.** `TickMetrics` y `EvolutionaryTickMetrics` no cambian.
+
+### Decisión 54: Rendimiento
+1. **Línea base.** Antes del refactor (bloque 6) se registra el benchmark (`python -m ide.experiments.benchmark` y `--compact-dna`).
+2. **Criterio del refactor.** Después de los bloques 6 y 7, el benchmark no puede empeorar más de un 10 %.
+3. **Perfil largo.** Antes de la compuerta de viabilidad se mide el costo de un tick con todas las reglas de D56 activas. Si una corrida del perfil `phase25` supera los 5 minutos, se puede optimizar el bucle con la regla de `CLAUDE.md`: medición previa e historiales idénticos entre la versión rápida y la actual.
+
+### Decisión 55: Compuerta de Viabilidad (antes de cualquier afirmación)
+1. **Qué mide.** Sólo demografía: si la corrida termina con población viva y la generación máxima. No calcula ninguna métrica de afirmación.
+2. **Semillas.** `PHASE25_VIABILITY_SEEDS = tuple(range(0, 10))`, disjuntas de `PHASE25_SEEDS`.
+3. **Criterio.** Una corrida es viable si termina con al menos una hoja viva y `max_generation >= 20`. Una configuración es viable si, para **cada** protocolo de D56 y **cada** una de sus condiciones (incluida `null_content`), al menos 8 de las 10 semillas son viables.
+4. **Grilla declarada**, en orden de preferencia (menos abundancia primero), sobre `(resources_per_pattern, resource_regen_delay)`: `(20, 10)`, `(20, 20)`, `(30, 10)`, `(30, 20)`, `(40, 20)` y `(40, 40)`. Se elige la **primera** viable, y se detiene al encontrarla.
+5. **Sin viables.** Si ninguna lo es, se reporta como resultado y decide el responsable del proyecto. No se prueba nada fuera de la grilla sin una enmienda.
+6. **Registro.** La salida completa va a `registros/` y a `docs/RESULTADOS.md` antes de la prueba de humo.
+
+### Decisión 56: Pre-Registro de la Fase II-B Reformulada (BORRADOR, se aprueba en la tarea 0.5)
+Esta decisión es **pre-registro**. Se aprueba antes de implementar los bloques nuevos y antes de mirar cualquier resultado. Cambiarla después exige un commit que lo justifique.
+
+**Inventario `PHASE25_DESIGN_RULES`** (`R24`–`R38`; `ALL_DESIGN_RULES` no cambia):
+
+| Regla | `name` | `purpose` | `ablation` |
+| :--- | :--- | :--- | :--- |
+| `R24` | ADN compacto y expresión condicional | Rasgos en codones de 32 bits expresados según el contexto, con costo sobre lo expresado. Sesgo declarado: abarata la complejidad latente. | `(("enable_compact_dna", False),)` |
+| `R25` | Señal posicional epigenética | Proveer una señal de posición y conocimiento dentro del holón; su uso lo decide el ADN. | `(("enable_epigenetic_roles", False),)` |
+| `R26` | Conjugación de plásmidos | Transferir codones entre vecinos en vida. | `(("enable_plasmid_hgt", False),)` |
+| `R27` | Inmunidad CRISPR | Purgar plásmidos con balance energético negativo y bloquear su reingreso. | `(("enable_crispr_immunity", False),)` |
+| `R28` | Endospora disponible | Permitir un estado de bajo gasto; su uso lo decide el ADN. | `(("enable_sporulation", False),)` |
+| `R29` | Senescencia telomérica | Limitar la vida con una longevidad expresada. Sesgo declarado: fuerza recambio. | `(("enable_telomere_senescence", False),)` |
+| `R30` | Mutación SOS | Aumentar la variación bajo estrés y reducirla en abundancia. | `(("enable_sos_mutation", False),)` |
+| `R31` | Compromiso simbiótico | Permitir que un holón se vuelva indisoluble si sus hojas lo expresan. | `(("enable_symbiotic_ratchet", False),)` |
+| `R32` | Conducta codificada en el ADN | Que la política de acción y la decisión de comunicar se expresen desde el ADN. | `(("enable_genetic_policy", False),)` |
+| `R33` | Recursos agotables | Escasez real: los recursos tardan en reponerse. | `(("enable_resource_depletion", False),)` |
+| `R34` | Heterogeneidad espacial y estacional | Nichos por región y abundancia variable en el tiempo. | `(("enable_heterogeneity", False),)` |
+| `R35` | Cadáveres | Cerrar el ciclo de energía: los muertos son recurso. | `(("enable_carcasses", False),)` |
+| `R36` | Transferencia de energía | Permitir ceder energía a un vecino; su uso lo decide el ADN. | `(("enable_energy_transfer", False),)` |
+| `R37` | Depredación | Permitir robar energía a un vecino más débil; su uso lo decide el ADN. | `(("enable_predation", False),)` |
+| `R38` | Recombinación | Permitir el cruce de cromosomas con una pareja; su uso lo decide el ADN. | `(("enable_recombination", False),)` |
+
+- `PHASE25_ALL_RULES = ALL_DESIGN_RULES + PHASE25_DESIGN_RULES`, y `ablate()` busca en las dos tuplas.
+
+**Protocolos `PHASE25_PROTOCOL_CONFIGS`**, con `(resources_per_pattern, resource_regen_delay)` fijados por la compuerta de viabilidad (D55):
+- `"25a"` (ecología individual): `PHASE2_PROTOCOL_CONFIGS["002a"]` con `enable_compact_dna`, `enable_genetic_policy`, `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sporulation`, `enable_telomere_senescence`, `enable_sos_mutation`, `enable_resource_depletion`, `enable_heterogeneity` (`season_length = 500`), `enable_carcasses`, `enable_energy_transfer`, `enable_predation` y `enable_recombination` en `True`.
+- `"25b"` (ecología holónica): `PHASE2_PROTOCOL_CONFIGS["003a"]` con las banderas de `"25a"` más `enable_epigenetic_roles` y `enable_symbiotic_ratchet`.
+- `"25c"` (comunicación desde cero): `"25a"` con `comm_propensity_base = 0.0`.
+
+**Condiciones de comparación:**
+- `full`: la configuración del protocolo;
+- `drift`: `ablate(config, ["R12"])`, reproducción neutral;
+- `no_predation` (sólo `"25a"`): `ablate(config, ["R37"])`;
+- `null_content`: el control nulo de contenido, para E4.
+
+**Afirmaciones `PHASE25_CLAIMS`.** Son **pruebas genuinas**: ninguna regla persigue la métrica, y la comparación es contra la deriva neutral o contra la ablación de un mecanismo ecológico. Cada métrica es la media de la ventana final (el último 10 % de los ticks) de su campo de `GeneticTickMetrics` o `EcologyTickMetrics`.
+
+| Afirmación | Protocolo | Métrica (↑) | Comparación | $R_C$ | Canal | $\delta_{\min}$ (propuesto) |
+| :--- | :--- | :--- | :--- | :--- | :--- | ---: |
+| `C13` La regulación génica evoluciona | `25a` | `regulated_expression_fraction` | `full` frente a `drift` | `("R12",)` | `()` | 0.05 |
+| `C14` La conducta evoluciona | `25a` | `policy_divergence` | `full` frente a `drift` | `("R12",)` | `()` | 0.05 |
+| `C15` La comunicación evoluciona desde cero | `25c` | `communicating_fraction` | `full` frente a `drift` | `("R12",)` | `()` | 0.10 |
+| `C16` Actividad evolutiva por encima de la deriva | `25a` | `cumulative_new_activity` (último tick) | `full` frente a `drift` | `("R12",)` | `()` | 5 |
+| `C17` La depredación aumenta la complejidad genética | `25a` | `mean_functional_codons` | `full` frente a `no_predation` | `("R37",)` | `()` | 1.0 |
+| `C18` La cooperación material evoluciona en los holones | `25b` | `share_rate` | `full` frente a `drift` | `("R12",)` | `()` | 0.01 |
+
+- **Clasificación.** Con canal vacío, ninguna es programada por construcción.
+- **Prueba.** Prueba de signo unilateral sobre las diferencias pareadas por semilla, descartando empates.
+- **Corrección.** Holm–Bonferroni sobre `C13`–`C18` con $\alpha = 0.05$.
+- **Estado.** `OBSERVED` si el p-valor ajustado es menor que $\alpha$ **y** la mediana de las diferencias pareadas es al menos $\delta_{\min}$; `NOT_OBSERVED` en otro caso. Se informan siempre el p-valor crudo, el ajustado, la mediana y la demografía.
+- **E4.** Se informa contra `null_content` sólo si esa condición pasó la compuerta de viabilidad; si no, es no interpretable de antemano.
+- **Efectos de regla.** `rule_effects` (una variante por regla de `PHASE25_ALL_RULES`, salvo las inactivas del protocolo) son **exploratorios**: se miden sólo con las semillas 42–51 y no entran en la corrección de Holm.
+
+**Perfil.**
+- `phase25`: 5000 ticks.
+- `PHASE25_SEEDS = tuple(range(42, 72))`, 30 semillas.
+- `PHASE2_SEEDS` no cambia.
+
+**Prueba de humo.** Después de la compuerta y antes de los runners. Registra, por protocolo, condición y semilla, sólo la terminación, la generación máxima y la población final, sin calcular ni mirar las métricas de las afirmaciones.
+
+---
+
 ## Arquitectura de Módulos y Árbol de Archivos
 
 ```text
 src/ide/
-├── config.py               # MODIFICADO: banderas e hiperparámetros de la Fase II-B (D31)
-├── domain/types.py         # MODIFICADO: +EpigeneticRole, +CompactDNA, +EpigeneticContext, +ExpressedPhenotype
+├── config.py               # MODIFICADO: banderas e hiperparámetros (D31 y D52); sin lock_composite_threshold
+├── domain/
+│   ├── types.py            # MODIFICADO: +EpigeneticRole, +CompactDNA, +EpigeneticContext, +ExpressedPhenotype (D31, D46.7),
+│   │                       #   +Behavior, +VisibleAgent, +SocialPerception, +SensorySignals, ActionType ampliado (D47)
+│   └── ports.py            # MODIFICADO: +EcologicalEnvironmentPort (D47.2)
 ├── agent/
-│   ├── dna.py              # NUEVO: codón, ADN fundador, transcripción, mutate_dna, receive_plasmid, purge_plasmid
+│   ├── dna.py              # NUEVO: codón, ADN fundador, transcripción, mutate_dna, plásmidos,
+│   │                       #   +evaluate_drives, +founder_dna_length, +recombine_dna (D46, D51)
+│   ├── policy.py           # NUEVO: PolicyPort, HandwrittenPolicy, GeneticPolicy (D45, D46)
+│   ├── protocol.py         # MODIFICADO: puerta de comunicación (D46.6)
 │   ├── memory.py           # MODIFICADO: +resize
 │   ├── evolution.py        # MODIFICADO: +compute_dna_cost, +compute_senescence_cost
-│   ├── micro_agent.py      # MODIFICADO: ADN, fenotipo, base_config, rol, edad, endospora, express, create_offspring
-│   └── holon.py            # MODIFICADO: +assign_epigenetic_roles, +is_locked, should_split_holon con R31
-├── simulation/engine.py    # MODIFICADO: Fase 0, hgt_rng, Fase 5 extendida, endosporas
+│   ├── micro_agent.py      # MODIFICADO: ADN, fenotipo, base_config, rol, edad, endospora, express, política
+│   └── holon.py            # MODIFICADO: +assign_epigenetic_roles, +is_locked, sello por compromiso (D50.3)
+├── environments/grid2d.py  # MODIFICADO: EcologicalEnvironmentPort, R33, R34, R35 (D48)
+├── simulation/
+│   ├── pipeline.py         # NUEVO: EngineSystem, TickObserver, TickFrame, build_systems (D44)
+│   └── engine.py           # MODIFICADO: pipeline, Fase 0, hgt_rng, percepción social, interacciones, endosporas
 └── experiments/
-    ├── metrics.py          # MODIFICADO: +GeneticTickMetrics
-    ├── attribution.py      # MODIFICADO: +PHASE25_DESIGN_RULES, +PHASE25_CLAIMS, +run_phase25_attribution
-    └── exp25_runner.py     # NUEVO: protocolos 002c, 002d, 002e y 003c + CLI
+    ├── metrics.py          # MODIFICADO: +GeneticTickMetrics, +EcologyTickMetrics, observadores (D53)
+    ├── attribution.py      # MODIFICADO: +PHASE25_DESIGN_RULES, +PHASE25_CLAIMS, Holm y δ_min (D56)
+    ├── phase25_viability.py # NUEVO: compuerta de viabilidad (D55)
+    └── exp25_runner.py     # NUEVO: protocolos 25a, 25b y 25c + CLI
 ```
 
-`dna.py` importa sólo `ide.domain`, `ide.config`, `numpy` y la biblioteca estándar. No importa `micro_agent.py` ni `holon.py`.
+- `dna.py` importa sólo `ide.domain`, `ide.config`, `numpy` y la biblioteca estándar. No importa `micro_agent.py`, `policy.py` ni `holon.py`.
+- `policy.py` importa `dna.py`, `epistemology.py` y `ide.domain`, y cumple las invariantes de `src/ide/agent/`.
 
 ---
 
 ## Risks / Trade-offs
 
-- **Romper los hashes dorados o la Fase II.** *Mitigación:* toda rama nueva queda detrás de su bandera. `hgt_rng` es aparte. Un test exige que, con las banderas por defecto, los historiales de los protocolos de la Fase II sean idénticos a los de antes del cambio.
-- **Costo de la Fase 0.** Transcribir el ADN en cada tick encarece el bucle. *Mitigación:* el caché por contexto (D34.2), más un benchmark que lo mida en el bloque del motor. No se vectoriza sin medir (CLAUDE.md).
+- **Romper los hashes dorados o la Fase II.** *Mitigación:* toda rama nueva queda detrás de su bandera y la reformulación no agrega generadores. El refactor por sistemas (D44) y el puerto de política (D45) se aceptan sólo con los hashes dorados, las huellas de la Fase II y los historiales del bloque 5 idénticos.
+- **Refactor grande del motor.** Mover el código a sistemas puede alterar el orden de consumo de un generador sin que un test unitario lo note. *Mitigación:* el test de aceptación de D44.4 compara historiales completos, no sólo métricas finales, y el refactor no cambia ninguna conducta.
+- **Costo de la conducta genética.** Evaluar impulsos en cada decisión encarece el bucle. *Mitigación:* el caché de D46.8 y la medición de D54 antes de las corridas largas.
+- **Colapso por depredación.** La depredación puede extinguir la población. *Mitigación:* la eficiencia menor que 1, el éxito sólo contra un objetivo más débil y la compuerta de viabilidad (D55) antes de cualquier afirmación.
+- **Inviabilidad del fundador en un entorno escaso.** El fundador reproduce la conducta de la Fase II, que no se diseñó para la escasez. *Mitigación:* la grilla declarada de D55; si nada es viable, decide el responsable del proyecto.
+- **Resultado modesto.** Lo más probable es que la complejidad crezca poco y se estanque. Es un resultado válido: las afirmaciones C13–C18 están planteadas para detectar evolución genuina, no para confirmarla.
 - **Olvido forzado oscilante.** Un agente cerca de un umbral de energía puede achicar y agrandar su memoria tick a tick. Es física declarada de $R_{24}$, no se suaviza, y la telemetría lo deja auditable.
-- **Atribución con muchas reglas.** Ocho reglas nuevas hacen costosos `rule_effects` y difícil su lectura. *Mitigación:* cada protocolo activa sólo las reglas que necesita (D42), y las inactivas se excluyen.
-- **Solapamiento con el Experimento 004 (decisión P7).** Con $R_{25}$ activa, la especialización es programada. El Exp 004 se mide con $R_{25}$ ablacionada.
-- **JSON de la Fase II.** `config.to_dict()` incluye los campos nuevos, así que los JSON que regeneren los runners de la Fase II ya no son idénticos byte a byte a los de `registros/`. Lo que se garantiza es que los **historiales** y los valores medidos son idénticos. Para comparar un JSON regenerado con uno registrado, se comparan sin los campos de D31.
-- **Viabilidad.** Como en la Fase II, el perfil puede resultar inviable, por ejemplo `002e` con 10 recursos. Se reporta como resultado.
+- **Atribución con muchas reglas.** Quince reglas hacen costosos los `rule_effects`. *Mitigación:* son exploratorios y se miden con 10 semillas (D56).
+- **Solapamiento con el Experimento 004 (decisión P7).** Con $R_{25}$ como señal, la especialización que aparezca es evolucionada sobre una señal diseñada. El Exp 004 se sigue midiendo con $R_{25}$ ablacionada.
+- **JSON de la Fase II.** `config.to_dict()` incluye los campos nuevos, así que los JSON que regeneren los runners de la Fase II ya no son idénticos byte a byte a los de `registros/`. Lo que se garantiza es que los **historiales** y los valores medidos son idénticos. Para comparar un JSON regenerado con uno registrado, se comparan sin los campos de D31 y D52.
 
 ---
 
@@ -576,7 +982,8 @@ src/ide/
 
 - [ ] `ruff check`, `ruff format --check` y `pyright` sin errores ni advertencias.
 - [ ] `python -m pytest --cov=ide` en verde (cobertura $\ge 90\%$), con los hashes dorados de la Fase I intactos y los historiales de la Fase II sin cambios con las banderas por defecto. Pasa también con otro `PYTHONHASHSEED`.
+- [ ] El refactor por sistemas y el puerto de política cumplen la aceptación de D44.4, y el ADN fundador con la política genética reproduce la política escrita a mano (D46.5).
 - [ ] `python -m pytest -m slow` en verde.
 - [ ] `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict` sin advertencias.
-- [ ] El pre-registro aprobado (D42) está commiteado antes del primer commit de `exp25_runner.py`.
+- [ ] El pre-registro D56, aprobado en la tarea 0.5, está commiteado antes del primer commit de `exp25_runner.py`, y la compuerta de viabilidad (D55) está registrada antes de la prueba de humo.
 - [ ] `/code-review` sin hallazgos accionables pendientes en cada bloque, según CLAUDE.md.
