@@ -36,6 +36,11 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 - Después de cualquier cambio en specs: `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict`. Debe pasar sin advertencias.
 - Requisitos atómicos con `SHALL`, de menos de 500 caracteres, y al menos un escenario `WHEN/THEN` verificable cada uno.
 - Cada cambio de diseño se refleja también en los documentos raíz. Después de un cambio grande, pide una revisión cruzada a un agente independiente: ya encontró errores reales dos veces.
+- **Qué revisión corresponde a cada cambio:**
+  - **Sólo specs o documentos** (`openspec/`, `docs/`, `README.md`, `CLAUDE.md`): `openspec validate --all --strict` y, si el cambio es grande, la revisión cruzada independiente. No se corre `/code-review`, que busca errores de corrección en código.
+  - **Toca código:** `/code-review`, según la revisión automática de Implementación.
+  - **Mixto:** las dos.
+  - Los hallazgos de la revisión cruzada se tratan igual que los de `/code-review`: se aplican los que se sostienen, se descartan con motivo los demás y no se aplica sin consultar nada que toque el pre-registro o cambie el diseño de forma no obvia.
 
 ### Implementación
 - Sigue `tasks.md` **en orden**: `tasks.md` es el plan. No generes planes paralelos (por ejemplo, con `superpowers:writing-plans` o `superpowers:brainstorming`), porque crearían una segunda fuente de verdad.
@@ -46,7 +51,7 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 - Antes de marcar una tarea `[x]` o hacer commit, corre las verificaciones y muestra su salida (`superpowers:verification-before-completion`).
 - Ante un test que falla o un resultado inesperado, usa `superpowers:systematic-debugging`. En este proyecto un resultado raro puede ser un bug **o** un hallazgo científico: no los confundas.
 - Un bloque sólo está completo si pasan `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide`, y después la revisión automática que sigue.
-- **Revisión automática, sin preguntar:** después de **cada** cambio (un bloque o una tanda de correcciones pedida por el usuario), corre `/code-review` sobre ese cambio. Aplica los hallazgos que se sostienen, descarta con motivo los que no, y revisa sólo las correcciones aplicadas. Las correcciones que surgen de una revisión no son un cambio nuevo: cuentan como rondas del cambio original. Termina cuando una revisión no deja hallazgos accionables nuevos (los ya descartados con motivo no reabren el ciclo) o tras **3 rondas** sobre el mismo cambio; en ese caso, reporta lo pendiente en lugar de seguir. **Excepción:** un hallazgo que cambie el diseño de forma no obvia, o que toque el pre-registro (`DESIGN_RULES`, `EXP001_CLAIMS`, `ATTRIBUTION_PROFILE` y sus equivalentes de la Fase II), no se aplica sin consultar. Presenta los resultados en español y en lenguaje claro.
+- **Revisión automática, sin preguntar:** después de **cada** cambio que toque código (`src/`, `tests/` o `.github/workflows/`), sea un bloque o una tanda de correcciones pedida por el usuario, corre `/code-review` sobre ese cambio. Aplica los hallazgos que se sostienen, descarta con motivo los que no, y revisa sólo las correcciones aplicadas. Las correcciones que surgen de una revisión no son un cambio nuevo: cuentan como rondas del cambio original. Termina cuando una revisión no deja hallazgos accionables nuevos (los ya descartados con motivo no reabren el ciclo) o tras **3 rondas** sobre el mismo cambio; en ese caso, reporta lo pendiente en lugar de seguir. **Excepción:** un hallazgo que cambie el diseño de forma no obvia, o que toque el pre-registro (`DESIGN_RULES`, `EXP001_CLAIMS`, `ATTRIBUTION_PROFILE` y sus equivalentes de la Fase II), no se aplica sin consultar. Presenta los resultados en español y en lenguaje claro.
 - Además de los escenarios de las specs, verifica los invariantes con pruebas por propiedades (Hypothesis, perfil `ci` con `derandomize=True`).
 
 ### Subagentes
