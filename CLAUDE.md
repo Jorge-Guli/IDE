@@ -41,6 +41,23 @@ Nunca resuelvas una contradicción en silencio. Corrige el documento de menor ra
 - **Revisión automática, sin preguntar:** después de **cada** cambio (un bloque o una tanda de correcciones pedida por el usuario), corre `/code-review` sobre ese cambio. Aplica los hallazgos que se sostienen, descarta con motivo los que no, y revisa sólo las correcciones aplicadas. Las correcciones que surgen de una revisión no son un cambio nuevo: cuentan como rondas del cambio original. Termina cuando una revisión no deja hallazgos accionables nuevos (los ya descartados con motivo no reabren el ciclo) o tras **3 rondas** sobre el mismo cambio; en ese caso, reporta lo pendiente en lugar de seguir. **Excepción:** un hallazgo que cambie el diseño de forma no obvia, o que toque el pre-registro (`DESIGN_RULES`, `EXP001_CLAIMS`, `ATTRIBUTION_PROFILE` y sus equivalentes de la Fase II), no se aplica sin consultar. Presenta los resultados en español y en lenguaje claro.
 - Además de los escenarios de las specs, verifica los invariantes con pruebas por propiedades (Hypothesis, perfil `ci` con `derandomize=True`).
 
+### Subagentes
+Delegar en subagentes (herramienta `Agent`) está **habilitado, sin preguntar**, cuando ahorra contexto o tokens, o acorta el trabajo. El agente principal recibe la conclusión y no el volcado de archivos.
+- **Cuándo conviene:**
+  - exploraciones amplias de código o documentos (tipo `Explore`) cuando sólo hace falta la conclusión;
+  - lecturas extensas (un `design.md` completo, registros de `registros/`) de las que basta un resumen o un dato puntual;
+  - tareas independientes entre sí, lanzadas en paralelo en un mismo mensaje (`superpowers:dispatching-parallel-agents`), por ejemplo tests de bloques distintos o la revisión de varios documentos;
+  - la revisión cruzada independiente de un cambio grande, que ya es obligatoria (ver Especificación);
+  - comandos de salida larga (la suite completa, corridas de experimentos) cuyo resultado se puede resumir.
+- **Cuándo no conviene:** una búsqueda puntual en un archivo conocido (busca directamente) y los cambios chicos y acoplados, donde explicar el contexto cuesta más que hacerlo.
+- **Reglas:**
+  - El prompt de cada subagente es **autocontenido**: el objetivo, los archivos y las decisiones relevantes, y la indicación de leer este `CLAUDE.md`. El subagente cumple las mismas reglas que el agente principal: idioma, TDD, determinismo, invariantes y pre-registro.
+  - `tasks.md` sigue siendo el único plan. Un subagente ejecuta tareas de `tasks.md` (`superpowers:subagent-driven-development`) y no crea planes propios.
+  - Lo que informa un subagente es una afirmación a verificar, no un hecho: antes de marcar una tarea `[x]` o hacer commit, el agente principal corre las verificaciones y muestra su salida.
+  - Ningún subagente decide sobre el pre-registro ni sobre cambios de diseño no obvios: los informa, y la decisión se consulta como indica la revisión automática.
+  - Dos subagentes en paralelo no editan los mismos archivos. Si hace falta aislarlos, usa `isolation: "worktree"`.
+  - No repitas una búsqueda que ya delegaste: espera su resultado.
+
 ## Reglas de arquitectura (invariantes)
 
 - `src/ide/agent/` **no importa** `ide.environments`, `ide.simulation` ni `ide.experiments`. Un test lo verifica sobre el AST.
