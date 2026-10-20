@@ -1,11 +1,12 @@
 # Hoja de Ruta General (ROADMAP): Proyecto IDE (Inteligencia Distribuida Emergente)
 
-> **Propósito de este documento:** Consolidar la evolución completa del proyecto `IDE` desde sus cimientos ya verificados (**Fase I**), su etapa actual en curso (**Fase II**), la transición a un ecosistema continuo 3D interactivo (**Fase III**) y el horizonte de automejora funcional y conexión controlada a datos reales (**Fase IV**).
+> **Propósito de este documento:** Consolidar la evolución completa del proyecto `IDE` desde sus cimientos ya verificados (**Fase I**), su etapa actual en curso (**Fase II**), el paso inmediato de código genético comprimido y epigenética (**Fase II-B**), la transición a un ecosistema continuo 3D interactivo (**Fase III**) y el horizonte de automejora funcional y conexión controlada a datos reales (**Fase IV**).
 
 ```mermaid
 flowchart LR
     F1["Fase I (v1.0 — COMPLETADA):\nMemoria Acotada, Epistemología\ny Atribución Causal (Exp 001)"] --> F2["Fase II (v2.0 — EN CURSO):\nEvolución, Herencia Dual\ny Holarquía Recursiva (Exp 002-003)"]
-    F2 --> F3["Fase III (v3.0 — PLANIFICADA):\nInmortalidad, Cubo 3D,\nWeb UI Viva y Ecología Abierta"]
+    F2 --> F2B["Fase II-B (v2.5 — SIGUIENTE PASO):\nADN Comprimido, Epigenética,\nPlásmidos, CRISPR y Telómeros"]
+    F2B --> F3["Fase III (v3.0 — PLANIFICADA):\nInmortalidad, Cubo 3D,\nWeb UI Viva y Ecología Abierta"]
     F3 --> F3B["Fase III-B (Puente):\nTelescopio a Internet\n(Streams Read-Only)"]
     F3B --> F4["Fase IV (v4.0 — HORIZONTE):\nAutomejora Lógica (Operadores)\ny Física (Módulos en Sandbox)"]
 ```
@@ -18,6 +19,7 @@ flowchart LR
 | :--- | :---: | :---: | :--- |
 | **Fase I** | `v1.0` | **Completada y Archivada** | Micro-agentes inmortales con memoria acotada ($C_{\max} < N$), protocolo epistémico (`R1`–`R11`), entorno `ToroidalGrid2D` y marco de atribución `001-D`. |
 | **Fase II** | `v2.0` | **En Curso (Diseño Cerrado / Pre-registrado)** | Metabolismo energético ($R_{20}, R_{21}$), selección y deriva ($R_{12}$), mutación genética ($R_{13}$), herencia cultural ($R_{14}$), holones recursivos $L = 0 \dots K$ (`BOND`/`SPLIT`, $R_{15}$–$R_{18}, R_{22}, R_{23}$) y estigmergia ($R_{19}$). |
+| **Fase II-B** | `v2.5` | **Siguiente Paso Inmediato ([ARQUITECTURA_ADN_HOLONICO.md](ARQUITECTURA_ADN_HOLONICO.md))** | ADN bacteriano comprimido en codones de 16 bits (`CompactDNA`, $R_{24}$), operones y diferenciación epigenética intra-holón ($R_{25}$), transferencia horizontal de plásmidos ($R_{26}$) con inmunidad CRISPR-Cas ($R_{27}$), esporulación ($R_{28}$), senescencia telomérica y mutación SOS ($R_{29}$), y trinquete simbiótico ($R_{30}$). |
 | **Fase III** | `v3.0` | **Planificada** | Inmortalidad ante apagones (checkpoints atómicos + telemetría en streaming), espacio 3D (`ToroidalGrid3D`), **auto-detección y escalado de hardware (CPU/Multicore/CUDA)**, interfaz viva (Web UI + consola), ecología abierta y **Telescopio a Internet** (sub-etapa 3.6). |
 | **Fase IV** | `v4.0` | **Horizonte** | Automejora de **capacidades lógicas** (síntesis holónica de operadores matemáticos y algoritmos) y **capacidades físicas** (generación evolutiva de nuevos módulos y herramientas en `SkillSandboxPort`). |
 
@@ -58,6 +60,29 @@ flowchart LR
 
 ---
 
+# Fase II-B (v2.5) — ADN Bacteriano Comprimido, Epigenética Multinivel, Plásmidos y Trinquete Simbiótico [SIGUIENTE PASO INMEDIATO]
+
+> **Especificación detallada:** [`ARQUITECTURA_ADN_HOLONICO.md`](ARQUITECTURA_ADN_HOLONICO.md). Se ejecuta inmediatamente al cerrar el Bloque 7 de la Fase II (`v2.0`), antes de pasar al cubo 3D de la Fase III.
+
+- **Objetivo:** Reemplazar el vector fenotípico plano (`AgentGenome` de 7 escalares) por un código genético bacteriano comprimido en $L=0$ (`CompactDNA`) cuya expresión condicional sostenga la diferenciación celular, la inmunidad genética y el recambio generacional continuo en todos los niveles holónicos ($L = 0 \dots K$).
+- **Mecanismos e Inventario Pre-registrable (`R24`–`R30`):**
+  1. **Codificación en Codones de 16 bits y Operones (`CompactDNA`, $R_{24}$):**
+     - Cada codón (`uint16`) empaqueta `[PROM (4b) | TARGET (4b) | PAYLOAD (8b)]`.
+     - El ADN físico vive sólo en $L=0$ (`MicroAgent`), pero contiene genes para niveles superiores ($L \ge 1$) que permanecen dormidos en $L=0$. El costo metabólico cuadrático ($R_{21}$) **sólo se cobra sobre el fenotipo expresado** (`transcribe_phenotype(dna, context)`), mientras los genes silenciados pagan un costo lineal minúsculo ($c_{\text{dna}}$).
+  2. **Diferenciación Epigenética Intra-Holón e Impronta Mitótica ($R_{25}$):**
+     - Un `CompositeAgent` ($L \ge 1$) actúa como director epigenético sobre el Hologenoma de sus hojas, asignando roles (`EXPLORER`, `LIBRARIAN`, `NERVE`) para que células con **idéntico ADN** se especialicen en el acto en órganos sensoriales, de memoria o de enlace, heredando esa metilación al dividirse.
+  3. **Transferencia Horizontal de Plásmidos (HGT, $R_{26}$) e Inmunidad CRISPR-Cas ($R_{27}$):**
+     - Intercambio en vida de anillos cortos de codones (`plasmids`) entre pares exitosos, protegido por una memoria inmunológica (`crispr_memory`) que evalúa el balance energético $\Delta E$ tras la infección, destruye plásmidos parásitos y hereda la inmunidad.
+  4. **Esporulación Bacteriana (`ENDOSPORE`, $R_{28}$):**
+     - Criptobiosis ante escasez extrema (`resources_per_pattern <= 10`): reduce el gasto metabólico al $5\%$ basal en ayuno crítico hasta germinar ante la reaparición de recursos o estigmergia positiva.
+  5. **Senescencia Telomérica y Respuesta SOS de Mutación Adaptativa ($R_{29}$):**
+     - **Telómeros (`age_ticks > T_max`):** Desgaste celular progresivo por edad que elimina el "Tapón de Matusalén" cuando abundan los recursos (`resources_per_pattern >= 40`), garantizando rotación generacional infinita ($g \to \infty$).
+     - **Respuesta SOS:** Reparación de alta fidelidad ($\mu \downarrow$) en superávit energético e hipermutación ($\mu \uparrow$) bajo estrés o shock ambiental.
+  6. **Trinquete Simbiótico Evolutivo (*Symbiotic Ratchet*, $R_{30}$):**
+     - Paso de alianza facultativa reversible (`SPLIT` activo) a organismo consolidado indisoluble (`is_locked = True`) tras reproducción simbiótica ($R_{17}$) o especialización epigenética, sirviendo como ladrillo estable para el nivel $L+1$.
+
+---
+
 # Fase III (v3.0) — Persistencia Continua, Espacio 3D, Interfaz Viva y Telescopio a Internet [PLANIFICADA]
 
 > **Objetivo:** Transformar `IDE` en un ecosistema cognitivo continuo ($t \to \infty$), tridimensional, inmune a apagones, observable e interactivo en tiempo real, y alimentado opcionalmente por flujos de datos reales de Internet.
@@ -68,11 +93,11 @@ Para que `IDE` pueda ejecutarse sin límite de tiempo ($t \to \infty$) y sobrevi
 
 - **3.1.1. Checkpointing Atómico del Universo (`save_checkpoint` / `load_checkpoint`):**
   - Volcado periódico cada $K$ ticks (escritura atómica `tmp -> replace` con doble buffer `checkpoint_A` / `checkpoint_B` para que un corte eléctrico a mitad de escritura jamás corrompa el estado).
-  - Serializa: (1) estado exacto de los generadores `PCG64` (`rng`, `evo_rng`, `null_rng`, `donor_rng`, `_comp_rng`) y contadores (`next_tick`, `next_agent_id`, `next_holon_id`), (2) población viva (`MicroAgent` + `AgentGenome` + `BoundedMemory`), (3) bosque holónico completo (`CompositeAgent` multinivel $L = 1 \dots K$), y (4) estado del entorno y rastros estigmérgicos (`cell_stigmergy`).
+  - Serializa: (1) estado exacto de los generadores `PCG64` (`rng`, `evo_rng`, `null_rng`, `donor_rng`, `_comp_rng`) y contadores (`next_tick`, `next_agent_id`, `next_holon_id`), (2) población viva (`MicroAgent` + `CompactDNA` + `AgentGenome` + `BoundedMemory`), (3) bosque holónico completo (`CompositeAgent` multinivel $L = 1 \dots K$), y (4) estado del entorno y rastros estigmérgicos (`cell_stigmergy`).
 - **3.1.2. Streaming de Telemetría a Disco (`Ring-Buffer` en RAM + `JSONL/SQLite` en disco):**
   - En corridas infinitas la RAM sólo retiene una ventana deslizante de los últimos $W$ ticks y vuelca el historial en segundo plano a disco para evitar agotamiento de memoria.
 - **3.1.3. "Esporas Cognitivas" (Exportación / Importación de Holones y Nichos):**
-  - Capacidad de extraer un `CompositeAgent` campeón (con sus hojas, genomas y memorias) en un archivo liviano (`.holon.json`) e inyectarlo ("sembrarlo") en otro entorno o en otra computadora.
+  - Capacidad de extraer un `CompositeAgent` campeón (con sus hojas, ADN, genomas y memorias) en un archivo liviano (`.holon.json`) e inyectarlo ("sembrarlo") en otro entorno o en otra computadora.
 
 ## 3.2. Expansión Dimensional: Sustrato Espacial 3D (`ToroidalGrid3D`)
 
@@ -103,7 +128,7 @@ Al escalar a un cubo 3D continuo ($t \to \infty$), el sistema debe inspeccionar 
   - Ejecución del `SimulationEngine` en un hilo/proceso desacoplado con cola de comandos en vivo (`PAUSE`, `RESUME`, `STEP`, `SET_TPS`, `SAVE_NOW`).
 - **3.4.2. Visor 3D y Radiografía Holónica en Tiempo Real (Web UI / Panel Local):**
   - **Vista Espacial 3D:** Nube de agentes coloreados por linaje/casta, enlaces de los holones ($L = 1 \dots K$) y mapa de calor de estigmergia.
-  - **Inspector de Mentes:** Clic en cualquier agente u holón para inspeccionar su árbol jerárquico, su energía, su genoma mutado y qué patrones recuerda cada hoja.
+  - **Inspector de Mentes:** Clic en cualquier agente u holón para inspeccionar su árbol jerárquico, su energía, su ADN comprimido/fenotipo expresado y qué patrones recuerda cada hoja.
 - **3.4.3. "Mano del Experimentador" (Intervenciones en Vivo desde la UI):**
   - Inyectar recursos simples o compuestos en una coordenada $(X, Y, Z)$, disparar shocks ambientales (`invert_world_rules`) o premiar/castigar energéticamente ($\pm \Delta E$) a un holón específico (**Refuerzo Humano en Vivo**).
 
@@ -138,7 +163,7 @@ El sistema crece en **4 dimensiones simultáneas** sin violar el límite cerebra
    [[L=2]] + [[L=2]] ──BOND──► [[[Super-Organismo L=3 ... L=K]]]
 
 3. CRECIMIENTO CULTURAL E INTERGENERACIONAL (En el Tiempo: g = 0 -> 1 -> ... -> ∞)
-   Generación 0 descubre A ──(Herencia R14)──► Gen 1 nace sabiendo A y descubre B ──► Gen 100...
+   Generación 0 descubre A ──(Herencia R14 + CompactDNA R24)──► Gen 1 nace sabiendo A y descubre B ──► Gen 100...
 
 4. CRECIMIENTO AMBIENTAL / ESTIGMÉRGICO (Memoria Externa en el Cubo 3D)
    El cubo 3D vacío se llena de "autopistas y bibliotecas químicas" (R19) grabadas en las celdas.
@@ -152,7 +177,7 @@ El sistema crece en **4 dimensiones simultáneas** sin violar el límite cerebra
 
 ## 4.1. Automejora en Capacidades Lógicas (Síntesis Holónica de Operaciones Matemáticas y Algoritmos)
 
-En las Fases I a III, cada hoja (`MicroAgent`) almacena creencias declarativas (`Pattern` $\to$ valor predicho $\hat{v}$) y los holones unen conjuntos de datos. En la Fase IV, los nodos adquieren **memoria procedimental (operadores lógicos y matemáticos)**:
+En las Fases I a III, cada hoja (`MicroAgent`) almacena creencias declarativas (`Pattern` $\to$ valor predicho $\hat{v}$) y los holones unen conjuntos de datos. En la Fase IV, los nodos adquieren **memoria procedimental (operadores lógicos y matemáticos codificados en los targets `0x8..0xF` de `CompactDNA`)**:
 
 - **4.1.1. Operadores Primitivos en las Hojas ($L = 0$):**
   - Cada `MicroAgent` puede portar en su repertorio operadores formales elementales: aritméticos (`ADD`, `SUB`, `MUL`, `DIV`, `MOD`), comparadores (`GT`, `EQ`), lógicos (`AND`, `OR`, `NOT`, `XOR`), estadísticos (`MEAN`, `DIFF`, `EMA`) y simbólicos (`SLICE`, `CONCAT`, `MATCH`).
