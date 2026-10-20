@@ -297,7 +297,7 @@ Las cotas de los rasgos enteros son las mismas que usa `mutate_genome` en la Fas
 1. **Mutación puntual del cromosoma.**
    - Si el cromosoma no está vacío, extrae `u = rng.random(len(chromosome))`.
    - Para cada índice $i$, en orden, con `u[i] < p_point`, extrae `bit = int(rng.integers(0, 32))` y aplica `codon ^= 1 << bit`.
-2. **Mutación puntual de los plásmidos.** Igual, sobre `plasmids`, sólo si no está vacío. Si un plásmido mutado coincide con otro, se elimina el duplicado posterior.
+2. **Mutación puntual de los plásmidos.** Igual, sobre `plasmids`, sólo si no está vacío. Si un plásmido mutado coincide con otro, se elimina el duplicado posterior. También se descarta el plásmido mutado que coincida con un codón de `crispr_memory` (punto 12).
 3. **Duplicación.**
    - Extrae `u = float(rng.random())`.
    - Si `u < p_dup` y `len(chromosome) < dna_max_length`, extrae `i = int(rng.integers(len(chromosome)))` e inserta una copia del codón `i` en la posición `i + 1`.
@@ -504,7 +504,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
 1. **Fundadores (D34.1).** `MicroAgent.__init__` fija `base_config = config`.
    - Con `config.enable_compact_dna=True`, asigna `dna = founder_dna(config)` y `phenotype = transcribe_phenotype(dna, EpigeneticContext(0, EpigeneticRole.NONE, config.initial_energy / config.reproduction_threshold), config)`, cuyo `genome` es `genome_from_config(config)` (D32).
    - Si no, asigna `dna = None` y `phenotype = phenotype_from_genome(genome_from_config(config), config)`.
-   - `from_lineage` recibe además `dna` y `base_config`.
+   - `from_lineage` recibe además `dna` y `base_config`. Con `dna`, `genome` puede ser `None`: se toma el genoma expresado en el contexto de nacimiento, y si se da, debe coincidir con él. Sin `dna`, `genome` es obligatorio.
 2. **Actualización del fenotipo en `express` (D34.2).** `express` reemplaza **siempre** `phenotype` por el fenotipo transcripto, aunque sólo cambien `lifespan`, `spore_threshold` o `expressed_codons`. El reemplazo de `_genome` y de `_config` y el `resize` de la memoria ocurren sólo si cambió `genome`.
 3. **Expresión al nacer (D34.6).** La hace `create_offspring`, en el agente, no el motor. El motor sólo lee los radios del hijo para `spawn_agent_near`.
 4. **Ensayos CRISPR (D37).**

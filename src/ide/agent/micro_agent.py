@@ -1,9 +1,16 @@
 """Micro-agente autónomo: percepción local, comunicación delegada y decisión."""
 
+import math
 from dataclasses import replace
 
 import numpy as np
 
+from ide.agent.dna import (
+    founder_dna,
+    mutate_dna,
+    phenotype_from_genome,
+    transcribe_phenotype,
+)
 from ide.agent.epistemology import (
     is_known,
     merge_social_belief,
@@ -23,6 +30,10 @@ from ide.domain.types import (
     ActionType,
     AgentAction,
     AgentGenome,
+    CompactDNA,
+    EpigeneticContext,
+    EpigeneticRole,
+    ExpressedPhenotype,
     KnowledgeUnit,
     Message,
     Observation,
@@ -30,12 +41,42 @@ from ide.domain.types import (
     VisibleResource,
 )
 
+# Clave del caché de expresión (design D34.2): nivel acotado a 9, rol y banda de energía.
+_ExpressionKey = tuple[int, EpigeneticRole, int]
+_BAND_STRESS, _BAND_NORMAL, _BAND_SURPLUS = 0, 1, 2
+# Los promotores de nivel distinguen hasta `IN_HOLON_L9` (0x0A, design D32).
+_MAX_DISTINCT_LEVEL = 9
+
+
+def _phenotype_config(base: SimulationConfig, genome: AgentGenome) -> SimulationConfig:
+    """Configuración fenotípica: la base con los 6 rasgos del genoma (design D22 y D34.2).
+
+    `initial_bond_affinity` conserva el valor fundador: la afinidad se lee siempre del genoma.
+    """
+    return replace(
+        base,
+        alpha_learning=genome.alpha_learning,
+        gamma_social_discount=genome.gamma_social_discount,
+        epsilon_explore=genome.epsilon_explore,
+        memory_capacity=genome.memory_capacity,
+        perception_radius=genome.perception_radius,
+        comm_radius=genome.comm_radius,
+    )
+
+
+def _birth_context(energy: float, base: SimulationConfig) -> EpigeneticContext:
+    """Contexto de expresión al nacer o al fundar: solo, sin rol (design D34.6, precisión 1)."""
+    return EpigeneticContext(0, EpigeneticRole.NONE, energy / base.reproduction_threshold)
+
 
 class MicroAgent:
     """Agente con memoria acotada que no conoce coordenadas ni valores verdaderos.
 
     Es también el nodo holónico de nivel cero (`AgentNode`, design D23) y lleva su estado
     energético y de linaje (Exp 002 v2), inerte mientras el motor no active la evolución.
+    En la Fase II-B lleva además su ADN compacto, su fenotipo expresado, su configuración base,
+    su rol epigenético y su estado de vida (design D34.1), inertes sin `enable_compact_dna` y
+    sin las reglas que los usan.
     """
 
     def __init__(
@@ -45,6 +86,22 @@ class MicroAgent:
         trust_strategy: TrustStrategyPort | None = None,
         protocol: BeliefExchangeProtocol | None = None,
     ) -> None:
+        self._setup(agent_id, config, trust_strategy, protocol)
+        if config.enable_compact_dna:
+            # El ADN fundador expresa exactamente la base (design D32): `_genome` no cambia.
+            self._dna = founder_dna(config)
+            self._phenotype = self._transcribe(_birth_context(config.initial_energy, config))
+        else:
+            self._phenotype = phenotype_from_genome(self._genome, config)
+
+    def _setup(
+        self,
+        agent_id: int,
+        config: SimulationConfig,
+        trust_strategy: TrustStrategyPort | None,
+        protocol: BeliefExchangeProtocol | None,
+    ) -> None:
+        """Estado común a fundadores y descendientes, sin ADN ni fenotipo todavía."""
         self._agent_id = agent_id
         self._config = config
         self._trust = UniformTrustStrategy() if trust_strategy is None else trust_strategy
@@ -59,38 +116,115 @@ class MicroAgent:
         self._energy = config.initial_energy
         self._generation = 0
         self._parent_id: int | None = None
+        # --- Fase II-B (design D34.1 y precisiones 1 y 4) ---
+        self._base_config = config
+        self._epigenetic_role = EpigeneticRole.NONE
+        self._birth_tick = 0
+        self._is_endospore = False
+        self._last_stress_tick: int | None = None
+        # Ensayos CRISPR abiertos: codón -> (tick de apertura, energía de ingreso, cedida).
+        self._plasmid_trials: dict[int, tuple[int, float, float]] = {}
+        self._expression_cache: dict[_ExpressionKey, ExpressedPhenotype] = {}
+        self._dna: CompactDNA | None = None
+        self._phenotype: ExpressedPhenotype
 
     @classmethod
     def from_lineage(
         cls,
         agent_id: int,
         config: SimulationConfig,
-        genome: AgentGenome,
+        genome: AgentGenome | None,
         energy: float,
         generation: int,
         parent_id: int | None,
         trust_strategy: TrustStrategyPort | None = None,
         protocol: BeliefExchangeProtocol | None = None,
+        dna: CompactDNA | None = None,
+        base_config: SimulationConfig | None = None,
     ) -> "MicroAgent":
         """Descendiente cuyo fenotipo (configuración) expresa su genoma.
 
         `initial_bond_affinity` conserva el valor fundador (D22): la afinidad de un descendiente
         se lee siempre de su genoma, nunca de su configuración.
+
+        `base_config` es la configuración de la población (por defecto, `config`).
+        - Sin `dna`, el agente no tiene ADN: `genome` es obligatorio, la configuración es la de
+          `config` con los rasgos del genoma y el fenotipo es `phenotype_from_genome`.
+        - Con `dna`, que exige `base_config.enable_compact_dna`, el fenotipo es la única
+          transcripción en el contexto de nacimiento (design D34.6) y la configuración sale de
+          `base_config`. Con `genome=None`, el genoma es el expresado; si no, debe coincidir.
         """
-        agent_config = replace(
-            config,
-            alpha_learning=genome.alpha_learning,
-            gamma_social_discount=genome.gamma_social_discount,
-            epsilon_explore=genome.epsilon_explore,
-            memory_capacity=genome.memory_capacity,
-            perception_radius=genome.perception_radius,
-            comm_radius=genome.comm_radius,
+        base = config if base_config is None else base_config
+        if dna is None:
+            if genome is None:
+                raise ValueError("genome es obligatorio sin dna")
+            return cls._assemble(
+                agent_id=agent_id,
+                config=config,
+                energy=energy,
+                generation=generation,
+                parent_id=parent_id,
+                trust_strategy=trust_strategy,
+                protocol=protocol,
+                base=base,
+                phenotype=phenotype_from_genome(genome, base),
+                dna=None,
+                context=None,
+            )
+        if not base.enable_compact_dna:
+            raise ValueError("dna exige base_config.enable_compact_dna=True")
+        context = _birth_context(energy, base)
+        phenotype = transcribe_phenotype(dna, context, base)
+        if genome is not None and phenotype.genome != genome:
+            raise ValueError("genome debe ser el genoma que expresa dna al nacer")
+        return cls._assemble(
+            agent_id=agent_id,
+            config=base,
+            energy=energy,
+            generation=generation,
+            parent_id=parent_id,
+            trust_strategy=trust_strategy,
+            protocol=protocol,
+            base=base,
+            phenotype=phenotype,
+            dna=dna,
+            context=context,
         )
-        agent = cls(agent_id, agent_config, trust_strategy, protocol)
+
+    @classmethod
+    def _assemble(
+        cls,
+        *,
+        agent_id: int,
+        config: SimulationConfig,
+        energy: float,
+        generation: int,
+        parent_id: int | None,
+        trust_strategy: TrustStrategyPort | None,
+        protocol: BeliefExchangeProtocol | None,
+        base: SimulationConfig,
+        phenotype: ExpressedPhenotype,
+        dna: CompactDNA | None,
+        context: EpigeneticContext | None,
+    ) -> "MicroAgent":
+        """Descendiente con su fenotipo ya calculado, sin transcribir ni crear un fundador.
+
+        La configuración es `config` con los rasgos de `phenotype.genome`. Con `dna`,
+        `phenotype` es la transcripción en `context`, y queda en el caché bajo su clave.
+        """
+        genome = phenotype.genome
+        agent = cls.__new__(cls)
+        agent._setup(agent_id, _phenotype_config(config, genome), trust_strategy, protocol)
         agent._genome = genome
         agent._energy = energy
         agent._generation = generation
         agent._parent_id = parent_id
+        agent._base_config = base
+        agent._dna = dna
+        agent._phenotype = phenotype
+        if dna is not None:
+            assert context is not None, "el fenotipo con ADN se cachea con su contexto"
+            agent._expression_cache[agent._expression_key(context)] = phenotype
         return agent
 
     @property
@@ -126,6 +260,39 @@ class MicroAgent:
         return self._genome
 
     @property
+    def dna(self) -> CompactDNA | None:
+        return self._dna
+
+    @property
+    def phenotype(self) -> ExpressedPhenotype:
+        return self._phenotype
+
+    @property
+    def base_config(self) -> SimulationConfig:
+        return self._base_config
+
+    @property
+    def epigenetic_role(self) -> EpigeneticRole:
+        return self._epigenetic_role
+
+    @property
+    def birth_tick(self) -> int:
+        return self._birth_tick
+
+    @property
+    def is_endospore(self) -> bool:
+        return self._is_endospore
+
+    @property
+    def last_stress_tick(self) -> int | None:
+        return self._last_stress_tick
+
+    @property
+    def plasmid_trials(self) -> dict[int, tuple[int, float, float]]:
+        """Copia de los ensayos CRISPR abiertos, ordenada por codón (precisión 4)."""
+        return {codon: self._plasmid_trials[codon] for codon in sorted(self._plasmid_trials)}
+
+    @property
     def node_id(self) -> int:
         return self._agent_id
 
@@ -149,23 +316,154 @@ class MicroAgent:
         """Suma `delta` a la energía (negativo para los costos)."""
         self._energy += delta
 
+    def set_epigenetic_role(self, role: EpigeneticRole) -> None:
+        """Rol epigenético asignado por el motor (R25, design D36)."""
+        self._epigenetic_role = role
+
+    def set_dna(self, dna: CompactDNA) -> None:
+        """Reemplaza el ADN e invalida el caché; el fenotipo cambia en el próximo `express`.
+
+        Exige `base_config.enable_compact_dna`: sin la bandera, el agente no lleva ADN.
+        """
+        if not self._base_config.enable_compact_dna:
+            raise ValueError("set_dna exige base_config.enable_compact_dna=True")
+        self._dna = dna
+        self._expression_cache.clear()
+
+    def set_endospore(self, flag: bool) -> None:
+        """Entrada en endospora o germinación (R28, design D38)."""
+        self._is_endospore = flag
+
+    def open_plasmid_trial(self, codon: int, tick: int) -> None:
+        """Abre un ensayo CRISPR con la energía actual; no reabre uno abierto (precisión 4)."""
+        if codon not in self._plasmid_trials:
+            self._plasmid_trials[codon] = (tick, self._energy, 0.0)
+
+    def close_plasmid_trial(self, codon: int) -> None:
+        """Cierra el ensayo CRISPR del codón, si está abierto (precisión 4)."""
+        self._plasmid_trials.pop(codon, None)
+
+    def _expression_key(self, context: EpigeneticContext) -> _ExpressionKey:
+        """Clave del caché: el fenotipo sólo depende del nivel acotado, el rol y la banda."""
+        base = self._base_config
+        ratio = context.energy_ratio
+        if ratio < base.stress_energy_ratio:
+            band = _BAND_STRESS
+        elif ratio >= base.surplus_energy_ratio:
+            band = _BAND_SURPLUS
+        else:
+            band = _BAND_NORMAL  # también NaN: no activa ni el estrés ni el superávit
+        return (min(context.holon_level, _MAX_DISTINCT_LEVEL), context.role, band)
+
+    def _transcribe(self, context: EpigeneticContext) -> ExpressedPhenotype:
+        """`transcribe_phenotype` del ADN propio sobre la configuración base, memoizada.
+
+        Lee siempre `self._dna`, y `set_dna` invalida el caché: nunca sirve el fenotipo de
+        otro ADN.
+        """
+        dna = self._dna
+        assert dna is not None, "sólo un agente con ADN se transcribe"
+        key = self._expression_key(context)
+        phenotype = self._expression_cache.get(key)
+        if phenotype is None:
+            phenotype = transcribe_phenotype(dna, context, self._base_config)
+            self._expression_cache[key] = phenotype
+        return phenotype
+
+    def express(self, context: EpigeneticContext, tick: int) -> bool:
+        """Expresa el ADN en el contexto del tick (R24, design D34.2 y precisión 2).
+
+        Sin ADN no hace nada. Con ADN, reemplaza siempre el fenotipo; si cambió el genoma,
+        reemplaza también la configuración fenotípica y ajusta la memoria con `resize`, lo que
+        puede forzar el olvido. Devuelve `True` si y sólo si cambió algún radio, para que el
+        motor actualice el entorno.
+        """
+        if self._dna is None:
+            return False
+        self._phenotype = self._transcribe(context)
+        genome, previous = self._phenotype.genome, self._genome
+        if genome == previous:
+            return False
+        self._genome = genome
+        self._config = _phenotype_config(self._base_config, genome)
+        self._memory.resize(genome.memory_capacity, tick)
+        return (genome.perception_radius, genome.comm_radius) != (
+            previous.perception_radius,
+            previous.comm_radius,
+        )
+
     def create_offspring(
         self,
         child_id: int,
         tick: int,
         rng: np.random.Generator,
         genome_source: AgentGenome | None = None,
+        dna_source: CompactDNA | None = None,
+        mutation_scale: float = 1.0,
     ) -> "MicroAgent":
         """Hijo con energía particionada y genoma mutado (R12, R13), sin creencias.
 
-        `genome_source` sólo lo pasa la reproducción neutral. La herencia cultural (R14) la
-        entrega el motor después, por `assimilate_testimony`.
+        `genome_source` y `dna_source` sólo los pasa la reproducción neutral, según el agente
+        tenga o no ADN. `mutation_scale` es la escala de R30 (design D35). Con ADN, el hijo
+        muta el ADN con la configuración base y se expresa al nacer (design D34.6). El hijo
+        nace con `birth_tick = tick`, sin rol, sin endospora, sin estrés registrado y sin
+        ensayos CRISPR; su energía se suma a la cedida de los ensayos abiertos del progenitor.
+        La herencia cultural (R14) la entrega el motor después, por `assimilate_testimony`.
         """
+        if not (mutation_scale >= 0.0 and math.isfinite(mutation_scale)):
+            raise ValueError(f"mutation_scale debe ser finito y no negativo: {mutation_scale}")
+        if self._dna is None:
+            if dna_source is not None:
+                raise ValueError("dna_source exige un progenitor con ADN")
+            child, child_energy = self._offspring_from_genome(
+                child_id, rng, genome_source, mutation_scale
+            )
+        else:
+            if genome_source is not None:
+                raise ValueError("genome_source no se usa con ADN: corresponde dna_source")
+            source = self._dna if dna_source is None else dna_source
+            dna = mutate_dna(source, self._base_config, rng, mutation_scale)
+            child_energy = self._base_config.offspring_energy_share * self._energy
+            self._energy -= child_energy
+            # `from_lineage` hace la única transcripción del nacimiento (design D34.6).
+            child = MicroAgent.from_lineage(
+                child_id,
+                self._base_config,
+                None,
+                child_energy,
+                self._generation + 1,
+                self._agent_id,
+                self._trust,
+                self._protocol,
+                dna=dna,
+                base_config=self._base_config,
+            )
+        child._birth_tick = tick
+        for codon in sorted(self._plasmid_trials):
+            opened, entry_energy, ceded = self._plasmid_trials[codon]
+            self._plasmid_trials[codon] = (opened, entry_energy, ceded + child_energy)
+        return child
+
+    def _offspring_from_genome(
+        self,
+        child_id: int,
+        rng: np.random.Generator,
+        genome_source: AgentGenome | None,
+        mutation_scale: float,
+    ) -> tuple["MicroAgent", float]:
+        """Hijo de la Fase II; con `mutation_scale == 1.0` usa la configuración intacta."""
+        config = self._config
+        if mutation_scale != 1.0:
+            config = replace(
+                config,
+                mutation_rate=mutation_scale * config.mutation_rate,
+                discrete_mutation_prob=min(1.0, mutation_scale * config.discrete_mutation_prob),
+            )
         source = self._genome if genome_source is None else genome_source
-        genome = mutate_genome(source, self._config, rng)
+        genome = mutate_genome(source, config, rng)
         child_energy = self._config.offspring_energy_share * self._energy
         self._energy -= child_energy
-        return MicroAgent.from_lineage(
+        child = MicroAgent.from_lineage(
             child_id,
             self._config,
             genome,
@@ -174,7 +472,9 @@ class MicroAgent:
             self._agent_id,
             self._trust,
             self._protocol,
+            base_config=self._base_config,
         )
+        return child, child_energy
 
     def own_belief(self, pattern: Pattern) -> KnowledgeUnit | None:
         """Creencia de memoria si existe; si no, la del caché efímero propio del tick."""

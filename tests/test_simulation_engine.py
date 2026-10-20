@@ -1,32 +1,38 @@
 """Tests de `simulation-engine`: pipeline de 5 fases, determinismo y perturbaciones."""
 
 import ast
+import builtins
 import copy
+import hashlib
 import os
 import subprocess
 import sys
 import textwrap
 from collections.abc import Callable
-from dataclasses import replace
+from dataclasses import astuple, replace
 from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
+from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
-from ide.agent.evolution import compute_metabolic_cost
+from ide.agent.dna import encode_codon, mutate_dna, transcribe_phenotype
+from ide.agent.evolution import compute_dna_cost, compute_metabolic_cost
 from ide.agent.holon import CompositeAgent
 from ide.agent.memory import BoundedMemory
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
-from ide.domain.extensions import AgentCapabilities
+from ide.domain.extensions import AgentCapabilities, integer_trait_bounds
 from ide.domain.types import (
     ActionResult,
     ActionType,
     AgentAction,
     AgentGenome,
+    CompactDNA,
+    EpigeneticContext,
+    EpigeneticRole,
     KnowledgeUnit,
     Message,
     Observation,
@@ -34,6 +40,7 @@ from ide.domain.types import (
     Resource,
 )
 from ide.environments.grid2d import ToroidalGrid2D
+from ide.experiments.attribution import PHASE2_PROTOCOL_CONFIGS, ablate
 from ide.simulation import engine as engine_module
 from ide.simulation.engine import SimulationEngine
 
@@ -1392,3 +1399,522 @@ def test_un_sub_holon_liberado_por_split_reinicia_su_paciencia(
     assert inner.ticks_without_surplus == 0
     engine.step()
     assert engine.root_nodes.get(inner.node_id) is inner
+
+
+# --- Fase II-B: motor con ADN compacto, R24 (bloque 5 de la Fase II-B, design D34) ------------
+
+
+def dna_config(**overrides: Any) -> SimulationConfig:
+    """`quiet` con evolución y ADN compacto: sin costos ni reproducción, salvo que se pidan."""
+    return quiet(**{"enable_evolution": True, "enable_compact_dna": True, **overrides})
+
+
+def dna_with(payloads: dict[int, int], plasmids: tuple[int, ...] = ()) -> CompactDNA:
+    """ADN fundador con cargas aditivas `ALWAYS_BASAL`: `payloads[destino] = carga` (D32)."""
+    chromosome = tuple(encode_codon(0x00, t, 0, 0, payloads.get(t, 0)) for t in range(9))
+    return CompactDNA(chromosome, plasmids)
+
+
+# Con las bases de `small_config` (C_max = 3, r_perc = r_com = 2): +1 a la capacidad (k = 3),
+# +1 a la percepción y -1 a la comunicación (k = 2), redondeados con floor(x + 0.5) (D33).
+CAPACITY_UP = {4: 43}
+PERCEPTION_UP = {5: 64}
+COMM_DOWN = {6: -64}
+
+
+def generator_states(engine: SimulationEngine) -> list[Any]:
+    return [
+        copy.deepcopy(g.bit_generator.state)
+        for g in (engine.rng, engine.null_rng, engine.evo_rng, engine.donor_rng)
+    ]
+
+
+def test_fase_0_contexto_de_una_hoja_en_un_holon_de_nivel_2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = dna_config(num_agents=6, enable_holonic_hierarchy=True, reproduction_threshold=2.2)
+    engine = SimulationEngine(config)
+    make_holon(engine, [4, 5])
+    outer = make_holon(engine, [4, 3])
+    assert outer.holon_level == 2
+    engine.agents[4].set_epigenetic_role(EpigeneticRole.NERVE)
+    engine.agents[4].apply_energy_delta(-0.4)
+    calls = {aid: record_calls(monkeypatch, engine.agents[aid], "express") for aid in engine.agents}
+    act(monkeypatch, engine)
+    engine.step()
+    (context, tick, _), *_ = calls[4]
+    assert tick == 0
+    assert (context.holon_level, context.role) == (2, EpigeneticRole.NERVE)
+    assert context.energy_ratio == pytest.approx(0.5, abs=1e-9)
+    for aid, level in ((0, 0), (3, 2), (5, 2)):
+        (context, tick, _), *_ = calls[aid]
+        assert (context.holon_level, context.role, tick) == (level, EpigeneticRole.NONE, 0)
+        assert context.energy_ratio == pytest.approx(1.5 / 2.2, abs=1e-9)
+    assert all(len(c) == 1 for c in calls.values())  # una expresión por agente y por tick
+
+
+def test_fase_0_actualiza_los_radios_solo_si_cambian(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(dna_config(num_agents=3))
+    engine.agents[1].set_dna(dna_with(CAPACITY_UP))
+    engine.agents[2].set_dna(dna_with(PERCEPTION_UP))
+    calls = record_calls(monkeypatch, engine.env, "set_agent_radii")
+    engine._express_phenotypes(0)  # pyright: ignore[reportPrivateUsage]
+    assert [call[:3] for call in calls] == [(2, 3, 2)]
+    assert engine.agents[1].genome.memory_capacity == 4
+    assert engine.agents[1].memory.capacity == 4
+    assert engine.agents[2].genome.perception_radius == 3
+    engine._express_phenotypes(1)  # pyright: ignore[reportPrivateUsage]
+    assert len(calls) == 1  # sin cambios, no se vuelve a tocar el entorno
+
+
+# Cargas que llevan los rasgos enteros a sus cotas (con k = 2 o 3, +-127 satura) o los cambian.
+_payloads = st.one_of(st.sampled_from([-128, 127]), st.integers(min_value=-128, max_value=127))
+# ADN de un agente: capacidad, percepción y comunicación (`ALWAYS_BASAL`), y una carga sobre la
+# percepción que sólo se activa dentro de un holón (`IN_HOLON_L1`, promotor 0x02).
+_agent_dna = st.tuples(st.fixed_dictionaries({4: _payloads, 5: _payloads, 6: _payloads}), _payloads)
+# El segundo contexto puede volver al fenotipo fundador: radios por defecto.
+_second_dna = st.one_of(st.just(({4: 0, 5: 0, 6: 0}, 0)), _agent_dna)
+
+
+def _dna_in_holon(gene: tuple[dict[int, int], int]) -> CompactDNA:
+    payloads, in_holon = gene
+    chromosome = (*dna_with(payloads).chromosome, encode_codon(0x02, 0x05, 0, 0, in_holon))
+    return CompactDNA(chromosome)
+
+
+def _toroidal_distance(a: Cell, b: Cell, side: int = 10) -> int:
+    return max(min(abs(a[i] - b[i]), side - abs(a[i] - b[i])) for i in range(2))
+
+
+def _check_expressed_radii(engine: SimulationEngine) -> None:
+    """La entrada de radios, la vecindad y la percepción de la grilla son las expresadas."""
+    grid = grid_of(engine)
+    config = engine.config
+    capacity_hi, radius_hi = integer_trait_bounds(config)
+    default = (config.perception_radius, config.comm_radius)
+    stored = grid._agent_radii  # pyright: ignore[reportPrivateUsage]
+    resources = resources_of(grid)
+    for aid in sorted(engine.agents):
+        agent = engine.agents[aid]
+        genome = agent.genome
+        expressed = (genome.perception_radius, genome.comm_radius)
+        if expressed == default:
+            assert aid not in stored  # la entrada vieja se borra al volver a los globales
+        else:
+            assert stored.get(aid) == expressed
+        assert all(1 <= radius <= radius_hi for radius in expressed)
+        assert 1 <= genome.memory_capacity <= capacity_hi
+        assert agent.memory.capacity == genome.memory_capacity
+        cell = grid.get_agent_position(aid)
+        near = [
+            b
+            for b in sorted(engine.agents)
+            if b != aid and grid.get_agent_distance(aid, b) <= genome.comm_radius
+        ]
+        assert grid.get_communication_neighbors(aid) == near
+        seen = sorted(v.resource_id for v in grid.get_observation(aid, 0).visible_resources)
+        assert seen == sorted(
+            r.resource_id
+            for where, r in resources
+            if _toroidal_distance(where, cell) <= genome.perception_radius
+        )
+
+
+_FOUNDER_GENE: tuple[dict[int, int], int] = ({4: 0, 5: 0, 6: 0}, 0)
+
+
+@settings(max_examples=25)
+@example(  # radios a las cotas y luego de vuelta a los globales: borra la entrada de la grilla
+    first=[({4: 127, 5: 127, 6: -128}, 0)] * 4, second=[_FOUNDER_GENE] * 4, bond=False
+)
+@example(  # mismo ADN, cambia sólo el nivel: la percepción de 0 y 1 sube dentro del holón
+    first=[({4: -128, 5: 0, 6: 0}, 64)] * 4, second=[None] * 4, bond=True
+)
+@given(
+    st.lists(_agent_dna, min_size=4, max_size=4),
+    st.lists(st.one_of(st.none(), _second_dna), min_size=4, max_size=4),
+    st.booleans(),
+)
+def test_fase_0_sin_generadores_y_radios_del_entorno_expresados(
+    first: list[tuple[dict[int, int], int]],
+    second: list[tuple[dict[int, int], int] | None],
+    bond: bool,
+) -> None:
+    engine = SimulationEngine(dna_config(num_agents=4, enable_holonic_hierarchy=True))
+    for aid, gene in enumerate(first):
+        engine.agents[aid].set_dna(_dna_in_holon(gene))
+    before = generator_states(engine)
+    engine._express_phenotypes(0)  # pyright: ignore[reportPrivateUsage]
+    assert generator_states(engine) == before
+    _check_expressed_radii(engine)
+    # Segundo contexto: cambia el ADN de algunos agentes y, quizás, el nivel de 0 y 1.
+    for aid, gene in enumerate(second):
+        if gene is not None:
+            engine.agents[aid].set_dna(_dna_in_holon(gene))
+    if bond:
+        make_holon(engine, [0, 1])
+    engine._express_phenotypes(1)  # pyright: ignore[reportPrivateUsage]
+    assert generator_states(engine) == before
+    _check_expressed_radii(engine)
+
+
+def _order_engine() -> SimulationEngine:
+    """Población con holones, memorias llenas y ADN que cambia capacidad, radios y nivel."""
+    engine = SimulationEngine(dna_config(num_agents=5, enable_holonic_hierarchy=True))
+    in_holon_perception = encode_codon(0x02, 0x05, 0, 0, 64)  # IN_HOLON_L1: +1 a la percepción
+    dnas = {
+        0: dna_with({4: -43, **PERCEPTION_UP}),
+        1: CompactDNA((*dna_with({}).chromosome, in_holon_perception)),
+        2: dna_with({**COMM_DOWN, 4: -43}),
+        3: dna_with(CAPACITY_UP),
+    }
+    for aid, dna in dnas.items():
+        engine.agents[aid].set_dna(dna)
+    for aid in sorted(engine.agents):
+        for i in range(3):
+            engine.agents[aid].memory.upsert(direct(pat(i + aid), 1.0, 0.5 + 0.1 * i), 0)
+    make_holon(engine, [1, 2])
+    return engine
+
+
+def _phase_0_state(engine: SimulationEngine) -> tuple[Any, ...]:
+    ids = sorted(engine.agents)
+    return (
+        [engine.agents[a].phenotype for a in ids],
+        [engine.agents[a].config for a in ids],
+        [engine.agents[a].memory.all_units() for a in ids],
+        sorted(grid_of(engine)._agent_radii.items()),  # pyright: ignore[reportPrivateUsage]
+        generator_states(engine),
+    )
+
+
+def test_fase_0_independiente_del_orden_de_recorrido(monkeypatch: pytest.MonkeyPatch) -> None:
+    ordered, reversed_ = _order_engine(), _order_engine()
+    ordered._express_phenotypes(0)  # pyright: ignore[reportPrivateUsage]
+    visited: list[int] = []
+    with monkeypatch.context() as patch:
+
+        def backwards(items: Any, **kwargs: Any) -> list[Any]:
+            result = list(reversed(builtins.sorted(items, **kwargs)))
+            visited.extend(result)
+            return result
+
+        # Sólo dentro de esta llamada, `sorted` del motor recorre en orden invertido.
+        patch.setattr(engine_module, "sorted", backwards, raising=False)
+        reversed_._express_phenotypes(0)  # pyright: ignore[reportPrivateUsage]
+    assert visited == [4, 3, 2, 1, 0]
+    assert _phase_0_state(reversed_) == _phase_0_state(ordered)
+    assert ordered.agents[1].genome.perception_radius == 3  # el contexto de holón actuó
+    assert ordered.agents[0].memory.capacity == 2  # el olvido forzado actuó
+
+
+def test_sin_adn_no_corre_la_fase_0(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(quiet(num_agents=3, enable_evolution=True))
+
+    def fail(_tick: int) -> None:
+        raise AssertionError("la Fase 0 no corre con enable_compact_dna=False")
+
+    monkeypatch.setattr(engine, "_express_phenotypes", fail)
+    engine.run(3)
+    assert len(engine.history) == 3
+
+
+def test_fase_0_antes_de_la_observacion(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(dna_config(num_agents=3))
+    grid = grid_of(engine)
+    engine.agents[0].set_dna(dna_with(PERCEPTION_UP))
+    seen: list[tuple[int, int] | None] = []
+    original = grid.get_observation
+
+    def observe(agent_id: int, tick: int) -> Observation:
+        if agent_id == 0:
+            seen.append(grid._agent_radii.get(0))  # pyright: ignore[reportPrivateUsage]
+        return original(agent_id, tick)
+
+    monkeypatch.setattr(grid, "get_observation", observe)
+    act(monkeypatch, engine)
+    engine.step()
+    assert seen == [(3, 2)]
+
+
+def test_costo_metabolico_del_genoma_expresado_mas_el_adn(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = dna_config(
+        num_agents=3,
+        comm_enabled=False,
+        metabolic_base_cost=0.01,
+        memory_capacity_cost=0.002,
+        sensory_radius_cost=0.003,
+        dna_codon_cost=0.01,
+    )
+    engine = SimulationEngine(config)
+    neutral_plasmid = encode_codon(0x00, 0x03, 3)  # modo 3: no se transcribe
+    engine.agents[1].set_dna(
+        replace(dna_with({**CAPACITY_UP, **PERCEPTION_UP}, (neutral_plasmid,)), crispr_memory=(7,))
+    )
+    act(monkeypatch, engine)
+    engine.step()
+    expressed = engine.agents[1].genome
+    assert (expressed.memory_capacity, expressed.perception_radius) == (4, 3)
+    for aid, codons in ((0, 9), (1, 11), (2, 9)):
+        agent = engine.agents[aid]
+        assert agent.dna is not None
+        assert compute_dna_cost(agent.dna, config) == pytest.approx(0.01 * codons, abs=1e-12)
+        cost = compute_metabolic_cost(agent.genome, config) + 0.01 * codons
+        assert agent.energy == pytest.approx(1.5 - cost, abs=1e-9)
+
+
+def _birth_engine(**overrides: Any) -> SimulationEngine:
+    config = dna_config(num_agents=4, reproduction_threshold=2.0, **overrides)
+    engine = SimulationEngine(config)
+    engine.agents[2].set_dna(dna_with({**PERCEPTION_UP, **COMM_DOWN}))
+    return engine
+
+
+def test_nacimiento_con_radios_del_fenotipo_de_nacimiento(monkeypatch: pytest.MonkeyPatch) -> None:
+    frozen = {"dna_point_mutation_rate": 0.0, "dna_duplication_rate": 0.0}
+    a = _birth_engine(dna_deletion_rate=0.0, **frozen)
+    b = _birth_engine(dna_deletion_rate=0.0, **frozen)
+    a.agents[2].apply_energy_delta(0.9)
+    spawned = record_calls(monkeypatch, a.env, "spawn_agent_near")
+    act(monkeypatch, a)
+    act(monkeypatch, b)
+    a.step()
+    b.step()
+    child = a.agents[4]
+    assert child.dna == a.agents[2].dna  # tasas del ADN en cero: el ADN no cambia
+    assert child.birth_tick == 0
+    assert [call[:2] + call[3:5] for call in spawned] == [(4, 2, 3, 1)]
+    expected = transcribe_phenotype(
+        child.dna,
+        EpigeneticContext(0, EpigeneticRole.NONE, child.energy / 2.0),
+        a.config,
+    )
+    assert child.phenotype == expected
+    assert a.rng.bit_generator.state == b.rng.bit_generator.state
+    # Desde el tick siguiente, la Fase 0 lo expresa con su contexto real.
+    energy = child.energy  # la Fase 0 lee el estado de fin del tick anterior
+    calls = record_calls(monkeypatch, child, "express")
+    act(monkeypatch, a)
+    a.step()
+    (context, tick, _), *_ = calls
+    assert (context.holon_level, context.role, tick) == (0, EpigeneticRole.NONE, 1)
+    assert context.energy_ratio == pytest.approx(energy / 2.0, abs=1e-9)
+
+
+def test_nacimiento_muta_el_adn_con_evo_rng(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _birth_engine(dna_point_mutation_rate=0.5)
+    parent = engine.agents[2]
+    parent.apply_energy_delta(0.9)
+    assert parent.dna is not None
+    seed = engine.config.seed
+    twin = np.random.Generator(np.random.PCG64(np.random.SeedSequence(seed, spawn_key=(2,))))
+    expected = mutate_dna(parent.dna, parent.base_config, twin)
+    spawned = record_calls(monkeypatch, engine.env, "spawn_agent_near")
+    act(monkeypatch, engine)
+    engine.step()
+    child = engine.agents[4]
+    assert child.dna == expected != parent.dna
+    genome = child.genome
+    assert [call[3:5] for call in spawned] == [(genome.perception_radius, genome.comm_radius)]
+
+
+def test_reproduccion_neutral_con_el_adn_del_donante(monkeypatch: pytest.MonkeyPatch) -> None:
+    def build(mode: str) -> SimulationEngine:
+        engine = SimulationEngine(
+            dna_config(
+                num_agents=4,
+                reproduction_threshold=2.0,
+                reproduction_mode=mode,
+                dna_point_mutation_rate=0.0,
+                dna_duplication_rate=0.0,
+                dna_deletion_rate=0.0,
+            )
+        )
+        for aid in range(4):
+            engine.agents[aid].set_dna(dna_with({3: 16 * (aid + 1)}))  # afinidad distinta
+        for aid in (0, 2):
+            engine.agents[aid].apply_energy_delta(1.0)
+        with monkeypatch.context() as patch:
+            act(patch, engine)
+            engine.step()
+        return engine
+
+    energy, neutral = build("energy"), build("neutral")
+    seed = neutral.config.seed
+    donor_rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence(seed, spawn_key=(4,))))
+    for child_id, parent in ((4, 0), (5, 2)):
+        a, b = energy.agents[child_id], neutral.agents[child_id]
+        assert a.parent_id == b.parent_id == parent
+        assert a.energy == pytest.approx(b.energy, abs=1e-9)
+        assert a.dna == energy.agents[parent].dna
+        donor = int(donor_rng.integers(4))
+        assert b.dna == neutral.agents[donor].dna
+    assert neutral.donor_rng.bit_generator.state == donor_rng.bit_generator.state
+
+
+@pytest.mark.parametrize("dna_parent", [True, False])
+def test_reproduccion_neutral_rechaza_una_poblacion_mixta(dna_parent: bool) -> None:
+    engine = SimulationEngine(dna_config(num_agents=3, reproduction_mode="neutral"))
+    founder = engine.agents[1]
+    flat = MicroAgent.from_lineage(1, engine.config, founder.genome, 2.0, 0, None)
+    assert flat.dna is None and engine.agents[0].dna is not None
+    parent, donor = (engine.agents[0], flat) if dna_parent else (flat, engine.agents[0])
+    before = generator_states(engine)
+    with pytest.raises(ValueError, match="mixta"):
+        engine._give_birth(parent, 0, donor)  # pyright: ignore[reportPrivateUsage]
+    assert generator_states(engine) == before
+    assert 3 not in engine.agents
+
+
+def test_radios_del_entorno_iguales_a_los_expresados_en_cada_tick() -> None:
+    config = small_config(
+        seed=5,
+        num_agents=20,
+        resources_per_pattern=8,
+        enable_evolution=True,
+        enable_compact_dna=True,
+        enable_holonic_hierarchy=True,
+        enable_holon_reproduction=True,
+        dna_point_mutation_rate=0.3,
+    )
+    engine = SimulationEngine(config)
+    grid = grid_of(engine)
+    default = (config.perception_radius, config.comm_radius)
+    differed = False
+    for _ in range(40):
+        engine.step()
+        for aid in sorted(engine.agents):
+            genome = engine.agents[aid].genome
+            expressed = (genome.perception_radius, genome.comm_radius)
+            stored = grid._agent_radii.get(aid, default)  # pyright: ignore[reportPrivateUsage]
+            assert stored == expressed
+            differed = differed or expressed != default
+    assert differed  # algún radio expresado se apartó del de la configuración
+
+
+def test_determinismo_con_adn_compacto() -> None:
+    config = small_config(seed=21, resources_per_pattern=6, enable_compact_dna=True, **PHASE2_ALL)
+    a, b = SimulationEngine(config), SimulationEngine(config)
+    a.run(40)
+    b.run(40)
+    assert _state(a) == _state(b)
+    assert a.evolutionary_history == b.evolutionary_history
+    dna_a = [a.agents[x].dna for x in sorted(a.agents)]
+    assert dna_a == [b.agents[x].dna for x in sorted(b.agents)]
+    assert any(dna != dna_a[0] for dna in dna_a)  # el ADN evolucionó durante la corrida
+
+
+def test_adn_compacto_independiente_del_hash() -> None:
+    script = textwrap.dedent(
+        """
+        from ide.config import SimulationConfig
+        from ide.simulation.engine import SimulationEngine
+
+        engine = SimulationEngine(
+            SimulationConfig(
+                seed=11, num_agents=30, resources_per_pattern=20, enable_evolution=True,
+                enable_compact_dna=True, dna_point_mutation_rate=0.2,
+                enable_cultural_inheritance=True, enable_holonic_hierarchy=True,
+                enable_holon_reproduction=True, enable_downward_causation=True,
+                enable_stigmergy=True, num_composite_patterns=2,
+            )
+        )
+        engine.run(30)
+        print(engine.history)
+        print(engine.evolutionary_history)
+        print(sorted(engine.root_nodes), sorted(engine.agents))
+        print([engine.agents[a].dna for a in sorted(engine.agents)])
+        print([engine.agents[a].phenotype for a in sorted(engine.agents)])
+        print([engine.agents[a].memory.all_units() for a in sorted(engine.agents)])
+        """
+    )
+    outputs = []
+    for hash_seed in ("0", "123"):
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed}
+        done = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=True,
+            cwd=ROOT,
+        )
+        outputs.append(done.stdout)
+    assert outputs[0] == outputs[1]
+    assert outputs[0].strip()
+
+
+# Configuraciones de la Fase II fijadas bit a bit: los protocolos `002a` y `003a` con sus
+# ablaciones, y variantes válidas que ejercen el control nulo en el nacimiento (`null_rng`), la
+# estigmergia y la reproducción neutral (R12) con holones.
+PHASE2_CASES: dict[str, SimulationConfig] = {
+    "002a": PHASE2_PROTOCOL_CONFIGS["002a"],
+    "002a-R12": ablate(PHASE2_PROTOCOL_CONFIGS["002a"], ["R12"]),
+    "002a-R13": ablate(PHASE2_PROTOCOL_CONFIGS["002a"], ["R13"]),
+    "002b-null": replace(PHASE2_PROTOCOL_CONFIGS["002b"], comm_content_null=True),
+    "003a": PHASE2_PROTOCOL_CONFIGS["003a"],
+    "003a-R12": ablate(PHASE2_PROTOCOL_CONFIGS["003a"], ["R12"]),
+    "003a-R15": ablate(PHASE2_PROTOCOL_CONFIGS["003a"], ["R15"]),
+    "003a-stigmergy": replace(PHASE2_PROTOCOL_CONFIGS["003a"], enable_stigmergy=True),
+}
+
+# Huellas SHA-256 de `phase2_digest` tras 100 ticks, calculadas con el motor de la Fase II previo
+# al bloque 5 de la Fase II-B (commit 20305df, en una copia aparte), nunca con el motor nuevo.
+# Igual que las de `test_performance_equivalence.py`, exigen igualdad de bits en la plataforma de
+# referencia (Linux x86-64, numpy 2.x), en Python 3.11 a 3.13.
+PHASE2_GOLDEN = {
+    "002a": "0713ae8104d511d78f2adc1bf103587475f201507f87ea9d43c58e4f61ae7c21",
+    "002a-R12": "74cbe3f2b1127aac8b4fd5f50a50ea8ef5a50c2cff83821f32cfa704faa01f31",
+    "002a-R13": "16ab387fe754cfeef939a818e7f83131cd08aa6f2eac9ed8538d128de5fed363",
+    "002b-null": "a58b0acb02d989283e67b36f6fee133c6ceba5d59c5bc0ccb46429dfa8d42663",
+    "003a": "d826324c494031926dff7b7208a3f0bc5c9e45bab8560c676937aa1d3fac70b0",
+    "003a-R12": "1be881f85f7ab8b8407c988552fc9417e1303e9ad6e86b27ced402521fcd820d",
+    "003a-R15": "807f11edd8071fd246204935c46ca11174709d4b302614147af323ad09e13761",
+    "003a-stigmergy": "690c71362abc0841c454a52478a1f991f122604b7bbc14f2f956bd6125ae770e",
+}
+
+
+def _rounded(value: Any) -> Any:
+    """Redondea a 9 decimales los floats de una tupla de métricas, recursivamente."""
+    if isinstance(value, float):
+        return round(value, 9) + 0.0  # `+ 0.0` normaliza `-0.0`
+    if isinstance(value, tuple):
+        return tuple(_rounded(v) for v in cast(tuple[Any, ...], value))
+    return value
+
+
+def phase2_digest(config: SimulationConfig, ticks: int = 100) -> str:
+    """Historiales, posiciones, memorias, genomas, bosque, descubridores y generadores.
+
+    Los floats de `evolutionary_history` se redondean a 9 decimales: desde Python 3.12, `sum()`
+    de floats usa suma compensada y el último bit de esos promedios difiere entre versiones. El
+    resto exige igualdad de bits. El motor también usa `sum()` en su dinámica (por ejemplo, la
+    energía de un holón), así que la igualdad entre versiones sólo está verificada para estos
+    casos, en Python 3.11, 3.12 y 3.13.
+    """
+    engine = SimulationEngine(config)
+    engine.run(ticks)
+    grid = grid_of(engine)
+    ids = sorted(engine.agents)
+    state = (
+        engine.history,
+        [_rounded(astuple(m)) for m in engine.evolutionary_history],
+        [grid.get_agent_position(a) for a in ids],
+        [engine.agents[a].memory.all_units() for a in ids],
+        [engine.agents[a].genome for a in ids],
+        [
+            (nid, node.holon_level, tuple(leaf.agent_id for leaf in node.leaf_agents))
+            for nid, node in sorted(engine.root_nodes.items())
+        ],
+        {p: sorted(found) for p, found in sorted(engine.direct_discoverers.items())},
+        [
+            g.bit_generator.state
+            for g in (engine.rng, engine.null_rng, engine.evo_rng, engine.donor_rng)
+        ],
+    )
+    return hashlib.sha256(repr(state).encode()).hexdigest()
+
+
+@pytest.mark.parametrize("name", sorted(PHASE2_CASES))
+def test_protocolos_de_fase_ii_identicos_con_las_banderas_por_defecto(name: str) -> None:
+    assert phase2_digest(PHASE2_CASES[name]) == PHASE2_GOLDEN[name]

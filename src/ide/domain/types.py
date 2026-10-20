@@ -138,3 +138,63 @@ class HolonSnapshot:
     leaf_agent_ids: tuple[int, ...]
     effective_capacity: int
     collective_known_patterns: int
+
+
+class EpigeneticRole(Enum):
+    """Casta epigenética de una hoja dentro de su holón (R25, D36)."""
+
+    NONE = "NONE"
+    EXPLORER = "EXPLORER"  # casta periférica (menor grado interno en el holón)
+    LIBRARIAN = "LIBRARIAN"  # casta de conocimiento propio único
+    NERVE = "NERVE"  # casta de enlace (mayor grado interno)
+
+
+_CODON_MAX = 2**32 - 1
+
+
+@dataclass(frozen=True)
+class CompactDNA:
+    """ADN compacto de codones de 32 bits (R24, D31).
+
+    La longitud no se valida aquí: las cotas `dna_min_length`, `dna_max_length` y `max_plasmids`
+    son de la configuración y las aplica la mutación (D35).
+    """
+
+    chromosome: tuple[int, ...]  # herencia vertical
+    plasmids: tuple[int, ...] = ()  # herencia vertical y horizontal (R26)
+    crispr_memory: tuple[int, ...] = ()  # firmas de plásmidos rechazados, FIFO (R27)
+
+    def __post_init__(self) -> None:
+        for name in ("chromosome", "plasmids", "crispr_memory"):
+            if type(getattr(self, name)) is not tuple:
+                raise TypeError(f"{name} debe ser una tupla de int")
+            for codon in getattr(self, name):
+                if type(codon) is not int:  # rechaza bool, float y numpy (D32)
+                    raise TypeError(f"{name}: el codón {codon!r} debe ser un int de Python")
+                if not 0 <= codon <= _CODON_MAX:
+                    raise ValueError(f"{name}: codón {codon} fuera de [0, 2**32 - 1]")
+        if not self.chromosome:
+            raise ValueError("chromosome no puede estar vacío")
+        if len(set(self.plasmids)) != len(self.plasmids):
+            raise ValueError("plasmids no admite codones repetidos")
+        if len(set(self.crispr_memory)) != len(self.crispr_memory):
+            raise ValueError("crispr_memory no admite codones repetidos")
+
+
+@dataclass(frozen=True)
+class EpigeneticContext:
+    """Contexto de expresión de una hoja (D31): sin capa Z ni estado de endospora."""
+
+    holon_level: int = 0  # nivel del nodo raíz que contiene a la hoja; 0 si está sola
+    role: EpigeneticRole = EpigeneticRole.NONE
+    energy_ratio: float = 1.0  # E_i / reproduction_threshold
+
+
+@dataclass(frozen=True)
+class ExpressedPhenotype:
+    """Fenotipo expresado por la transcripción del ADN (D33)."""
+
+    genome: AgentGenome  # los 7 rasgos expresados
+    lifespan: int  # T_max expresada (R29)
+    spore_threshold: float  # E_espora expresada (R28)
+    expressed_codons: int  # codones que modulan un rasgo en este contexto (telemetría)

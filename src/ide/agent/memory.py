@@ -69,6 +69,19 @@ class BoundedMemory:
         self._units[unit.pattern] = unit
         return True
 
+    def resize(self, capacity: int, tick: int) -> None:
+        """Cambia la capacidad en vida (R24, design D34.3); agrandarla no borra nada.
+
+        Al achicarla desaloja, de a una, la creencia de menor utilidad en `tick`, con el mismo
+        criterio y desempate que el desalojo de R2, incluida la penalización de R18. El olvido
+        forzado es parte declarada de R24.
+        """
+        if capacity < 1:
+            raise ValueError(f"capacity debe ser >= 1, recibido {capacity}")
+        self._capacity = capacity
+        while len(self._units) > capacity:
+            del self._units[self._weakest(tick).pattern]
+
     def remove(self, pattern: Pattern) -> bool:
         return self._units.pop(pattern, None) is not None
 

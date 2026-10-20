@@ -27,7 +27,7 @@
 >
 > **Decisiones P4–P7** (ver `proposal.md`). Se resuelven en el bloque 0, **antes** del bloque 1. El pre-registro es design D42. Las constantes de `attribution.py` del bloque 10 deben coincidir **exactamente** con él.
 >
-> **Etapa actual:** el bloque 0 está completo; sigue la etapa A.
+> **Etapa actual:** la etapa A (bloques 1 a 5) está completa y espera el punto de control; después sigue la etapa B.
 
 ## 0. Decisiones y pre-registro
 
@@ -53,19 +53,19 @@
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 1.1 **[RED]** Ampliar `tests/test_domain_contracts.py` con tests para:
+- [x] 1.1 **[RED]** Ampliar `tests/test_domain_contracts.py` con tests para:
   - los tipos `EpigeneticRole`, `CompactDNA` (validación de codones, cromosoma no vacío y plásmidos y firmas sin repetidos), `EpigeneticContext` y `ExpressedPhenotype`, todos inmutables;
   - los campos de D31 con sus valores por defecto y la validación siempre activa;
   - la validación condicionada a `enable_compact_dna=True`: requisitos, bases dentro de sus cotas y mensajes que mencionan el campo;
   - que las dependencias apagadas dejan las banderas inertes y no lanzan error (D30.3).
-- [ ] 1.2 **[GREEN]** Implementar los tipos en `src/ide/domain/types.py` y los campos y validaciones en `src/ide/config.py`.
-- [ ] 1.3 **[REFACTOR]** Verificación del bloque, con `tests/test_performance_equivalence.py` intacto.
+- [x] 1.2 **[GREEN]** Implementar los tipos en `src/ide/domain/types.py` y los campos y validaciones en `src/ide/config.py`.
+- [x] 1.3 **[REFACTOR]** Verificación del bloque, con `tests/test_performance_equivalence.py` intacto. (778 tests, cobertura 99 %; `FOUNDER_DNA_LENGTH` vive en `config.py` y `dna.py` lo reexporta.)
 
 ## 2. Codón, ADN fundador y transcripción (`compact-dna`)
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 2.1 **[RED]** Crear `tests/test_compact_dna.py` con tests para:
+- [x] 2.1 **[RED]** Crear `tests/test_compact_dna.py` con tests para:
   - (a) `encode_codon` y `decode_codon`: ida y vuelta, campos, `delta` en los extremos ($-128 \to -1.0$, $127 \to 0.9921875$) y `ValueError` fuera de rango;
   - (b) `founder_dna`: longitud 9 y expresión de `genome_from_config` en cualquier contexto;
   - (c) cada promotor de D32, incluidos los reservados, que nunca se activan;
@@ -73,41 +73,41 @@
   - (e) la red regulatoria: canal encendido sólo si `act > rep`, la pasada 2, y que los `EMIT_TF` de la pasada 2 no encienden canales;
   - (f) que los destinos reservados son inertes y que los plásmidos se transcriben y `crispr_memory` no;
   - (g) `phenotype_from_genome`.
-- [ ] 2.2 **[GREEN]** Crear `src/ide/agent/dna.py` con `Codon`, `encode_codon`, `decode_codon`, `FOUNDER_DNA_LENGTH`, `founder_dna`, `transcribe_phenotype` y `phenotype_from_genome`.
-- [ ] 2.3 **[REFACTOR]** Agregar pruebas por propiedades con Hypothesis (perfil `ci`):
+- [x] 2.2 **[GREEN]** Crear `src/ide/agent/dna.py` con `Codon`, `encode_codon`, `decode_codon`, `FOUNDER_DNA_LENGTH`, `founder_dna`, `transcribe_phenotype` y `phenotype_from_genome`.
+- [x] 2.3 **[REFACTOR]** Agregar pruebas por propiedades con Hypothesis (perfil `ci`):
   - toda transcripción cae dentro de las cotas;
   - el resultado no depende de `PYTHONHASHSEED`;
   - el ADN fundador es neutro para toda configuración válida.
   - Agregar la auditoría AST: `dna.py` no importa `micro_agent`, `holon`, `environments`, `simulation` ni `experiments`.
-  - Verificación del bloque.
+  - Verificación del bloque. (836 tests, cobertura 99 %; cotas enteras con fuente única `integer_trait_bounds`.)
 
 ## 3. Mutación del ADN (`compact-dna`)
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 3.1 **[RED]** Tests de `mutate_dna`:
+- [x] 3.1 **[RED]** Tests de `mutate_dna`:
   - puerta de $R_{13}$ sin consumir `rng`;
   - mutación puntual de bit, duplicación y deleción con sus cotas de longitud;
   - escisión a plásmido sólo con `enable_plasmid_hgt`, con FIFO y exclusión de los codones de `crispr_memory`;
   - `crispr_memory` sin mutar;
   - escala `scale` con tope 1;
   - secuencia exacta de extracciones de D35, verificada con un generador sembrado.
-- [ ] 3.2 **[GREEN]** Implementar `mutate_dna` en `dna.py`.
-- [ ] 3.3 **[REFACTOR]** Pruebas por propiedades: el ADN mutado siempre es válido y respeta `dna_min_length` y `dna_max_length`. Verificación del bloque.
+- [x] 3.2 **[GREEN]** Implementar `mutate_dna` en `dna.py`.
+- [x] 3.3 **[REFACTOR]** Pruebas por propiedades: el ADN mutado siempre es válido y respeta `dna_min_length` y `dna_max_length`. Verificación del bloque. (867 tests, cobertura 99 %.)
 
 ## 4. Agente y memoria (`micro-agent`, `bounded-memory`, `evolutionary-dynamics`)
 
 > Ejecuta: implementador-delicado
 
-- [ ] 4.1 **[RED]** Ampliar `tests/test_memory.py`, `tests/test_micro_agent.py` y `tests/test_evolutionary_dynamics.py` con tests para:
+- [x] 4.1 **[RED]** Ampliar `tests/test_memory.py`, `tests/test_micro_agent.py` y `tests/test_evolutionary_dynamics.py` con tests para:
   - (a) `BoundedMemory.resize`: desalojo por menor utilidad con el desempate de $R_2$ y la penalización de $R_{18}$, sin borrar al agrandar, y `ValueError` con capacidad menor que 1;
   - (b) el estado nuevo de `MicroAgent` (D34.1), sin cambiar las 8 firmas de la Fase I ni el comportamiento sin ADN;
   - (c) `express`: reemplazo del genoma y de la configuración fenotípica, `resize` de la memoria, el valor de retorno con los radios, y el caché igual a la transcripción directa;
   - (d) bases tomadas de `base_config`, sin acumulación tick a tick;
   - (e) `create_offspring` con `dna_source` y `mutation_scale`, herencia de plásmidos y firmas sin ensayos, expresión al nacer y `birth_tick`;
   - (f) `compute_dna_cost`.
-- [ ] 4.2 **[GREEN]** Implementar `resize` en `memory.py`, el estado y los métodos de `MicroAgent`, y `compute_dna_cost` en `evolution.py`.
-- [ ] 4.3 **[REFACTOR]** Auditorías AST de `tests/test_micro_agent.py` y verificación del bloque.
+- [x] 4.2 **[GREEN]** Implementar `resize` en `memory.py`, el estado y los métodos de `MicroAgent`, y `compute_dna_cost` en `evolution.py`.
+- [x] 4.3 **[REFACTOR]** Auditorías AST de `tests/test_micro_agent.py` y verificación del bloque. (934 tests, cobertura 99 %; una transcripción por nacimiento.)
 
 ## 5. Motor con ADN, R24 (`simulation-engine`)
 
@@ -115,15 +115,15 @@
 >
 > Punto de control: fin de la etapa A. Mostrar que los historiales de los protocolos de la Fase II son idénticos con las banderas por defecto, los hashes dorados intactos y los ticks por segundo con y sin ADN del benchmark.
 
-- [ ] 5.1 **[RED]** Ampliar `tests/test_simulation_engine.py` con tests para:
+- [x] 5.1 **[RED]** Ampliar `tests/test_simulation_engine.py` con tests para:
   - (a) la Fase 0: contexto con nivel, rol y energía; `set_agent_radii` sólo si cambian los radios; sin consumo de generadores;
   - (b) el costo metabólico sobre el genoma expresado más `compute_dna_cost`;
   - (c) el nacimiento con ADN mutado por `evo_rng` y expresado en el acto;
   - (d) la reproducción neutral con el ADN del donante;
   - (e) la igualdad de historiales entre procesos con distinto `PYTHONHASHSEED` con `enable_compact_dna=True`;
   - (f) con las banderas por defecto, historiales de los protocolos `002a` y `003a` idénticos a los de la Fase II.
-- [ ] 5.2 **[GREEN]** Extender `SimulationEngine`: `_express_phenotypes`, el costo y el nacimiento.
-- [ ] 5.3 **[REFACTOR]** Correr `python -m pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py` y `python -m ide.experiments.benchmark` con y sin ADN, y registrar los ticks por segundo. Verificación del bloque.
+- [x] 5.2 **[GREEN]** Extender `SimulationEngine`: `_express_phenotypes`, el costo y el nacimiento.
+- [x] 5.3 **[REFACTOR]** Correr `python -m pytest tests/test_simulation_engine.py tests/test_performance_equivalence.py` y `python -m ide.experiments.benchmark` con y sin ADN, y registrar los ticks por segundo. Verificación del bloque. (960 tests, cobertura 99 %; benchmark sin ADN 253.8 y 272.6 ticks/s, `--compact-dna` sobre `002a` 148.9 y 136.0 ticks/s; historiales de la Fase II idénticos a 20305df en 8 huellas doradas.)
 
 ## 6. Senescencia (R29) y mutación SOS (R30) (`evolutionary-dynamics`, `simulation-engine`)
 
