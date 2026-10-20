@@ -297,7 +297,7 @@ Las cotas de los rasgos enteros son las mismas que usa `mutate_genome` en la Fas
 1. **Mutación puntual del cromosoma.**
    - Si el cromosoma no está vacío, extrae `u = rng.random(len(chromosome))`.
    - Para cada índice $i$, en orden, con `u[i] < p_point`, extrae `bit = int(rng.integers(0, 32))` y aplica `codon ^= 1 << bit`.
-2. **Mutación puntual de los plásmidos.** Igual, sobre `plasmids`, sólo si no está vacío. Si un plásmido mutado coincide con otro, se elimina el duplicado posterior.
+2. **Mutación puntual de los plásmidos.** Igual, sobre `plasmids`, sólo si no está vacío. Si un plásmido mutado coincide con otro, se elimina el duplicado posterior. También se descarta el plásmido mutado que coincida con un codón de `crispr_memory` (punto 12).
 3. **Duplicación.**
    - Extrae `u = float(rng.random())`.
    - Si `u < p_dup` y `len(chromosome) < dna_max_length`, extrae `i = int(rng.integers(len(chromosome)))` e inserta una copia del codón `i` en la posición `i + 1`.

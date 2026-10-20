@@ -1,13 +1,15 @@
 """ADN compacto de codones de 32 bits y su transcripción en dos pasadas (R24, D32 y D33).
 
-Módulo puro: sólo conoce `ide.domain`, `ide.config` y la biblioteca estándar (los codones son
-`int` de Python, no `numpy.uint32`, D32). No importa
+Módulo puro: sólo conoce `ide.domain`, `ide.config`, `numpy` (sólo para tipar el generador) y la
+biblioteca estándar (los codones son `int` de Python, no `numpy.uint32`, D32). No importa
 `micro_agent`, `holon`, `environments`, `simulation` ni `experiments`, y no ve coordenadas ni
 `true_value`.
 """
 
 import math
 from typing import NamedTuple
+
+import numpy as np
 
 from ide.config import FOUNDER_DNA_LENGTH, SimulationConfig
 from ide.domain.extensions import integer_trait_bounds
@@ -25,6 +27,7 @@ __all__ = [
     "decode_codon",
     "encode_codon",
     "founder_dna",
+    "mutate_dna",
     "phenotype_from_genome",
     "transcribe_phenotype",
 ]
@@ -230,4 +233,73 @@ def phenotype_from_genome(genome: AgentGenome, config: SimulationConfig) -> Expr
     """Fenotipo de un agente sin ADN: R28 y R29 operan sobre el genoma plano (D33.7)."""
     return ExpressedPhenotype(
         genome, config.telomere_base_lifespan, config.spore_energy_threshold, 0
+    )
+
+
+def _admit_plasmid(plasmids: list[int], codon: int, crispr_memory: tuple[int, ...]) -> bool:
+    """Regla de admisión de plásmidos (D35, pasos 2 y 5): sin repetidos ni vetados por CRISPR.
+
+    Agrega `codon` al final de `plasmids` y devuelve `True` si se admite.
+    """
+    if codon in plasmids or codon in crispr_memory:
+        return False
+    plasmids.append(codon)
+    return True
+
+
+def _mutate_codons(
+    codons: tuple[int, ...], p_point: float, rng: np.random.Generator
+) -> tuple[int, ...]:
+    """Mutación puntual (D35, pasos 1 y 2): un `random(n)` y un bit sorteado por codón elegido."""
+    if not codons:
+        return codons
+    u = rng.random(len(codons))
+    mutated: list[int] = []
+    for codon, ui in zip(codons, u, strict=True):
+        if ui < p_point:
+            codon ^= 1 << int(rng.integers(0, 32))  # `int(...)`: el tipo exige int de Python
+        mutated.append(codon)
+    return tuple(mutated)
+
+
+def mutate_dna(
+    dna: CompactDNA, config: SimulationConfig, rng: np.random.Generator, scale: float = 1.0
+) -> CompactDNA:
+    """Operadores de mutación del ADN al reproducirse (D35 y D37).
+
+    Orden exacto de extracciones de `rng`: mutación puntual del cromosoma, mutación puntual de los
+    plásmidos, duplicación, deleción y, sólo con `enable_plasmid_hgt`, escisión a plásmido. Los
+    pasos 3 a 5 consumen siempre su `u`; el índice se extrae sólo si el operador se aplica.
+    `crispr_memory` se hereda sin mutar.
+    """
+    if not (scale >= 0.0 and math.isfinite(scale)):
+        raise ValueError(f"scale debe ser finito y no negativo, recibido {scale}")
+    if config.mutation_rate == 0.0 and config.discrete_mutation_prob == 0.0:
+        return dna  # puerta de R13: la ablación congela también el ADN, sin consumir `rng`
+    p_point = min(1.0, scale * config.dna_point_mutation_rate)
+    p_dup = min(1.0, scale * config.dna_duplication_rate)
+    p_del = min(1.0, scale * config.dna_deletion_rate)
+    p_exc = min(1.0, scale * config.dna_excision_rate)
+
+    chromosome = list(_mutate_codons(dna.chromosome, p_point, rng))
+    # Plásmidos mutados: se descartan los repetidos (queda el primero) y los vetados por CRISPR.
+    plasmids: list[int] = []
+    for codon in _mutate_codons(dna.plasmids, p_point, rng):
+        _admit_plasmid(plasmids, codon, dna.crispr_memory)
+
+    if float(rng.random()) < p_dup and len(chromosome) < config.dna_max_length:
+        i = int(rng.integers(len(chromosome)))
+        chromosome.insert(i + 1, chromosome[i])
+    if float(rng.random()) < p_del and len(chromosome) > config.dna_min_length:
+        del chromosome[int(rng.integers(len(chromosome)))]
+    if config.enable_plasmid_hgt and float(rng.random()) < p_exc:
+        codon = chromosome[int(rng.integers(len(chromosome)))]
+        if _admit_plasmid(plasmids, codon, dna.crispr_memory) and (
+            len(plasmids) > config.max_plasmids
+        ):
+            del plasmids[0]  # FIFO
+    return CompactDNA(
+        chromosome=tuple(chromosome),
+        plasmids=tuple(plasmids),
+        crispr_memory=dna.crispr_memory,
     )

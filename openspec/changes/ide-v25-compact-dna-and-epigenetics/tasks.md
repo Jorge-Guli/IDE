@@ -85,15 +85,15 @@
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 3.1 **[RED]** Tests de `mutate_dna`:
+- [x] 3.1 **[RED]** Tests de `mutate_dna`:
   - puerta de $R_{13}$ sin consumir `rng`;
   - mutación puntual de bit, duplicación y deleción con sus cotas de longitud;
   - escisión a plásmido sólo con `enable_plasmid_hgt`, con FIFO y exclusión de los codones de `crispr_memory`;
   - `crispr_memory` sin mutar;
   - escala `scale` con tope 1;
   - secuencia exacta de extracciones de D35, verificada con un generador sembrado.
-- [ ] 3.2 **[GREEN]** Implementar `mutate_dna` en `dna.py`.
-- [ ] 3.3 **[REFACTOR]** Pruebas por propiedades: el ADN mutado siempre es válido y respeta `dna_min_length` y `dna_max_length`. Verificación del bloque.
+- [x] 3.2 **[GREEN]** Implementar `mutate_dna` en `dna.py`.
+- [x] 3.3 **[REFACTOR]** Pruebas por propiedades: el ADN mutado siempre es válido y respeta `dna_min_length` y `dna_max_length`. Verificación del bloque. (867 tests, cobertura 99 %.)
 
 ## 4. Agente y memoria (`micro-agent`, `bounded-memory`, `evolutionary-dynamics`)
 

@@ -160,7 +160,7 @@ La transcripción SHALL expresar cada rasgo entero ($C_{\max}$, $r_{\text{perc}}
 - **THEN** cada codón del resultado difiere del original en exactamente el bit que indica el generador gemelo, y el resultado tiene 9 codones.
 
 ### Requirement: Mutación Puntual de los Plásmidos
-Si `plasmids` no está vacío, `mutate_dna` SHALL aplicarle, después del cromosoma, la misma mutación puntual, y SHALL eliminar el duplicado posterior si un plásmido mutado coincide con otro.
+Si `plasmids` no está vacío, `mutate_dna` SHALL aplicarle, después del cromosoma, la misma mutación puntual, y SHALL eliminar el duplicado posterior si un plásmido mutado coincide con otro y descartar el plásmido mutado que coincida con un codón de `crispr_memory`.
 
 #### Scenario: Plásmidos vacíos sin consumo
 - **WHEN** se invoca `mutate_dna` sobre el ADN fundador sin plásmidos con todas las tasas del ADN en `0.0` y `enable_plasmid_hgt=False`, y un generador gemelo extrae `random(9)`, `random()` y `random()`
@@ -169,6 +169,10 @@ Si `plasmids` no está vacío, `mutate_dna` SHALL aplicarle, después del cromos
 #### Scenario: Colisión entre plásmidos
 - **WHEN** la mutación puntual convierte el primer plásmido en un codón igual al segundo
 - **THEN** el ADN resultante conserva una sola copia de ese codón en `plasmids`, en la posición del primero.
+
+#### Scenario: Plásmido mutado vetado por CRISPR
+- **WHEN** la mutación puntual convierte un plásmido en un codón que está en `crispr_memory`
+- **THEN** ese codón no figura en `plasmids` del ADN resultante y `crispr_memory` no cambia.
 
 ### Requirement: Duplicación de un Codón con Cota Máxima
 `mutate_dna` SHALL extraer siempre `u = float(rng.random())` y, si `u < p_dup` y `len(chromosome) < dna_max_length`, extraer `i = int(rng.integers(len(chromosome)))` e insertar una copia del codón `i` en la posición `i + 1`.

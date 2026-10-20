@@ -6,6 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
@@ -17,6 +18,7 @@ from ide.agent.dna import (
     decode_codon,
     encode_codon,
     founder_dna,
+    mutate_dna,
     phenotype_from_genome,
     transcribe_phenotype,
 )
@@ -606,7 +608,7 @@ FORBIDDEN_MODULES = (
     "ide.simulation",
     "ide.experiments",
 )
-ALLOWED_PREFIXES = ("ide.domain", "ide.config")
+ALLOWED_PREFIXES = ("ide.domain", "ide.config", "numpy")
 
 
 def _imported_modules() -> list[str]:
@@ -641,3 +643,441 @@ def test_lista_positiva_de_importaciones_de_dna() -> None:
     for name in _imported_modules():
         top = name.split(".")[0]
         assert top in stdlib or any(_is_module(name, p) for p in ALLOWED_PREFIXES), name
+
+
+# --- Bloque 3: mutación del ADN (D35 y D37) ---------------------------------------------------
+
+NO_DNA_RATES: dict[str, object] = {
+    "dna_point_mutation_rate": 0.0,
+    "dna_duplication_rate": 0.0,
+    "dna_deletion_rate": 0.0,
+    "dna_excision_rate": 0.0,
+}
+
+
+def _rates(**overrides: object) -> SimulationConfig:
+    return make_config(**{**NO_DNA_RATES, **overrides})
+
+
+def _twin(seed: int) -> tuple[np.random.Generator, np.random.Generator]:
+    return np.random.default_rng(seed), np.random.default_rng(seed)
+
+
+def _same_state(a: np.random.Generator, b: np.random.Generator) -> bool:
+    return a.bit_generator.state == b.bit_generator.state
+
+
+def test_mutate_dna_puerta_r13_no_consume_rng() -> None:
+    config = make_config(
+        mutation_rate=0.0,
+        discrete_mutation_prob=0.0,
+        dna_point_mutation_rate=1.0,
+        dna_duplication_rate=1.0,
+        dna_deletion_rate=1.0,
+        dna_excision_rate=1.0,
+        enable_plasmid_hgt=True,
+    )
+    dna = CompactDNA(chromosome=founder_dna(config).chromosome, plasmids=(5,))
+    rng, twin = _twin(1)
+    assert mutate_dna(dna, config, rng) == dna
+    assert _same_state(rng, twin)
+
+
+def test_mutate_dna_puerta_r13_abierta_con_una_sola_tasa() -> None:
+    config = _rates(mutation_rate=0.0, discrete_mutation_prob=0.1, dna_point_mutation_rate=1.0)
+    dna = founder_dna(config)
+    assert mutate_dna(dna, config, np.random.default_rng(1)) != dna
+
+
+def test_mutate_dna_puerta_r13_abierta_con_mutation_rate_solo() -> None:
+    config = _rates(mutation_rate=0.1, discrete_mutation_prob=0.0, dna_point_mutation_rate=1.0)
+    dna = founder_dna(config)
+    assert mutate_dna(dna, config, np.random.default_rng(1)) != dna
+
+
+@pytest.mark.parametrize("scale", [-1.0, float("nan"), float("inf"), float("-inf")])
+def test_mutate_dna_rechaza_escala_invalida(scale: float) -> None:
+    config = make_config()
+    with pytest.raises(ValueError, match="scale"):
+        mutate_dna(founder_dna(config), config, np.random.default_rng(0), scale)
+
+
+def test_mutacion_puntual_invierte_un_bit_por_codon() -> None:
+    config = _rates(dna_point_mutation_rate=1.0)
+    dna = founder_dna(config)
+    rng, twin = _twin(7)
+    result = mutate_dna(dna, config, rng)
+    twin.random(9)
+    bits = [int(twin.integers(0, 32)) for _ in range(9)]
+    twin.random()  # duplicación
+    twin.random()  # deleción
+    assert len(result.chromosome) == 9
+    for old, new, bit in zip(dna.chromosome, result.chromosome, bits, strict=True):
+        assert new == old ^ (1 << bit)
+    assert _same_state(rng, twin)
+    assert all(type(c) is int for c in result.chromosome)
+
+
+def test_mutacion_puntual_secuencia_con_probabilidad_parcial() -> None:
+    config = _rates(dna_point_mutation_rate=0.5)
+    dna = founder_dna(config)
+    rng, twin = _twin(11)
+    result = mutate_dna(dna, config, rng)
+    u = twin.random(9)
+    expected = []
+    for codon, ui in zip(dna.chromosome, u, strict=True):
+        if ui < 0.5:
+            codon ^= 1 << int(twin.integers(0, 32))
+        expected.append(codon)
+    twin.random()
+    twin.random()
+    assert result.chromosome == tuple(expected)
+    assert _same_state(rng, twin)
+
+
+def test_plasmidos_vacios_no_consumen_arreglo() -> None:
+    config = _rates()
+    rng, twin = _twin(3)
+    result = mutate_dna(founder_dna(config), config, rng)
+    twin.random(9)
+    twin.random()
+    twin.random()
+    assert result == founder_dna(config)
+    assert _same_state(rng, twin)
+
+
+def test_mutacion_puntual_de_plasmidos_despues_del_cromosoma() -> None:
+    config = _rates(dna_point_mutation_rate=1.0)
+    dna = CompactDNA(chromosome=founder_dna(config).chromosome, plasmids=(100, 200))
+    rng, twin = _twin(5)
+    result = mutate_dna(dna, config, rng)
+    twin.random(9)
+    for _ in range(9):
+        twin.integers(0, 32)
+    twin.random(2)
+    bits = [int(twin.integers(0, 32)) for _ in range(2)]
+    twin.random()
+    twin.random()
+    assert result.plasmids == (100 ^ (1 << bits[0]), 200 ^ (1 << bits[1]))
+    assert _same_state(rng, twin)
+
+
+def test_colision_entre_plasmidos_conserva_el_primero() -> None:
+    config = _rates(dna_point_mutation_rate=1.0)
+    chromosome = founder_dna(config).chromosome
+    dna = CompactDNA(chromosome=chromosome, plasmids=(2, 1))
+    # Bits sorteados: 9 del cromosoma y luego 0 y 1: 2 ^ 1 == 3 y 1 ^ 2 == 3 coinciden.
+    rng = _ScriptedRng(randoms=[[0.0] * 9, [0.0, 0.0], 0.9, 0.9], integers=_bits(*[0] * 9, 0, 1))
+    result = mutate_dna(dna, config, rng)  # type: ignore[arg-type]
+    rng.assert_exhausted()
+    assert result.plasmids == (3,)
+
+
+def test_plasmido_mutado_en_crispr_memory_se_descarta() -> None:
+    config = _rates(dna_point_mutation_rate=1.0)
+    dna = CompactDNA(chromosome=founder_dna(config).chromosome, plasmids=(2, 8), crispr_memory=(3,))
+    rng = _ScriptedRng(randoms=[[0.0] * 9, [0.0, 0.0], 0.9, 0.9], integers=_bits(*[0] * 9, 0, 0))
+    result = mutate_dna(dna, config, rng)  # type: ignore[arg-type]
+    rng.assert_exhausted()
+    # 2 ^ 1 == 3 (vetado, se descarta) y 8 ^ 1 == 9.
+    assert result.plasmids == (9,)
+    assert result.crispr_memory == (3,)
+
+
+class _ScriptedRng:
+    """Generador guionado: devuelve en orden las extracciones preparadas por el test.
+
+    `integers` es una lista de `(argumentos_esperados, valor)`: se verifica cada llamada y, con
+    `assert_exhausted()`, que el guion se consumió completo.
+    """
+
+    def __init__(self, randoms: list[object], integers: list[tuple[tuple[int, ...], int]]) -> None:
+        self._randoms = list(randoms)
+        self._integers = list(integers)
+
+    def random(self, size: int | None = None) -> object:
+        value = self._randoms.pop(0)
+        if size is None:
+            return value
+        assert isinstance(value, list) and len(value) == size
+        return np.array(value)
+
+    def integers(self, *args: int) -> int:
+        expected, value = self._integers.pop(0)
+        assert args == expected
+        return value
+
+    def assert_exhausted(self) -> None:
+        assert not self._randoms and not self._integers
+
+
+def _bits(*values: int) -> list[tuple[tuple[int, ...], int]]:
+    """Guion de sorteos de bit: `integers(0, 32)` devolviendo cada valor."""
+    return [((0, 32), v) for v in values]
+
+
+def test_duplicacion_secuencia_exacta() -> None:
+    config = _rates(dna_duplication_rate=1.0)
+    dna = founder_dna(config)
+    rng, twin = _twin(13)
+    result = mutate_dna(dna, config, rng)
+    twin.random(9)
+    twin.random()
+    i = int(twin.integers(9))
+    twin.random()
+    assert len(result.chromosome) == 10
+    assert result.chromosome[i + 1] == dna.chromosome[i]
+    assert result.chromosome == (
+        *dna.chromosome[: i + 1],
+        dna.chromosome[i],
+        *dna.chromosome[i + 1 :],
+    )
+    assert _same_state(rng, twin)
+
+
+def test_duplicacion_con_codones_distintos_inserta_copia_en_i_mas_uno() -> None:
+    config = _rates(dna_duplication_rate=1.0)
+    chromosome = tuple(encode_codon(0x00, t, payload=t) for t in range(9))
+    dna = CompactDNA(chromosome=chromosome)
+    rng = _ScriptedRng(randoms=[[0.9] * 9, 0.0, 0.9], integers=[((9,), 4)])
+    result = mutate_dna(dna, config, rng)  # type: ignore[arg-type]
+    rng.assert_exhausted()
+    assert result.chromosome == (*chromosome[:5], chromosome[4], *chromosome[5:])
+
+
+def test_duplicacion_en_longitud_maxima_no_extrae_indice() -> None:
+    config = _rates(dna_duplication_rate=1.0, dna_max_length=9)
+    rng, twin = _twin(17)
+    result = mutate_dna(founder_dna(config), config, rng)
+    twin.random(9)
+    twin.random()
+    twin.random()
+    assert len(result.chromosome) == 9
+    assert _same_state(rng, twin)
+
+
+def test_delecion_secuencia_exacta() -> None:
+    config = _rates(dna_deletion_rate=1.0)
+    chromosome = tuple(encode_codon(0x00, t, payload=t) for t in range(9))
+    dna = CompactDNA(chromosome=chromosome)
+    rng, twin = _twin(19)
+    result = mutate_dna(dna, config, rng)
+    twin.random(9)
+    twin.random()
+    twin.random()
+    i = int(twin.integers(9))
+    assert result.chromosome == chromosome[:i] + chromosome[i + 1 :]
+    assert _same_state(rng, twin)
+
+
+def test_delecion_en_longitud_minima_no_extrae_indice() -> None:
+    config = _rates(dna_deletion_rate=1.0, dna_min_length=9)
+    rng, twin = _twin(23)
+    result = mutate_dna(founder_dna(config), config, rng)
+    twin.random(9)
+    twin.random()
+    twin.random()
+    assert len(result.chromosome) == 9
+    assert _same_state(rng, twin)
+
+
+def test_delecion_no_baja_de_un_codon() -> None:
+    config = _rates(dna_deletion_rate=1.0, dna_min_length=1)
+    dna = CompactDNA(chromosome=(encode_codon(0x00, 0),))
+    rng, twin = _twin(29)
+    result = mutate_dna(dna, config, rng)
+    twin.random(1)
+    twin.random()
+    twin.random()
+    assert result.chromosome == dna.chromosome
+    assert _same_state(rng, twin)
+
+
+def test_duplicacion_y_delecion_usan_el_largo_actual() -> None:
+    config = _rates(dna_duplication_rate=1.0, dna_deletion_rate=1.0)
+    dna = founder_dna(config)
+    rng, twin = _twin(31)
+    result = mutate_dna(dna, config, rng)
+    twin.random(9)
+    twin.random()
+    twin.integers(9)
+    twin.random()
+    twin.integers(10)  # la deleción ve el cromosoma ya duplicado
+    assert len(result.chromosome) == 9
+    assert _same_state(rng, twin)
+
+
+def test_escision_con_fifo() -> None:
+    config = _rates(enable_plasmid_hgt=True, dna_excision_rate=1.0, max_plasmids=2)
+    chromosome = tuple(encode_codon(0x00, t, payload=t) for t in range(9))
+    dna = CompactDNA(chromosome=chromosome, plasmids=(1000, 2000))
+    rng, twin = _twin(37)
+    result = mutate_dna(dna, config, rng)
+    twin.random(9)
+    twin.random(2)
+    twin.random()
+    twin.random()
+    twin.random()
+    i = int(twin.integers(9))
+    assert result.plasmids == (2000, chromosome[i])
+    assert result.chromosome == chromosome
+    assert _same_state(rng, twin)
+
+
+def test_escision_de_codon_vetado_no_cambia_plasmidos() -> None:
+    config = _rates(enable_plasmid_hgt=True, dna_excision_rate=1.0)
+    chromosome = tuple(encode_codon(0x00, t, payload=t) for t in range(9))
+    dna = CompactDNA(chromosome=chromosome, crispr_memory=chromosome)
+    rng, twin = _twin(41)
+    result = mutate_dna(dna, config, rng)
+    assert result.plasmids == ()
+    assert result.crispr_memory == chromosome
+    twin.random(9)
+    twin.random()
+    twin.random()
+    twin.random()
+    twin.integers(9)
+    assert _same_state(rng, twin)
+
+
+def test_escision_de_codon_ya_presente_en_plasmidos_no_duplica() -> None:
+    config = _rates(enable_plasmid_hgt=True, dna_excision_rate=1.0, max_plasmids=9)
+    chromosome = tuple(encode_codon(0x00, t, payload=t) for t in range(9))
+    dna = CompactDNA(chromosome=chromosome, plasmids=chromosome)
+    result = mutate_dna(dna, config, np.random.default_rng(2))
+    assert result.plasmids == chromosome
+
+
+def test_sin_escision_con_r26_apagada() -> None:
+    config = _rates(enable_plasmid_hgt=False, dna_excision_rate=1.0)
+    rng, twin = _twin(43)
+    result = mutate_dna(founder_dna(config), config, rng)
+    twin.random(9)
+    twin.random()
+    twin.random()
+    assert result.plasmids == ()
+    assert _same_state(rng, twin)
+
+
+def test_escala_con_tope_en_uno() -> None:
+    config = _rates(dna_duplication_rate=0.5, dna_max_length=32)
+    for seed in range(20):
+        result = mutate_dna(founder_dna(config), config, np.random.default_rng(seed), scale=4.0)
+        assert len(result.chromosome) == 10
+
+
+def test_escala_multiplica_la_probabilidad() -> None:
+    config = _rates(dna_point_mutation_rate=0.05)
+    dna = founder_dna(config)
+    rng, twin = _twin(47)
+    result = mutate_dna(dna, config, rng, scale=2.0)
+    u = twin.random(9)
+    expected = []
+    for codon, ui in zip(dna.chromosome, u, strict=True):
+        if ui < 0.10:
+            codon ^= 1 << int(twin.integers(0, 32))
+        expected.append(codon)
+    assert result.chromosome == tuple(expected)
+
+
+def test_crispr_memory_sin_mutar_con_tasas_maximas() -> None:
+    config = make_config(
+        dna_point_mutation_rate=1.0,
+        dna_duplication_rate=1.0,
+        dna_deletion_rate=1.0,
+        dna_excision_rate=1.0,
+        enable_plasmid_hgt=True,
+    )
+    dna = CompactDNA(chromosome=founder_dna(config).chromosome, crispr_memory=(7, 9))
+    assert mutate_dna(dna, config, np.random.default_rng(0)).crispr_memory == (7, 9)
+
+
+def test_mutate_dna_devuelve_enteros_de_python() -> None:
+    config = make_config(dna_point_mutation_rate=1.0, dna_duplication_rate=1.0)
+    result = mutate_dna(founder_dna(config), config, np.random.default_rng(0))
+    for codon in result.chromosome + result.plasmids:
+        assert type(codon) is int
+
+
+def test_mutate_dna_no_modifica_la_entrada() -> None:
+    config = make_config(dna_point_mutation_rate=1.0)
+    dna = founder_dna(config)
+    snapshot = dna.chromosome
+    mutate_dna(dna, config, np.random.default_rng(0))
+    assert dna.chromosome == snapshot
+
+
+def test_mutate_dna_es_determinista() -> None:
+    config = make_config(dna_point_mutation_rate=0.5, dna_duplication_rate=0.5)
+    dna = founder_dna(config)
+    a = mutate_dna(dna, config, np.random.default_rng(99))
+    b = mutate_dna(dna, config, np.random.default_rng(99))
+    assert a == b
+
+
+_CODONS = st.integers(0, 2**32 - 1)
+
+
+def _near(codon: int, bit: int) -> int:
+    return codon ^ (1 << bit)
+
+
+@st.composite
+def _dna_cases(draw: st.DrawFn) -> tuple[CompactDNA, SimulationConfig]:
+    """ADN arbitrario y configuración, con vecinos a un bit entre cromosoma, plásmidos y vetos."""
+    min_length = draw(st.integers(1, FOUNDER_DNA_LENGTH))
+    max_length = draw(st.integers(FOUNDER_DNA_LENGTH, FOUNDER_DNA_LENGTH + 4))
+    max_plasmids = draw(st.integers(1, 4))
+    length = draw(st.integers(min_length, max_length))
+    chromosome = tuple(draw(st.lists(_CODONS, min_size=length, max_size=length)))
+    pool = [*chromosome, *draw(st.lists(_CODONS, max_size=4))]
+    bit = st.integers(0, 31)
+
+    def neighbor() -> int:
+        return _near(draw(st.sampled_from(pool)), draw(bit))
+
+    plasmids = tuple(
+        dict.fromkeys(
+            draw(st.lists(st.one_of(_CODONS, st.builds(neighbor)), max_size=max_plasmids))
+        )
+    )
+    pool += plasmids
+    vetoes = tuple(
+        dict.fromkeys(
+            c
+            for c in draw(st.lists(st.one_of(_CODONS, st.builds(neighbor)), max_size=4))
+            if c not in plasmids
+        )
+    )
+    config = make_config(
+        dna_point_mutation_rate=draw(st.sampled_from([0.0, 0.05, 0.5, 1.0])),
+        dna_duplication_rate=draw(st.sampled_from([0.0, 0.3, 1.0])),
+        dna_deletion_rate=draw(st.sampled_from([0.0, 0.3, 1.0])),
+        dna_excision_rate=draw(st.sampled_from([0.0, 0.3, 1.0])),
+        max_plasmids=max_plasmids,
+        dna_min_length=min_length,
+        dna_max_length=max_length,
+        enable_plasmid_hgt=draw(st.booleans()),
+    )
+    return CompactDNA(chromosome, plasmids, vetoes), config
+
+
+@given(
+    case=_dna_cases(),
+    seed=st.integers(0, 2**32 - 1),
+    scale=st.sampled_from([0.0, 0.5, 1.0, 2.0, 10.0]),
+)
+def test_propiedad_adn_mutado_siempre_valido(
+    case: tuple[CompactDNA, SimulationConfig], seed: int, scale: float
+) -> None:
+    dna, config = case
+    rng = np.random.default_rng(seed)
+    for _ in range(10):  # la mutación encadenada nunca rompe las cotas ni la validez del tipo
+        new = mutate_dna(dna, config, rng, scale)  # CompactDNA valida en `__post_init__`
+        assert config.dna_min_length <= len(new.chromosome) <= config.dna_max_length
+        assert len(new.plasmids) <= config.max_plasmids
+        assert new.crispr_memory == dna.crispr_memory
+        assert not set(new.plasmids) & set(new.crispr_memory)  # el veto de CRISPR se sostiene
+        assert len(set(new.plasmids)) == len(new.plasmids)
+        assert all(type(c) is int for c in new.chromosome + new.plasmids)
+        dna = new
