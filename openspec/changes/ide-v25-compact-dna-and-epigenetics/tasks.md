@@ -13,7 +13,7 @@
 
 ## 0. Decisiones y pre-registro
 
-- [ ] 0.1 **Diagnóstico demográfico previo (decisión P5).** Mide la demografía de la Fase II con `resources_per_pattern = 40`:
+- [x] 0.1 **Diagnóstico demográfico previo (decisión P5).** Resultado: hipótesis **confirmada** en las 10 semillas de los dos protocolos (`docs/RESULTADOS.md`). Mide la demografía de la Fase II con `resources_per_pattern = 40`:
   - muertes, nacimientos y edad al morir por tick;
   - con `PHASE2_PROTOCOL_CONFIGS_ORIGINAL["002a"]` y `["003a"]`, y las semillas de calibración 0 a 9.
   - **No** calcula ninguna métrica de afirmación.

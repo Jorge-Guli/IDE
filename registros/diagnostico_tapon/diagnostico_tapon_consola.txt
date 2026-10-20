@@ -1,0 +1,23 @@
+002a semilla 0: vivos 160, nacidos antes del tick 1000 159 (0.99), nacimientos 222, muertes 142, muertes/tick 2a mitad 0.001, mediana de edad al morir 75.0
+002a semilla 1: vivos 160, nacidos antes del tick 1000 158 (0.99), nacimientos 217, muertes 137, muertes/tick 2a mitad 0.002, mediana de edad al morir 109
+002a semilla 2: vivos 160, nacidos antes del tick 1000 159 (0.99), nacimientos 182, muertes 102, muertes/tick 2a mitad 0.002, mediana de edad al morir 96.0
+002a semilla 3: vivos 160, nacidos antes del tick 1000 158 (0.99), nacimientos 209, muertes 129, muertes/tick 2a mitad 0.002, mediana de edad al morir 91
+002a semilla 4: vivos 160, nacidos antes del tick 1000 158 (0.99), nacimientos 233, muertes 153, muertes/tick 2a mitad 0.002, mediana de edad al morir 83
+002a semilla 5: vivos 160, nacidos antes del tick 1000 159 (0.99), nacimientos 200, muertes 120, muertes/tick 2a mitad 0.001, mediana de edad al morir 107.5
+002a semilla 6: vivos 160, nacidos antes del tick 1000 159 (0.99), nacimientos 203, muertes 123, muertes/tick 2a mitad 0.001, mediana de edad al morir 77
+002a semilla 7: vivos 160, nacidos antes del tick 1000 159 (0.99), nacimientos 238, muertes 158, muertes/tick 2a mitad 0.001, mediana de edad al morir 96.0
+002a semilla 8: vivos 160, nacidos antes del tick 1000 159 (0.99), nacimientos 200, muertes 120, muertes/tick 2a mitad 0.001, mediana de edad al morir 100.5
+002a semilla 9: vivos 160, nacidos antes del tick 1000 159 (0.99), nacimientos 209, muertes 129, muertes/tick 2a mitad 0.001, mediana de edad al morir 95
+002a: semillas envejecidas 10/10 -> confirmada: True
+003a semilla 0: vivos 160, nacidos antes del tick 1000 146 (0.91), nacimientos 493, muertes 413, muertes/tick 2a mitad 0.014, mediana de edad al morir 113
+003a semilla 1: vivos 160, nacidos antes del tick 1000 145 (0.91), nacimientos 460, muertes 380, muertes/tick 2a mitad 0.017, mediana de edad al morir 100.0
+003a semilla 2: vivos 160, nacidos antes del tick 1000 135 (0.84), nacimientos 496, muertes 416, muertes/tick 2a mitad 0.032, mediana de edad al morir 124.0
+003a semilla 3: vivos 160, nacidos antes del tick 1000 151 (0.94), nacimientos 432, muertes 352, muertes/tick 2a mitad 0.010, mediana de edad al morir 103.5
+003a semilla 4: vivos 160, nacidos antes del tick 1000 134 (0.84), nacimientos 521, muertes 441, muertes/tick 2a mitad 0.041, mediana de edad al morir 120
+003a semilla 5: vivos 160, nacidos antes del tick 1000 147 (0.92), nacimientos 542, muertes 462, muertes/tick 2a mitad 0.017, mediana de edad al morir 99.0
+003a semilla 6: vivos 160, nacidos antes del tick 1000 148 (0.93), nacimientos 588, muertes 508, muertes/tick 2a mitad 0.014, mediana de edad al morir 92.5
+003a semilla 7: vivos 160, nacidos antes del tick 1000 155 (0.97), nacimientos 429, muertes 349, muertes/tick 2a mitad 0.006, mediana de edad al morir 89
+003a semilla 8: vivos 160, nacidos antes del tick 1000 114 (0.71), nacimientos 559, muertes 479, muertes/tick 2a mitad 0.065, mediana de edad al morir 126
+003a semilla 9: vivos 160, nacidos antes del tick 1000 142 (0.89), nacimientos 507, muertes 427, muertes/tick 2a mitad 0.023, mediana de edad al morir 92
+003a: semillas envejecidas 10/10 -> confirmada: True
+Hipótesis del Tapón de Matusalén: CONFIRMADA
