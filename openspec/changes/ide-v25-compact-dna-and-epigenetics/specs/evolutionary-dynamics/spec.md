@@ -59,42 +59,82 @@ Con `enable_sos_mutation=False`, la escala de mutación SHALL valer 1.0 y la Fas
 - **WHEN** con $R_{30}$ activa se reproduce un holón cuya hoja 1 registró estrés 10 ticks antes y cuya hoja 2 no registró estrés y tiene energía intermedia
 - **THEN** la réplica de la hoja 1 muta con escala `sos_hypermutation_factor` y la de la hoja 2 con escala 1.0.
 
-### Requirement: Entrada en Endospora (R28)
-Con `enable_evolution` y `enable_sporulation` activas, en la Fase 5, después de la muerte y antes de la reproducción, en orden de `agent_id`, cada hoja que no es endospora ni nació en el tick SHALL entrar en endospora con `set_endospore(True)` si `energy <= phenotype.spore_threshold`, su observación de la Fase 1 del tick no tiene recursos visibles y, con $R_{19}$ activa, su celda no tiene un rastro con `sign_value > 0`.
+### Requirement: Entrada en Endospora sólo por la Conducta SPORULATE (R28)
+Una hoja SHALL entrar en endospora (`set_endospore(True)`) sólo al ejecutarse en la Fase 4 su acción `SPORULATE`, factible con `enable_genetic_policy`, `enable_evolution` y `enable_sporulation` activas y `energy <= phenotype.spore_threshold`. La entrada automática por umbral de design D38 se elimina: la Fase 5 no pone a nadie en endospora, y sin la política genética $R_{28}$ es inerte.
 
-#### Scenario: Hambruna sin estímulos
-- **WHEN** con `spore_energy_threshold = 0.30` un agente sin ADN termina el cobro metabólico con `energy = 0.25` y su observación del tick no tenía recursos visibles
-- **THEN** queda con `is_endospore == True`.
+#### Scenario: Entrada por la conducta
+- **WHEN** con la política genética y $R_{28}$ activas una hoja con `energy = 0.25` y `phenotype.spore_threshold = 0.30` decide `SPORULATE`
+- **THEN** al ejecutarse su acción en la Fase 4 queda con `is_endospore == True`.
 
-#### Scenario: Recurso visible
-- **WHEN** el mismo agente tenía un recurso visible en su observación del tick
-- **THEN** no entra en endospora.
+#### Scenario: Sin entrada por umbral
+- **WHEN** con $R_{28}$ activa una hoja termina el metabolismo con `energy = 0.25`, `phenotype.spore_threshold = 0.30` y sin recursos visibles, sin haber ejecutado `SPORULATE`
+- **THEN** sigue con `is_endospore == False`.
+
+#### Scenario: R28 inerte sin la política genética
+- **WHEN** se corre con `enable_sporulation=True` y `enable_genetic_policy=False`
+- **THEN** ningún agente entra nunca en endospora y no se lanza error.
 
 ### Requirement: Germinación de la Endospora
 En la Fase 1, inmediatamente después de `get_observation`, una endospora SHALL germinar con `set_endospore(False)` si su observación tiene algún recurso visible o, con $R_{19}$ activa, su celda tiene un rastro con `sign_value > 0`; germina antes de emitir y actúa normalmente en ese tick.
 
 #### Scenario: Germinación ante un recurso
 - **WHEN** una endospora observa un recurso visible en la Fase 1 del tick 50
-- **THEN** en ese mismo tick queda con `is_endospore == False`, emite mensajes y decide su acción con `decide_action`.
+- **THEN** en ese mismo tick queda con `is_endospore == False`, emite mensajes y decide su acción con su política.
 
 ### Requirement: Física de la Endospora
-Una endospora SHALL NOT llamar a `perceive_and_emit_messages`, asimilar estigmergia, emitir ni recibir mensajes (se excluye del ruteo como emisora y destinataria), reproducirse, ni donar o recibir plásmidos; su acción de la Fase 3 SHALL ser `IDLE` sin llamar a `decide_action`, sin consumir `self.rng` y sin sumar oportunidad de decisión en M2; sigue en su holón y su memoria decae.
+Una endospora SHALL NOT llamar a `perceive_and_emit_messages`, asimilar estigmergia, emitir ni recibir mensajes (se excluye del ruteo como emisora y destinataria), reproducirse, ni donar o recibir plásmidos; su acción de la Fase 3 SHALL ser `IDLE` sin llamar a su política, sin consumir `self.rng` y sin sumar oportunidad de decisión en M2; sigue en su holón y su memoria decae.
 
 #### Scenario: Endospora inmóvil y aislada
 - **WHEN** una endospora con energía mayor que `reproduction_threshold` y un vecino que emite atraviesa un tick sin germinar
 - **THEN** su acción es `IDLE`, no recibe mensajes, no emite, no se reproduce, el estado de `self.rng` no cambia, su memoria decae y sigue en su holón.
 
 ### Requirement: Costo de la Endospora
-Una endospora SHALL pagar por tick `spore_cost_fraction * metabolic_base_cost`, más la senescencia de $R_{29}$, en lugar del costo basal, el del ADN, el de movimiento y el de mensajes. La supervivencia que produzca $R_{28}$ es programada y se declara así.
+Una endospora SHALL pagar por tick `spore_cost_fraction * metabolic_base_cost`, más la senescencia de $R_{29}$, en lugar del costo basal, el del ADN, el de movimiento y el de mensajes. $R_{28}$ sólo pone a disposición ese estado de bajo gasto: si se usa lo decide el ADN.
 
 #### Scenario: Gasto reducido en endospora
 - **WHEN** con `metabolic_base_cost = 0.01`, `spore_cost_fraction = 0.05`, $R_{29}$ apagada y `enable_compact_dna=True` una endospora con 12 codones atraviesa un tick
 - **THEN** su energía baja exactamente `0.0005` (con tolerancia `1e-9`).
 
+### Requirement: Endospora fuera del Alcance de SHARE y ATTACK
+Un `SHARE` ($R_{36}$) o un `ATTACK` ($R_{37}$) cuyo objetivo está en endospora al ejecutarse SHALL NOT cambiar la energía de nadie; el ataque cuenta igual como intento para su costo.
+
+#### Scenario: Ataque a una endospora
+- **WHEN** con $R_{37}$ activa un agente con energía 1.5 ataca a una endospora con energía 0.2
+- **THEN** las energías no cambian en la Fase 4 y el atacante paga `attack_cost` en el metabolismo del tick.
+
+### Requirement: Costo de los Ataques en el Metabolismo (R37)
+Con $R_{37}$ activa, al cobrar el metabolismo, el costo de cada agente SHALL sumar `attack_cost` por cada intento de ataque registrado en `frame.attacks` en el tick, haya tenido éxito o no.
+
+#### Scenario: Ataque fallido con costo
+- **WHEN** con `attack_cost = 0.01`, `metabolic_base_cost = 0.01`, `memory_capacity_cost = 0.0`, `sensory_radius_cost = 0.0` y `dna_codon_cost = 0.0` un agente sin mensajes ejecuta un `ATTACK` que fracasa
+- **THEN** su energía baja `0.02` en el metabolismo del tick (con tolerancia `1e-9`).
+
+### Requirement: Recombinación en la Reproducción Individual (R38)
+Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, en la reproducción de $R_{12}$, un progenitor con `recombination_propensity` expresada $\ge 0.5$ SHALL buscar pareja entre las hojas vivas al empezar el paso de reproducción, distintas de él, ordenadas por `agent_id`, no endosporas, con ADN, a distancia $\le 1$ y con `recombination_propensity >= 0.5`; sin candidatas es asexual. La pareja SHALL NOT ceder energía.
+
+#### Scenario: Pareja sin costo energético
+- **WHEN** el progenitor 4 y el agente 6, a distancia 1 y ambos con `recombination_propensity = 0.7`, están vivos y el agente 4 se reproduce con $R_{38}$ activa
+- **THEN** el agente 6 es candidato, la energía del agente 6 no cambia por la reproducción y la partición de energía del agente 4 es la de $R_{12}$.
+
+#### Scenario: Recién nacidos fuera de las candidatas
+- **WHEN** el único agente a distancia 1 del progenitor nació antes, en el mismo paso de reproducción, con `recombination_propensity = 0.9`
+- **THEN** no es candidato y la reproducción es asexual.
+
+#### Scenario: Propensión insuficiente
+- **WHEN** el progenitor expresa `recombination_propensity = 0.4`
+- **THEN** no busca pareja y la reproducción es asexual.
+
+### Requirement: Sin Recombinación en la Reproducción Holónica
+La reproducción holónica ($R_{17}$) SHALL NOT recombinar: cada hoja hija deriva su ADN sólo del de su hoja progenitora.
+
+#### Scenario: Réplica sin cruce
+- **WHEN** con $R_{38}$ y $R_{17}$ activas y todas las hojas con `recombination_propensity = 1.0` se reproduce un holón
+- **THEN** ninguna hoja hija recombina y `evo_rng` no hace extracciones de recombinación en esa reproducción.
+
 ## MODIFIED Requirements
 
 ### Requirement: Metabolismo Energético con Penalización Cuadrática de Capacidad y Radios
-Cuando `enable_evolution=True`, cada `MicroAgent` SHALL iniciar con energía `initial_energy` ($E_0$), descontar por tick el costo basal $c_{\text{fijo}} + c_{\text{mem}} C_{\max, i}^2 + c_{\text{sens}}(r_{\text{perc}, i}^2 + r_{\text{com}, i}^2)$ más $c_{\text{move}}$ (si se movió) y $c_{\text{msg}} m_i$, y sumar $\eta_E \cdot v$ al consumir un recurso de valor $v$; el costo basal suma el del ADN ($R_{24}$) y la senescencia ($R_{29}$), y una endospora ($R_{28}$) paga en su lugar su costo.
+Cuando `enable_evolution=True`, cada `MicroAgent` SHALL iniciar con energía `initial_energy` ($E_0$), descontar por tick el costo basal $c_{\text{fijo}} + c_{\text{mem}} C_{\max, i}^2 + c_{\text{sens}}(r_{\text{perc}, i}^2 + r_{\text{com}, i}^2)$ más $c_{\text{move}}$ (si se movió) y $c_{\text{msg}} m_i$, y sumar $\eta_E \cdot v$ al consumir un recurso de valor $v$; suma ADN ($R_{24}$), senescencia ($R_{29}$) y ataques ($R_{37}$), y una endospora paga su propio costo ($R_{28}$).
 
 #### Scenario: Penalización cuadrática del cerebro individual
 - **WHEN** dos agentes en reposo y sin emitir mensajes tienen capacidades $C_{\max} = 3$ y $C_{\max} = 6$ respectivamente, con `metabolic_base_cost = 0.02`, `memory_capacity_cost = 0.005` y `sensory_radius_cost = 0.0`
@@ -107,6 +147,17 @@ Cuando `enable_evolution=True`, cada `MicroAgent` SHALL iniciar con energía `in
 #### Scenario: Costo basal con ADN y senescencia
 - **WHEN** con `metabolic_base_cost = 0.01`, `memory_capacity_cost = 0.005`, `sensory_radius_cost = 0.0`, `dna_codon_cost = 0.0002` y `senescence_cost_rate = 1e-5`, un agente en reposo y sin mensajes, con 9 codones, `memory_capacity = 3` expresada y `age - lifespan = 10`, paga el metabolismo con $R_{24}$ y $R_{29}$ activas
 - **THEN** pierde `0.01 + 0.045 + 0.0018 + 0.001 = 0.0578` de energía (con tolerancia `1e-9`).
+
+### Requirement: Muerte por Agotamiento Energético
+En la Fase 5 de cada tick con `enable_evolution=True`, todo `MicroAgent` cuya energía resultante cumpla $E_i(t) \le 0$, por el metabolismo o por la depredación de $R_{37}$ en la Fase 4, SHALL ser eliminado del motor, del entorno espacial y podado de cualquier árbol holónico antes de la fase de reproducción, incrementando el contador `deaths_this_tick`; con $R_{35}$ activa deja antes un cadáver.
+
+#### Scenario: Eliminación por inanición
+- **WHEN** la energía de un agente cae a `0.0` o a un valor negativo al finalizar el cobro metabólico de la Fase 5
+- **THEN** el agente deja de figurar en `engine.agents` y en `env.get_active_agent_ids()` en ese mismo tick.
+
+#### Scenario: Muerte por depredación
+- **WHEN** con $R_{37}$ activa un agente queda con energía `0.0` por un ataque exitoso en la Fase 4 del tick 12
+- **THEN** muere en el paso de muerte de la Fase 5 del tick 12 y cuenta en `deaths_this_tick`.
 
 ### Requirement: Reproducción Diferencial con Partición Conservativa y Límite de Un Evento por Tick (R12)
 En la Fase 5 con `enable_evolution=True`, todo `MicroAgent` sobreviviente no reproducido aún en ese tick y que no esté en endospora ($R_{28}$) cuya energía cumpla $E_i(t) \ge E_{\text{reprod}}$ SHALL engendrar a lo sumo un hijo (en orden ascendente de `agent_id`) si `len(agents) < max_population`, reteniendo $(1 - \kappa_{\text{part}}) E_i(t)$ y transfiriendo $\kappa_{\text{part}} E_i(t)$ al hijo.
@@ -124,7 +175,7 @@ En la Fase 5 con `enable_evolution=True`, todo `MicroAgent` sobreviviente no rep
 - **THEN** no nace ningún descendiente suyo y su energía no se parte.
 
 ### Requirement: Reproducción Neutral como Ablación de R12 y Control de Deriva
-Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL reproducirse con la misma partición de energía, ubicación, linaje y herencia cultural, pero el genoma de cada hijo (su ADN, con `enable_compact_dna=True`) SHALL mutarse a partir del de un donante sorteado con `donor_rng` (`spawn_key=(4,)`) entre los agentes vivos que no están en endospora al empezar la reproducción del tick.
+Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL reproducirse con la misma partición de energía, ubicación, linaje y herencia cultural, pero el genoma de cada hijo (su ADN, con `enable_compact_dna=True`) SHALL mutarse a partir del de un donante sorteado con `donor_rng` (`spawn_key=(4,)`) entre los agentes vivos que no están en endospora al empezar la reproducción del tick; con $R_{38}$, ese ADN es el primero del cruce.
 
 #### Scenario: Misma demografía, genoma independiente del éxito
 - **WHEN** se corren dos motores con la misma semilla y `reproduction_mode` `"energy"` y `"neutral"`, con `mutation_rate = 0`, `discrete_mutation_prob = 0` y genomas fundadores distintos
@@ -135,7 +186,7 @@ Con `reproduction_mode="neutral"`, los mismos agentes que con `"energy"` SHALL r
 - **THEN** el donante se sortea con `donor_rng` sobre la lista ordenada `[1, 3]`.
 
 ### Requirement: Herencia Genética con Mutación Acotada (R13)
-Al reproducirse un agente sin ADN con `mutation_rate > 0` o `discrete_mutation_prob > 0` (escalados por $R_{30}$), el `AgentGenome` del hijo SHALL derivarse del parental aplicando ruido normal $\mathcal{N}(0, \sigma_{\text{mut}}^2)$ a los rasgos continuos y saltos en $\{-1, 0, +1\}$ a los discretos dentro de sus cotas válidas; si ambos son `0.0`, SHALL clonarse sin consumir extracciones del RNG. Con ADN, el hijo SHALL derivar su ADN con `mutate_dna`, con la misma puerta de $R_{13}$.
+Al reproducirse un agente sin ADN con `mutation_rate > 0` o `discrete_mutation_prob > 0` (escalados por $R_{30}$), el `AgentGenome` del hijo SHALL derivarse del parental aplicando ruido normal $\mathcal{N}(0, \sigma_{\text{mut}}^2)$ a los rasgos continuos y saltos en $\{-1, 0, +1\}$ a los discretos dentro de sus cotas; si ambos son `0.0`, SHALL clonarse sin extraer del RNG. Con ADN, el hijo SHALL derivar su ADN (recombinado si hubo $R_{38}$) con `mutate_dna`, bajo la puerta de $R_{13}$.
 
 #### Scenario: Clonación exacta bajo ablación de mutación
 - **WHEN** un agente sin ADN se reproduce con `mutation_rate = 0.0` y `discrete_mutation_prob = 0.0`
