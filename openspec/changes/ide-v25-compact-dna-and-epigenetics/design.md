@@ -484,6 +484,38 @@ Esta decisión es un **borrador de pre-registro**. Se aprueba o se corrige en la
   - sin calcular métricas de afirmaciones.
   - Si muestra mortalidad sostenida, se refuta la hipótesis del "Tapón de Matusalén" y se decide si $R_{29}$ y C10 se mantienen.
 
+### Precisiones (2026-10-20, surgidas de la redacción de los specs)
+Cierran huecos de D34–D41 sin cambiar su intención. Ninguna toca el pre-registro (D42).
+1. **Fundadores (D34.1).** `MicroAgent.__init__` fija `base_config = config`.
+   - Con `config.enable_compact_dna=True`, asigna `dna = founder_dna(config)` y `phenotype = transcribe_phenotype(dna, EpigeneticContext(0, EpigeneticRole.NONE, config.initial_energy / config.reproduction_threshold), config)`, cuyo `genome` es `genome_from_config(config)` (D32).
+   - Si no, asigna `dna = None` y `phenotype = phenotype_from_genome(genome_from_config(config), config)`.
+   - `from_lineage` recibe además `dna` y `base_config`.
+2. **Actualización del fenotipo en `express` (D34.2).** `express` reemplaza **siempre** `phenotype` por el fenotipo transcripto, aunque sólo cambien `lifespan`, `spore_threshold` o `expressed_codons`. El reemplazo de `_genome` y de `_config` y el `resize` de la memoria ocurren sólo si cambió `genome`.
+3. **Expresión al nacer (D34.6).** La hace `create_offspring`, en el agente, no el motor. El motor sólo lee los radios del hijo para `spawn_agent_near`.
+4. **Ensayos CRISPR (D37).**
+   - **Dónde viven.** En `MicroAgent`, con `plasmid_trials -> dict[int, tuple[int, float]]` (una copia, ordenada por codón), `open_plasmid_trial(codon, tick)` y `close_plasmid_trial(codon)`.
+   - **Apertura.** `open_plasmid_trial` no reabre un ensayo ya abierto para ese codón: conserva el original.
+   - **Cierre.** Un ensayo sólo se cierra al vencer. Si al vencer el plásmido ya no está, se cierra sin purga.
+   - **Herencia.** Los ensayos no se heredan (D35).
+5. **Conteo de eventos de conjugación (D37 y D41).**
+   - `hgt_transfers` cuenta las transferencias que **cambiaron** el ADN del receptor.
+   - `crispr_rejections` cuenta las bloqueadas por `crispr_memory`.
+   - Un codón ya presente no cuenta en ninguno de los dos.
+   - `crispr_purges` cuenta las purgas del paso de ensayo.
+6. **Endospora dentro de un holón (D38).** Sigue pagando su alícuota del costo de coordinación ($R_{23}$), que se cobra en el paso (ii) de la Fase 5 y es distinto del costo basal. Lo que reemplaza la endospora es el costo basal, el del ADN, el de movimiento y el de mensajes.
+7. **Registro del estrés (D39).** "Siempre" quiere decir "aunque `enable_sos_mutation=False`". El registro ocurre en el paso de metabolismo, así que sólo existe con `enable_evolution=True`.
+8. **Descuento del trinquete (D40).** El costo de coordinación se cobra sólo a los holones raíz, como en la Fase II. El descuento se aplica si la **raíz** está soldada: un sub-holón soldado dentro de una raíz sin soldar no da descuento.
+9. **Mapeo de métrica a campo (D41 y D42).** `PHASE25_METRIC_FIELDS = {"evolved_accuracy": "final_accuracy", "final_population": "final_agents", "holonic_composite_completions": "composite_completions"}`, como `_PHASE2_METRIC_FIELDS`.
+10. **`genetic_history` (D41).** Se registra en **cada** tick, con cualquier combinación de banderas, como `evolutionary_history`.
+    - Los promedios son sobre las hojas vivas al final del tick.
+    - `mean_age` es `float` y `max_age` es `int`.
+    - Con la población vacía, los promedios valen `0.0` y los máximos `0`.
+    - Sin ADN, las medias genéticas valen `0.0`.
+    - La edad se define siempre, por `birth_tick`.
+11. **Roles (D36).** Una raíz sin entrada en `_role_leaf_sets` cuenta como cambiada. En la impronta, cada hoja hija recibe el rol de la hoja progenitora de la que nació, según la correspondencia `offspring[progenitora.agent_id]` de `reproduce_holon`.
+12. **Plásmido mutado (D35, paso 2).** Después de la mutación puntual de los plásmidos, se descartan, en orden, los codones repetidos (se queda el primero) y los que estén en `crispr_memory`.
+13. **Dependencia de P5.** C10 y $R_{29}$ quedan sujetos al diagnóstico de la tarea 0.1. Si se descartan, la tarea 0.2 retoca D42 y los specs de `emergence-attribution` y `experimental-suite` (`002d`).
+
 ---
 
 ## Arquitectura de Módulos y Árbol de Archivos
