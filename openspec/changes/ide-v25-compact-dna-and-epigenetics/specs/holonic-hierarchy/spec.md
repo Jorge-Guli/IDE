@@ -64,7 +64,7 @@ En la reproducción holónica ($R_{17}$), cada hoja hija SHALL recibir el rol de
 - **THEN** las hojas de la réplica nacen con esos mismos roles, en correspondencia con sus progenitoras, y la Fase 5 no los recalcula mientras la réplica conserve sus hojas.
 
 ### Requirement: Sello por Compromiso Simbiótico (R31)
-`CompositeAgent` SHALL incorporar `is_locked: bool = False`. Con `enable_holonic_hierarchy` y `enable_symbiotic_ratchet` activas, en el paso de coordinación de la Fase 5, antes de cobrar el costo de coordinación y de evaluar `SPLIT`, un holón raíz no soldado SHALL quedar soldado si la media del `symbiotic_commitment` expresado de sus hojas es $\ge 0.5$. El sello es permanente.
+`CompositeAgent` SHALL incorporar `is_locked: bool = False`. Con `enable_holonic_hierarchy`, `enable_compact_dna` y `enable_symbiotic_ratchet` activas, en el paso de coordinación de la Fase 5, antes de cobrar el costo de coordinación y de evaluar `SPLIT`, un holón raíz no soldado SHALL quedar soldado si la media del `symbiotic_commitment` expresado de sus hojas es $\ge 0.5$. El sello es permanente.
 
 #### Scenario: Sello por compromiso medio
 - **WHEN** un holón raíz no soldado tiene 2 hojas que expresan `symbiotic_commitment` 0.25 y 0.75
@@ -73,6 +73,10 @@ En la reproducción holónica ($R_{17}$), cada hoja hija SHALL recibir el rol de
 #### Scenario: Compromiso insuficiente
 - **WHEN** un holón raíz no soldado tiene 2 hojas que expresan `symbiotic_commitment` 0.25 y 0.5
 - **THEN** sigue con `is_locked == False`.
+
+#### Scenario: Sin ADN no hay sello
+- **WHEN** con `enable_compact_dna=False`, `enable_symbiotic_ratchet=True` y `symbiotic_commitment_base = 0.8` se forma un holón raíz
+- **THEN** el sello no se evalúa y el holón sigue con `is_locked == False` (design, precisión 32).
 
 #### Scenario: Sello permanente
 - **WHEN** un holón raíz soldado pasa a tener hojas cuyo compromiso medio es 0.0

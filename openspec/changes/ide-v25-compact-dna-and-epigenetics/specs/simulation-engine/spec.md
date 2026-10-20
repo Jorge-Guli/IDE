@@ -115,10 +115,10 @@ M2 SHALL juzgar decisiones, no acciones: un agente con recursos elementales alca
 - **THEN** suma una oportunidad de decisión y una decisión correcta.
 
 ### Requirement: Aceptación del Fundador Genético
-Con el ADN fundador de `founder_dna(config)` y sin mutación, las corridas de `002a` y `003a` con `enable_genetic_policy=True` SHALL producir historiales idénticos a los de `enable_genetic_policy=False`, incluido el consumo de `self.rng`.
+Con el ADN fundador de `founder_dna(config)`, sin mutación y con `dna_codon_cost = 0.0`, las corridas de `002a` y `003a` con `enable_genetic_policy=True` SHALL producir historiales idénticos a los de `enable_genetic_policy=False`, incluido el consumo de `self.rng` (design D46.5).
 
 #### Scenario: Fundador conductual neutro
-- **WHEN** se corren `002a` y `003a` con `enable_compact_dna=True`, `mutation_rate = 0.0`, `discrete_mutation_prob = 0.0` y `enable_genetic_policy` en `True` y en `False`, con la misma semilla
+- **WHEN** se corren `002a` y `003a` con `enable_compact_dna=True`, `mutation_rate = 0.0`, `discrete_mutation_prob = 0.0`, `dna_codon_cost = 0.0` y `enable_genetic_policy` en `True` y en `False`, con la misma semilla
 - **THEN** `history` y `evolutionary_history` son idénticos entre las dos corridas.
 
 ### Requirement: Fase 0 de Expresión del Fenotipo

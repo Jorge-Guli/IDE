@@ -27,7 +27,7 @@
 >
 > Cambiar el subagente de un bloque es editar su línea `> Ejecuta:` en un commit.
 >
-> **Compatibilidad.** Ningún bloque puede cambiar los hashes dorados de la Fase I ni los historiales de la Fase II con las banderas por defecto. Los tests de los bloques 1 a 5 sólo cambian donde la reformulación lo dice explícitamente (D46.3, D50.3 y D52.4).
+> **Compatibilidad.** Ningún bloque puede cambiar los hashes dorados de la Fase I ni los historiales de la Fase II con las banderas por defecto. Los tests de los bloques 1 a 5 sólo cambian donde la reformulación lo dice explícitamente (D46.7, D50.3 y D52.4), más el test de firmas canónicas de la Fase I (precisión 22).
 >
 > **Pre-registro.** Es design D56 (borrador). Se aprueba en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 19 deben coincidir **exactamente** con él.
 >
@@ -187,7 +187,7 @@
   - (e) `recombine_dna`, con el truncado y el mínimo de longitud (D51.2);
   - (f) propiedades con Hypothesis: impulsos deterministas e independientes de `PYTHONHASHSEED`.
 - [ ] 9.2 **[GREEN]** Implementar en `dna.py`.
-- [ ] 9.3 **[REFACTOR]** Actualizar los tests de los bloques 2 y 3 que la reformulación modifica (destinos `0x0A`–`0x0C` y promotores `0x20`–`0x27`) y verificación del bloque.
+- [ ] 9.3 **[REFACTOR]** Actualizar los tests de los bloques 2 y 3 que la reformulación modifica (destinos `0x0A`–`0x0C` y conteo de `expressed_codons`, D46.7) y verificación del bloque.
 
 ## 10. Política genética, percepción social y puerta de comunicación (`micro-agent`, `simulation-engine`)
 
@@ -199,7 +199,7 @@
   - (c) la percepción social del motor sobre la instantánea de energías, sin endosporas, con `flee_move` y `crowded` (D47.3), y `None` sin la política genética;
   - (d) la puerta de comunicación de `protocol.py` (D46.6);
   - (e) el caché de impulsos igual a la evaluación directa (D46.8);
-  - (f) **aceptación de D46.5:** con el ADN fundador, sin mutación, `002a` y `003a` con `enable_genetic_policy=True` dan historiales idénticos a los de `False`.
+  - (f) **aceptación de D46.5:** con el ADN fundador, sin mutación y con `dna_codon_cost = 0.0`, `002a` y `003a` con `enable_genetic_policy=True` dan historiales idénticos a los de `False`.
 - [ ] 10.2 **[GREEN]** Implementar `GeneticPolicy`, la percepción social en el sistema de la Fase 1 y la puerta de comunicación.
 - [ ] 10.3 **[REFACTOR]** Benchmark con la política genética y verificación del bloque.
 
@@ -226,7 +226,7 @@
   - (a) `SHARE`: cantidad, eficiencia, objetivo muerto o en endospora (D49.1);
   - (b) `ATTACK`: éxito sólo contra un objetivo más débil en el momento de ejecutarse, robo acotado, eficiencia, costo por intento y muerte con cadáver (D49.2);
   - (c) conflictos resueltos por la permutación del tick;
-  - (d) que M2 no cuenta estas acciones (D49.4);
+  - (d) que M2 juzga la decisión cualquiera sea la conducta elegida (D49.4 y precisión 21);
   - (e) los eventos del tick en `frame.events`.
 - [ ] 12.2 **[GREEN]** Implementar D49 en el sistema de la Fase 4 y el costo de los ataques en el metabolismo.
 - [ ] 12.3 **[REFACTOR]** Verificación del bloque.

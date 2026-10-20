@@ -159,7 +159,7 @@ Con `enable_compact_dna=True`, `SimulationConfig.__post_init__` SHALL lanzar un 
 - **THEN** ninguna construcción lanza error.
 
 ### Requirement: Dependencias Inertes de las Banderas de la Reformulación
-`SimulationConfig` SHALL NOT lanzar `ValueError` cuando una bandera de la reformulación está activa y su requisito apagado: $R_{32}$ y $R_{38}$ sin `enable_compact_dna`; $R_{28}$, $R_{36}$ y $R_{37}$ sin `enable_genetic_policy`; $R_{35}$ y $R_{38}$ sin `enable_evolution`; y las estaciones de $R_{34}$ (`season_length > 0`) sin `enable_resource_depletion`. En esos casos la bandera queda inerte (design D52.3).
+`SimulationConfig` SHALL NOT lanzar `ValueError` cuando una bandera de la reformulación está activa y su requisito apagado: $R_{31}$, $R_{32}$ y $R_{38}$ sin `enable_compact_dna`; $R_{28}$, $R_{36}$ y $R_{37}$ sin `enable_genetic_policy`; $R_{35}$ y $R_{38}$ sin `enable_evolution`; y las estaciones de $R_{34}$ (`season_length > 0`) sin `enable_resource_depletion`. En esos casos la bandera queda inerte (design D52.3).
 
 #### Scenario: Banderas de la reformulación sin sus requisitos
 - **WHEN** se construye `SimulationConfig(enable_genetic_policy=True, enable_recombination=True, enable_carcasses=True)`, `SimulationConfig(enable_evolution=True, enable_compact_dna=True, enable_energy_transfer=True, enable_predation=True, enable_sporulation=True)` o `SimulationConfig(enable_heterogeneity=True, season_length=500)`

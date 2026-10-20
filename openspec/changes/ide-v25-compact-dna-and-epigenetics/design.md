@@ -158,6 +158,8 @@ En `src/ide/config.py`, `SimulationConfig` incorpora al final:
     lock_coord_discount: float = 0.5
 ```
 
+> **Campo eliminado por D52.4:** `lock_composite_threshold` y su validación `lock_composite_threshold >= 1` salen de la configuración con la reformulación (D50.3).
+
 **Validación en `__post_init__`.** Siempre se aplica, aunque la bandera esté apagada, porque son rangos de parámetros:
 - **En $[0, 1]$:** `dna_point_mutation_rate`, `dna_duplication_rate`, `dna_deletion_rate`, `dna_excision_rate`, `hgt_rate`, `spore_cost_fraction`, `sos_high_fidelity_factor`, `lock_coord_discount`.
 - **No negativos:** `dna_codon_cost`, `crispr_toxicity_threshold`, `senescence_cost_rate`, `spore_energy_threshold`.
@@ -575,7 +577,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
    - D41: sustituida por D44, D53 y D56;
    - D42: sustituida por el borrador D56. C9–C12 se retiran sin medir.
 4. **Lo que se agrega:** el motor por sistemas (D44), el puerto de política (D45), la conducta en el ADN ($R_{32}$, D46), la percepción social y las acciones nuevas (D47), la ecología ($R_{33}$–$R_{35}$, D48), las interacciones ($R_{36}$, $R_{37}$, D49), la recombinación ($R_{38}$, D51), la configuración (D52), la telemetría de evolución abierta (D53), el rendimiento (D54), la compuerta de viabilidad (D55) y el pre-registro (D56).
-5. **Compatibilidad.** Con todas las banderas nuevas en su valor por defecto, las Fases I y II y la etapa A de la Fase II-B se comportan bit a bit como antes: los hashes dorados de la Fase I, las huellas de la Fase II y los tests de los bloques 1 a 5 no cambian, salvo los que la propia reformulación modifica de forma explícita (D46.3, D46.7, D50.3 y D52.4). Ningún test de conducta de las Fases I y II cambia. La única excepción es el test de firmas públicas canónicas de la Fase I (`test_firmas_publicas_canonicas`), que se amplía con los parámetros opcionales `policy=None` y `social=None` (precisión 22); es un cambio aditivo de firma, sin cambio de conducta.
+5. **Compatibilidad.** Con todas las banderas nuevas en su valor por defecto, las Fases I y II y la etapa A de la Fase II-B se comportan bit a bit como antes: los hashes dorados de la Fase I, las huellas de la Fase II y los tests de los bloques 1 a 5 no cambian, salvo los que la propia reformulación modifica de forma explícita (D46.7, D50.3 y D52.4). Ningún test de conducta de las Fases I y II cambia. La única excepción es el test de firmas públicas canónicas de la Fase I (`test_firmas_publicas_canonicas`), que se amplía con los parámetros opcionales `policy=None` y `social=None` (precisión 22); es un cambio aditivo de firma, sin cambio de conducta.
 6. **Generadores.** La reformulación no agrega generadores. Las extracciones nuevas usan el generador principal (la conducta en la Fase 3 y la ubicación de recursos en el entorno) o `evo_rng` (la recombinación al nacer), siempre detrás de su bandera.
 
 ### Decisión 44: Motor por Sistemas y Observadores
@@ -676,7 +678,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
    - si ninguna lo es, devuelve `IDLE`.
    - Una endospora no decide (D38).
 5. **Fundador conductual neutro.** Con `enable_genetic_policy=True`, `founder_dna(config)` agrega al cromosoma de D32 cuatro codones `ALWAYS_BASAL` aditivos, en este orden: `encode_codon(0x00, 0x40, 0, 0, 127)`, `encode_codon(0x00, 0x41, 0, 0, 96)`, `encode_codon(0x00, 0x42, 0, 0, 64)` y `encode_codon(0x00, 0x43, 0, 0, 32)`. Los impulsos fundadores son 0.9921875, 0.75, 0.5 y 0.25, y el orden de prueba reproduce exactamente `HandwrittenPolicy`, incluidas las extracciones de `rng`.
-   - **Test de aceptación:** con el ADN fundador y sin mutación, las corridas de `002a` y `003a` con `enable_genetic_policy=True` producen historiales idénticos a los de `enable_genetic_policy=False`.
+   - **Test de aceptación:** con el ADN fundador, sin mutación y con `dna_codon_cost = 0.0`, las corridas de `002a` y `003a` con `enable_genetic_policy=True` producen historiales idénticos a los de `enable_genetic_policy=False`. El costo por codón se anula porque el fundador conductual tiene 13 codones y no 9: con el costo por defecto pagaría más energía por tick, y los historiales divergirían por el metabolismo, no por la conducta.
    - `founder_dna_length(config)` vale 13 con la política genética y 9 sin ella. `FOUNDER_DNA_LENGTH = 9` se conserva para la validación de D31.
 6. **Propensión a comunicar.** Con la política genética, el rasgo expresado `comm_propensity` (destino `0x0C`, D46.7) decide si el agente comunica en el tick:
    - con `comm_propensity >= 0.5`, emite y responde consultas como en la Fase I;
@@ -973,6 +975,13 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
 31. **"Con la política genética" (D46.6, D47.3, D53.2).** Quiere decir que $R_{32}$ está **efectivamente** activa: `enable_compact_dna` y `enable_genetic_policy` en `True`. Con `enable_genetic_policy=True` y sin ADN, $R_{32}$ es inerte: no hay percepción social, la puerta de comunicación no actúa y la política es la escrita a mano.
 32. **$R_{31}$ sin ADN (D50.3 y D52.3).** Sin `enable_compact_dna`, $R_{31}$ es inerte: el sello no se evalúa, aunque `symbiotic_commitment_base >= 0.5`. Así el compromiso siempre es un rasgo heredable, nunca un decreto de la configuración.
 33. **Canal vacío de C13–C18 frente a C6 (D56).** En la Fase II, C6 medía `evolved_accuracy`, que es justamente lo que persigue la selección por energía de $R_{12}$: comer bien da energía, y la energía da descendencia. Por eso su canal era $R_{12}$ y era programada por construcción. Las métricas de C13–C18 (regulación expresada, divergencia de la conducta, comunicación, actividad evolutiva, complejidad genética y cooperación material) no son lo que ninguna regla selecciona ni produce: si crecen por encima de la deriva, es porque la selección las construyó como medio, no como fin. Por eso su canal es vacío. Estas afirmaciones no recorren la escalera E1–E5 de la Fase I: se evalúan sólo con la comparación pre-registrada, la corrección de Holm y $\delta_{\min}$, y E4 se informa aparte.
+34. **Política de los descendientes (D45.3).** `MicroAgent.from_lineage` recibe `policy` y lo propaga a su construcción. `create_offspring` le pasa la política del progenitor.
+35. **Recombinación en la deriva (precisión 14).** En la reproducción neutral, el ADN del donante sorteado es la base completa del hijo, como en D34.7: con $R_{38}$, el primer cromosoma del cruce, los plásmidos y `crispr_memory` son los del donante.
+36. **Contexto de `regulated_expression_fraction` (D53.2).** La fracción se calcula sobre la transcripción del fenotipo con el `last_context` de cada hoja (precisión 23).
+37. **Muertes por depredación y por hambre (D53.3).** Son excluyentes. Una muerte del tick es por depredación si el agente fue objetivo, en ese tick, de un ataque con éxito y `stolen > 0`; si no, es por hambre.
+38. **Semillas de E4 (D56).** `e4_p_value` se calcula con `PHASE25_SEEDS`, pareando `full` con `null_content` por semilla.
+39. **Conjuntos del `TickFrame` (D44.1).** `moved`, `surplus` y cualquier otro `set` del marco se recorren siempre con `sorted(...)`, como exige `CLAUDE.md`.
+40. **Oscilación de la endospora (D50.2).** Un agente puede entrar en endospora con `SPORULATE` y germinar al tick siguiente si ve un recurso, y alternar así. Es física declarada: el costo reducido de la endospora es una capacidad disponible, y su uso lo decide el ADN.
 
 ---
 

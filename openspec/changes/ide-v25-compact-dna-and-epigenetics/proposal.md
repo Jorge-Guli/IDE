@@ -103,6 +103,8 @@ Son parte del pre-registro que se aprueba completo en la tarea 0.2. Ya están in
 
 ## Impact
 
+> Esta sección es de la propuesta original. La reformulación la amplía y la corrige en "Impacto adicional" (al final): en particular, el test de firmas canónicas de la Fase I se amplía con parámetros opcionales.
+
 - **Código afectado:**
   - `src/ide/config.py`;
   - `src/ide/domain/types.py`;
@@ -155,5 +157,5 @@ Aprobar o corregir el borrador D56 antes del bloque 6:
 ### Impacto adicional
 - **Código nuevo:** `src/ide/agent/policy.py`, `src/ide/simulation/pipeline.py` y `src/ide/experiments/phase25_viability.py`, además de los módulos de la propuesta original.
 - **Código modificado además del original:** `src/ide/agent/protocol.py`, `src/ide/domain/ports.py` y `src/ide/environments/grid2d.py`.
-- **Tests:** algunos tests de los bloques 1 a 5 cambian donde la reformulación lo declara (destinos `0x0A`–`0x0C`, promotores `0x20`–`0x27` y `lock_composite_threshold`). Ningún test de conducta de las Fases I y II cambia. La excepción es el test de firmas públicas canónicas de la Fase I, que se amplía con los parámetros opcionales `policy` y `social` (design, precisión 22).
+- **Tests:** algunos tests de los bloques 1 a 5 cambian donde la reformulación lo declara (destinos `0x0A`–`0x0C`, conteo de `expressed_codons` y `lock_composite_threshold`). Ningún test de conducta de las Fases I y II cambia. La excepción es el test de firmas públicas canónicas de la Fase I, que se amplía con los parámetros opcionales `policy` y `social` (design, precisión 22).
 - **Alcance:** la fase pasa de 7 a 18 bloques pendientes. Es del tamaño de la Fase II completa.
