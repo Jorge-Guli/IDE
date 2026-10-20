@@ -111,7 +111,9 @@ flowchart LR
   - **Nivel 1, estado interno persistente (regla prevista $R_{39}$):** codones que fijan y borran bits de estado interno ante eventos, y promotores que los leen en ticks posteriores. El estado arranca vacío al nacer y no se hereda. Permite memorias de corto plazo, modos de conducta y secuencias: una máquina de estados construida por la selección, y profundidad de regulación en el tiempo.
   - **Nivel 2, plasticidad en vida (regla prevista $R_{40}$):** un modo de codón plástico cuya fuerza se ajusta durante la vida según la recompensa energética, con una regla de crédito mínima y declarada; cuánto y qué se aprende lo deciden los genes. Los pesos aprendidos no se heredan. Permite medir el efecto Baldwin.
   - **Afirmación prevista de adaptabilidad:** si las poblaciones con estado interno y plasticidad se recuperan más rápido de un cambio del entorno que sin ellos.
-  - **Propuestas recomendadas, a confirmar:** señales evolucionables (una conducta `SIGNAL` con un símbolo elegido por el ADN y promotores que lo perciben, regla prevista $R_{41}$), para que la comunicación tenga significado emergente y no sólo el protocolo de la Fase I; y subir el máximo del ADN de 32 a 64 codones.
+  - **Señales evolucionables (regla prevista $R_{41}$, confirmada):** una conducta `SIGNAL` con un símbolo elegido por el ADN y promotores que lo perciben, para que la comunicación tenga significado emergente y no sólo el protocolo de la Fase I.
+  - **ADN de hasta 64 codones (confirmado):** el máximo sube de 32 a 64; como cada codón cuesta energía, la selección decide si conviene crecer.
+  - **Lo que no entra:** abrir el repertorio de sensores y conductas va a la Fase III (3.0.1).
   - El borrador D56 se reabre para incorporarlos antes de su aprobación (tarea 0.5).
 
 ---
@@ -127,6 +129,7 @@ flowchart LR
 En la Fase II-B, el ADN expresa **impulsos** sobre un repertorio fijo de conductas y sensores, con estado interno persistente (nivel 1) y plasticidad en vida (nivel 2): la evolución decide cuándo y cuánto se usa cada conducta, qué se recuerda y qué se aprende, pero no puede inventar una conducta, un sensor ni una forma de aprender que no estén en la tabla. Ese es el techo de complejidad de la Fase II-B. La Fase III da el **nivel 3**: que la estructura misma de la máquina de decidir y aprender sea abierta y la construya la evolución.
 
 - **Sustrato.** Dos opciones, a decidir al especificar la fase: un **programa** en el cromosoma que una máquina virtual pequeña y determinista ejecuta en cada decisión, al estilo de Avida (Ofria y Wilke, 2004), o una **red neuronal con topología y plasticidad evolucionables**. Las dos permiten que crezcan el repertorio de conductas, la percepción y las reglas de aprendizaje, en lugar de combinar un conjunto fijo.
+- **3.0.1. Repertorio abierto de sensores y conductas.** En la Fase II-B el ADN combina 8 sensores y 8 conductas fijos (más las señales y el estado interno). En la Fase III ese repertorio deja de ser una tabla: la percepción y las acciones se construyen componiendo primitivas (por ejemplo, instrucciones de la máquina virtual que leen el entorno o actúan sobre él), de modo que la evolución pueda inventar conductas y sensores nuevos y no sólo decidir cuándo usar los existentes. Cada primitiva es una regla de diseño con propósito y ablación.
 - **Escala.** El nivel 3 sólo tiene sentido con muchas más generaciones que las de la Fase II-B, así que va junto con la aceleración por hardware (3.3) y la ejecución continua (3.7).
 
 - **Política como programa.** Se implementa como una política más detrás del `PolicyPort` de la Fase II-B, con un presupuesto de instrucciones por tick que cobra el metabolismo.
