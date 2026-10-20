@@ -575,7 +575,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
    - D41: sustituida por D44, D53 y D56;
    - D42: sustituida por el borrador D56. C9–C12 se retiran sin medir.
 4. **Lo que se agrega:** el motor por sistemas (D44), el puerto de política (D45), la conducta en el ADN ($R_{32}$, D46), la percepción social y las acciones nuevas (D47), la ecología ($R_{33}$–$R_{35}$, D48), las interacciones ($R_{36}$, $R_{37}$, D49), la recombinación ($R_{38}$, D51), la configuración (D52), la telemetría de evolución abierta (D53), el rendimiento (D54), la compuerta de viabilidad (D55) y el pre-registro (D56).
-5. **Compatibilidad.** Con todas las banderas nuevas en su valor por defecto, las Fases I y II y la etapa A de la Fase II-B se comportan bit a bit como antes: los hashes dorados de la Fase I, las huellas de la Fase II y los tests de los bloques 1 a 5 no cambian, salvo los que la propia reformulación modifica de forma explícita (D46.3, D50.3 y D52.4). Ningún test de conducta de las Fases I y II cambia. La única excepción es el test de firmas públicas canónicas de la Fase I (`test_firmas_publicas_canonicas`), que se amplía con los parámetros opcionales `policy=None` y `social=None` (precisión 22); es un cambio aditivo de firma, sin cambio de conducta.
+5. **Compatibilidad.** Con todas las banderas nuevas en su valor por defecto, las Fases I y II y la etapa A de la Fase II-B se comportan bit a bit como antes: los hashes dorados de la Fase I, las huellas de la Fase II y los tests de los bloques 1 a 5 no cambian, salvo los que la propia reformulación modifica de forma explícita (D46.3, D46.7, D50.3 y D52.4). Ningún test de conducta de las Fases I y II cambia. La única excepción es el test de firmas públicas canónicas de la Fase I (`test_firmas_publicas_canonicas`), que se amplía con los parámetros opcionales `policy=None` y `social=None` (precisión 22); es un cambio aditivo de firma, sin cambio de conducta.
 6. **Generadores.** La reformulación no agrega generadores. Las extracciones nuevas usan el generador principal (la conducta en la Fase 3 y la ubicación de recursos en el entorno) o `evo_rng` (la recombinación al nacer), siempre detrás de su bandera.
 
 ### Decisión 44: Motor por Sistemas y Observadores
@@ -829,7 +829,7 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
    - $\ge 1$: `crowding_threshold`, `resource_regen_delay`, `num_regions`, `carcass_lifetime`, `activity_threshold`, `winter_regen_factor`;
    - $\ge 0$: `season_length`;
    - `num_regions <= grid_width`.
-3. **Dependencias inertes** (D30.3): $R_{32}$ y $R_{38}$ exigen `enable_compact_dna`; $R_{28}$, $R_{36}$ y $R_{37}$ exigen $R_{32}$, porque sólo actúan como conductas; $R_{35}$ y $R_{38}$ exigen `enable_evolution`; las estaciones de $R_{34}$ exigen $R_{33}$. Con el requisito apagado, la bandera es inerte y no lanza error.
+3. **Dependencias inertes** (D30.3): $R_{31}$, $R_{32}$ y $R_{38}$ exigen `enable_compact_dna`; $R_{28}$, $R_{36}$ y $R_{37}$ exigen $R_{32}$, porque sólo actúan como conductas; $R_{35}$ y $R_{38}$ exigen `enable_evolution`; las estaciones de $R_{34}$ exigen $R_{33}$. Con el requisito apagado, la bandera es inerte y no lanza error.
 4. **Campo eliminado.** `lock_composite_threshold` se elimina (D50.3); sus tests de validación se retiran en el bloque que implementa D50.
 5. **Valores por defecto propuestos.** Se aprueban con el pre-registro en la tarea 0.5. La compuerta de viabilidad (D55) sólo puede cambiar `resources_per_pattern` y `resource_regen_delay`.
 
@@ -842,7 +842,7 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
    - **Fase 4:** ejecución en el orden de la permutación (movimientos, interacciones con recursos, `SHARE`, `ATTACK` y `SPORULATE`), aprendizaje directo, energía y estigmergia.
    - **Fase 5:** (i) `decay_memory`; (ii) coordinación, sello de $R_{31}$, `SPLIT` y `BOND`; (iii) metabolismo, con ADN, senescencia, endospora y el costo de los ataques; (iv) muerte, cadáveres ($R_{35}$) y registro del estrés; (v) reproducción, con SOS, recombinación, ADN e impronta; (vi) conjugación y ensayo CRISPR; (vii) $R_{18}$ y roles; (viii) `env.step_dynamics`, con la reposición de $R_{33}$, $R_{34}$ y el retiro de cadáveres. Observadores: `on_tick_end`.
    - Sin las banderas nuevas, el orden se reduce exactamente al de la Fase II.
-2. **`GeneticTickMetrics`** (sustituye a la de D41; se registra en cada tick en `engine.genetic_history`). Además de los campos de D41 y de la precisión 10, salvo `locked_holons`, que se conserva, agrega:
+2. **`GeneticTickMetrics`** (sustituye a la de D41; se registra en cada tick en `engine.genetic_history`). Conserva todos los campos de D41 y de la precisión 10, incluido `locked_holons`, y agrega:
    - `distinct_genotypes`: cantidad de cromosomas distintos entre las hojas vivas;
    - `mean_functional_codons`: media de codones con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`) o de conducta (`0x40`–`0x47`) y modo distinto de 3, cualquiera sea su promotor;
    - `regulated_expression_fraction`: media, sobre las hojas con ADN, de la fracción de codones activos en la transcripción del fenotipo cuyo promotor es distinto de `0x00`;
@@ -970,6 +970,9 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
 28. **Truncado de la recombinación (D51.2).** "Truncado a `dna_max_length`" conserva el prefijo `[:dna_max_length]`.
 29. **Importaciones de `policy.py` (D45.5).** Puede importar `micro_agent` sólo bajo `TYPE_CHECKING`, para anotar tipos, como `protocol.py`. `EcologicalEnvironmentPort` es `@runtime_checkable`, como los puertos anteriores.
 30. **"$R_{28}$ activa" en `SPORULATE` (D46.1).** Quiere decir `enable_evolution` y `enable_sporulation` en la configuración del agente. La política genética ya está activa por construcción.
+31. **"Con la política genética" (D46.6, D47.3, D53.2).** Quiere decir que $R_{32}$ está **efectivamente** activa: `enable_compact_dna` y `enable_genetic_policy` en `True`. Con `enable_genetic_policy=True` y sin ADN, $R_{32}$ es inerte: no hay percepción social, la puerta de comunicación no actúa y la política es la escrita a mano.
+32. **$R_{31}$ sin ADN (D50.3 y D52.3).** Sin `enable_compact_dna`, $R_{31}$ es inerte: el sello no se evalúa, aunque `symbiotic_commitment_base >= 0.5`. Así el compromiso siempre es un rasgo heredable, nunca un decreto de la configuración.
+33. **Canal vacío de C13–C18 frente a C6 (D56).** En la Fase II, C6 medía `evolved_accuracy`, que es justamente lo que persigue la selección por energía de $R_{12}$: comer bien da energía, y la energía da descendencia. Por eso su canal era $R_{12}$ y era programada por construcción. Las métricas de C13–C18 (regulación expresada, divergencia de la conducta, comunicación, actividad evolutiva, complejidad genética y cooperación material) no son lo que ninguna regla selecciona ni produce: si crecen por encima de la deriva, es porque la selección las construyó como medio, no como fin. Por eso su canal es vacío. Estas afirmaciones no recorren la escalera E1–E5 de la Fase I: se evalúan sólo con la comparación pre-registrada, la corrección de Holm y $\delta_{\min}$, y E4 se informa aparte.
 
 ---
 
