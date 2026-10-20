@@ -52,5 +52,5 @@ documentado. Escribe "Ninguno" si no hay.
 
 - [ ] Nada se presenta como emergente si una regla diseñada lo persigue; si quitar las reglas de una afirmación deja a la población sin comunicación, se declara *programada por construcción*
 - [ ] No se ajustaron parámetros para que una hipótesis "pase"; los resultados negativos se reportan tal cual
-- [ ] Toda regla nueva del agente está en `DESIGN_RULES`, con propósito declarado y ablación, y en `DEFINICIONES_FORMALES.md` §3.1
+- [ ] Toda regla nueva del agente está en `DESIGN_RULES`, con propósito declarado y ablación, y en `docs/DEFINICIONES_FORMALES.md` §3.1
 - [ ] El pre-registro (`DESIGN_RULES`, `EXP001_CLAIMS`, `ATTRIBUTION_PROFILE` y, en la Fase II, `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil) se versionó antes de mirar resultados; si cambió después, un commit lo justifica

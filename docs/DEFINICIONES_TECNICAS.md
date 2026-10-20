@@ -3,12 +3,13 @@
 Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en una **arquitectura de software concreta**: stack, estructura, contratos de datos, ciclo de ejecución y parámetros.
 
 > **Fuente normativa.** Este documento es un **resumen orientativo**; ante una discrepancia rigen los specs y el design:
-> - **Fase I (Experimento 001, implementada y verificada):** criterios verificables en [`openspec/specs/*/spec.md`](openspec/specs/) y firmas, fórmulas y desempates en el design archivado [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md) (Decisiones D1–D18).
-> - **Fase II (Experimentos 002 y 003, especificada, sin implementar):** [`openspec/changes/ide-v2-evolutionary-holonic-intelligence/design.md`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/design.md) (Decisiones D19–D29) es la **fuente única** de firmas, nombres, parámetros, valores por defecto y desempates; los criterios verificables están en los `specs/` de ese cambio.
+> - **Fase I (Experimento 001, implementada y verificada):** criterios verificables en [`openspec/specs/*/spec.md`](../openspec/specs/) y firmas, fórmulas y desempates en el design archivado [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md`](../openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/design.md) (Decisiones D1–D18).
+> - **Fase II (Experimentos 002 y 003, implementada, corrida y archivada):** el design archivado [`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/design.md`](../openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/design.md) (Decisiones D19–D29) es la **fuente única** de firmas, nombres, parámetros, valores por defecto y desempates; los criterios verificables están sincronizados en [`openspec/specs/*/spec.md`](../openspec/specs/). Los resultados, negativos para C5–C8, están en [RESULTADOS.md](RESULTADOS.md).
+> - **Fase II-B (v2.5, ADN compacto; especificada, sin implementar):** el `design.md` del cambio activo [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/) (Decisiones D30–D42 y sus "Precisiones") es la **fuente única** de firmas, nombres, parámetros, valores por defecto y desempates; sus criterios verificables están en los specs delta de ese cambio. Su pre-registro (D42) se aprobó el 2026-10-20. Este documento ya la refleja, marcada "Fase II-B (especificada, sin implementar)": tipos (§3.8), agente (§4.4), ciclo del tick (§6), parámetros (§7.3) y protocolos y atribución (§8.6 y §8.7).
 
-> **Novedades en la Versión 2.0.** Conserva la especificación implementada de la **Fase I** y resume la arquitectura técnica prevista para la **Fase II**:
+> **Novedades en la Versión 2.0.** Conserva la especificación implementada de la **Fase I** y resume la arquitectura técnica implementada en la **Fase II**:
 > 1. **Patrón *Composite* recursivo (`AgentNode`, en `agent/holon.py`):** `MicroAgent` ($L=0$) y `CompositeAgent` ($L \ge 1$) implementan el protocolo común `AgentNode`, de modo que un `CompositeAgent` agrupa nodos de cualquier nivel sin un tope de profundidad codificado.
-> 2. **Metabolismo, linaje y herencia dual (`agent/evolution.py`):** genoma inmutable `AgentGenome`, mutación acotada (`mutate_genome`) y herencia cultural vertical que el motor entrega por `assimilate_testimony`.
+> 2. **Metabolismo, linaje y herencia dual (`agent/evolution.py`):** genoma inmutable `AgentGenome`, mutación acotada (`mutate_genome`, en `domain/extensions.py`) y herencia cultural vertical que el motor entrega por `assimilate_testimony`.
 > 3. **Recursos compuestos graduados (`CompositeRule`, que ya existe en `domain/extensions.py`):** recursos de orden $m \ge 2$ que exigen conocer $m$ patrones a la vez. Ponen a prueba si la población forma niveles jerárquicos superiores para resolverlos.
 > 4. **Compatibilidad regresiva estricta:** todas las banderas de activación de la Fase II valen `False` por defecto y `num_composite_patterns = 0`, de modo que las corridas y los hashes SHA-256 del Experimento 001 permanecen idénticos bit a bit.
 >
@@ -26,8 +27,8 @@ Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en 
 - **Rendimiento:** paralelismo entre corridas independientes (`--jobs N`, con salida idéntica para cualquier `N`), una línea base medida (`ide.experiments.benchmark`) y perfiladores instalados (`py-spy`, `line_profiler`). No se vectoriza el bucle de agentes sin una medición que lo justifique: cambiaría la arquitectura que permite ablacionar reglas. Sin cambiar la semántica, la grilla precalcula una tabla de desplazamientos por vecindad, de percepción y de comunicación (cada una válida desde cualquier celda del toro, así que no crece con el tablero) y el motor reutiliza los vecinos de la observación para rutear los mensajes; una prueba exige historiales idénticos a los de la implementación previa.
 - **Arquitectura hexagonal:** el paquete `agent` **tiene prohibido** importar `environments`, `simulation` o `experiments`. Toda interacción pasa por estructuras agnósticas (`Observation`, `AgentAction`, `Message`). En la Fase II, `agent/evolution.py` y `agent/holon.py` quedan sujetos a las mismas auditorías AST (design D20).
 - **Determinismo entre procesos:** Python aleatoriza el hash de `str` por proceso, así que está prohibido iterar un `set` sin `sorted(...)` y toda selección aleatoria opera sobre listas ordenadas.
-- **Generadores derivados (excepción declarada, design D19):** además del generador principal `engine.rng`, toda operación estocástica nueva usa un generador derivado con `np.random.SeedSequence(seed, spawn_key=(k,))`: `(1,)` `null_rng` del control nulo (ya existe en Fase I), `(2,)` `evo_rng` del motor (mutación y ubicación de descendientes), `(3,)` `_comp_rng` de `ToroidalGrid2D` (ubicación y reposición de recursos compuestos) y `(4,)` `donor_rng` del motor (sólo el sorteo del donante de genoma en la reproducción neutral, aparte para no desplazar `evo_rng`). Cada uno se consume sólo si su mecanismo está activo.
-- **Atribución verificable:** cada regla de diseño ($R_1 \dots R_{11}$ en Fase I; $R_{12} \dots R_{23}$ en Fase II) se puede desactivar desde `SimulationConfig`, salvo las nucleares (`R1`, `R2` y `R20`, con ablación vacía), y la plataforma clasifica cada afirmación como programada o emergente (ver §8, protocolo 001-D, y [Definiciones Formales](DEFINICIONES_FORMALES.md) §3.1).
+- **Generadores derivados (excepción declarada, design D19):** además del generador principal `engine.rng`, toda operación estocástica nueva usa un generador derivado con `np.random.SeedSequence(seed, spawn_key=(k,))`: `(1,)` `null_rng` del control nulo (ya existe en Fase I), `(2,)` `evo_rng` del motor (mutación y ubicación de descendientes), `(3,)` `_comp_rng` de `ToroidalGrid2D` (ubicación y reposición de recursos compuestos) y `(4,)` `donor_rng` del motor (sólo el sorteo del donante de genoma en la reproducción neutral, aparte para no desplazar `evo_rng`). La Fase II-B (especificada, sin implementar) agrega `(5,)` `hgt_rng` del motor (sólo la conjugación de plásmidos, $R_{26}$, design D30 y D37). Cada uno se consume sólo si su mecanismo está activo.
+- **Atribución verificable:** cada regla de diseño ($R_1 \dots R_{11}$ en Fase I; $R_{12} \dots R_{23}$ en Fase II; $R_{24} \dots R_{31}$ en la Fase II-B, especificada) se puede desactivar desde `SimulationConfig`, salvo las nucleares (`R1`, `R2` y `R20`, con ablación vacía), y la plataforma clasifica cada afirmación como programada o emergente (ver §8, protocolo 001-D, y [Definiciones Formales](DEFINICIONES_FORMALES.md) §3.1).
 - **Protocolo reemplazable:** toda la semántica de los mensajes vive en `agent/protocol.py`; ningún otro módulo del agente construye ni interpreta mensajes.
 - **Jerarquía sin clases por nivel (Fase II):** la jerarquía holónica se representa con el protocolo `AgentNode`; no existen clases por nivel. El ciclo del tick sigue ejecutándose sobre los `MicroAgent` (las hojas), y el motor mantiene aparte el bosque de nodos raíz `root_nodes` que usan la vista compartida del holón, la resolución compuesta y los operadores `BOND`/`SPLIT`.
 
@@ -35,48 +36,52 @@ Este documento traduce las [Definiciones Formales](DEFINICIONES_FORMALES.md) en 
 
 ## 2. Estructura de Directorios del Proyecto
 
-Los archivos marcados `[Fase II]` están especificados en el design y todavía no existen.
+Los archivos marcados `[Fase II]` se agregaron en la Fase II. Los marcados `[Fase II-B, previsto]` están especificados en el cambio activo y todavía no existen; `[Fase II-B]` marca lo que ese cambio prevé agregar a un archivo existente. Los documentos normativos y `RESULTADOS.md` están en `docs/`; la visión sin rango normativo, en `docs/vision/`.
 
 ```text
 IDE/
-├── DOCUMENTO_FUNDACIONAL.md         # Visión v2.0 (Horizontal + Vertical + Holónica)
-├── DEFINICIONES_FORMALES.md         # Modelo matemático v2.0 (Fase I + Fase II)
-├── DEFINICIONES_TECNICAS.md         # Arquitectura técnica v2.0 (este documento)
-├── RESULTADOS.md                    # Reporte empírico verificable (Exp 001)
+├── docs/
+│   ├── DOCUMENTO_FUNDACIONAL.md     # Visión v2.0 (Horizontal + Vertical + Holónica)
+│   ├── DEFINICIONES_FORMALES.md     # Modelo matemático v2.0 (Fase I + Fase II; Fase II-B especificada)
+│   ├── DEFINICIONES_TECNICAS.md     # Arquitectura técnica v2.0 (este documento)
+│   ├── RESULTADOS.md                # Reporte empírico verificable (Exp 001, 002 y 003)
+│   └── vision/                      # Hoja de ruta y visión (sin rango normativo)
 ├── openspec/                        # Specs vigentes, cambios y archivo (OpenSpec)
 ├── pyproject.toml
 ├── src/
 │   └── ide/
 │       ├── __init__.py
-│       ├── config.py                # SimulationConfig (Fase I; [Fase II] campos de D20)
+│       ├── config.py                # SimulationConfig (Fase I; [Fase II] campos de D20; [Fase II-B] campos de D31)
 │       ├── domain/                  # Contratos puros
 │       │   ├── __init__.py
-│       │   ├── types.py             # Pattern, KnowledgeUnit, Resource, VisibleResource, Observation, Message, AgentAction, ActionResult; [Fase II] AgentGenome, StigmergicTrace, HolonSnapshot
+│       │   ├── types.py             # Pattern, KnowledgeUnit, Resource, VisibleResource, Observation, Message, AgentAction, ActionResult; [Fase II] AgentGenome, StigmergicTrace, HolonSnapshot; [Fase II-B] EpigeneticRole, CompactDNA, EpigeneticContext, ExpressedPhenotype
 │       │   ├── ports.py             # EnvironmentPort (10 métodos); [Fase II] EvolutionaryEnvironmentPort
 │       │   └── extensions.py        # TrustStrategyPort, AgentCapabilities, CompositeRule, AgentHyperParams, EvolutionaryPort; [Fase II] mutate_genome, compute_epistemic_synergy
 │       ├── agent/                   # Cognición local (agnóstica del espacio)
 │       │   ├── __init__.py
-│       │   ├── memory.py            # BoundedMemory ([Fase II] set_redundant_patterns, R18)
+│       │   ├── memory.py            # BoundedMemory ([Fase II] set_redundant_patterns, R18; [Fase II-B] resize)
 │       │   ├── epistemology.py      # Aprendizaje directo y revalidación social (A, B, C)
 │       │   ├── protocol.py          # BeliefExchangeProtocol: única semántica de mensajes
-│       │   ├── micro_agent.py       # MicroAgent (hoja L = 0 de AgentNode en Fase II)
-│       │   ├── evolution.py         # [Fase II] genome_from_config, compute_metabolic_cost, transfer_cultural_heritage
-│       │   └── holon.py             # [Fase II] AgentNode, CompositeAgent, BOND, SPLIT, R17, R18, poda
+│       │   ├── micro_agent.py       # MicroAgent (hoja L = 0 de AgentNode en Fase II; [Fase II-B] ADN, fenotipo, rol, edad, endospora)
+│       │   ├── evolution.py         # [Fase II] genome_from_config, compute_metabolic_cost, transfer_cultural_heritage; [Fase II-B] compute_dna_cost, compute_senescence_cost
+│       │   ├── holon.py             # [Fase II] AgentNode, CompositeAgent, BOND, SPLIT, R17, R18, poda; [Fase II-B] assign_epigenetic_roles, is_locked
+│       │   └── dna.py               # [Fase II-B, previsto] codón, ADN fundador, transcripción, mutate_dna, plásmidos
 │       ├── environments/
 │       │   ├── __init__.py
 │       │   └── grid2d.py            # ToroidalGrid2D ([Fase II] spawn_agent_near, recursos compuestos, estigmergia)
 │       ├── simulation/
 │       │   ├── __init__.py
-│       │   ├── engine.py            # SimulationEngine (5 fases; [Fase II] trabajo dentro de las fases 1, 2, 4 y 5)
+│       │   ├── engine.py            # SimulationEngine (5 fases; [Fase II] trabajo dentro de las fases 1, 2, 4 y 5; [Fase II-B] Fase 0, hgt_rng)
 │       │   └── controls.py          # nullify_belief (control nulo de contenido, E4)
 │       └── experiments/
 │           ├── __init__.py
-│           ├── metrics.py           # TickMetrics, MetricsCollector, M1–M7; [Fase II] EvolutionaryTickMetrics, EvolutionaryMetricsCollector, M8–M13
+│           ├── metrics.py           # TickMetrics, MetricsCollector, M1–M7; [Fase II] EvolutionaryTickMetrics, EvolutionaryMetricsCollector, M8–M13; [Fase II-B] GeneticTickMetrics
 │           ├── benchmark.py         # Línea base de rendimiento (ticks por segundo)
-│           ├── attribution.py       # R1–R11, C1–C4, ablación, clasificación y 001-D; [Fase II] R12–R23, C5–C8, perfil phase2
+│           ├── attribution.py       # R1–R11, C1–C4, ablación, clasificación y 001-D; [Fase II] R12–R23, C5–C8, perfil phase2; [Fase II-B] R24–R31, C9–C12
 │           ├── exp001_runner.py     # Protocolos 001-A, 001-B, 001-C y CLI
 │           ├── exp002_runner.py     # [Fase II] Protocolos 002-A y 002-B y CLI
-│           └── exp003_runner.py     # [Fase II] Protocolos 003-A (transición holónica) y 003-B (cobertura colectiva) y CLI
+│           ├── exp003_runner.py     # [Fase II] Protocolos 003-A (transición holónica) y 003-B (cobertura colectiva) y CLI
+│           └── exp25_runner.py      # [Fase II-B, previsto] Protocolos 002c, 002d, 002e y 003c y CLI
 └── tests/
     ├── test_domain_contracts.py
     ├── test_roadmap_extensions.py
@@ -96,6 +101,8 @@ IDE/
     ├── test_evolutionary_dynamics.py    # [Fase II]
     ├── test_holonic_hierarchy.py        # [Fase II]
     ├── test_exp002_exp003.py            # [Fase II]
+    ├── test_compact_dna.py              # [Fase II-B, previsto]
+    ├── test_exp25.py                    # [Fase II-B, previsto]
     └── conftest.py                      # Perfil `ci` de Hypothesis (derandomize=True)
 ```
 
@@ -243,6 +250,39 @@ def compute_epistemic_synergy(
 
 No hay tipos `LineageRecord` ni `MetabolicState`: la energía, la generación, el progenitor y el genoma son estado del `MicroAgent` (§4.1).
 
+### 3.8. Tipos de la Fase II-B (especificada, sin implementar; design D31)
+En `domain/types.py` se agregan cuatro tipos, sin tocar los existentes:
+```python
+class EpigeneticRole(Enum):
+    NONE = "NONE"
+    EXPLORER = "EXPLORER"    # casta periférica (menor grado interno en el holón)
+    LIBRARIAN = "LIBRARIAN"  # casta de conocimiento propio único
+    NERVE = "NERVE"          # casta de enlace (mayor grado interno)
+
+@dataclass(frozen=True)
+class CompactDNA:
+    chromosome: tuple[int, ...]          # codones de 32 bits, herencia vertical
+    plasmids: tuple[int, ...] = ()       # a lo sumo max_plasmids, herencia vertical y horizontal (R26)
+    crispr_memory: tuple[int, ...] = ()  # firmas rechazadas, FIFO de crispr_memory_size (R27)
+
+@dataclass(frozen=True)
+class EpigeneticContext:
+    holon_level: int = 0                   # nivel del nodo raíz que contiene a la hoja; 0 si está sola
+    role: EpigeneticRole = EpigeneticRole.NONE
+    energy_ratio: float = 1.0              # E_i / reproduction_threshold
+
+@dataclass(frozen=True)
+class ExpressedPhenotype:
+    genome: AgentGenome                    # los 7 rasgos expresados
+    lifespan: int                          # T_max expresada (R29)
+    spore_threshold: float                 # E_espora expresada (R28)
+    expressed_codons: int                  # codones que modulan un rasgo en este contexto (telemetría)
+```
+- `CompactDNA.__post_init__` lanza `ValueError` si algún codón está fuera de $[0, 2^{32} - 1]$, si `chromosome` está vacío o si `plasmids` o `crispr_memory` tienen codones repetidos.
+- La longitud de `chromosome` no se valida en el tipo: `dna_min_length` y `dna_max_length` son de la configuración y las aplica la mutación.
+- Los codones son `int` de Python, no `numpy.uint32`, para que la igualdad, el `repr` y el hash no dependan del dtype.
+- El contexto no lleva `z_layer` (Fase III) ni el estado de endospora (lo maneja el motor).
+
 ---
 
 ## 4. Agentes y Arquitectura Holónica
@@ -381,6 +421,74 @@ El motor mantiene `root_nodes: dict[int, AgentNode]` (al inicio, cada `MicroAgen
 
 - **Vista compartida del holón ($R_{22}$, decisión P1 resuelta por la variante (a), design D25):** es un canal de conocimiento social **efímero y declarado**: cada hoja ve en el tick lo que saben las hojas de su holón raíz en alcance local, sin copiarlo a su memoria. Es la única excepción a la regla de que el conocimiento social entra sólo por `assimilate_testimony`, y se justifica porque no persiste, no pasa por la fusión epistémica y se puede apagar. Se controla con `enable_holon_view` (por defecto `True`; sólo actúa con `enable_holonic_hierarchy=True`). Con `enable_holon_view=False`, los holones siguen existiendo (`BOND`, `SPLIT`, energía y resolución compuesta), pero sus miembros no ven el conocimiento ajeno. El motor la sincroniza en dos tiempos con `_sync_holon_view` (§6).
 
+### 4.4. ADN Compacto en el Agente (Fase II-B, especificada, sin implementar; design D32–D40)
+
+**Módulo nuevo `agent/dna.py`.** Importa sólo `ide.domain`, `ide.config`, `numpy` y la biblioteca estándar; no importa `micro_agent.py` ni `holon.py`. Es puro: no ve coordenadas ni `true_value`.
+```python
+class Codon(NamedTuple):
+    promoter: int    # (c >> 24) & 0xFF
+    target: int      # (c >> 16) & 0xFF
+    mode: int        # (c >> 14) & 0x3: 0 ADDITIVE, 1 REPRESSOR, 2 MULTIPLICATIVE, 3 RESERVED (inerte)
+    channel: int     # (c >> 8) & 0x3F
+    delta: float     # p = c & 0xFF; (p - 256 if p >= 128 else p) / 128.0
+
+FOUNDER_DNA_LENGTH = 9
+
+def decode_codon(codon: int) -> Codon: ...
+def encode_codon(promoter: int, target: int, mode: int = 0, channel: int = 0, payload: int = 0) -> int: ...  # payload en [-128, 127]; ValueError fuera de rango
+def founder_dna(config: SimulationConfig) -> CompactDNA: ...  # un codón (0x00, t) por cada t en 0x00..0x08
+def transcribe_phenotype(dna: CompactDNA, context: EpigeneticContext, config: SimulationConfig) -> ExpressedPhenotype: ...
+def phenotype_from_genome(genome: AgentGenome, config: SimulationConfig) -> ExpressedPhenotype: ...  # sin ADN
+def mutate_dna(dna: CompactDNA, config: SimulationConfig, rng: np.random.Generator, scale: float = 1.0) -> CompactDNA: ...
+def receive_plasmid(dna: CompactDNA, codon: int, config: SimulationConfig) -> CompactDNA | None: ...  # None: bloqueado por CRISPR
+def purge_plasmid(dna: CompactDNA, codon: int, config: SimulationConfig) -> CompactDNA: ...
+```
+- **Transcripción** (dos pasadas, un solo nivel de regulación, $x_T = b_T \mu + k_T \rho S$, cotas y redondeo `floor(x + 0.5)`): ver [Definiciones Formales](DEFINICIONES_FORMALES.md) §9.3 y §9.4. Las bases salen siempre de la configuración base de la población.
+- **`founder_dna`** expresa exactamente la base en todo contexto: `transcribe_phenotype(founder_dna(c), ctx, c).genome == genome_from_config(c)`.
+- **`phenotype_from_genome(genome, config)`** devuelve `ExpressedPhenotype(genome, config.telomere_base_lifespan, config.spore_energy_threshold, 0)`, para que $R_{28}$ y $R_{29}$ funcionen también sobre el genoma plano.
+- **`mutate_dna`** no consume `rng` si `mutation_rate == 0.0` y `discrete_mutation_prob == 0.0` (puerta de $R_{13}$). Si no, aplica en orden: mutación puntual del cromosoma (`rng.random(len)` y, por cada acierto, `rng.integers(0, 32)` para el bit), lo mismo sobre los plásmidos (luego descarta repetidos y los que estén en `crispr_memory`), duplicación, deleción y, con `enable_plasmid_hgt=True`, escisión a plásmido. Los tres últimos extraen siempre su `u = float(rng.random())`, y el índice sólo si el operador se aplica. `crispr_memory` se hereda sin mutar.
+- **`receive_plasmid`**: con $R_{27}$ activa y el codón en `crispr_memory`, `None`; si el codón ya está en `plasmids`, el mismo ADN; si no, lo agrega al final, con FIFO a `max_plasmids`. **`purge_plasmid`** lo quita de `plasmids` y lo agrega a `crispr_memory`, con FIFO a `crispr_memory_size`.
+
+**Cambios en `MicroAgent`** (design D34, D35 y "Precisiones" 1–4):
+- Estado nuevo: `dna: CompactDNA | None` (`None` sin ADN), `phenotype: ExpressedPhenotype`, `base_config: SimulationConfig` (la de la población: el fundador recibe la del motor y el hijo la de su progenitor), `epigenetic_role` (`NONE` al nacer), `birth_tick` (0 en los fundadores), `is_endospore` (`False`) y `last_stress_tick` (`None`).
+- `genome` sigue existiendo y devuelve el genoma **expresado** (`phenotype.genome` con ADN).
+- `__init__` fija `base_config = config`. Con `enable_compact_dna=True` asigna `founder_dna(config)` y lo transcribe con `EpigeneticContext(0, NONE, initial_energy / reproduction_threshold)`; si no, `dna = None` y `phenotype_from_genome(genome_from_config(config), config)`. `from_lineage` recibe además `dna` y `base_config`.
+- Métodos nuevos:
+```python
+def express(self, context: EpigeneticContext, tick: int) -> bool: ...  # True si cambió algún radio
+def set_epigenetic_role(self, role: EpigeneticRole) -> None: ...
+def set_dna(self, dna: CompactDNA) -> None: ...
+def set_endospore(self, flag: bool) -> None: ...
+def open_plasmid_trial(self, codon: int, tick: int) -> None: ...   # no reabre un ensayo abierto
+def close_plasmid_trial(self, codon: int) -> None: ...
+# propiedad plasmid_trials -> dict[int, tuple[int, float, float]]: copia ordenada por codón (tick de apertura, energía de ingreso, energía cedida)
+def create_offspring(self, child_id: int, tick: int, rng: np.random.Generator,
+                     genome_source: AgentGenome | None = None, dna_source: CompactDNA | None = None,
+                     mutation_scale: float = 1.0) -> MicroAgent: ...
+```
+- **`express`:** sin ADN no hace nada y devuelve `False`. Con ADN, reemplaza **siempre** `phenotype`; si cambió `genome`, reemplaza también `_genome`, la configuración fenotípica (el mismo `replace` de los 6 campos que `from_lineage`) y llama a `memory.resize(genome.memory_capacity, tick)`. Puede memoizar por `(min(holon_level, 9), role, banda)`, con banda de energía estrés, normal o superávit; el caché se invalida al cambiar el ADN y un test exige que coincida con la transcripción directa.
+- **`create_offspring`:** con ADN muta `dna_source` o el propio con `mutate_dna(..., self.base_config, rng, mutation_scale)` y expresa al hijo en el acto con `EpigeneticContext(0, NONE, energía_del_hijo / reproduction_threshold)`. Sin ADN, conserva la Fase II; con `mutation_scale != 1.0` pasa a `mutate_genome` una configuración escalada (`mutation_rate` por la escala y `discrete_mutation_prob` por la escala, recortada a 1). Suma la energía del hijo a la cedida de todos los ensayos CRISPR abiertos. El hijo nace con `birth_tick = tick`, `is_endospore = False`, `last_stress_tick = None` y sin ensayos.
+
+**`BoundedMemory.resize(capacity, tick)`:** `ValueError` con `capacity < 1`. Fija la capacidad y, mientras sobren creencias, elimina la de menor utilidad con el criterio y el desempate del desalojo ($R_2$, con la penalización de $R_{18}$). Agrandar no borra nada.
+
+**`agent/evolution.py`:**
+```python
+def compute_dna_cost(dna: CompactDNA | None, config: SimulationConfig) -> float: ...
+    # dna_codon_cost * (len(chromosome) + len(plasmids) + len(crispr_memory)); 0.0 sin ADN
+def compute_senescence_cost(age, lifespan, config) -> float -> float: ...
+    # senescence_cost_rate * (age - lifespan) ** 2 si age > lifespan
+```
+
+**`agent/holon.py`:**
+- `CompositeAgent` incorpora `is_locked: bool = False` ($R_{31}$). `should_split_holon` devuelve `False` para un holón soldado, por paciencia y por energía.
+- Función nueva, pura y sin coordenadas:
+```python
+def assign_epigenetic_roles(
+    holon: CompositeAgent, local_reach: Mapping[int, Sequence[int]], config: SimulationConfig
+) -> dict[int, EpigeneticRole]: ...
+```
+  Valida `local_reach` como en D25.1 (también con la regla apagada). Con `enable_epigenetic_roles=False` o `enable_compact_dna=False`, devuelve `NONE` para todas las hojas. Si no, asigna `LIBRARIAN`, `EXPLORER` y `NERVE` con los desempates de [Definiciones Formales](DEFINICIONES_FORMALES.md) §9.5.
+
 ---
 
 ## 5. Contrato del Entorno (`domain/ports.py`)
@@ -439,7 +547,7 @@ Consultar vecinos en un radio $R$ inspecciona sólo las $(2R+1)^2$ celdas del ra
 
 Cada tick $t$ se ejecuta en **5 fases**; la quinta incluye el olvido. La percepción, la comunicación y la decisión son **simultáneas**: todos ven la misma instantánea y nadie ve lo que otro hace en el mismo tick. El orden de los agentes se baraja una vez por tick con `rng.permutation`; su único efecto sustantivo es resolver por sorteo los conflictos físicos (dos agentes que intentan consumir el mismo recurso). Un esquema alternativo asíncrono (`update_scheme="asynchronous"`, **no implementado**) servirá para verificar que ninguna propiedad dependa del reloj de la simulación (criterio E5).
 
-La Fase II **no agrega fases**: agrega trabajo dentro de las fases 1, 2, 4 y 5, sólo cuando sus banderas están activas (design D21 y D24–D27).
+La Fase II **no agrega fases**: agrega trabajo dentro de las fases 1, 2, 4 y 5, sólo cuando sus banderas están activas (design D21 y D24–D27). La Fase II-B (especificada, sin implementar) agrega una **Fase 0** de expresión, con `enable_compact_dna=True`, y extiende la Fase 5 (design D41; ver "Trabajo de la Fase II-B dentro del tick").
 
 ```mermaid
 sequenceDiagram
@@ -447,6 +555,9 @@ sequenceDiagram
     participant S as SimulationEngine
     participant A as MicroAgents
 
+    opt Fase II-B (especificada), R24: Fase 0 _express_phenotypes
+        S->>A: express(EpigeneticContext, tick); set_agent_radii si cambió un radio
+    end
     Note over S,A: order = rng.permutation(sorted(activos))
     opt Fase II, R22: Tiempo 1 de _sync_holon_view (lee memorias)
         S->>A: clear_holon_beliefs() + inject_ephemeral_belief() con la vista del holón local
@@ -515,6 +626,25 @@ Una creencia es **conocida** si su confianza es $\ge c_{\text{umbral}}$. Se cons
   - **Caso 2, individual ($R_{12}$, `reproduction_mode="energy"`):** cada agente en orden de `agent_id`, no reproducido, con `energy >= reproduction_threshold` y `len(agents) < max_population`, engendra un hijo con `create_offspring(next_agent_id, tick, evo_rng)`, ubicado con `spawn_agent_near` y registrado como nodo raíz de nivel 0.
   - **Caso 3, neutral (`reproduction_mode="neutral"`, ablación de $R_{12}$ y control de deriva de C6):** quita el vínculo entre éxito y herencia sin cambiar **la regla** demográfica. Se reproducen los mismos agentes que en el Caso 2 (no reproducidos, con `energy >= reproduction_threshold`, en orden de `agent_id`, respetando el cupo) y exactamente igual: misma partición de energía, misma ubicación junto al progenitor, mismo `parent_id`, misma `generation` y misma herencia cultural. Sólo cambia el **genoma** del hijo: antes de cada nacimiento se sortea un donante con `donors[int(donor_rng.integers(len(donors)))]`, donde `donors` es la lista ordenada por `agent_id` de los agentes vivos al empezar la fase de reproducción del tick, y el hijo nace con `create_offspring(next_agent_id, tick, evo_rng, genome_source=donante.genome)`, es decir, con `mutate_genome(donante.genome, ...)`. En un tick dado, con el mismo estado de partida, quién se reproduce, la partición de energía y las posiciones son las mismas que en el modo `"energy"`; sólo se rompe la herencia de los rasgos de los exitosos. A partir de ahí las dos corridas divergen, porque los hijos tienen genomas distintos, y ésa es la diferencia que mide `selection_gain`: no es un control de demografía idéntica a lo largo de la corrida. La reproducción holónica ($R_{17}$) no cambia.
 - **Herencia cultural ($R_{14}$, design D22):** `transfer_cultural_heritage` es pura y no escribe en el hijo. El motor entrega cada testimonio, en el orden devuelto, con `child.assimilate_testimony(belief, sender_id=parent.agent_id, tick=tick)`, en el mismo tick y antes de procesar al siguiente progenitor. Como el hijo nace vacío, la creencia heredada queda con confianza $\gamma \cdot \gamma_{\text{gen}} \cdot c$, `evidence_count = 1` y `from_direct_experience = False`.
+
+### Trabajo de la Fase II-B dentro del tick (especificada, sin implementar; design D34–D41)
+Con todas las banderas de la Fase II-B en `False`, el tick se reduce exactamente al de la Fase II: ninguna rama nueva consume un generador ni cambia un valor o un orden de iteración.
+- **Fase 0, expresión (`_express_phenotypes`, nueva):** sólo con `enable_compact_dna=True`, al empezar `step()` y antes de la permutación y del alcance local. Para cada `aid` en `sorted(self.agents)` arma `EpigeneticContext(holon_level, role, energy_ratio)`: `holon_level` es el de `self.root_nodes[self.agent_to_root[aid]]` (0 si la hoja es su propia raíz), `role` es `agent.epigenetic_role` y `energy_ratio = agent.energy / reproduction_threshold`. Llama a `agent.express(context, tick)` y, si devuelve `True`, a `env.set_agent_radii(aid, r_perc, r_com)`. No consume generadores, y cada agente se expresa sobre el estado de fin del tick anterior. Las endosporas también se expresan.
+- **Fases 1 a 4, endosporas ($R_{28}$):** en la Fase 1, inmediatamente después de `get_observation`, una endospora germina si ve un recurso o, con $R_{19}$, si su celda tiene un rastro con `sign_value > 0`; germina antes de emitir y actúa normalmente en ese tick. Una endospora no llama a `perceive_and_emit_messages`, no asimila estigmergia, se excluye del ruteo como emisora y como destinataria, y su acción de la Fase 3 es `IDLE` sin llamar a `decide_action` (no consume `self.rng` ni suma oportunidad en M2).
+- **Fase 5, en este orden** (design D41):
+  - (i) `decay_memory`;
+  - (ii) coordinación: un holón raíz se suelda si `cooperative_completions >= lock_composite_threshold` (antes de evaluar `SPLIT`), y su costo se multiplica por `lock_coord_discount` si la **raíz** está soldada; después `SPLIT` y `BOND`;
+  - (iii) metabolismo: costo basal sobre el genoma expresado, más `compute_dna_cost` y la senescencia; una endospora paga `spore_cost_fraction * metabolic_base_cost` más la senescencia en lugar del basal, el del ADN, el de movimiento y el de mensajes, pero sigue pagando su alícuota de coordinación del paso (ii);
+  - (iv) muerte; registro del estrés (`last_stress_tick = tick` si `energy < stress_energy_ratio * reproduction_threshold`, aunque $R_{30}$ esté apagada); y, en orden de `agent_id`, entrada en endospora de las hojas con `energy <= phenotype.spore_threshold`, sin recursos visibles en su observación de la Fase 1 y, con $R_{19}$, sin rastro positivo en su celda;
+  - (v) reproducción: la escala SOS se decide con el estado del progenitor antes de partir la energía; el hijo hereda el ADN mutado y `spawn_agent_near` recibe los radios de su fenotipo de nacimiento; en $R_{17}$ cada hoja hija recibe el rol de su progenitora (`offspring[progenitora.agent_id]`), la réplica se registra como ya asignada y, con $R_{31}$, progenitor y réplica quedan soldados. Un holón con alguna hoja en endospora no se reproduce por $R_{17}$, y en la reproducción neutral los donantes son los vivos que no están en endospora, que aportan su **ADN** (la secuencia de `donor_rng` no cambia);
+  - (vi) conjugación (`_conjugate`, con `hgt_rng`) y ensayo CRISPR (`_evaluate_crispr`), en orden de `agent_id` y, dentro de cada agente, de codón;
+  - (vii) $R_{18}$ y asignación de roles ($R_{25}$) a cada raíz compuesta, en orden de `node_id`, cuyo conjunto de hojas cambió desde la última asignación (`self._role_leaf_sets: dict[int, frozenset[int]]`; una raíz sin entrada cuenta como cambiada); las hojas que son su propia raíz vuelven a `NONE`, y los roles se escriben con `set_epigenetic_role` después de calcularlos todos;
+  - (viii) `env.step_dynamics(tick)`;
+  - (ix) métricas, incluida `GeneticTickMetrics` en `engine.genetic_history` (§8.6).
+- **Conjugación (`_conjugate`):** los donantes, fijados al empezar el paso en orden de `agent_id`, son las hojas que no están en endospora, tienen plásmidos y `energy >= hgt_energy_ratio * reproduction_threshold`. Para cada donante: `u = float(hgt_rng.random())`; si `u < hgt_rate`, los candidatos son `sorted(b for b in vivos if b != donante and not endospora and env.get_agent_distance(donante, b) <= 1)` y, si hay, se extraen `receptor = candidatos[int(hgt_rng.integers(len(candidatos)))]` y `codón = plasmids[int(hgt_rng.integers(len(plasmids)))]`. Las transferencias registradas se aplican después, en el orden de `hgt_rng.permutation(len(transferencias))` si hay dos o más, con `receive_plasmid`; si el ADN cambió, el motor llama a `set_dna` y, con $R_{27}$, a `open_plasmid_trial`.
+- **Ensayo CRISPR (`_evaluate_crispr`):** un ensayo vencido (`tick - t0 >= crispr_eval_ticks`) purga el plásmido con `purge_plasmid` si sigue en `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold`; en cualquier caso se cierra. Si el plásmido se perdió antes, se cierra al vencer, sin purga.
+- **Conteo de eventos:** `hgt_transfers` cuenta las transferencias que cambiaron el ADN del receptor; `crispr_rejections`, las bloqueadas por `crispr_memory`; un codón ya presente no cuenta en ninguno. `crispr_purges` cuenta las purgas.
+- **Control nulo:** el ADN y los plásmidos no transportan creencias; `comm_content_null` no los altera.
 
 ---
 
@@ -621,11 +751,66 @@ Se agregan al final de `SimulationConfig`, con los nombres y valores por defecto
 
 **Ablaciones de $R_{12}$–$R_{23}$:** forman parte del pre-registro de design D29 y se listan en el inventario de §8.4.
 
+### 7.3. Parámetros de la Fase II-B (especificada, sin implementar; design D31)
+
+Se agregan al final de `SimulationConfig`, después de los de la Fase II. Todas las banderas nuevas valen `False` por defecto, y con ellas apagadas nada cambia respecto de la Fase II. `config.to_dict()` incluye los campos nuevos, así que los JSON que regeneren los runners de la Fase II dejan de ser idénticos byte a byte a los de `registros/`: se comparan sin los campos de D31 (los historiales y los valores medidos sí son idénticos).
+
+| Grupo | Nombre en código | Por defecto | Descripción |
+| :--- | :--- | :---: | :--- |
+| ADN compacto ($R_{24}$) | `enable_compact_dna` | `False` | Genotipo como `CompactDNA` con expresión condicional. |
+| | `dna_codon_cost` | `0.0002` | $c_{\text{dna}}$ por codón (cromosoma, plásmidos y CRISPR) y por tick. |
+| | `dna_point_mutation_rate` | `0.05` | Probabilidad por codón de invertir un bit al reproducirse. |
+| | `dna_duplication_rate` | `0.02` | Probabilidad de duplicar un codón. |
+| | `dna_deletion_rate` | `0.02` | Probabilidad de eliminar un codón. |
+| | `dna_min_length` | `1` | Longitud mínima del cromosoma. |
+| | `dna_max_length` | `32` | Longitud máxima del cromosoma. |
+| | `stress_energy_ratio` | `0.35` | Umbral de $E/E_{\text{reprod}}$ del promotor `0x18` y del estrés de $R_{30}$. |
+| | `surplus_energy_ratio` | `0.85` | Umbral de $E/E_{\text{reprod}}$ del promotor `0x19`. |
+| Roles ($R_{25}$) | `enable_epigenetic_roles` | `False` | Castas intra-holón. |
+| Plásmidos ($R_{26}$) | `enable_plasmid_hgt` | `False` | Conjugación de plásmidos. |
+| | `dna_excision_rate` | `0.02` | Copia de un codón del cromosoma a un plásmido al reproducirse. |
+| | `max_plasmids` | `4` | Plásmidos por agente (FIFO). |
+| | `hgt_rate` | `0.05` | Probabilidad por tick de que un donante elegible conjugue. |
+| | `hgt_energy_ratio` | `0.85` | El donante necesita $E \ge$ `hgt_energy_ratio` $\cdot E_{\text{reprod}}$. |
+| CRISPR ($R_{27}$) | `enable_crispr_immunity` | `False` | Ensayo, purga y bloqueo de plásmidos. |
+| | `crispr_eval_ticks` | `20` | Ventana del ensayo. |
+| | `crispr_toxicity_threshold` | `0.20` | Purga si el balance del ensayo es menor que su opuesto. |
+| | `crispr_memory_size` | `4` | Firmas en la memoria CRISPR (FIFO). |
+| Esporulación ($R_{28}$) | `enable_sporulation` | `False` | Endosporas. |
+| | `spore_energy_threshold` | `0.30` | Base de $E_{\text{espora}}$ (destino `0x08`). |
+| | `spore_cost_fraction` | `0.05` | Costo de la endospora como fracción de `metabolic_base_cost`. |
+| Senescencia ($R_{29}$) | `enable_telomere_senescence` | `False` | Costo extra por edad. |
+| | `telomere_base_lifespan` | `600` | Base de $T_{\max}$ (destino `0x07`). |
+| | `telomere_min_lifespan` | `150` | Cota inferior de $T_{\max}$. |
+| | `telomere_max_lifespan` | `1200` | Cota superior de $T_{\max}$. |
+| | `senescence_cost_rate` | `1e-5` | Costo extra `rate * (edad - T_max) ** 2`. |
+| SOS ($R_{30}$) | `enable_sos_mutation` | `False` | Escala de mutación según el estrés. |
+| | `sos_window` | `50` | Ticks desde el último estrés que activan la hipermutación. |
+| | `sos_hypermutation_factor` | `4.0` | Escala bajo estrés. |
+| | `sos_high_fidelity_factor` | `0.25` | Escala en abundancia. |
+| | `sos_high_fidelity_energy_ratio` | `1.5` | Umbral de $E/E_{\text{reprod}}$ de la alta fidelidad. |
+| Trinquete ($R_{31}$) | `enable_symbiotic_ratchet` | `False` | Holones soldados. |
+| | `lock_composite_threshold` | `3` | `cooperative_completions` que sueldan un holón. |
+| | `lock_coord_discount` | `0.5` | Factor sobre el costo de coordinación de una raíz soldada. |
+
+**Validación en `__post_init__`, siempre** (aunque la bandera esté apagada):
+- En `[0, 1]`: `dna_point_mutation_rate`, `dna_duplication_rate`, `dna_deletion_rate`, `dna_excision_rate`, `hgt_rate`, `spore_cost_fraction`, `sos_high_fidelity_factor`, `lock_coord_discount`.
+- No negativos: `dna_codon_cost`, `crispr_toxicity_threshold`, `senescence_cost_rate`, `spore_energy_threshold`.
+- Estrictamente positivos: `stress_energy_ratio`, `surplus_energy_ratio`, `hgt_energy_ratio`, `sos_hypermutation_factor`, `sos_high_fidelity_energy_ratio`.
+- Enteros: `dna_min_length >= 1`, `dna_min_length <= FOUNDER_DNA_LENGTH` (9), `dna_max_length >= FOUNDER_DNA_LENGTH`, `max_plasmids >= 1`, `crispr_eval_ticks >= 1`, `crispr_memory_size >= 1`, `sos_window >= 1`, `lock_composite_threshold >= 1`, `telomere_min_lifespan >= 1` y `telomere_min_lifespan <= telomere_base_lifespan <= telomere_max_lifespan`.
+- Orden: `stress_energy_ratio < surplus_energy_ratio`.
+
+**Validación con `enable_compact_dna=True`:** exige `enable_evolution=True`, `perception_radius >= 1` y `comm_radius >= 1`, y que cada base esté dentro de sus cotas de expresión, para que el ADN fundador exprese exactamente la base: `alpha_learning` en $[0.01, 1]$, `memory_capacity` no mayor que la cota de $C_{\max}$, radios no mayores que la cota de radio y `spore_energy_threshold <= reproduction_threshold`. El `ValueError` nombra el campo.
+
+**Dependencias inertes, no inválidas (design D30.3):** $R_{25}$, $R_{26}$ y $R_{27}$ sólo actúan con `enable_compact_dna=True`; $R_{25}$ y $R_{31}$, sólo con `enable_holonic_hierarchy=True`; $R_{27}$, sólo con $R_{26}$; $R_{28}$, $R_{29}$ y $R_{30}$, sólo con `enable_evolution=True`. Con su requisito apagado, la bandera es inerte y no lanza `ValueError`.
+
+**Generador derivado nuevo (design D30.4):** `hgt_rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(5,))))`. Su único uso es el sorteo de la conjugación, y sólo se consume con `enable_compact_dna=True` y `enable_plasmid_hgt=True`; va aparte para no desplazar `evo_rng`. La mutación del ADN usa `evo_rng`, así que con `enable_compact_dna=True` la secuencia de `evo_rng` difiere de la de la Fase II, como es esperable.
+
 ---
 
 ## 8. Protocolos Experimentales
 
-Numeración v2: **001** memoria (completado), **002** evolución y herencia, **003** holones y composición, **004** especialización, **005** shock ambiental (`invert_world_rules`), **006** protocolo emergente. Los docstrings del código que todavía usan la numeración v1 se actualizan en la tarea 1.2 de `tasks.md`.
+Numeración v2: **001** memoria (completado), **002** evolución y herencia, **003** holones y composición, **004** especialización, **005** shock ambiental (`invert_world_rules`), **006** protocolo emergente. La tarea 1.2 del `tasks.md` de la Fase II (archivado) actualizó los docstrings a esta numeración, y los últimos restos de la v1 (comentarios de `config.py`, mensajes de `engine.py` y docstrings de `extensions.py`) se corrigieron al abrir la Fase II-B.
 
 ### 8.1. Experimento 001 (Fase I — Completado)
 `exp001_runner.py` ejecuta los protocolos 001-A a 001-C, y desde su CLI invoca 001-D, que vive en `attribution.py`. Cada uno tiene dos perfiles: **quick**, para tests y valores por defecto de las funciones, y **full**, el valor por defecto de la CLI.
@@ -716,8 +901,62 @@ Cómo paga un recurso compuesto (éxito si el grupo local conoce los fragmentos,
 | **M12** Resolución compuesta | `composite_completions` | Acumulado de recursos compuestos resueltos. |
 | **M13** Cobertura colectiva adquirida (métrica de C8) y reducción de redundancia (descriptiva) | `acquired_coverage`, `redundancy_reduction`, `eligible_holons` | Para una hoja $\ell$, $K(\ell)$ son los patrones **elementales** de su memoria con `confidence >= decision_conf_threshold` **y signo correcto** (el colector conoce la verdad del mundo, como para M1 y M2; el agente no). $\text{cov}(U) = |\bigcup_\ell K(\ell)|$ y $\text{red}(U) = (\sum_\ell |K(\ell)| - \text{cov}(U)) / \sum_\ell |K(\ell)|$ (0 si la suma es 0). $\text{cov}_0$ y $\text{red}_0$ se calculan con `formation_knowledge` (lo que sabía cada hoja al formarse). Cuando el holón pierde un miembro (muerte o poda) y sigue siendo holón, el motor **reinicia** su estado de formación: `formation_knowledge` = $K$ actual de las hojas que quedan y `formation_tick = tick`, así que una muerte nunca cuenta como ganancia ni como pérdida (p. ej., con $A = \{\rho_0\}$, $B = \{\rho_1\}$, $C = \{\rho_2\}$, si $A$ aprende $\rho_1$ y muere $B$ en $t$, el holón se reinicia al estado de $A$ y $C$, no es elegible en $t$ y en $t+1$, sin cambios, aporta 0); un sub-holón que pasa a raíz por `SPLIT` conserva su propio estado de formación. Holones elegibles: raíz, `formed_by_bond` y `tick - formation_tick >= 1` (los de $R_{17}$ y sus sub-holones replicados no entran). `acquired_coverage` es la media de $(\text{cov} - \text{cov}_0)/|U|$ sobre los elegibles y `redundancy_reduction` la de $\text{red}_0 - \text{red}$; las dos valen `None` sin elegibles. La media de una corrida es por par (tick, holón elegible). La cobertura no premia olvidar: olvidar un duplicado no suma y olvidar algo único resta. |
 
-### 8.6. Experimentos 004 a 006 y extensiones
-- **004 Especialización:** contrato `enable_specialization` y `AgentCapabilities` (no implementados).
+### 8.6. Fase II-B: protocolos 002c, 002d, 002e y 003c (especificada, sin implementar; design D41)
+`exp25_runner.py` (previsto) define los cuatro protocolos sobre la infraestructura de `phase2_cli.py` (`ProtocolSpec`). Cada uno corre sus condiciones con la misma semilla, y su resumen por condición incluye `final_accuracy`, `composite_completions`, `final_agents`, `final_active_agents` (hojas vivas que no están en endospora), `max_generation` y el resumen genético del último tick.
+
+| Protocolo | Condición base | Condiciones de comparación |
+| :--- | :--- | :--- |
+| `002c` | `dna` | `flat_genome` (sin $R_{24}$), `frozen_dna` (sin $R_{13}$) y `drift` (sin $R_{12}$) |
+| `002d` | `telomeres` | `no_telomeres` (sin $R_{29}$) |
+| `002e` | `sporulation` | `no_sporulation` (sin $R_{28}$) |
+| `003c` | `roles` | `no_roles` (sin $R_{25}$) y `unlocked` (sin $R_{31}$) |
+
+**`GeneticTickMetrics`** (en `metrics.py`, `@dataclass(frozen=True)`): se registra en **cada** tick, con cualquier combinación de banderas, en `engine.genetic_history: list[GeneticTickMetrics]`. No se agregan campos a `TickMetrics` ni a `EvolutionaryTickMetrics`, y no consume generadores.
+
+| Campos | Definición y casos borde |
+| :--- | :--- |
+| `tick` | Tick. |
+| `mean_chromosome_length`, `mean_expressed_codons`, `mean_plasmids` | Medias sobre las hojas vivas al final del tick; `0.0` sin ADN o con la población vacía. |
+| `endospores`, `senescent_agents` | Hojas en endospora y hojas con `age > lifespan`. |
+| `mean_age` (`float`), `max_age` (`int`) | Edad `tick - birth_tick`, definida siempre; `0.0` y `0` con la población vacía. |
+| `explorers`, `librarians`, `nerves` | Hojas con cada rol. |
+| `locked_holons` | Holones soldados ($R_{31}$). |
+| `hgt_transfers`, `crispr_rejections`, `crispr_purges` | Eventos del tick (§6, "Trabajo de la Fase II-B dentro del tick"). |
+
+### 8.7. Atribución de la Fase II-B (pre-registro aprobado el 2026-10-20, design D42)
+El pre-registro se aprobó sin cambios antes de implementar y de mirar cualquier resultado; el único dato previo es el diagnóstico demográfico de la tarea 0.1 ([RESULTADOS.md](RESULTADOS.md)). Cambiarlo exige un commit que lo justifique, y las constantes de `attribution.py` deben coincidir exactamente con D42. El detalle conceptual (propósitos, sesgos declarados y clasificación) está en [Definiciones Formales](DEFINICIONES_FORMALES.md) §3.1.
+- **Inventario.** `PHASE25_DESIGN_RULES` con R24–R31; `PHASE25_ALL_RULES = ALL_DESIGN_RULES + PHASE25_DESIGN_RULES`. `ALL_DESIGN_RULES` no cambia, y `ablate()` busca en un índice que incluye las dos tuplas.
+
+| Regla | Nombre | Ablación |
+| :--- | :--- | :--- |
+| R24 | ADN compacto y expresión condicional (sesgo declarado: abarata la complejidad latente) | `enable_compact_dna=False` (deja inertes R25, R26 y R27) |
+| R25 | Roles epigenéticos intra-holón | `enable_epigenetic_roles=False` |
+| R26 | Conjugación de plásmidos | `enable_plasmid_hgt=False` (deja inerte R27) |
+| R27 | Inmunidad CRISPR | `enable_crispr_immunity=False` |
+| R28 | Esporulación (sesgo declarado: rescata poblaciones) | `enable_sporulation=False` |
+| R29 | Senescencia telomérica | `enable_telomere_senescence=False` |
+| R30 | Mutación SOS | `enable_sos_mutation=False` |
+| R31 | Trinquete simbiótico (sesgo declarado: estabilidad por decreto) | `enable_symbiotic_ratchet=False` |
+
+- **Afirmaciones (`PHASE25_CLAIMS`).** Todas programadas por construcción, con el criterio ampliado de la Fase II. Canales en `PHASE25_CLAIM_CHANNELS`.
+
+| Afirmación | Protocolo y métrica | $R_C$ y canal | Variante `isolated` |
+| :--- | :--- | :--- | :--- |
+| **C9** Adaptación con genoma regulado | `002c`, `evolved_accuracy` | R24 | `ablate(config, ["R24"])` (genoma plano) |
+| **C10** Adaptación con recambio en abundancia | `002d`, `evolved_accuracy` | R29 | `ablate(config, ["R29"])` |
+| **C11** Supervivencia activa en el desierto | `002e`, `final_active_population` (sin endosporas) | R28 | `ablate(config, ["R28"])` |
+| **C12** Superávit cooperativo con castas | `003c`, `holonic_composite_completions` (potencia baja) | R25 | `ablate(config, ["R25"])` |
+
+- **Mapeo de métricas (`PHASE25_METRIC_FIELDS`, precisión 9):** `{"evolved_accuracy": "final_accuracy", "final_active_population": "final_active_agents", "holonic_composite_completions": "composite_completions"}`.
+- **Configuraciones (`PHASE25_PROTOCOL_CONFIGS`)**, sobre `PHASE2_PROTOCOL_CONFIGS` (`resources_per_pattern = 20`): `"002c"` = `"002a"` + `enable_compact_dna`, `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sos_mutation`; `"002d"` = `"002c"` + `enable_telomere_senescence=True` y `resources_per_pattern=40`; `"002e"` = `"002c"` + `enable_sporulation=True` y `resources_per_pattern=10`; `"003c"` = `"003a"` + `enable_compact_dna`, `enable_epigenetic_roles`, `enable_symbiotic_ratchet`, `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sos_mutation`.
+- **Reglas inactivas (`PHASE25_INACTIVE_RULES`):** `"002c"`: R14–R19, R22, R23, R25, R28, R29, R31; `"002d"`: las de `"002c"` salvo R29; `"002e"`: las de `"002c"` salvo R28; `"003c"`: R14, R18, R19, R28, R29. Un test las contrasta con las configuraciones.
+- **Variantes:** `isolated`, `null_content` y `rule_effects` sobre `PHASE25_ALL_RULES` salvo las inactivas, como en la Fase II.
+- **E4 (`PHASE25_E4_INTERPRETABLE: dict[str, bool]`):** se fija por protocolo, sin derivarlo de la abundancia. `False` en `002c`, `002e` y `003c`. En `002d` vale `True`, pero condicionado: E4 de C10 es interpretable sólo si `null_content` termina con población viva en al menos 8 de las 10 semillas, según `ClaimEvaluation.demography`, sin mirar la métrica de C10; si no, se informa como no interpretable.
+- **Ejecución:** `is_phase25_claim(claim)` vale `claim.protocol in PHASE25_PROTOCOL_CONFIGS`. `run_phase25_attribution(seeds=PHASE2_SEEDS, claims=PHASE25_CLAIMS, jobs=1, configs=None)` devuelve `AttributionReport(profile="phase2", rules=PHASE25_ALL_RULES, ...)`, con 2000 ticks y las semillas 42–51. El camino de la Fase II no cambia: un test exige que los reportes de C5–C8 sean idénticos a los de antes del cambio.
+- **Prueba de humo:** antes de los runners, registra si la corrida termina, la generación máxima y, salvo en `002e`, la población final, sin calcular ni mirar las métricas de las afirmaciones. Un protocolo inviable se reporta como resultado, y `002e` no se recalibra en ningún caso.
+
+### 8.8. Experimentos 004 a 006 y extensiones
+- **004 Especialización:** contrato `enable_specialization` y `AgentCapabilities` (no implementados). Se medirá con $R_{25}$ ablacionada (decisión P7 de la Fase II-B): lo que muestre la Fase II-B con $R_{25}$ activa es especialización programada y no cuenta como evidencia.
 - **005 Shock ambiental:** `invert_world_rules` invierte una fracción de las reglas del mundo; `epsilon_recheck` y `tau_policy="evidence_age"` (no implementados) son los mecanismos previstos contra la trampa de evitación.
 - **006 Protocolo emergente:** retiro progresivo de la semántica predefinida de `Message` (niveles N1 a N4; [Documento Fundacional](DOCUMENTO_FUNDACIONAL.md) §7, eje transversal).
 - **Confianza por emisor (`TrustStrategyPort`):** extensión ya disponible (por defecto `UniformTrustStrategy`), sin experimento asignado en la numeración v2.
@@ -736,7 +975,7 @@ Cómo paga un recurso compuesto (éxito si el grupo local conoce los fragmentos,
 8. **Atribución:** las reglas ($R_1 \dots R_{23}$) y las afirmaciones se versionan antes de la corrida de atribución correspondiente (en la Fase II, antes del primer commit de los runners 002 y 003), y su tabla de estados se registra tal cual.
 9. **Propiedades:** los invariantes de memoria, epistemología, grilla, evolución, jerarquía holónica y determinismo se verifican con Hypothesis (perfil `ci`, `derandomize=True`).
 10. **Paralelismo inocuo:** la CLI produce archivos idénticos con `--jobs 1` y `--jobs N`.
-11. **Verificaciones de cierre** (las de [CLAUDE.md](CLAUDE.md) y la CI):
+11. **Verificaciones de cierre** (las de [CLAUDE.md](../CLAUDE.md) y la CI):
     ```bash
     ruff check
     ruff format --check

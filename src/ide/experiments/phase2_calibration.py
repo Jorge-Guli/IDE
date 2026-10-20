@@ -17,12 +17,12 @@ recursos con un criterio puramente demográfico: nunca calcula ni mira las métr
   pura demografía.
 - Parte de `PHASE2_PROTOCOL_CONFIGS_ORIGINAL`, así que es reproducible después de incorporar el
   valor elegido a `PHASE2_PROTOCOL_CONFIGS`.
-- Enmienda 1b: con la grilla original ningún valor fue viable (`RESULTADOS.md`). Se evalúa,
+- Enmienda 1b: con la grilla original ningún valor fue viable (`docs/RESULTADOS.md`). Se evalúa,
   con el mismo criterio y las mismas semillas, la grilla refinada 25, 30, 35 (`--refined`). Si
   tampoco hay un valor viable, se usa `CALIBRATION_FALLBACK = 20` y la comparación E4 de C5 a C8
   se declara no interpretable (con 20 se extingue el control nulo), regla fijada antes de esta
   corrida; el reporte la registra en `fallback`.
-- La grilla refinada tampoco dio un valor viable (`RESULTADOS.md`), así que
+- La grilla refinada tampoco dio un valor viable (`docs/RESULTADOS.md`), así que
   `PHASE2_PROTOCOL_CONFIGS` usa la salida de respaldo, 20 (`PHASE2_RESOURCES_PER_PATTERN`).
 
 Uso: `python -m ide.experiments.phase2_calibration [--refined] [--jobs N] [--out results/]

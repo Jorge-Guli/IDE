@@ -1,7 +1,7 @@
 # Documento Fundacional: Inteligencia Distribuida Emergente (IDE)
 **Versión:** 2.0  
 **Fecha:** 2026-10-17  
-**Estado:** Base Teórica y Hoja de Ruta Evolutiva Multinivel (Fase I verificada / Fase II en diseño)  
+**Estado:** Base Teórica y Hoja de Ruta Evolutiva Multinivel (Fase I verificada / Fase II implementada, corrida y archivada / Fase II-B especificada, con pre-registro aprobado)  
 
 ---
 
@@ -117,7 +117,7 @@ flowchart TD
 El Experimento 001 (población inmortal, sin reproducción ni construcción de nicho) dejó resultados mayormente negativos para la emergencia ([RESULTADOS.md](RESULTADOS.md)):
 - Las capacidades colectivas observadas (acceso al conocimiento, superávit de decisión, extinción del rumor) desaparecen o dejan de superar a la población aislada cuando se apagan las reglas diseñadas para producirlas. C1, C2 y C3 resultaron `PROGRAMMED`.
 - El conocimiento social no sobrevive de forma fiable a sus descubridores. C4 resultó `NOT_OBSERVED`: tras eliminar a los descubridores y retirar el estímulo, sobrevive sólo en 2 de 5 semillas (001-D, perfil `quick`). Varias reglas pesan en esa extinción en magnitudes parecidas, entre ellas la regla anti-eco $R_6$, que impide que un testimonio se revalide sólo con otros testimonios. Con 5 semillas no se puede aislar una causa.
-- **Hipótesis de trabajo de la v2.0** (no un resultado): la herencia cultural vertical, la integración holónica y la construcción de nicho podrían sostener el conocimiento más allá de los individuos sin abrir la puerta a la histeria colectiva. La Fase II lo pone a prueba con el mismo marco de atribución.
+- **Hipótesis de trabajo de la v2.0** (no un resultado): la herencia cultural vertical, la integración holónica y la construcción de nicho podrían sostener el conocimiento más allá de los individuos sin abrir la puerta a la histeria colectiva. La Fase II la puso a prueba con el mismo marco de atribución y no observó ninguna de sus cuatro afirmaciones (§7).
 
 ---
 
@@ -138,8 +138,8 @@ $$\mathbf{Nivel\ 0\ (Agente)} \Longleftrightarrow \mathbf{Nivel\ 1\ (Grupo)} \Lo
 
 ```mermaid
 flowchart LR
-    E001["Exp 001 (Completado):\nMemoria y Atribución Base"] --> E002["Exp 002:\nMetabolismo, Reproducción\ny Herencia Generacional"]
-    E002 --> E003["Exp 003:\nMeta-Agentes Recursivos\n(Niveles L=1..K) y Composición"]
+    E001["Exp 001 (Completado):\nMemoria y Atribución Base"] --> E002["Exp 002 (Corrido):\nMetabolismo, Reproducción\ny Herencia Generacional"]
+    E002 --> E003["Exp 003 (Corrido):\nMeta-Agentes Recursivos\n(Niveles L=1..K) y Composición"]
     E003 --> E004["Exp 004:\nEspecialización\ny División del Trabajo"]
     E004 --> E005["Exp 005:\nShock Ambiental y\nReconfiguración Multinivel"]
     E005 --> E006["Exp 006:\nProtocolo de Comunicación\nEmergente (N1 -> N4)"]
@@ -156,19 +156,29 @@ flowchart LR
 - **Qué puede concluir:** mientras el protocolo transmita creencias con semántica predefinida, las capacidades de acceso, superávit y persistencia son programadas por construcción (§9). Ninguna capacidad del Exp 001 calificó como emergente.
 
 ### Fase II — Experimento 002: Ciclo Vital, Reproducción y Evolución Intergeneracional
+- **Estado (Exp 002 y 003):** implementados, corridos y archivados en [`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`](../openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/) (design D19–D29). Resultados en [RESULTADOS.md](RESULTADOS.md).
 - **Objetivo:** Introducir metabolismo real ($E_i$), muerte por agotamiento/toxicidad y reproducción con **herencia dual** (genética de capacidades $\Theta_i$ + herencia cultural de creencias $\mathcal{M}_i$).
 - **Preguntas clave:**
   - ¿Logra la herencia intergeneracional sostener y acumular conocimiento colectivo a lo largo de decenas de generaciones aunque ningún individuo viva lo suficiente para explorar todo el mapa?
   - ¿Evolucionan por selección natural los hiperparámetros de los agentes ($\alpha, \gamma, \epsilon$, capacidad, visión) hacia configuraciones superiores a las iniciales sin ajuste manual?
 - **Cómo se contrasta:** la adaptación se compara contra un control de **deriva neutral** (se reproducen los mismos agentes y de la misma forma, pero el genoma de cada hijo viene de un donante al azar), y la herencia cultural contra descendientes que nacen sin creencias. Adaptarse por selección y transmitir por herencia son propósitos de reglas diseñadas, así que se declaran programados; qué rasgos evolucionan (cerebros más grandes o más cooperación) se registra como observación exploratoria.
 
-### Fase III — Experimento 003: Simbiogénesis y Jerarquía Recursiva de Meta-Agentes ($L = 1 \dots K$)
+### Fase II — Experimento 003: Simbiogénesis y Jerarquía Recursiva de Meta-Agentes ($L = 1 \dots K$)
 - **Objetivo:** Permitir que agentes y grupos se asocien dinámicamente formando árboles holónicos de profundidad arbitraria ($L = 1, 2, 3, \dots, K$) frente a un entorno con **recursos composicionales** que exigen combinar simultáneamente $m$ patrones benéficos ($2 \le m \le N/2$).
 - **Qué se pone a prueba:** si la población, con la regla de fusión diseñada y bajo selección, sostiene holones capaces de resolver recursos de orden $m > C_{\max}$, y con qué nivel jerárquico. Que un individuo con $C_{\max} < m$ y sin ayuda no pueda resolverlos es una propiedad del entorno diseñado. Por eso el superávit cooperativo sobre esos recursos (C7) está pre-registrado como **programado por construcción** y no se presenta como evidencia de emergencia. Los agentes no reciben la regla de esos recursos: aprenden por experiencia si les conviene consumirlos. Además, la mutación puede elevar $C_{\max}$ individual: si la selección prefiere cerebros más grandes a la cooperación, eso también es un resultado.
 
 - **La Fase II no tiene prueba genuina pre-registrada.** Sus cuatro afirmaciones pre-registradas (C5–C8: aceleración cultural, adaptación por selección, superávit cooperativo y cobertura colectiva adquirida por los holones) se declaran programadas por construcción: verifican que los mecanismos diseñados funcionan. La última (C8) se intentó plantear como prueba genuina, pero saber más cosas entre todos es una afirmación sobre disponibilidad de conocimiento, y por el principio conservador (§9, punto 5) se atribuye a la regla que da acceso a ese conocimiento (la vista compartida, $R_{22}$). Se registran como observaciones exploratorias cuánto conocimiento distinto ganan los holones sin la regla de causalidad descendente y por qué mecanismo. Declararlo así es un resultado del diseño, no un fracaso.
 
-### Fase IV — Experimentos 004 a 006: Especialización, Shock Ambiental y Lenguaje Emergente
+- **Resultados (Exp 002 y 003, [RESULTADOS.md](RESULTADOS.md)):** las cuatro afirmaciones C5–C8 resultaron `NOT_OBSERVED`, con 10 semillas y el perfil pre-registrado `phase2`. Ni siquiera los mecanismos diseñados para producirlas (herencia cultural, selección, holones, vista compartida) muestran el beneficio que se les atribuía. Con 10 semillas, eso significa "no detectado", no "efecto nulo demostrado".
+  - **E4 no es interpretable:** con `resources_per_pattern = 20`, la salida de respaldo de la Enmienda 1b, el control nulo se extingue en 9 o 10 de 10 semillas en las cuatro afirmaciones.
+  - **Observaciones exploratorias, no resultados:** el genoma congelado rinde más que la evolución en las 10 semillas; los recursos compuestos casi no se resuelven (0.6 por corrida con holones); la redundancia de memoria dentro de los holones crece en lugar de bajar; y sin $R_{21}$ el perfil original deja de ser inviable. No se afirma ninguna causa: quedan como preguntas para un diseño nuevo.
+
+### Fase II-B — ADN Compacto (Experimentos 002-C y 003-C)
+- **Qué es:** una revisión del genoma de la Fase II. El genoma pasa a ser un ADN compacto de codones de 32 bits, con ocho reglas nuevas ($R_{24}$–$R_{31}$), cada una declarada y ablacionable. Se pone a prueba con los protocolos 002c, 002d, 002e y 003c.
+- **Estado:** especificada en el cambio activo [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/). Su pre-registro se aprobó el 2026-10-20; todavía no está implementada ni hay resultados.
+- **Visión:** [hoja de ruta](vision/ROADMAP.md) (sin rango normativo).
+
+### Experimentos 004 a 006 (Fase III de la hoja de ruta): Especialización, Shock Ambiental y Lenguaje Emergente
 - **Exp 004 (Especialización dentro del Meta-Agente):** Diferenciación de roles internos (nodos sensores de amplio radio vs. nodos de alta memoria vs. nodos coordinadores) dentro de un mismo organismo multinivel.
 - **Exp 005 (Shock y Fisión/Fusión Adaptativa):** Inversión abrupta de las reglas del entorno (`invert_world_rules`) para medir cómo los super-organismos disuelven ramas obsoletas y se reconfiguran.
 - **Exp 006 (Protocolo de Comunicación Emergente, niveles N3–N4):** ¿puede una población inventar un protocolo útil si sólo dispone de un canal de símbolos sin significado?
@@ -192,6 +202,8 @@ Cuanta más inteligencia se programa en el agente, menos se puede afirmar que em
 | **N2** | Difusión de (patrón, signo) sin confianza ni origen. | Cuánto creer a quién. |
 | **N3** | Un canal de símbolos arbitrarios de un alfabeto finito, sin significado asignado. | Una convención compartida entre símbolos y estados del mundo. |
 | **N4** | Además, decidir cuándo emitir y a quién atender. | Un protocolo completo: turnos, selectividad, relevancia. |
+
+*Aclaración:* N0–N4 son niveles de des-programación del protocolo de comunicación. No son niveles holónicos: "N0" no es el nivel $L = 0$ de la jerarquía (§6).
 
 ---
 
@@ -242,8 +254,15 @@ Sólo se llama **emergente** a una propiedad poblacional que supera al control a
 
 ## 10. Mapa Documental del Proyecto
 
-1. **Visión y Programa Científico:** este documento (v2.0).
-2. **Modelo Matemático y Ontológico:** [DEFINICIONES_FORMALES.md](DEFINICIONES_FORMALES.md) (v2.0).
-3. **Arquitectura de Software y Contratos:** [DEFINICIONES_TECNICAS.md](DEFINICIONES_TECNICAS.md) (v2.0).
-4. **Registro Empírico Auditado:** [RESULTADOS.md](RESULTADOS.md).
-5. **Especificación Ejecutable (OpenSpec):** requisitos vigentes de la Fase I en [`openspec/specs/`](openspec/specs/), con su diseño archivado en [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/), y el cambio en curso de la Fase II en [`openspec/changes/ide-v2-evolutionary-holonic-intelligence/`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/).
+Los documentos normativos y el registro empírico están en `docs/`. Ante una discrepancia rige el orden de [`CLAUDE.md`](../CLAUDE.md): specs, design, definiciones y, por último, este documento.
+
+1. **Visión y Programa Científico:** este documento, [`docs/DOCUMENTO_FUNDACIONAL.md`](DOCUMENTO_FUNDACIONAL.md) (v2.0).
+2. **Modelo Matemático y Ontológico:** [`docs/DEFINICIONES_FORMALES.md`](DEFINICIONES_FORMALES.md) (v2.0).
+3. **Arquitectura de Software y Contratos:** [`docs/DEFINICIONES_TECNICAS.md`](DEFINICIONES_TECNICAS.md) (v2.0).
+4. **Registro Empírico Auditado:** [`docs/RESULTADOS.md`](RESULTADOS.md) (Exp 001, 002 y 003).
+5. **Especificación Ejecutable (OpenSpec):**
+   - Requisitos vigentes de las Fases I y II: [`openspec/specs/`](../openspec/specs/).
+   - Fase I, archivada: [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`](../openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/) (design D1–D18).
+   - Fase II, archivada: [`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`](../openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/) (design D19–D29).
+   - Fase II-B, cambio activo: [`openspec/changes/ide-v25-compact-dna-and-epigenetics/`](../openspec/changes/ide-v25-compact-dna-and-epigenetics/) (pre-registro aprobado el 2026-10-20).
+6. **Visión y Hoja de Ruta:** [`docs/vision/`](vision/): [ROADMAP.md](vision/ROADMAP.md), [ARQUITECTURA_ADN_HOLONICO.md](vision/ARQUITECTURA_ADN_HOLONICO.md) y [ESCALA_BIOLOGICA_HOLONICA.md](vision/ESCALA_BIOLOGICA_HOLONICA.md). **No tienen rango normativo:** orientan el trabajo futuro, pero no fijan requisitos ni resultados.

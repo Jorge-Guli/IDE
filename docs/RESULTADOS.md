@@ -6,7 +6,7 @@ Resultados tal cual se obtuvieron, positivos o negativos, **sin ajustar parámet
 
 ## Experimento 001: expectativas funcionales (bloque 9.5)
 
-- **Código:** el commit que agrega esta entrada (bloque 9 de `tasks.md`; `git log -- RESULTADOS.md`).
+- **Código:** el commit que agrega esta entrada (bloque 9 de `tasks.md`; `git log --follow -- docs/RESULTADOS.md`).
 - **Comando:** `python -m pytest -m empirical` (16 tests, `SimulationConfig()` por defecto, perfil `quick`: 300 ticks; 001-B con inyección en el tick 80 al 25 %).
 - **Resultado:** 16 de 16 pasan.
 - **Alcance (regla de atribución):** H1 verifica que los mecanismos de comunicación programados cumplen su propósito. **No** es evidencia de emergencia: C1 y C2 son programadas por construcción (ver 001-D).
@@ -189,6 +189,24 @@ Valores por semilla (42..51), población completa / variante aislada:
   - **C8:** sin $R_{5}$, +0.066 con demografía comparable; sin $R_{13}$, −0.061, con una extinción. Los demás son menores.
 - **Referencia con las configuraciones originales** (`resources_per_pattern = 8`): la condición completa llega a la generación 0 o 1, y las cuatro afirmaciones también son `NOT_OBSERVED` (p E2 de 0.5 a 1.0). Es coherente con la prueba de humo, que no había llegado a verificar la extinción. **Observación exploratoria:** con esas configuraciones, quitar $R_{21}$ evita la inviabilidad. En 002 ninguna semilla se extingue (generaciones 4 a 7, precisión 0.886); en 003 se extinguen 2 de 10 y se resuelven 12.1 compuestos de media. No se afirma una causa.
 - **Consecuencia para la Fase II:** el diseño ya declaraba que la Fase II no tenía ninguna prueba genuina pre-registrada. Con este perfil, además, ninguno de sus mecanismos diseñados (herencia cultural, selección, holones, vista compartida) produce el beneficio funcional que se le atribuía. Las observaciones exploratorias quedan como preguntas para un diseño nuevo, no como resultados de éste: el genoma congelado rinde más que la evolución; los compuestos casi no se resuelven y varias ablaciones ($R_{5}$, $R_{13}$, $R_{21}$, $R_{23}$) los multiplican; la redundancia de los holones crece; y sin $R_{21}$ el perfil original deja de ser inviable.
+
+## Fase II-B: diagnóstico del "Tapón de Matusalén" (tarea 0.1, design D42)
+
+- **Qué es:** un diagnóstico **exploratorio y sólo demográfico**, previo a aprobar el pre-registro de la Fase II-B. Decide si se mantienen la regla $R_{29}$ (senescencia) y la afirmación C10. No calcula ninguna métrica de afirmación.
+- **Criterio, fijado de antemano** (decisión del 2026-10-20, commiteado con el script en `e186dd6` antes de correrlo): la hipótesis se confirma si, en al menos 8 de las 10 semillas de cada protocolo, más de la mitad de los agentes vivos en el tick 2000 nació antes del tick 1000.
+- **Comando y configuraciones:** `python registros/diagnostico_tapon/diagnostico_tapon.py --jobs 4`. Corre `PHASE2_PROTOCOL_CONFIGS_ORIGINAL["002a"]` y `["003a"]` (genoma plano de la Fase II) con `resources_per_pattern = 40`, las semillas de calibración 0 a 9 y 2000 ticks. La salida completa está en `registros/diagnostico_tapon/`.
+
+| Protocolo | Población final | Vivos nacidos antes del tick 1000 | Muertes por tick (ticks 1000–2000) | Mediana de edad al morir |
+| :--- | :--- | :--- | :--- | :--- |
+| `002a` | 160 en las 10 semillas | 99 % en las 10 semillas | 0.001 a 0.002 | 75 a 110 ticks |
+| `003a` | 160 en las 10 semillas | 71 % a 97 % | 0.006 a 0.065 | 89 a 126 ticks |
+
+- **Resultado: confirmada.** Las 10 semillas de cada protocolo cumplen el criterio.
+- **Lectura:**
+  - **Con abundancia, la población queda congelada en el tope.** Los agentes que mueren, mueren jóvenes, con una mediana de alrededor de 100 ticks. Los que se establecen casi no mueren más: en `002a` hay 1 o 2 muertes en los últimos 1000 ticks. Sin muertes, el cupo no se libera y casi no nace nadie.
+  - **Esto verifica la causa que la calibración de la Fase II dejó abierta.** Explica la falta de recambio generacional con abundancia.
+  - **Los holones (`003a`) dan algo más de recambio,** pero el congelamiento domina igual.
+  - **Alcance.** Es una observación demográfica con el genoma plano de la Fase II, no una medición de ninguna afirmación. No dice nada sobre el efecto de la senescencia, que es lo que pondrá a prueba C10.
 
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 

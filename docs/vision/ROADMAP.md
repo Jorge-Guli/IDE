@@ -1,11 +1,11 @@
 # Hoja de Ruta General (ROADMAP): Proyecto IDE (Inteligencia Distribuida Emergente)
 
-> **Propósito de este documento:** Consolidar la evolución completa del proyecto `IDE` desde sus cimientos ya verificados (**Fase I**), su etapa actual en curso (**Fase II**), el paso inmediato de código genético comprimido de 32 bits y epigenética (**Fase II-B**), la transición a un ecosistema continuo 3D interactivo (**Fase III**) y el horizonte de automejora funcional y conexión controlada a datos reales (**Fase IV**).
+> **Propósito de este documento:** Consolidar la evolución completa del proyecto `IDE` desde sus cimientos ya verificados (**Fase I**), la evolución y holarquía ya implementadas y corridas (**Fase II**), el paso inmediato de código genético comprimido de 32 bits y epigenética (**Fase II-B**, especificada), la transición a un ecosistema continuo 3D interactivo (**Fase III**) y el horizonte de automejora funcional y conexión controlada a datos reales (**Fase IV**).
 
 ```mermaid
 flowchart LR
-    F1["Fase I (v1.0 — COMPLETADA):\nMemoria Acotada, Epistemología\ny Atribución Causal (Exp 001)"] --> F2["Fase II (v2.0 — EN CURSO):\nEvolución, Herencia Dual\ny Holarquía Recursiva (Exp 002-003)"]
-    F2 --> F2B["Fase II-B (v2.5 — SIGUIENTE PASO):\nADN 32b (GRN), Epigenética,\nPlásmidos, CRISPR y Telómeros"]
+    F1["Fase I (v1.0 — COMPLETADA):\nMemoria Acotada, Epistemología\ny Atribución Causal (Exp 001)"] --> F2["Fase II (v2.0 — COMPLETADA):\nEvolución, Herencia Dual\ny Holarquía Recursiva (Exp 002-003)"]
+    F2 --> F2B["Fase II-B (v2.5 — ESPECIFICADA):\nADN 32b (GRN), Epigenética,\nPlásmidos, CRISPR y Telómeros"]
     F2B --> F3["Fase III (v3.0 — PLANIFICADA):\nInmortalidad, Cubo 3D,\nWeb UI Viva y Ecología Abierta"]
     F3 --> F3B["Fase III-B (Puente):\nTelescopio a Internet\n(Streams Read-Only)"]
     F3B --> F4["Fase IV (v4.0 — HORIZONTE):\nAutomejora Lógica (Operadores)\ny Física (Módulos en Sandbox)"]
@@ -18,8 +18,8 @@ flowchart LR
 | Fase | Versión | Estado | Núcleo Científico y Arquitectónico |
 | :--- | :---: | :---: | :--- |
 | **Fase I** | `v1.0` | **Completada y Archivada** | Micro-agentes inmortales con memoria acotada ($C_{\max} < N$), protocolo epistémico (`R1`–`R11`), entorno `ToroidalGrid2D` y marco de atribución `001-D`. |
-| **Fase II** | `v2.0` | **En Curso (Diseño Cerrado / Pre-registrado)** | Metabolismo energético ($R_{20}, R_{21}$), selección y deriva ($R_{12}$), mutación genética ($R_{13}$), herencia cultural ($R_{14}$), holones recursivos $L = 0 \dots K$ (`BOND`/`SPLIT`, $R_{15}$–$R_{18}, R_{22}, R_{23}$) y estigmergia ($R_{19}$). |
-| **Fase II-B** | `v2.5` | **Siguiente Paso Inmediato ([ARQUITECTURA_ADN_HOLONICO.md](ARQUITECTURA_ADN_HOLONICO.md))** | ADN bacteriano comprimido en codones de 32 bits (`CompactDNA` + redes regulatorias GRN, $R_{24}$), operones y diferenciación epigenética intra-holón ($R_{25}$), transferencia horizontal de plásmidos ($R_{26}$) con inmunidad CRISPR-Cas ($R_{27}$), esporulación ($R_{28}$), senescencia telomérica y mutación SOS ($R_{29}$), y trinquete simbiótico ($R_{30}$). |
+| **Fase II** | `v2.0` | **Completada y Archivada (resultados negativos para C5–C8)** | Metabolismo energético ($R_{20}, R_{21}$), selección y deriva ($R_{12}$), mutación genética ($R_{13}$), herencia cultural ($R_{14}$), holones recursivos $L = 0 \dots K$ (`BOND`/`SPLIT`, $R_{15}$–$R_{18}, R_{22}, R_{23}$) y estigmergia ($R_{19}$). |
+| **Fase II-B** | `v2.5` | **Especificada; pre-registro aprobado (2026-10-20)** ([cambio OpenSpec](../../openspec/changes/ide-v25-compact-dna-and-epigenetics/)) | ADN compacto en codones de 32 bits con expresión condicional y red regulatoria de un nivel ($R_{24}$), roles epigenéticos intra-holón ($R_{25}$), conjugación de plásmidos ($R_{26}$) con inmunidad CRISPR ($R_{27}$), esporulación ($R_{28}$), senescencia telomérica ($R_{29}$), mutación SOS ($R_{30}$) y trinquete simbiótico ($R_{31}$). |
 | **Fase III** | `v3.0` | **Planificada** | Inmortalidad ante apagones (checkpoints atómicos + telemetría en streaming), espacio 3D (`ToroidalGrid3D`), **auto-detección y escalado de hardware (CPU/Multicore/CUDA)**, interfaz viva (Web UI + consola), ecología abierta y **Telescopio a Internet** (sub-etapa 3.6). |
 | **Fase IV** | `v4.0` | **Horizonte** | Automejora de **capacidades lógicas** (síntesis holónica de operadores matemáticos y algoritmos) y **capacidades físicas** (generación evolutiva de nuevos módulos y herramientas en `SkillSandboxPort`). |
 
@@ -27,22 +27,30 @@ flowchart LR
 
 # Fase I (v1.0) — Memoria Acotada, Epistemología Local y Atribución Base [COMPLETADA]
 
-- **Estado:** Implementada, verificada con 397 tests (`coverage >= 90%`) y archivada en [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`](openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/).
+- **Estado:** Implementada, verificada con 397 tests (`coverage >= 90%`) y archivada en [`openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`](../../openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/).
 - **Lo que se construyó:**
   - **Arquitectura Hexagonal:** Contratos inmutables en `domain/types.py`, puerto `EnvironmentPort` en `domain/ports.py` y aislamiento estricto de `src/ide/agent/` verificado por AST.
   - **Agente Mínimo (`MicroAgent`) y Memoria Acotada (`BoundedMemory`):** Capacidad individual estrictamente menor que la complejidad del mundo ($C_{\max} < N$), olvido exponencial ($\delta$, $R_3$) y desalojo por utilidad $U(k, t)$ ($R_2$).
   - **Epistemología Distribuida y Comunicación Entre Pares:** Fusión de testimonios (`merge_social_belief`) con descuento social ($\gamma$, $R_4$), refuerzo por consenso ($\eta_{\text{consenso}}$, $R_5$), protección anti-cámara de eco ($R_6$: prohibido alcanzar certeza empírica sin experiencia directa) y duda ante contradicción ($\eta_{\text{duda}}$, $R_7$).
   - **Protocolo de Tres Mensajes:** `QUERY_PATTERN` ($R_8$), `QUERY_RESPONSE` y `BROADCAST_BELIEF` ($R_9$).
   - **Marco de Atribución Causal (`001-D` en `attribution.py`):** Criterios formales `E1`–`E5`, inventario `R1`–`R11`, control nulo de contenido (`null_rng`) y ablación sistemática regla por regla.
-- **Hallazgo científico clave ([RESULTADOS.md](RESULTADOS.md)):**
+- **Hallazgo científico clave ([RESULTADOS.md](../RESULTADOS.md)):**
   - En una población estática de agentes inmortales ($g=0$), el superávit de decisión (`C2`) y la extinción del rumor (`C3`) son capacidades `PROGRAMMED` que dependen directamente de las reglas diseñadas, y el conocimiento social no sobrevive de forma fiable a la ablación del $100\%$ de sus descubridores (`C4: NOT_OBSERVED`). Este techo estructural motivó el salto evolutivo y holónico de la Fase II.
 
 ---
 
-# Fase II (v2.0) — Evolución Abierta, Herencia Dual y Arquitectura Holónica Recursiva [EN CURSO]
+# Fase II (v2.0) — Evolución Abierta, Herencia Dual y Arquitectura Holónica Recursiva [COMPLETADA]
 
-- **Estado:** Diseño y pre-registro cerrados y auditados en [`openspec/changes/ide-v2-evolutionary-holonic-intelligence/`](openspec/changes/ide-v2-evolutionary-holonic-intelligence/). Lista para implementación TDD bloque por bloque (`tasks.md`).
-- **Alcance en implementación:**
+- **Estado:** Implementada, corrida y archivada en [`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`](../../openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/) (design D19–D29). Sus requisitos vigentes están en `openspec/specs/`.
+- **Resultados ([RESULTADOS.md](../RESULTADOS.md)):**
+  - **Afirmaciones.** Las cuatro afirmaciones pre-registradas (C5–C8) dieron `NOT_OBSERVED`. Ninguno de los mecanismos diseñados (herencia cultural, selección, holones, vista compartida) mostró su beneficio funcional con el perfil pre-registrado.
+  - **Control nulo.** E4 no es interpretable, porque el control nulo se extingue con `resources_per_pattern = 20`.
+  - **Observaciones exploratorias.** Quedan como preguntas para la Fase II-B, no como resultados:
+    - el genoma congelado rinde más que la evolución;
+    - los recursos compuestos casi no se resuelven;
+    - la redundancia de los holones crece;
+    - con abundancia casi no hay recambio generacional, por una causa no verificada.
+- **Alcance implementado:**
   1. **Metabolismo Energético y Selección Natural ($R_{12}, R_{20}, R_{21}$):**
      - Energía interna $E_i(t)$, costo cuadrático del cerebro y radios sensoriales ($c_{\text{mem}} \cdot C_{\max, i}^2 + c_{\text{sens}} \cdot (r_{\text{perc}, i}^2 + r_{\text{com}, i}^2)$), muerte por agotamiento ($E_i \le 0$) y reproducción diferencial ($E_i \ge E_{\text{reprod}}$) contrastada contra un control de **deriva neutral** (`reproduction_mode="neutral"`, `donor_rng`).
   2. **Herencia Dual Intergeneracional ($g \to g+1$):**
@@ -60,26 +68,31 @@ flowchart LR
 
 ---
 
-# Fase II-B (v2.5) — ADN Bacteriano Comprimido de 32 bits, Redes Regulatorias (GRN), Epigenética y Plásmidos [SIGUIENTE PASO INMEDIATO]
+# Fase II-B (v2.5) — ADN Compacto de 32 bits, Regulación Génica, Epigenética, Plásmidos y Senescencia [ESPECIFICADA]
 
-> **Especificación detallada:** [`ARQUITECTURA_ADN_HOLONICO.md`](ARQUITECTURA_ADN_HOLONICO.md). Se ejecuta inmediatamente al cerrar el Bloque 7 de la Fase II (`v2.0`), antes de pasar al cubo 3D de la Fase III.
+> **Especificación normativa:** el cambio OpenSpec activo [`ide-v25-compact-dna-and-epigenetics`](../../openspec/changes/ide-v25-compact-dna-and-epigenetics/), con firmas, fórmulas y desempates en su `design.md` (D30–D42) y el plan en su `tasks.md`. La visión original está en [`ARQUITECTURA_ADN_HOLONICO.md`](ARQUITECTURA_ADN_HOLONICO.md); ante cualquier diferencia, rige el cambio OpenSpec.
 
-- **Objetivo:** Reemplazar el vector fenotípico plano (`AgentGenome` de 7 escalares) por un código genético bacteriano comprimido en $L=0$ (`CompactDNA`) con codones de 32 bits (`uint32`) cuya expresión condicional en dos pasadas (GRN) sostenga la diferenciación celular, la inmunidad genética, el recambio generacional continuo y los operadores lógicos/físicos hasta la Fase IV ($L = 0 \dots K$).
-- **Mecanismos e Inventario Pre-registrable (`R24`–`R30`):**
-  1. **Codificación en Codones de 32 bits (`uint32`), Operones y Redes Regulatorias Génicas (GRN, $R_{24}$):**
-     - Cada codón (`4 bytes`, $2^{32}$ combinaciones) empaqueta `[PROM (8b) | TARGET (8b) | REG_MODE (8b) | PAYLOAD (8b)]`, habilitando 256 promotores (incluyendo 128 factores de transcripción internos `TF_0..TF_127`), 256 destinos (metabolismo, GRN, 96 operadores lógicos/matemáticos y 128 módulos de `SkillSandboxPort`), modo activador/represor y direccionamiento de registros.
-     - El ADN físico vive sólo en $L=0$ (`MicroAgent`), pero contiene genes para niveles superiores ($L \ge 1$) que permanecen dormidos en $L=0$. El costo metabólico cuadrático ($R_{21}$) **sólo se cobra sobre el fenotipo expresado** (`transcribe_phenotype(dna, context)`), mientras los genes silenciados pagan un costo lineal minúsculo ($c_{\text{dna}}$).
-  2. **Diferenciación Epigenética Intra-Holón e Impronta Mitótica ($R_{25}$):**
-     - Un `CompositeAgent` ($L \ge 1$) actúa como director epigenético sobre el Hologenoma de sus hojas, asignando roles (`EXPLORER`, `LIBRARIAN`, `NERVE`) para que células con **idéntico ADN** se especialicen en el acto en órganos sensoriales, de memoria o de enlace, heredando esa metilación al dividirse.
-  3. **Transferencia Horizontal de Plásmidos (HGT, $R_{26}$) e Inmunidad CRISPR-Cas ($R_{27}$):**
-     - Intercambio en vida de anillos cortos de codones `uint32` (`plasmids`) entre pares exitosos, protegido por una memoria inmunológica (`crispr_memory`) que evalúa el balance energético $\Delta E$ tras la infección, destruye plásmidos parásitos y hereda la inmunidad.
-  4. **Esporulación Bacteriana (`ENDOSPORE`, $R_{28}$):**
-     - Criptobiosis ante escasez extrema (`resources_per_pattern <= 10`): reduce el gasto metabólico al $5\%$ basal en ayuno crítico hasta germinar ante la reaparición de recursos o estigmergia positiva.
-  5. **Senescencia Telomérica y Respuesta SOS de Mutación Adaptativa ($R_{29}$):**
-     - **Telómeros (`age_ticks > T_max`):** Desgaste celular progresivo por edad que elimina el "Tapón de Matusalén" cuando abundan los recursos (`resources_per_pattern >= 40`), garantizando rotación generacional infinita ($g \to \infty$).
-     - **Respuesta SOS:** Reparación de alta fidelidad ($\mu \downarrow$) en superávit energético e hipermutación ($\mu \uparrow$) bajo estrés o shock ambiental.
-  6. **Trinquete Simbiótico Evolutivo (*Symbiotic Ratchet*, $R_{30}$):**
-     - Paso de alianza facultativa reversible (`SPLIT` activo) a organismo consolidado indisoluble (`is_locked = True`) tras reproducción simbiótica ($R_{17}$) o especialización epigenética, sirviendo como ladrillo estable para el nivel $L+1$.
+- **Estado:** especificada, con el pre-registro (D42) aprobado el 2026-10-20. Lista para implementar por etapas (`tasks.md` desde el bloque 1).
+- **Objetivo:** reemplazar, de forma opcional y ablacionable, el vector fenotípico plano (`AgentGenome`, 7 escalares) por un ADN compacto en las hojas ($L = 0$, `CompactDNA`), hecho de codones de 32 bits con expresión condicional.
+- **Pregunta científica:** si un genoma regulado cambia lo que la Fase II no pudo mostrar. Todas las reglas nuevas son maquinaria diseñada: lo que persigan es **programado**, y sus cuatro afirmaciones (C9–C12) se proponen como programadas por construcción.
+- **Mecanismos (inventario `R24`–`R31`):**
+  1. **ADN compacto y expresión condicional ($R_{24}$):**
+     - Cada codón empaqueta `[PROM (8b) | TARGET (8b) | MODE (2b) + CHANNEL (6b) | PAYLOAD (8b)]`.
+     - Los promotores dependen del nivel holónico, del rol y de la energía.
+     - La red regulatoria tiene **64 canales** de factores de transcripción y **un solo nivel** de regulación (dos pasadas).
+     - El costo cuadrático ($R_{21}$) se cobra sobre el fenotipo **expresado**, más un costo lineal por codón.
+     - Los destinos de la Fase IV y los promotores de la Fase III están reservados e inertes.
+  2. **Roles epigenéticos intra-holón ($R_{25}$):** el holón asigna `LIBRARIAN`, `EXPLORER` y `NERVE` a sus hojas según su conocimiento único y su grado interno. La réplica de un holón hereda los roles (impronta).
+  3. **Conjugación de plásmidos ($R_{26}$) e inmunidad CRISPR ($R_{27}$):** intercambio de codones entre vecinos en vida, con un generador propio (`hgt_rng`). Un plásmido con balance energético negativo se purga y su reingreso queda bloqueado.
+  4. **Esporulación ($R_{28}$):** gasto mínimo en hambruna sin estímulos, hasta que reaparecen recursos. Sesgo declarado: rescata poblaciones.
+  5. **Senescencia telomérica ($R_{29}$):** costo creciente después de la longevidad expresada. Su motivación, el "Tapón de Matusalén", quedó **confirmada** por el diagnóstico previo (tarea 0.1): con abundancia, la población se congela en el tope porque los agentes establecidos casi no mueren.
+  6. **Mutación SOS ($R_{30}$):** más variación bajo estrés energético reciente y menos en abundancia.
+  7. **Trinquete simbiótico ($R_{31}$):** un holón consolidado, por reproducción simbiótica o por compuestos resueltos, no se disuelve por `SPLIT` y paga menos coordinación. Sesgo declarado: estabilidad por decreto.
+- **Protocolos propuestos:**
+  - `002c`: genoma regulado frente a plano;
+  - `002d`: senescencia en abundancia;
+  - `002e`: esporulación en el desierto;
+  - `003c`: roles en holones.
 
 ---
 
@@ -93,7 +106,7 @@ Para que `IDE` pueda ejecutarse sin límite de tiempo ($t \to \infty$) y sobrevi
 
 - **3.1.1. Checkpointing Atómico del Universo (`save_checkpoint` / `load_checkpoint`):**
   - Volcado periódico cada $K$ ticks (escritura atómica `tmp -> replace` con doble buffer `checkpoint_A` / `checkpoint_B` para que un corte eléctrico a mitad de escritura jamás corrompa el estado).
-  - Serializa: (1) estado exacto de los generadores `PCG64` (`rng`, `evo_rng`, `null_rng`, `donor_rng`, `_comp_rng`) y contadores (`next_tick`, `next_agent_id`, `next_holon_id`), (2) población viva (`MicroAgent` + `CompactDNA` + `AgentGenome` + `BoundedMemory`), (3) bosque holónico completo (`CompositeAgent` multinivel $L = 1 \dots K$), y (4) estado del entorno y rastros estigmérgicos (`cell_stigmergy`).
+  - Serializa: (1) estado exacto de los generadores `PCG64` (`rng`, `evo_rng`, `null_rng`, `donor_rng`, `hgt_rng`, `_comp_rng`) y contadores (`next_tick`, `next_agent_id`, `next_holon_id`), (2) población viva (`MicroAgent` + `CompactDNA` + `AgentGenome` + `BoundedMemory`), (3) bosque holónico completo (`CompositeAgent` multinivel $L = 1 \dots K$), y (4) estado del entorno y rastros estigmérgicos (`cell_stigmergy`).
 - **3.1.2. Streaming de Telemetría a Disco (`Ring-Buffer` en RAM + `JSONL/SQLite` en disco):**
   - En corridas infinitas la RAM sólo retiene una ventana deslizante de los últimos $W$ ticks y vuelca el historial en segundo plano a disco para evitar agotamiento de memoria.
 - **3.1.3. "Esporas Cognitivas" (Exportación / Importación de Holones y Nichos):**
@@ -163,7 +176,7 @@ El sistema crece en **4 dimensiones simultáneas** sin violar el límite cerebra
    [[L=2]] + [[L=2]] ──BOND──► [[[Super-Organismo L=3 ... L=K]]]
 
 3. CRECIMIENTO CULTURAL E INTERGENERACIONAL (En el Tiempo: g = 0 -> 1 -> ... -> ∞)
-   Generación 0 descubre A ──(Herencia R14 + CompactDNA 32b R24)──► Gen 1 nace sabiendo A y descubre B ──► Gen 100...
+   Generación 0 descubre A ──(Herencia R14; con CompactDNA 32b R24, también genética regulada)──► Gen 1 nace sabiendo A y descubre B ──► Gen 100...
 
 4. CRECIMIENTO AMBIENTAL / ESTIGMÉRGICO (Memoria Externa en el Cubo 3D)
    El cubo 3D vacío se llena de "autopistas y bibliotecas químicas" (R19) grabadas en las celdas.
