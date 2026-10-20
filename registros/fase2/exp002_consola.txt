@@ -1,0 +1,10 @@
+semilla 42: 002-A selección +0.0167 (adaptación -0.0438, generación máxima 8) | 002-B superávit cultural +0.0143
+semilla 43: 002-A selección +0.0070 (adaptación -0.0328, generación máxima 6) | 002-B superávit cultural +0.0180
+semilla 44: 002-A selección -0.0083 (adaptación -0.0493, generación máxima 8) | 002-B superávit cultural +0.0309
+semilla 45: 002-A selección -0.0031 (adaptación -0.0471, generación máxima 11) | 002-B superávit cultural -0.0039
+semilla 46: 002-A selección +0.0077 (adaptación -0.0370, generación máxima 6) | 002-B superávit cultural -0.0068
+semilla 47: 002-A selección -0.0223 (adaptación -0.0646, generación máxima 8) | 002-B superávit cultural +0.0035
+semilla 48: 002-A selección -0.0118 (adaptación -0.0458, generación máxima 8) | 002-B superávit cultural +0.0066
+semilla 49: 002-A selección -0.0068 (adaptación -0.0547, generación máxima 8) | 002-B superávit cultural -0.0290
+semilla 50: 002-A selección +0.0130 (adaptación -0.0223, generación máxima 9) | 002-B superávit cultural -0.0005
+semilla 51: 002-A selección -0.0210 (adaptación -0.0685, generación máxima 11) | 002-B superávit cultural +0.0300

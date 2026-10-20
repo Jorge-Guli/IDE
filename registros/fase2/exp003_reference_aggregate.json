@@ -1,0 +1,233 @@
+{
+  "profile": "phase2",
+  "protocol_003a": {
+    "composite_completion_surplus": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "condition_demography": [
+      [
+        "holonic",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.2,
+          "n": 10,
+          "std": 0.4
+        }
+      ],
+      [
+        "individual",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.4,
+          "n": 10,
+          "std": 0.66332495807108
+        }
+      ]
+    ],
+    "holonic_accuracy": {
+      "mean": 0.613614800179324,
+      "n": 10,
+      "std": 0.0403172240680092
+    },
+    "holonic_composite_completions": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "holonic_surplus": {
+      "mean": -0.0020861550279028364,
+      "n": 10,
+      "std": 0.03268663999019051
+    },
+    "individual_accuracy": {
+      "mean": 0.6157009552072269,
+      "n": 10,
+      "std": 0.04131196980130308
+    },
+    "individual_composite_completions": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "max_holon_level": {
+      "mean": 5.9,
+      "n": 10,
+      "std": 0.7000000000000001
+    },
+    "peak_holonic_coverage_gain": {
+      "mean": 2.091428268166207,
+      "n": 10,
+      "std": 0.1123660282715286
+    },
+    "seed": {
+      "mean": 46.5,
+      "n": 10,
+      "std": 2.8722813232690143
+    },
+    "total_ticks": {
+      "mean": 2000.0,
+      "n": 10,
+      "std": 0.0
+    }
+  },
+  "protocol_003b": {
+    "condition_demography": [
+      [
+        "with_view",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.2,
+          "n": 10,
+          "std": 0.4
+        }
+      ],
+      [
+        "without_view",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.2,
+          "n": 10,
+          "std": 0.4
+        }
+      ]
+    ],
+    "coverage_advantage": {
+      "mean": -0.001720271285584149,
+      "n": 10,
+      "std": 0.045597614511305694
+    },
+    "holon_ticks": {
+      "mean": 271.4,
+      "n": 10,
+      "std": 62.7681447869857
+    },
+    "holon_ticks_without_view": {
+      "mean": 280.5,
+      "n": 10,
+      "std": 64.9542146438551
+    },
+    "level_counts_peak": [
+      [
+        1,
+        {
+          "mean": 14.9,
+          "n": 10,
+          "std": 2.4677925358506134
+        }
+      ],
+      [
+        2,
+        {
+          "mean": 6.7,
+          "n": 10,
+          "std": 2.0518284528683193
+        }
+      ],
+      [
+        3,
+        {
+          "mean": 4.0,
+          "n": 10,
+          "std": 1.4142135623730951
+        }
+      ],
+      [
+        4,
+        {
+          "mean": 3.0,
+          "n": 10,
+          "std": 1.2649110640673518
+        }
+      ],
+      [
+        5,
+        {
+          "mean": 2.1,
+          "n": 10,
+          "std": 0.9433981132056604
+        }
+      ],
+      [
+        6,
+        {
+          "mean": 0.9,
+          "n": 10,
+          "std": 0.7000000000000001
+        }
+      ],
+      [
+        7,
+        {
+          "mean": 0.2,
+          "n": 10,
+          "std": 0.4
+        }
+      ]
+    ],
+    "max_holon_level": {
+      "mean": 5.9,
+      "n": 10,
+      "std": 0.7000000000000001
+    },
+    "mean_acquired_coverage": {
+      "mean": 0.18038114761084123,
+      "n": 10,
+      "std": 0.07174686080020813
+    },
+    "mean_acquired_coverage_without_view": {
+      "mean": 0.18210141889642537,
+      "n": 10,
+      "std": 0.05850928519991103
+    },
+    "mean_redundancy_reduction": {
+      "mean": -0.2492338828923399,
+      "n": 10,
+      "std": 0.057727933857350304
+    },
+    "mean_redundancy_reduction_without_view": {
+      "mean": -0.22570824440273168,
+      "n": 10,
+      "std": 0.050030676592762224
+    },
+    "seed": {
+      "mean": 46.5,
+      "n": 10,
+      "std": 2.8722813232690143
+    },
+    "total_ticks": {
+      "mean": 2000.0,
+      "n": 10,
+      "std": 0.0
+    }
+  },
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ]
+}

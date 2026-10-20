@@ -1,0 +1,2836 @@
+{
+  "configs": {
+    "002a": {
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 2,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_evolution": true,
+      "enable_holon_reproduction": false,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": false,
+      "enable_navigation": true,
+      "enable_specialization": false,
+      "enable_stigmergy": false,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 0,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resources_per_pattern": 8,
+      "seed": 42,
+      "sensory_radius_cost": 0.0005,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "tau_policy": "validation",
+      "update_scheme": "synchronous"
+    },
+    "002b": {
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 2,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "enable_cultural_inheritance": true,
+      "enable_downward_causation": false,
+      "enable_evolution": true,
+      "enable_holon_reproduction": false,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": false,
+      "enable_navigation": true,
+      "enable_specialization": false,
+      "enable_stigmergy": false,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 0,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resources_per_pattern": 8,
+      "seed": 42,
+      "sensory_radius_cost": 0.0005,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "tau_policy": "validation",
+      "update_scheme": "synchronous"
+    },
+    "003a": {
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 4,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_evolution": true,
+      "enable_holon_reproduction": true,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": true,
+      "enable_navigation": true,
+      "enable_specialization": false,
+      "enable_stigmergy": false,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 3,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resources_per_pattern": 8,
+      "seed": 42,
+      "sensory_radius_cost": 0.0005,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "tau_policy": "validation",
+      "update_scheme": "synchronous"
+    },
+    "003b": {
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 4,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_evolution": true,
+      "enable_holon_reproduction": true,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": true,
+      "enable_navigation": true,
+      "enable_specialization": false,
+      "enable_stigmergy": false,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 3,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resources_per_pattern": 8,
+      "seed": 42,
+      "sensory_radius_cost": 0.0005,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "tau_policy": "validation",
+      "update_scheme": "synchronous"
+    }
+  },
+  "evaluations": [
+    {
+      "by_construction": true,
+      "claim_id": "C7",
+      "demography": {
+        "full": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "isolated": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "null_content": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "without:R10": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R11": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R12": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R13": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R15": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R16": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R17": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R21": [
+          [
+            0,
+            4
+          ],
+          [
+            160,
+            15
+          ],
+          [
+            160,
+            14
+          ],
+          [
+            160,
+            19
+          ],
+          [
+            160,
+            17
+          ],
+          [
+            160,
+            20
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            21
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "without:R22": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R23": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R3": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "without:R4": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R5": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R6": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "without:R7": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R8": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R9": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "e4_interpretable": true,
+      "e5_evaluated": false,
+      "p_purpose_ablated_vs_isolated": null,
+      "p_vs_isolated": 1.0,
+      "p_vs_null_content": 1.0,
+      "rule_effects": {
+        "R10": 0.0,
+        "R11": 0.0,
+        "R12": 0.0,
+        "R13": 0.0,
+        "R15": 0.0,
+        "R16": 0.0,
+        "R17": 0.0,
+        "R21": -12.1,
+        "R22": 0.0,
+        "R23": 0.0,
+        "R3": 0.0,
+        "R4": 0.0,
+        "R5": 0.0,
+        "R6": 0.0,
+        "R7": 0.0,
+        "R8": 0.0,
+        "R9": 0.0
+      },
+      "seeds": [
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51
+      ],
+      "status": "NOT_OBSERVED",
+      "unmeasured_seeds": {},
+      "values": {
+        "full": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "isolated": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "null_content": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R10": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R11": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R12": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R13": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R15": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R16": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R17": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R21": [
+          1.0,
+          3.0,
+          5.0,
+          20.0,
+          7.0,
+          25.0,
+          17.0,
+          31.0,
+          0.0,
+          12.0
+        ],
+        "without:R22": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R23": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R3": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R4": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R5": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R6": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R7": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R8": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "without:R9": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "by_construction": true,
+      "claim_id": "C8",
+      "demography": {
+        "full": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "isolated": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "null_content": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "without:R10": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R11": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R12": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R13": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R15": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R16": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R17": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R21": [
+          [
+            0,
+            4
+          ],
+          [
+            160,
+            15
+          ],
+          [
+            160,
+            14
+          ],
+          [
+            160,
+            19
+          ],
+          [
+            160,
+            17
+          ],
+          [
+            160,
+            20
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            21
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "without:R22": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R23": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R3": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "without:R4": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R5": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R6": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "without:R7": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R8": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R9": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "e4_interpretable": true,
+      "e5_evaluated": false,
+      "p_purpose_ablated_vs_isolated": null,
+      "p_vs_isolated": 0.5,
+      "p_vs_null_content": 0.0107421875,
+      "rule_effects": {
+        "R10": null,
+        "R11": -0.03339368713444303,
+        "R12": 0.0,
+        "R13": 0.004246242962861304,
+        "R15": null,
+        "R16": -0.013230915065578183,
+        "R17": 0.0,
+        "R21": 0.203241406087665,
+        "R22": -0.001720271285584149,
+        "R23": 0.016420921010337028,
+        "R3": -0.030453095104210886,
+        "R4": -0.023203245167545385,
+        "R5": -0.010047606848764207,
+        "R6": -0.018805241578950322,
+        "R7": 0.0,
+        "R8": -0.0025454677210114884,
+        "R9": 0.1358438601708573
+      },
+      "seeds": [
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51
+      ],
+      "status": "NOT_OBSERVED",
+      "unmeasured_seeds": {
+        "without:R10": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51
+        ],
+        "without:R15": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51
+        ]
+      },
+      "values": {
+        "full": [
+          0.1289071038251366,
+          0.2956757703081233,
+          0.16303630363036306,
+          0.021736353077816496,
+          0.2511737089201878,
+          0.1592037890424987,
+          0.16893500643500645,
+          0.23253968253968255,
+          0.16378316032295273,
+          0.21882059800664455
+        ],
+        "isolated": [
+          0.19019916142557652,
+          0.3023504273504272,
+          0.15009662956091527,
+          0.10157337788916737,
+          0.2511737089201878,
+          0.12591549295774654,
+          0.20035587188612097,
+          0.20946236559139786,
+          0.15956887486855934,
+          0.13031827851415484
+        ],
+        "null_content": [
+          0.07899917542774686,
+          0.08644636015325673,
+          0.15075798109505978,
+          0.13640046296296296,
+          0.21242559523809526,
+          0.11273277467411547,
+          0.023831775700934553,
+          0.028283479456764654,
+          0.02143276324614353,
+          0.055128591520996584
+        ],
+        "without:R10": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "without:R11": [
+          0.16518218623481778,
+          0.2910767910767912,
+          0.17771787960467206,
+          0.14513108614232206,
+          0.3025114155251141,
+          0.20287345902828138,
+          0.180448717948718,
+          0.19268483709273182,
+          0.17508741258741262,
+          0.30503456221198155
+        ],
+        "without:R12": [
+          0.1289071038251366,
+          0.2956757703081233,
+          0.16303630363036306,
+          0.021736353077816496,
+          0.2511737089201878,
+          0.1592037890424987,
+          0.16893500643500645,
+          0.23253968253968255,
+          0.16378316032295273,
+          0.21882059800664455
+        ],
+        "without:R13": [
+          0.0890200286123033,
+          0.2956757703081233,
+          0.16303630363036306,
+          0.021736353077816496,
+          0.2511737089201878,
+          0.1592037890424987,
+          0.16893500643500645,
+          0.23253968253968255,
+          0.16120780590717299,
+          0.21882059800664455
+        ],
+        "without:R15": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "without:R16": [
+          0.19132015918759437,
+          0.3545305269443201,
+          0.1298237476808905,
+          0.09731922398589066,
+          0.292654028436019,
+          0.12764084507042264,
+          0.18722527472527473,
+          0.17456538170823885,
+          0.24296724470134873,
+          0.13807419432419452
+        ],
+        "without:R17": [
+          0.1289071038251366,
+          0.2956757703081233,
+          0.16303630363036306,
+          0.021736353077816496,
+          0.2511737089201878,
+          0.1592037890424987,
+          0.16893500643500645,
+          0.23253968253968255,
+          0.16378316032295273,
+          0.21882059800664455
+        ],
+        "without:R21": [
+          0.04082370875642705,
+          -0.09094459841861019,
+          -0.0857540475336694,
+          0.02487742156375666,
+          -0.011735619178801008,
+          0.015045169443924328,
+          -0.07585163712768231,
+          0.014184044802381345,
+          0.03700128700128704,
+          -0.09624831407725157
+        ],
+        "without:R22": [
+          0.19019916142557652,
+          0.3023504273504272,
+          0.15009662956091527,
+          0.10157337788916737,
+          0.2511737089201878,
+          0.12591549295774654,
+          0.20035587188612097,
+          0.20946236559139786,
+          0.15956887486855934,
+          0.13031827851415484
+        ],
+        "without:R23": [
+          0.10769980506822613,
+          0.27734711455641686,
+          0.13233333333333333,
+          0.010141093474426805,
+          0.3065476190476191,
+          0.17681236673774003,
+          0.1682180059523809,
+          0.14951845906902086,
+          0.1413160733549083,
+          0.16966839541096962
+        ],
+        "without:R3": [
+          0.22573454913880442,
+          0.3218649517684886,
+          0.2645663956639566,
+          0.10325581395348837,
+          0.22300469483568075,
+          0.1307062876830318,
+          0.22531806615776076,
+          0.16111111111111112,
+          0.23430365296803635,
+          0.2184769038701623
+        ],
+        "without:R4": [
+          0.18148769574944074,
+          0.3741699867197875,
+          0.16244131455399063,
+          0.06666666666666667,
+          0.24719764011799403,
+          0.1600877192982456,
+          0.24361799816345267,
+          0.1795977011494253,
+          0.2011557177615571,
+          0.21942148760330582
+        ],
+        "without:R5": [
+          0.20560404225999082,
+          0.25118266978922715,
+          0.11707968901846455,
+          0.09523809523809525,
+          0.20928571428571432,
+          0.17038606403013182,
+          0.15962962962962965,
+          0.2672388059701492,
+          0.1975402356064377,
+          0.23110259876821387
+        ],
+        "without:R6": [
+          0.18755102040816318,
+          0.365792759051186,
+          0.2089544513457557,
+          0.1551987767584098,
+          0.22422062350119906,
+          0.18023459383753507,
+          0.11510238907849828,
+          0.19511599511599514,
+          0.17524005486968444,
+          0.1844532279314888
+        ],
+        "without:R7": [
+          0.1289071038251366,
+          0.2956757703081233,
+          0.16303630363036306,
+          0.021736353077816496,
+          0.2511737089201878,
+          0.1592037890424987,
+          0.16893500643500645,
+          0.23253968253968255,
+          0.16378316032295273,
+          0.21882059800664455
+        ],
+        "without:R8": [
+          0.107501630789302,
+          0.29695556566575687,
+          0.1615248226950355,
+          0.035196078431372554,
+          0.2775510204081633,
+          0.17362896315338475,
+          0.19557518347840935,
+          0.1630568356374808,
+          0.14793875147232036,
+          0.2703373015873016
+        ],
+        "without:R9": [
+          0.008065953654188949,
+          0.04960317460317461,
+          0.06335034013605442,
+          0.07823809523809523,
+          0.0022123893805309734,
+          0.021880848409232694,
+          0.06899224806201554,
+          0.025814985492404848,
+          0.07779623477297895,
+          0.04941860465116277
+        ]
+      }
+    }
+  ],
+  "profile": "phase2",
+  "rules": [
+    {
+      "ablation": [],
+      "name": "Aprendizaje por experiencia directa",
+      "purpose": "Aprender del entorno",
+      "rule_id": "R1"
+    },
+    {
+      "ablation": [],
+      "name": "Memoria acotada con reemplazo por utilidad",
+      "purpose": "Restricci\u00f3n experimental C_max < N",
+      "rule_id": "R2"
+    },
+    {
+      "ablation": [
+        [
+          "passive_conf_decay",
+          0.0
+        ]
+      ],
+      "name": "Olvido pasivo",
+      "purpose": "Eliminar lo no revalidado",
+      "rule_id": "R3"
+    },
+    {
+      "ablation": [
+        [
+          "gamma_social_discount",
+          1.0
+        ]
+      ],
+      "name": "Descuento por testimonio \u03b3",
+      "purpose": "Atenuar rumores",
+      "rule_id": "R4"
+    },
+    {
+      "ablation": [
+        [
+          "eta_consensus",
+          0.0
+        ]
+      ],
+      "name": "Refuerzo por consenso",
+      "purpose": "Consolidar acuerdos",
+      "rule_id": "R5"
+    },
+    {
+      "ablation": [
+        [
+          "anti_echo_enabled",
+          false
+        ]
+      ],
+      "name": "Anti-c\u00e1mara de eco",
+      "purpose": "Impedir certeza sin evidencia",
+      "rule_id": "R6"
+    },
+    {
+      "ablation": [
+        [
+          "eta_doubt",
+          0.0
+        ]
+      ],
+      "name": "Duda ante contradicci\u00f3n",
+      "purpose": "Filtrar testimonios falsos",
+      "rule_id": "R7"
+    },
+    {
+      "ablation": [
+        [
+          "max_queries_per_tick",
+          0
+        ]
+      ],
+      "name": "Consulta en vivo",
+      "purpose": "Acceder a memoria ajena (meta-agente)",
+      "rule_id": "R8"
+    },
+    {
+      "ablation": [
+        [
+          "max_broadcast_per_tick",
+          0
+        ]
+      ],
+      "name": "Difusi\u00f3n espont\u00e1nea",
+      "purpose": "Transmitir conocimiento",
+      "rule_id": "R9"
+    },
+    {
+      "ablation": [
+        [
+          "epsilon_explore",
+          0.0
+        ]
+      ],
+      "name": "Exploraci\u00f3n \u03b5",
+      "purpose": "Descubrir lo desconocido",
+      "rule_id": "R10"
+    },
+    {
+      "ablation": [
+        [
+          "enable_navigation",
+          false
+        ]
+      ],
+      "name": "Navegaci\u00f3n hacia ben\u00e9ficos conocidos",
+      "purpose": "Buscar alimento",
+      "rule_id": "R11"
+    },
+    {
+      "ablation": [
+        [
+          "reproduction_mode",
+          "neutral"
+        ]
+      ],
+      "name": "Reproducci\u00f3n diferencial por energ\u00eda",
+      "purpose": "Que los agentes con m\u00e1s energ\u00eda dejen m\u00e1s descendencia (selecci\u00f3n)",
+      "rule_id": "R12"
+    },
+    {
+      "ablation": [
+        [
+          "mutation_rate",
+          0.0
+        ],
+        [
+          "discrete_mutation_prob",
+          0.0
+        ]
+      ],
+      "name": "Mutaci\u00f3n gen\u00e9tica acotada",
+      "purpose": "Variaci\u00f3n heredable sobre la que act\u00faa la selecci\u00f3n",
+      "rule_id": "R13"
+    },
+    {
+      "ablation": [
+        [
+          "enable_cultural_inheritance",
+          false
+        ],
+        [
+          "inheritance_discount",
+          0.0
+        ]
+      ],
+      "name": "Herencia cultural vertical",
+      "purpose": "Transmitir conocimiento de padres a hijos",
+      "rule_id": "R14"
+    },
+    {
+      "ablation": [
+        [
+          "enable_holonic_hierarchy",
+          false
+        ]
+      ],
+      "name": "Fusi\u00f3n hol\u00f3nica (BOND)",
+      "purpose": "Asociar nodos complementarios en unidades de nivel superior",
+      "rule_id": "R15"
+    },
+    {
+      "ablation": [
+        [
+          "enable_holon_splitting",
+          false
+        ]
+      ],
+      "name": "Fisi\u00f3n hol\u00f3nica (SPLIT)",
+      "purpose": "Disolver holones sin super\u00e1vit",
+      "rule_id": "R16"
+    },
+    {
+      "ablation": [
+        [
+          "enable_holon_reproduction",
+          false
+        ]
+      ],
+      "name": "Reproducci\u00f3n de hol\u00f3n completo",
+      "purpose": "Transmitir la estructura simbi\u00f3tica a la descendencia",
+      "rule_id": "R17"
+    },
+    {
+      "ablation": [
+        [
+          "enable_downward_causation",
+          false
+        ],
+        [
+          "redundancy_penalty",
+          1.0
+        ]
+      ],
+      "name": "Causalidad descendente intra-hol\u00f3n",
+      "purpose": "Reducir la redundancia de memoria entre hojas de un hol\u00f3n (ortogonalizaci\u00f3n)",
+      "rule_id": "R18"
+    },
+    {
+      "ablation": [
+        [
+          "enable_stigmergy",
+          false
+        ],
+        [
+          "stigmergy_deposit_rate",
+          0.0
+        ]
+      ],
+      "name": "Estigmergia",
+      "purpose": "Externalizar conocimiento en el entorno",
+      "rule_id": "R19"
+    },
+    {
+      "ablation": [],
+      "name": "F\u00edsica metab\u00f3lica",
+      "purpose": "Vida y muerte por energ\u00eda: costo basal fijo, de movimiento y de emisi\u00f3n, muerte con E <= 0 y capacidad de carga. Sin ella no hay selecci\u00f3n",
+      "rule_id": "R20"
+    },
+    {
+      "ablation": [
+        [
+          "memory_capacity_cost",
+          0.0
+        ],
+        [
+          "sensory_radius_cost",
+          0.0
+        ]
+      ],
+      "name": "Costo cuadr\u00e1tico de cerebro y sentidos",
+      "purpose": "Encarecer la hipertrofia individual (C_max\u00b2, radios\u00b2). Sesga a favor de cooperar; se declara como sesgo",
+      "rule_id": "R21"
+    },
+    {
+      "ablation": [
+        [
+          "enable_holon_view",
+          false
+        ]
+      ],
+      "name": "Vista compartida del hol\u00f3n",
+      "purpose": "Dar a cada hoja acceso ef\u00edmero al conocimiento de las hojas cercanas de su hol\u00f3n",
+      "rule_id": "R22"
+    },
+    {
+      "ablation": [
+        [
+          "holon_coord_cost",
+          0.0
+        ],
+        [
+          "holon_energy_sharing",
+          false
+        ]
+      ],
+      "name": "Coordinaci\u00f3n y reparto energ\u00e9tico del hol\u00f3n",
+      "purpose": "Que pertenecer a un hol\u00f3n tenga un costo y un beneficio energ\u00e9tico compartido",
+      "rule_id": "R23"
+    }
+  ]
+}

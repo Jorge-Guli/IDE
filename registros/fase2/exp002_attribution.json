@@ -1,0 +1,2316 @@
+{
+  "configs": {
+    "002a": {
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 2,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_evolution": true,
+      "enable_holon_reproduction": false,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": false,
+      "enable_navigation": true,
+      "enable_specialization": false,
+      "enable_stigmergy": false,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 0,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resources_per_pattern": 20,
+      "seed": 42,
+      "sensory_radius_cost": 0.0005,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "tau_policy": "validation",
+      "update_scheme": "synchronous"
+    },
+    "002b": {
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 2,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "enable_cultural_inheritance": true,
+      "enable_downward_causation": false,
+      "enable_evolution": true,
+      "enable_holon_reproduction": false,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": false,
+      "enable_navigation": true,
+      "enable_specialization": false,
+      "enable_stigmergy": false,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 0,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resources_per_pattern": 20,
+      "seed": 42,
+      "sensory_radius_cost": 0.0005,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "tau_policy": "validation",
+      "update_scheme": "synchronous"
+    },
+    "003a": {
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 4,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_evolution": true,
+      "enable_holon_reproduction": true,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": true,
+      "enable_navigation": true,
+      "enable_specialization": false,
+      "enable_stigmergy": false,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 3,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resources_per_pattern": 20,
+      "seed": 42,
+      "sensory_radius_cost": 0.0005,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "tau_policy": "validation",
+      "update_scheme": "synchronous"
+    },
+    "003b": {
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 4,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_evolution": true,
+      "enable_holon_reproduction": true,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": true,
+      "enable_navigation": true,
+      "enable_specialization": false,
+      "enable_stigmergy": false,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 3,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resources_per_pattern": 20,
+      "seed": 42,
+      "sensory_radius_cost": 0.0005,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "tau_policy": "validation",
+      "update_scheme": "synchronous"
+    }
+  },
+  "evaluations": [
+    {
+      "by_construction": true,
+      "claim_id": "C5",
+      "demography": {
+        "full": [
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            16
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ]
+        ],
+        "isolated": [
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "null_content": [
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            160,
+            26
+          ]
+        ],
+        "without:R10": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R11": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R12": [
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            9
+          ]
+        ],
+        "without:R13": [
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            13
+          ],
+          [
+            160,
+            12
+          ],
+          [
+            160,
+            12
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            12
+          ]
+        ],
+        "without:R14": [
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "without:R21": [
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            4
+          ]
+        ],
+        "without:R3": [
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            12
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "without:R4": [
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            6
+          ]
+        ],
+        "without:R5": [
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ]
+        ],
+        "without:R6": [
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            13
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            14
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            10
+          ]
+        ],
+        "without:R7": [
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            16
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ]
+        ],
+        "without:R8": [
+          [
+            160,
+            5
+          ],
+          [
+            160,
+            5
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            5
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            4
+          ],
+          [
+            160,
+            5
+          ]
+        ],
+        "without:R9": [
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            17
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            10
+          ]
+        ]
+      },
+      "e4_interpretable": false,
+      "e5_evaluated": false,
+      "p_purpose_ablated_vs_isolated": null,
+      "p_vs_isolated": 0.376953125,
+      "p_vs_null_content": 0.0009765625,
+      "rule_effects": {
+        "R10": 0.3547879307053434,
+        "R11": 0.2584103030559301,
+        "R12": -0.0029094382536759998,
+        "R13": -0.04131822890223522,
+        "R14": 0.0062979267346789936,
+        "R21": -0.04183920787314736,
+        "R3": -0.003968714960289665,
+        "R4": 0.002777643355163284,
+        "R5": 0.015557853943352896,
+        "R6": 0.017918176423071787,
+        "R7": 0.0,
+        "R8": 0.009768966462921014,
+        "R9": -0.019560079096429782
+      },
+      "seeds": [
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51
+      ],
+      "status": "NOT_OBSERVED",
+      "unmeasured_seeds": {},
+      "values": {
+        "full": [
+          0.8527826952150822,
+          0.8724497525502475,
+          0.8651226500452398,
+          0.8370402694631193,
+          0.8414609990888563,
+          0.8216941304643879,
+          0.8464062231277037,
+          0.8029286242101612,
+          0.8590035358405658,
+          0.8471511619801759
+        ],
+        "isolated": [
+          0.8384707901458128,
+          0.8544202331636122,
+          0.8342297892991467,
+          0.8409734488462725,
+          0.8482999478142186,
+          0.8182150592073806,
+          0.8398128001970524,
+          0.8319560764203398,
+          0.8595311600648841,
+          0.8171514694800301
+        ],
+        "null_content": [
+          0.687402799377916,
+          0.6210691823899371,
+          0.6935840707964602,
+          0.652428810720268,
+          0.5625920471281296,
+          0.6562123039806996,
+          0.6669611307420494,
+          0.6295928500496525,
+          0.6411332633788038,
+          0.7343059115104064
+        ],
+        "without:R10": [
+          0.5200892857142857,
+          0.45758354755784064,
+          0.5022026431718062,
+          0.4446902654867257,
+          0.4893162393162393,
+          0.45454545454545453,
+          0.5246252676659529,
+          0.4860813704496788,
+          0.5107913669064749,
+          0.508235294117647
+        ],
+        "without:R11": [
+          0.5845410628019324,
+          0.5588822355289421,
+          0.5932914046121593,
+          0.6304347826086957,
+          0.604887983706721,
+          0.5729166666666666,
+          0.5746606334841629,
+          0.5703125,
+          0.6307053941908713,
+          0.5413043478260869
+        ],
+        "without:R12": [
+          0.8276425013835086,
+          0.8588277249917212,
+          0.8497475074452933,
+          0.8549614208960047,
+          0.8536148230146807,
+          0.8509276195453358,
+          0.8543423602744749,
+          0.8453883135596644,
+          0.8522957551194539,
+          0.8273863982921622
+        ],
+        "without:R13": [
+          0.8865570529665614,
+          0.884949960134709,
+          0.8856616062449116,
+          0.885194410021717,
+          0.8843479584845332,
+          0.8863588247747641,
+          0.8876197361286825,
+          0.8842019467019467,
+          0.8895556660275075,
+          0.8847751695225589
+        ],
+        "without:R14": [
+          0.8384707901458128,
+          0.8544202331636122,
+          0.8342297892991467,
+          0.8409734488462725,
+          0.8482999478142186,
+          0.8182150592073806,
+          0.8398128001970524,
+          0.8319560764203398,
+          0.8595311600648841,
+          0.8171514694800301
+        ],
+        "without:R21": [
+          0.8851255411255411,
+          0.8865294288199478,
+          0.8895072806160697,
+          0.8860191627427554,
+          0.8844946715072023,
+          0.8863806057212189,
+          0.8853653822101445,
+          0.8877923042983535,
+          0.8844346972932418,
+          0.8887830463825384
+        ],
+        "without:R3": [
+          0.8361005250113264,
+          0.8602779146034791,
+          0.8601357781866633,
+          0.8616366537497151,
+          0.8527470256165145,
+          0.832952498723084,
+          0.840274842878761,
+          0.8517474333741156,
+          0.8478812167400303,
+          0.841973302704747
+        ],
+        "without:R4": [
+          0.846039636773381,
+          0.8589663841588264,
+          0.8379671954826566,
+          0.8407200327287604,
+          0.8448352357520268,
+          0.8445028299543809,
+          0.8291824245341402,
+          0.8378188564235076,
+          0.8303703290885279,
+          0.847860683537699
+        ],
+        "without:R5": [
+          0.8342217628980935,
+          0.8214888114247161,
+          0.8366182927329677,
+          0.8455852425654828,
+          0.8076767927514196,
+          0.8111534350110661,
+          0.8356183033587017,
+          0.8180418849646252,
+          0.8453239317145583,
+          0.8347330451303797
+        ],
+        "without:R6": [
+          0.8271184974847572,
+          0.843630084420568,
+          0.8168846783422421,
+          0.8452799334413954,
+          0.8076681614349775,
+          0.8383364941750203,
+          0.8413457651782587,
+          0.7927339695295497,
+          0.8281277188098138,
+          0.825732974938239
+        ],
+        "without:R7": [
+          0.8527826952150822,
+          0.8724497525502475,
+          0.8651226500452398,
+          0.8370402694631193,
+          0.8414609990888563,
+          0.8216941304643879,
+          0.8464062231277037,
+          0.8029286242101612,
+          0.8590035358405658,
+          0.8471511619801759
+        ],
+        "without:R8": [
+          0.8358200684371666,
+          0.8357316592610711,
+          0.8412559318377912,
+          0.8459312998399248,
+          0.8319314050035275,
+          0.8316122700064972,
+          0.8327612718985117,
+          0.8286497601096642,
+          0.8327567891482581,
+          0.8318999218139171
+        ],
+        "without:R9": [
+          0.8788561525129983,
+          0.8743440536187458,
+          0.8548906757724294,
+          0.8694691938826448,
+          0.8562655522235691,
+          0.8600512024402865,
+          0.8619553277187844,
+          0.8552213585670835,
+          0.8686067630706947,
+          0.8619805531426009
+        ]
+      }
+    },
+    {
+      "by_construction": true,
+      "claim_id": "C6",
+      "demography": {
+        "full": [
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "isolated": [
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "null_content": [
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ]
+        ],
+        "without:R10": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R11": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "without:R12": [
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "without:R13": [
+          [
+            160,
+            12
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            13
+          ],
+          [
+            160,
+            16
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            14
+          ],
+          [
+            160,
+            14
+          ]
+        ],
+        "without:R21": [
+          [
+            160,
+            2
+          ],
+          [
+            160,
+            2
+          ],
+          [
+            160,
+            4
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            2
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            3
+          ],
+          [
+            160,
+            4
+          ],
+          [
+            160,
+            5
+          ]
+        ],
+        "without:R3": [
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ]
+        ],
+        "without:R4": [
+          [
+            160,
+            13
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            8
+          ]
+        ],
+        "without:R5": [
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            12
+          ],
+          [
+            160,
+            8
+          ]
+        ],
+        "without:R6": [
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            13
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            13
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            12
+          ],
+          [
+            160,
+            12
+          ]
+        ],
+        "without:R7": [
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            6
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ]
+        ],
+        "without:R8": [
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            11
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            9
+          ]
+        ],
+        "without:R9": [
+          [
+            0,
+            3
+          ],
+          [
+            160,
+            8
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            160,
+            10
+          ],
+          [
+            160,
+            14
+          ],
+          [
+            160,
+            7
+          ],
+          [
+            160,
+            9
+          ],
+          [
+            0,
+            6
+          ]
+        ]
+      },
+      "e4_interpretable": false,
+      "e5_evaluated": false,
+      "p_purpose_ablated_vs_isolated": null,
+      "p_vs_isolated": 0.828125,
+      "p_vs_null_content": 0.0009765625,
+      "rule_effects": {
+        "R10": 0.3484900039706644,
+        "R11": 0.25414395470137724,
+        "R12": -0.0028899779526764813,
+        "R13": -0.04657501367184328,
+        "R21": -0.04783417608775518,
+        "R3": -0.009290664969836226,
+        "R4": 0.010270305252562385,
+        "R5": 0.007593658552862137,
+        "R6": 0.02499787993687529,
+        "R7": 0.0,
+        "R8": 0.03707670437584988,
+        "R9": 0.022009318006250167
+      },
+      "seeds": [
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51
+      ],
+      "status": "NOT_OBSERVED",
+      "unmeasured_seeds": {},
+      "values": {
+        "full": [
+          0.8384707901458128,
+          0.8544202331636122,
+          0.8342297892991467,
+          0.8409734488462725,
+          0.8482999478142186,
+          0.8182150592073806,
+          0.8398128001970524,
+          0.8319560764203398,
+          0.8595311600648841,
+          0.8171514694800301
+        ],
+        "isolated": [
+          0.8217654473177556,
+          0.8474362416107383,
+          0.8424863480078204,
+          0.8440404989157009,
+          0.8405635891731553,
+          0.8405494743687005,
+          0.851647483340796,
+          0.8387889818537434,
+          0.8465110676909077,
+          0.8381714218861964
+        ],
+        "null_content": [
+          0.6611433305716653,
+          0.6309751434034416,
+          0.617258883248731,
+          0.6348195329087049,
+          0.6358695652173914,
+          0.6738644825018615,
+          0.6696035242290749,
+          0.5785627283800243,
+          0.6449416342412452,
+          0.5988571428571429
+        ],
+        "without:R10": [
+          0.5200892857142857,
+          0.45758354755784064,
+          0.5022026431718062,
+          0.4446902654867257,
+          0.4893162393162393,
+          0.45454545454545453,
+          0.5246252676659529,
+          0.4860813704496788,
+          0.5107913669064749,
+          0.508235294117647
+        ],
+        "without:R11": [
+          0.5845410628019324,
+          0.5588822355289421,
+          0.5932914046121593,
+          0.6304347826086957,
+          0.604887983706721,
+          0.5729166666666666,
+          0.5746606334841629,
+          0.5703125,
+          0.6103896103896104,
+          0.5413043478260869
+        ],
+        "without:R12": [
+          0.8217654473177556,
+          0.8474362416107383,
+          0.8424863480078204,
+          0.8440404989157009,
+          0.8405635891731553,
+          0.8405494743687005,
+          0.851647483340796,
+          0.8387889818537434,
+          0.8465110676909077,
+          0.8381714218861964
+        ],
+        "without:R13": [
+          0.8822571304473722,
+          0.8872167878939888,
+          0.8835194894005015,
+          0.8880334728033473,
+          0.8853357642054087,
+          0.8827837948176076,
+          0.8855856951709038,
+          0.8866486590777541,
+          0.8817979407821092,
+          0.8856321767581892
+        ],
+        "without:R21": [
+          0.8842953840368525,
+          0.8854343474545519,
+          0.8878277458530116,
+          0.8877627276973377,
+          0.8847093591473915,
+          0.8881988306839794,
+          0.8866324966249457,
+          0.8875721280948987,
+          0.8823851012597858,
+          0.8865844146635468
+        ],
+        "without:R3": [
+          0.8415764025823181,
+          0.8617138890317273,
+          0.8635306313367551,
+          0.8511229243817943,
+          0.8508228030243571,
+          0.8396138060215409,
+          0.8314835471277189,
+          0.824405539587144,
+          0.8531810129220508,
+          0.8585168683217054
+        ],
+        "without:R4": [
+          0.7981561918269657,
+          0.829366707700725,
+          0.8310277355883037,
+          0.8422645588433996,
+          0.836637556953786,
+          0.8398180022949857,
+          0.8206134550573781,
+          0.8297522923224305,
+          0.8277892748510396,
+          0.8249319466741118
+        ],
+        "without:R5": [
+          0.8199655571553598,
+          0.8371048656813033,
+          0.8477059812635119,
+          0.8462778753006956,
+          0.8089340467744844,
+          0.8404759923441791,
+          0.8412370275819968,
+          0.836314635241895,
+          0.8155024760507343,
+          0.813605731715968
+        ],
+        "without:R6": [
+          0.8195130454994479,
+          0.8212114193062714,
+          0.8509986840562338,
+          0.6962025316455697,
+          0.8329877553307742,
+          0.8228548550838611,
+          0.807867072567221,
+          0.8238946136499872,
+          0.8343995347484734,
+          0.8231524633821571
+        ],
+        "without:R7": [
+          0.8384707901458128,
+          0.8544202331636122,
+          0.8342297892991467,
+          0.8409734488462725,
+          0.8482999478142186,
+          0.8182150592073806,
+          0.8398128001970524,
+          0.8319560764203398,
+          0.8595311600648841,
+          0.8171514694800301
+        ],
+        "without:R8": [
+          0.7968295241331422,
+          0.7967852340789634,
+          0.7973001349932504,
+          0.7994859046556069,
+          0.8039030897043685,
+          0.8051999356226316,
+          0.8023690956772844,
+          0.7969193844845134,
+          0.8053741203076877,
+          0.8081273072228023
+        ],
+        "without:R9": [
+          0.7047691143073429,
+          0.8661224806602675,
+          0.8708747754751883,
+          0.8720806653027606,
+          0.6499416569428238,
+          0.8513377590022129,
+          0.878776764018156,
+          0.8688011852339602,
+          0.879545522678898,
+          0.7207176709546378
+        ]
+      }
+    }
+  ],
+  "profile": "phase2",
+  "rules": [
+    {
+      "ablation": [],
+      "name": "Aprendizaje por experiencia directa",
+      "purpose": "Aprender del entorno",
+      "rule_id": "R1"
+    },
+    {
+      "ablation": [],
+      "name": "Memoria acotada con reemplazo por utilidad",
+      "purpose": "Restricci\u00f3n experimental C_max < N",
+      "rule_id": "R2"
+    },
+    {
+      "ablation": [
+        [
+          "passive_conf_decay",
+          0.0
+        ]
+      ],
+      "name": "Olvido pasivo",
+      "purpose": "Eliminar lo no revalidado",
+      "rule_id": "R3"
+    },
+    {
+      "ablation": [
+        [
+          "gamma_social_discount",
+          1.0
+        ]
+      ],
+      "name": "Descuento por testimonio \u03b3",
+      "purpose": "Atenuar rumores",
+      "rule_id": "R4"
+    },
+    {
+      "ablation": [
+        [
+          "eta_consensus",
+          0.0
+        ]
+      ],
+      "name": "Refuerzo por consenso",
+      "purpose": "Consolidar acuerdos",
+      "rule_id": "R5"
+    },
+    {
+      "ablation": [
+        [
+          "anti_echo_enabled",
+          false
+        ]
+      ],
+      "name": "Anti-c\u00e1mara de eco",
+      "purpose": "Impedir certeza sin evidencia",
+      "rule_id": "R6"
+    },
+    {
+      "ablation": [
+        [
+          "eta_doubt",
+          0.0
+        ]
+      ],
+      "name": "Duda ante contradicci\u00f3n",
+      "purpose": "Filtrar testimonios falsos",
+      "rule_id": "R7"
+    },
+    {
+      "ablation": [
+        [
+          "max_queries_per_tick",
+          0
+        ]
+      ],
+      "name": "Consulta en vivo",
+      "purpose": "Acceder a memoria ajena (meta-agente)",
+      "rule_id": "R8"
+    },
+    {
+      "ablation": [
+        [
+          "max_broadcast_per_tick",
+          0
+        ]
+      ],
+      "name": "Difusi\u00f3n espont\u00e1nea",
+      "purpose": "Transmitir conocimiento",
+      "rule_id": "R9"
+    },
+    {
+      "ablation": [
+        [
+          "epsilon_explore",
+          0.0
+        ]
+      ],
+      "name": "Exploraci\u00f3n \u03b5",
+      "purpose": "Descubrir lo desconocido",
+      "rule_id": "R10"
+    },
+    {
+      "ablation": [
+        [
+          "enable_navigation",
+          false
+        ]
+      ],
+      "name": "Navegaci\u00f3n hacia ben\u00e9ficos conocidos",
+      "purpose": "Buscar alimento",
+      "rule_id": "R11"
+    },
+    {
+      "ablation": [
+        [
+          "reproduction_mode",
+          "neutral"
+        ]
+      ],
+      "name": "Reproducci\u00f3n diferencial por energ\u00eda",
+      "purpose": "Que los agentes con m\u00e1s energ\u00eda dejen m\u00e1s descendencia (selecci\u00f3n)",
+      "rule_id": "R12"
+    },
+    {
+      "ablation": [
+        [
+          "mutation_rate",
+          0.0
+        ],
+        [
+          "discrete_mutation_prob",
+          0.0
+        ]
+      ],
+      "name": "Mutaci\u00f3n gen\u00e9tica acotada",
+      "purpose": "Variaci\u00f3n heredable sobre la que act\u00faa la selecci\u00f3n",
+      "rule_id": "R13"
+    },
+    {
+      "ablation": [
+        [
+          "enable_cultural_inheritance",
+          false
+        ],
+        [
+          "inheritance_discount",
+          0.0
+        ]
+      ],
+      "name": "Herencia cultural vertical",
+      "purpose": "Transmitir conocimiento de padres a hijos",
+      "rule_id": "R14"
+    },
+    {
+      "ablation": [
+        [
+          "enable_holonic_hierarchy",
+          false
+        ]
+      ],
+      "name": "Fusi\u00f3n hol\u00f3nica (BOND)",
+      "purpose": "Asociar nodos complementarios en unidades de nivel superior",
+      "rule_id": "R15"
+    },
+    {
+      "ablation": [
+        [
+          "enable_holon_splitting",
+          false
+        ]
+      ],
+      "name": "Fisi\u00f3n hol\u00f3nica (SPLIT)",
+      "purpose": "Disolver holones sin super\u00e1vit",
+      "rule_id": "R16"
+    },
+    {
+      "ablation": [
+        [
+          "enable_holon_reproduction",
+          false
+        ]
+      ],
+      "name": "Reproducci\u00f3n de hol\u00f3n completo",
+      "purpose": "Transmitir la estructura simbi\u00f3tica a la descendencia",
+      "rule_id": "R17"
+    },
+    {
+      "ablation": [
+        [
+          "enable_downward_causation",
+          false
+        ],
+        [
+          "redundancy_penalty",
+          1.0
+        ]
+      ],
+      "name": "Causalidad descendente intra-hol\u00f3n",
+      "purpose": "Reducir la redundancia de memoria entre hojas de un hol\u00f3n (ortogonalizaci\u00f3n)",
+      "rule_id": "R18"
+    },
+    {
+      "ablation": [
+        [
+          "enable_stigmergy",
+          false
+        ],
+        [
+          "stigmergy_deposit_rate",
+          0.0
+        ]
+      ],
+      "name": "Estigmergia",
+      "purpose": "Externalizar conocimiento en el entorno",
+      "rule_id": "R19"
+    },
+    {
+      "ablation": [],
+      "name": "F\u00edsica metab\u00f3lica",
+      "purpose": "Vida y muerte por energ\u00eda: costo basal fijo, de movimiento y de emisi\u00f3n, muerte con E <= 0 y capacidad de carga. Sin ella no hay selecci\u00f3n",
+      "rule_id": "R20"
+    },
+    {
+      "ablation": [
+        [
+          "memory_capacity_cost",
+          0.0
+        ],
+        [
+          "sensory_radius_cost",
+          0.0
+        ]
+      ],
+      "name": "Costo cuadr\u00e1tico de cerebro y sentidos",
+      "purpose": "Encarecer la hipertrofia individual (C_max\u00b2, radios\u00b2). Sesga a favor de cooperar; se declara como sesgo",
+      "rule_id": "R21"
+    },
+    {
+      "ablation": [
+        [
+          "enable_holon_view",
+          false
+        ]
+      ],
+      "name": "Vista compartida del hol\u00f3n",
+      "purpose": "Dar a cada hoja acceso ef\u00edmero al conocimiento de las hojas cercanas de su hol\u00f3n",
+      "rule_id": "R22"
+    },
+    {
+      "ablation": [
+        [
+          "holon_coord_cost",
+          0.0
+        ],
+        [
+          "holon_energy_sharing",
+          false
+        ]
+      ],
+      "name": "Coordinaci\u00f3n y reparto energ\u00e9tico del hol\u00f3n",
+      "purpose": "Que pertenecer a un hol\u00f3n tenga un costo y un beneficio energ\u00e9tico compartido",
+      "rule_id": "R23"
+    }
+  ]
+}
