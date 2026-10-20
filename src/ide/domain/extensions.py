@@ -107,6 +107,18 @@ def _mutate_integer(value: int, lo: int, hi: int, rng: np.random.Generator) -> i
     return min(hi, max(lo, value + step))
 
 
+def integer_trait_bounds(config: SimulationConfig) -> tuple[int, int]:
+    """Cotas superiores `(capacity_hi, radius_hi)` de $C_{max}$ y de los radios (D22, D33).
+
+    Fuente única para `mutate_genome` y para la transcripción del ADN compacto.
+    """
+    capacity_hi = config.max_genome_memory_capacity
+    if config.enforce_memory_constraint:
+        capacity_hi = min(capacity_hi, config.num_world_patterns - 1)
+    radius_hi = (min(config.grid_width, config.grid_height) - 1) // 2
+    return capacity_hi, radius_hi
+
+
 def mutate_genome(
     genome: AgentGenome, config: SimulationConfig, rng: np.random.Generator
 ) -> AgentGenome:
@@ -131,10 +143,7 @@ def mutate_genome(
         genome.comm_radius,
     )
     if config.discrete_mutation_prob > 0.0:
-        capacity_hi = config.max_genome_memory_capacity
-        if config.enforce_memory_constraint:
-            capacity_hi = min(capacity_hi, config.num_world_patterns - 1)
-        radius_hi = (min(config.grid_width, config.grid_height) - 1) // 2
+        capacity_hi, radius_hi = integer_trait_bounds(config)
         bounds = ((capacity, capacity_hi), (perception, radius_hi), (comm, radius_hi))
         mutated: list[int] = []
         for value, hi in bounds:

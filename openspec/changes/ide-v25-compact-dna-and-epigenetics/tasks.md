@@ -65,7 +65,7 @@
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 2.1 **[RED]** Crear `tests/test_compact_dna.py` con tests para:
+- [x] 2.1 **[RED]** Crear `tests/test_compact_dna.py` con tests para:
   - (a) `encode_codon` y `decode_codon`: ida y vuelta, campos, `delta` en los extremos ($-128 \to -1.0$, $127 \to 0.9921875$) y `ValueError` fuera de rango;
   - (b) `founder_dna`: longitud 9 y expresión de `genome_from_config` en cualquier contexto;
   - (c) cada promotor de D32, incluidos los reservados, que nunca se activan;
@@ -73,13 +73,13 @@
   - (e) la red regulatoria: canal encendido sólo si `act > rep`, la pasada 2, y que los `EMIT_TF` de la pasada 2 no encienden canales;
   - (f) que los destinos reservados son inertes y que los plásmidos se transcriben y `crispr_memory` no;
   - (g) `phenotype_from_genome`.
-- [ ] 2.2 **[GREEN]** Crear `src/ide/agent/dna.py` con `Codon`, `encode_codon`, `decode_codon`, `FOUNDER_DNA_LENGTH`, `founder_dna`, `transcribe_phenotype` y `phenotype_from_genome`.
-- [ ] 2.3 **[REFACTOR]** Agregar pruebas por propiedades con Hypothesis (perfil `ci`):
+- [x] 2.2 **[GREEN]** Crear `src/ide/agent/dna.py` con `Codon`, `encode_codon`, `decode_codon`, `FOUNDER_DNA_LENGTH`, `founder_dna`, `transcribe_phenotype` y `phenotype_from_genome`.
+- [x] 2.3 **[REFACTOR]** Agregar pruebas por propiedades con Hypothesis (perfil `ci`):
   - toda transcripción cae dentro de las cotas;
   - el resultado no depende de `PYTHONHASHSEED`;
   - el ADN fundador es neutro para toda configuración válida.
   - Agregar la auditoría AST: `dna.py` no importa `micro_agent`, `holon`, `environments`, `simulation` ni `experiments`.
-  - Verificación del bloque.
+  - Verificación del bloque. (836 tests, cobertura 99 %; cotas enteras con fuente única `integer_trait_bounds`.)
 
 ## 3. Mutación del ADN (`compact-dna`)
 
