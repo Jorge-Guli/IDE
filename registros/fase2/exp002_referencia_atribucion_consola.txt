@@ -1,0 +1,4 @@
+Atribución de exp002_reference con el perfil phase2 (pre-registrado; ignora --profile)
+Afirmación Estado                        Por construcción       p E2     p E4
+C5         NOT_OBSERVED                  sí                  1.00000  0.05469
+C6         NOT_OBSERVED                  sí                  1.00000  0.01074

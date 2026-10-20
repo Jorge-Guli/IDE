@@ -150,6 +150,45 @@ Semillas viables (de 10) por condición. Entre paréntesis, las semillas con pob
 - La extinción del control nulo con 20 es una observación demográfica de la calibración, con las semillas 0 a 9. No es una medición de C5 a C8, y el control nulo aleatoriza a la vez todos los canales (horizontal, herencia, estigmergia y vista), así que no aísla un mecanismo.
 - **Sobre la hipótesis de saturación** (población final de los JSON, sin contar el control nulo): con 20, 80 de las 90 corridas terminan exactamente en el tope `max_population = 160`; con 40 y 80, las 90; con 25, 30 y 35, 267 de 270. Que la población llegue al tope es casi universal desde 20, incluso con 20, donde esas mismas condiciones sí llegan a las generaciones 7 a 12. Por lo tanto, alcanzar el tope **no explica por sí solo** la falta de recambio con más recursos. La causa sigue sin verificar (una posibilidad es que con abundancia casi nadie muere y el cupo no se libera, pero no se midió la mortalidad).
 
+## Fase II: Experimentos 002 y 003 y su atribución (bloque 7.1)
+
+- **Pre-registro:** `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS`, canales, reglas inactivas y perfil `phase2` versionados en `7375a8c`, antes de los runners; enmiendas del perfil (Enmiendas 1 y 1b de D29) con sus commits y la salida de respaldo `resources_per_pattern = 20` (arriba). Ninguna afirmación ni $R_C$ se modificó a la vista de estos resultados.
+- **Código:** main en `60c5dcb`. Corrido en el equipo del responsable del proyecto con los comandos del bloque 7 (`exp002_runner` y `exp003_runner`, con `--seeds 42 … 51`, `--attribution` y `--reference`). Se verificó que las configuraciones de los 80 JSON por semilla y de las 4 atribuciones son exactamente las de `PHASE2_PROTOCOL_CONFIGS` y `PHASE2_PROTOCOL_CONFIGS_ORIGINAL` del código. **Reproducibilidad entre plataformas:** `exp002_runner --reference --seeds 42`, regenerado en Linux, da un JSON idéntico byte a byte al del equipo Windows (salvo fines de línea).
+- **Salidas completas:** `registros/fase2/` (JSON por semilla, agregados, atribuciones y consolas, normalizados a UTF-8).
+
+### Tabla de estados (tal cual)
+
+| Afirmación | Estado | Por construcción | p E2 (vs. aislada) | p E4 (vs. control nulo, **no interpretable**) |
+| :--- | :--- | :---: | ---: | ---: |
+| C5 Aceleración cultural intergeneracional | `NOT_OBSERVED` | sí | 0.37695 | 0.00098 |
+| C6 Adaptación evolutiva por selección | `NOT_OBSERVED` | sí | 0.82812 | 0.00098 |
+| C7 Superávit cooperativo sobre recursos compuestos | `NOT_OBSERVED` | sí | 0.14453 | 0.01562 |
+| C8 Cobertura colectiva adquirida sin causalidad descendente | `NOT_OBSERVED` | sí | 0.82812 | 1.00000 |
+
+Valores por semilla (42..51), población completa / variante aislada:
+
+| Afirmación (métrica ↑) | Completa | Aislada |
+| :--- | :--- | :--- |
+| C5 (`cultural_accuracy`; aislada: sin $R_{14}$) | 0.853 0.872 0.865 0.837 0.841 0.822 0.846 0.803 0.859 0.847 | 0.838 0.854 0.834 0.841 0.848 0.818 0.840 0.832 0.860 0.817 |
+| C6 (`evolved_accuracy`; aislada: deriva, sin $R_{12}$) | 0.838 0.854 0.834 0.841 0.848 0.818 0.840 0.832 0.860 0.817 | 0.822 0.847 0.842 0.844 0.841 0.841 0.852 0.839 0.847 0.838 |
+| C7 (`holonic_composite_completions`; aislada: sin $R_{15}$) | 1 0 0 1 1 1 0 1 0 1 | 0 0 1 0 0 0 0 0 2 0 |
+| C8 (`mean_acquired_coverage`; aislada: sin $R_{22}$) | −0.005 −0.025 0.064 −0.000 −0.046 −0.037 −0.095 −0.035 −0.005 −0.014 | 0.012 −0.110 −0.009 0.009 −0.010 −0.052 −0.040 −0.044 0.012 0.023 |
+
+### Lectura
+
+- **Ninguna de las cuatro afirmaciones se observa.** Las cuatro estaban declaradas programadas por construcción (D29): ni siquiera los mecanismos diseñados para producirlas muestran el efecto con el perfil pre-registrado. Es un resultado negativo y se reporta tal cual.
+- **C5:** la herencia cultural no supera a la tabula rasa (diferencia media +0.006; 6 de 10 semillas a favor, p = 0.38). La proporción social de los descendientes (M9) es la misma con y sin $R_{14}$ (0.158 frente a 0.160), y el tick de convergencia también (45 frente a 45).
+- **C6:** la selección no supera a la deriva (diferencia media −0.003, p = 0.83). **Observación exploratoria no prevista:** el genoma congelado supera a la evolución en las 10 semillas (`adaptation_gain` medio −0.047; precisión 0.885 frente a 0.838), y la capacidad de memoria media final baja de 3 (fundadores) a 1.9. Es compatible con el sesgo declarado de $R_{21}$ (costo cuadrático de la memoria), que favorecería memorias chicas a costa de la precisión, pero esa explicación **no se verificó**.
+- **C7:** los recursos compuestos casi nunca se resuelven: 0.6 resoluciones por corrida de 2000 ticks con holones y 0.3 sin ellos (p = 0.14). Con `composite_order = 4`, el grupo local casi nunca reúne a la vez los cuatro fragmentos con confianza suficiente. Los holones se forman (nivel máximo 7 en las 10 semillas), pero no resuelven compuestos.
+- **C8:** la cobertura colectiva adquirida es prácticamente nula y algo negativa con y sin la vista del holón (−0.020 frente a −0.021, p = 0.83), con exposiciones comparables (12 641 y 14 206 pares tick-holón de media). La reducción de redundancia es negativa en ambas condiciones (−0.052 y −0.043): las hojas de un holón tienden a duplicar más, no menos, desde que se formaron.
+- **E4 no se interpreta** (salida de respaldo de la Enmienda 1b): el control nulo se extingue en 9 o 10 de 10 semillas en las cuatro afirmaciones, así que sus valores bajos reflejan la extinción. En C8 el control nulo da incluso una cobertura adquirida mayor (p E4 = 1.0), medida mientras su población colapsa.
+- **Efectos de regla (`rule_effects`), leídos con su demografía (`ClaimEvaluation.demography`):**
+  - Sin $R_{10}$ (exploración) o sin $R_{11}$ (navegación) la población se extingue en las 10 semillas de las cuatro afirmaciones: sus efectos grandes (+0.25 a +0.36 en precisión) miden extinción y no se interpretan como contribución de la regla. En C8, esas mismas variantes y la de sin $R_{15}$ no tienen medición (efecto `None`).
+  - Sin $R_{21}$ las poblaciones sobreviven pero casi no llegan a la generación 5. En C7, sin $R_{21}$ se resuelven en promedio 5 compuestos más por corrida (efecto −5.0): sin el costo cuadrático, las memorias pueden crecer y un grupo local reúne los fragmentos. Es una observación exploratoria con demografía no calibrada.
+  - Los demás efectos con demografía comparable son chicos: en C5 y C6, todos menores que 0.05 en valor absoluto.
+- **Referencia con las configuraciones originales** (`resources_per_pattern = 8`): las poblaciones se extinguen enseguida (generación máxima 0 o 1), y las cuatro afirmaciones también son `NOT_OBSERVED` (p E2 de 0.5 a 1.0). Es lo que anticipaba la prueba de humo.
+- **Consecuencia para la Fase II:** el diseño ya declaraba que la Fase II no tenía ninguna prueba genuina pre-registrada. Con este perfil, además, ninguno de sus mecanismos diseñados (herencia cultural, selección, holones, vista compartida) produce el beneficio funcional que se le atribuía. Las observaciones exploratorias (genoma congelado mejor que la evolución, compuestos casi inalcanzables con el costo cuadrático de $R_{21}$, redundancia creciente en los holones) son preguntas para un diseño nuevo, no resultados de este.
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.

@@ -1,0 +1,203 @@
+{
+  "profile": "phase2",
+  "protocol_002a": {
+    "adaptation_gain": {
+      "mean": -0.004030775479309856,
+      "n": 10,
+      "std": 0.014462351046173492
+    },
+    "condition_demography": [
+      [
+        "evolved",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.3,
+          "n": 10,
+          "std": 0.45825756949558394
+        }
+      ],
+      [
+        "frozen_genome",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.3,
+          "n": 10,
+          "std": 0.45825756949558394
+        }
+      ],
+      [
+        "drift",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.3,
+          "n": 10,
+          "std": 0.45825756949558394
+        }
+      ]
+    ],
+    "drift_accuracy": {
+      "mean": 0.5614634984181415,
+      "n": 10,
+      "std": 0.0732873807563688
+    },
+    "evolved_accuracy": {
+      "mean": 0.5614634984181415,
+      "n": 10,
+      "std": 0.0732873807563688
+    },
+    "evolved_max_generation": {
+      "mean": 0.3,
+      "n": 10,
+      "std": 0.45825756949558394
+    },
+    "evolved_mean_energy": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "final_mean_bond_affinity": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "final_mean_memory_capacity": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "frozen_genome_accuracy": {
+      "mean": 0.5654942738974513,
+      "n": 10,
+      "std": 0.07517720959666922
+    },
+    "seed": {
+      "mean": 46.5,
+      "n": 10,
+      "std": 2.8722813232690143
+    },
+    "selection_gain": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "total_births": {
+      "mean": 0.4,
+      "n": 10,
+      "std": 0.66332495807108
+    },
+    "total_deaths": {
+      "mean": 80.4,
+      "n": 10,
+      "std": 0.66332495807108
+    },
+    "total_ticks": {
+      "mean": 2000.0,
+      "n": 10,
+      "std": 0.0
+    }
+  },
+  "protocol_002b": {
+    "condition_demography": [
+      [
+        "cultural",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.3,
+          "n": 10,
+          "std": 0.45825756949558394
+        }
+      ],
+      [
+        "tabula_rasa",
+        {
+          "mean": 0.0,
+          "n": 10,
+          "std": 0.0
+        },
+        {
+          "mean": 0.3,
+          "n": 10,
+          "std": 0.45825756949558394
+        }
+      ]
+    ],
+    "cultural_accuracy": {
+      "mean": 0.5598761968308399,
+      "n": 10,
+      "std": 0.072881343539313
+    },
+    "cultural_accuracy_surplus": {
+      "mean": -0.0015873015873015927,
+      "n": 10,
+      "std": 0.004761904761904779
+    },
+    "cultural_convergence_tick": {
+      "mean": 0.0,
+      "n": 1,
+      "std": 0.0
+    },
+    "final_offspring_social_ratio": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "final_offspring_social_ratio_tabula_rasa": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "seed": {
+      "mean": 46.5,
+      "n": 10,
+      "std": 2.8722813232690143
+    },
+    "social_ratio_gain": {
+      "mean": 0.0,
+      "n": 10,
+      "std": 0.0
+    },
+    "tabula_rasa_accuracy": {
+      "mean": 0.5614634984181415,
+      "n": 10,
+      "std": 0.0732873807563688
+    },
+    "tabula_rasa_convergence_tick": {
+      "mean": 0.0,
+      "n": 1,
+      "std": 0.0
+    },
+    "total_ticks": {
+      "mean": 2000.0,
+      "n": 10,
+      "std": 0.0
+    }
+  },
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ]
+}
