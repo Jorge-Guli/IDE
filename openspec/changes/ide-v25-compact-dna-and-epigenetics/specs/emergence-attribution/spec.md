@@ -114,6 +114,10 @@ Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` S
 - **WHEN** se inspecciona `PHASE25_CLAIMS`
 - **THEN** contiene exactamente `C13`..`C20`, y `C16`, `C17` y `C18` tienen esos protocolos, métricas, comparaciones, $R_C$, canales, $\delta_{\min}$ y `delta_relative`.
 
+#### Scenario: C17 por diferencia de diferencias
+- **WHEN** se evalúa `C17`
+- **THEN** su comparación con `no_predation` sigue el requisito "Diferencia de Diferencias de C17 y C19", no la diferencia simple.
+
 #### Scenario: Enunciado de C18
 - **WHEN** se lee el `statement` de `C18`
 - **THEN** es "La cooperación material evoluciona en la ecología holónica".
@@ -144,7 +148,7 @@ En `C17` y `C19`, `values` SHALL guardar por semilla $\text{full}(s) - \text{dri
 - **THEN** `values` vale 3.0 y `comparison_values` vale 1.0 en esa semilla, y su diferencia es 2.0.
 
 ### Requirement: Afirmación Pre-Registrada C19
-Según el pre-registro de design D56 (reabierto con D57–D63), `PHASE25_CLAIMS` SHALL contener `C19` "La memoria y el aprendizaje evolucionan cuando el entorno cambia", genuina, con protocolo `25d`, métrica creciente `mean_learning_codons` (D63.2), comparación `stable` por diferencia de diferencias, $R_C$ `()`, canal `()`, $\delta_{\min} = 1.0$ y `delta_relative = 0.0`.
+Según el pre-registro de design D56 (reabierto con D57–D63), `PHASE25_CLAIMS` SHALL contener `C19` "La memoria y el aprendizaje evolucionan cuando el entorno cambia", genuina, con protocolo `25d`, métrica creciente `mean_learning_codons` (D63.2), comparación `stable` por diferencia de diferencias contra su reproducción neutral (requisito "Diferencia de Diferencias de C17 y C19"), $R_C$ `()`, canal `()`, $\delta_{\min} = 1.0$ y `delta_relative = 0.0`.
 
 #### Scenario: Registro de C19
 - **WHEN** se inspecciona `C19` en `PHASE25_CLAIMS`
@@ -185,6 +189,10 @@ La métrica de cada afirmación de `PHASE25_CLAIMS` SHALL ser la media de su cam
 #### Scenario: Ventana del perfil phase25
 - **WHEN** se mide `C13` en una corrida de 5000 ticks con `season_length = 500`
 - **THEN** su valor es la media de `mean_conditional_codons` en los últimos 1000 registros de `engine.genetic_history`, que cubren 500 ticks de verano y 500 de invierno.
+
+#### Scenario: Ventana de 25d tras un cambio del entorno
+- **WHEN** se mide `C19` en una corrida de 5000 ticks de `25d` con `world_shift_period = 1000`
+- **THEN** la ventana son los ticks 4000 a 4999, que empiezan con el cambio del tick 4000 en `full` y `drift` (design precisiones 4 y 56).
 
 #### Scenario: Actividad en el último tick
 - **WHEN** se mide `C16` en una corrida de 5000 ticks
@@ -241,16 +249,16 @@ Si una afirmación de `PHASE25_CLAIMS` tiene menos de 20 pares válidos, SHALL q
 - **WHEN** `C15` tiene 12 pares válidos y todas sus diferencias son nulas
 - **THEN** su p-valor crudo es 1.0 y entra así en la corrección de Holm.
 
+#### Scenario: Pares suficientes
+- **WHEN** `C13` tiene 20 pares válidos
+- **THEN** `evaluable == True` y su estado lo deciden el p-valor ajustado y el umbral de efecto.
+
 ### Requirement: P-Valor sin Diferencias Distintas de Cero
 El p-valor crudo de una afirmación de `PHASE25_CLAIMS` SHALL ser 1.0 siempre que no quede ninguna diferencia distinta de cero entre sus pares válidos, sea evaluable o no (design precisión 48).
 
 #### Scenario: Evaluable sin diferencias
 - **WHEN** `C14` tiene 30 pares válidos y todas sus diferencias son nulas
 - **THEN** `evaluable == True`, su p-valor crudo es 1.0 y su estado es `NOT_OBSERVED`.
-
-#### Scenario: Pares suficientes
-- **WHEN** `C13` tiene 20 pares válidos
-- **THEN** `evaluable == True` y su estado lo deciden el p-valor ajustado y el umbral de efecto.
 
 ### Requirement: Demografía de la Evaluación
 La `demography` de cada `Phase25ClaimEvaluation`, de tipo `dict[str, dict[int, dict[str, float]]]` (condición → semilla → campo), SHALL contener para cada condición de la afirmación y cada semilla, incluidos los pares excluidos, `final_agents`, `final_active_agents`, `max_generation`, `cumulative_births`, `cumulative_deaths`, `mean_age_at_death` y `effective_parents`, covariables que no deciden el estado (design precisiones 44, 45 y 49).
@@ -264,10 +272,10 @@ La `demography` de cada `Phase25ClaimEvaluation`, de tipo `dict[str, dict[int, d
 - **THEN** las claves de su `demography` son `full`, `drift`, `no_predation` y `no_predation_drift`.
 
 ### Requirement: Número Efectivo de Progenitores
-`effective_parents` de una condición y semilla SHALL ser $1 / \sum_i p_i^2$, con $p_i$ la fracción de los nacimientos de la ventana final cuyo progenitor es $i$, según `birth_parent_ids` de `genetic_history` en esa ventana, o 0.0 sin nacimientos; SHALL informarse siempre junto con `C16` y no decidir su estado (design precisiones 44 y 68).
+`effective_parents` de una condición y semilla SHALL ser $1 / \sum_i p_i^2$, con $p_i$ la fracción de los nacimientos de la ventana final cuya fuente genética es $i$, concatenando `birth_source_ids` de `genetic_history` en esa ventana, o 0.0 sin nacimientos; SHALL informarse siempre junto con `C16` y no decidir su estado (design precisiones 44 y 68).
 
 #### Scenario: Nacimientos concentrados
-- **WHEN** los `birth_parent_ids` de la ventana final suman `(3, 3, 7, 9)`
+- **WHEN** los `birth_source_ids` de la ventana final suman `(3, 3, 7, 9)`
 - **THEN** `effective_parents == pytest.approx(16 / 6, abs=1e-9)`.
 
 #### Scenario: Sin nacimientos
@@ -343,11 +351,15 @@ E4 de una afirmación de `PHASE25_CLAIMS` SHALL informarse contra `null_content`
 - **THEN** `C18` tiene `e4_interpretable == False`, sin depender de su métrica, y las afirmaciones de `25a` dependen sólo de su propio `null_content`.
 
 ### Requirement: Pares Válidos de E4
-`e4_p_value` SHALL calcularse con `PHASE25_SEEDS`, pareando por semilla `full` con `null_content` del mismo protocolo, sólo sobre los pares válidos (las dos condiciones con `final_active_agents >= 1`), con la prueba de signo unilateral que descarta empates; un control nulo extinguido SHALL NOT contar como un 0.0 a favor de `full` (design D56 y precisiones 38 y 45).
+`e4_p_value` SHALL calcularse con `PHASE25_SEEDS`, pareando por semilla `full` con `null_content` del mismo protocolo en la métrica simple, también en `C17` y `C19` (sin diferencia de diferencias), sólo sobre los pares válidos (las dos condiciones con `final_active_agents >= 1`), con la prueba de signo unilateral que descarta empates; un control nulo extinguido SHALL NOT contar como un 0.0 a favor de `full` (design D56 y precisiones 38 y 45).
 
 #### Scenario: Control nulo extinguido excluido
 - **WHEN** en `C14` la condición `null_content` de la semilla 45 termina sin hojas activas y las otras 29 semillas terminan con hojas activas en `full` y en `null_content`
 - **THEN** `e4_p_value` se calcula sólo sobre esos 29 pares, y la semilla 45 no aporta una diferencia positiva.
+
+#### Scenario: E4 simple en la diferencia de diferencias
+- **WHEN** se calcula `e4_p_value` de `C19`
+- **THEN** usa por semilla `full(s) - null_content(s)` en `mean_learning_codons`, sin `drift`, `stable` ni `stable_drift`.
 
 ### Requirement: Efectos de Regla Exploratorios
 Los `rule_effects` de la Fase II-B, por afirmación, SHALL tener una variante por regla de `PHASE25_ALL_RULES`, salvo las de `PHASE25_INACTIVE_RULES` del protocolo, SHALL medirse sólo con `PHASE25_RULE_EFFECT_SEEDS = tuple(range(42, 52))` y SHALL quedar fuera de la corrección de Holm y del estado de las afirmaciones (design precisión 66).

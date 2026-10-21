@@ -3,11 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: Telemetría Genética GeneticTickMetrics
-`metrics.py` SHALL definir `GeneticTickMetrics` como `@dataclass(frozen=True)` con, en orden, los 15 campos de D41, los 7 de D53.2, los 6 de las precisiones 42, 43 y 49 (D53.2), los 7 de la ampliación (D63.2) y, al final, `birth_parent_ids` (precisión 68): 36 en total, enumerados en el escenario.
+`metrics.py` SHALL definir `GeneticTickMetrics` como `@dataclass(frozen=True)` con, en orden, los 15 campos de D41, los 7 de D53.2, los 6 de las precisiones 42, 43 y 49 (D53.2), los 7 de la ampliación (D63.2) y, al final, `birth_source_ids` (precisión 68): 36 en total, enumerados en el escenario.
 
 #### Scenario: Campos de la telemetría genética
 - **WHEN** se inspeccionan los campos de `GeneticTickMetrics`
-- **THEN** son exactamente los 15 de D41 (`tick`, `mean_chromosome_length`, `mean_expressed_codons`, `mean_plasmids`, `endospores`, `senescent_agents`, `mean_age`, `max_age`, `explorers`, `librarians`, `nerves`, `locked_holons`, `hgt_transfers`, `crispr_rejections` y `crispr_purges`) más `distinct_genotypes`, `mean_functional_codons`, `regulated_expression_fraction`, `policy_divergence`, `communicating_fraction`, `new_activity` y `cumulative_new_activity`, seguidos de `mean_expressible_codons`, `cumulative_births`, `new_activity_per_birth`, `mean_age_at_death`, `mean_conditional_codons` y `mean_expressible_nonattack_codons` y, como los siete últimos y en ese orden, `mean_internal_state_bits`, `mean_plasticity_rate`, `mean_abs_plastic_weight`, `mean_learning_codons`, `signaling_rate`, `symbol_diversity` y `max_signal_information`, y por último `birth_parent_ids`; asignar uno de ellos lanza `dataclasses.FrozenInstanceError`.
+- **THEN** son exactamente los 15 de D41 (`tick`, `mean_chromosome_length`, `mean_expressed_codons`, `mean_plasmids`, `endospores`, `senescent_agents`, `mean_age`, `max_age`, `explorers`, `librarians`, `nerves`, `locked_holons`, `hgt_transfers`, `crispr_rejections` y `crispr_purges`) más `distinct_genotypes`, `mean_functional_codons`, `regulated_expression_fraction`, `policy_divergence`, `communicating_fraction`, `new_activity` y `cumulative_new_activity`, seguidos de `mean_expressible_codons`, `cumulative_births`, `new_activity_per_birth`, `mean_age_at_death`, `mean_conditional_codons` y `mean_expressible_nonattack_codons` y, como los siete últimos y en ese orden, `mean_internal_state_bits`, `mean_plasticity_rate`, `mean_abs_plastic_weight`, `mean_learning_codons`, `signaling_rate`, `symbol_diversity` y `max_signal_information`, y por último `birth_source_ids`; asignar uno de ellos lanza `dataclasses.FrozenInstanceError`.
 
 ### Requirement: Historial Genético Separado
 El motor SHALL registrar un `GeneticTickMetrics` en cada tick, con cualquier combinación de banderas, en `engine.genetic_history: list[GeneticTickMetrics]`, sin agregar campos a `TickMetrics` (14 campos) ni a `EvolutionaryTickMetrics`.
@@ -32,18 +32,30 @@ Con la población vacía, los promedios de `GeneticTickMetrics` SHALL valer `0.0
 
 #### Scenario: Población extinguida
 - **WHEN** se registra un tick en el que no queda ninguna hoja viva
-- **THEN** `mean_age == 0.0`, `max_age == 0`, `distinct_genotypes == 0`, `mean_functional_codons == 0.0`, `mean_expressible_codons == 0.0`, `mean_expressible_nonattack_codons == 0.0`, `mean_conditional_codons == 0.0`, `regulated_expression_fraction == 0.0`, `communicating_fraction == 0.0`, `mean_internal_state_bits == 0.0`, `mean_plasticity_rate == 0.0`, `mean_abs_plastic_weight == 0.0`, `mean_learning_codons == 0.0`, `signaling_rate == 0.0`, `symbol_diversity == 0`, `max_signal_information == 0.0` y `birth_parent_ids == ()`.
+- **THEN** `mean_age == 0.0`, `max_age == 0`, `distinct_genotypes == 0`, `mean_functional_codons == 0.0`, `mean_expressible_codons == 0.0`, `mean_expressible_nonattack_codons == 0.0`, `mean_conditional_codons == 0.0`, `regulated_expression_fraction == 0.0`, `communicating_fraction == 0.0`, `mean_internal_state_bits == 0.0`, `mean_plasticity_rate == 0.0`, `mean_abs_plastic_weight == 0.0`, `mean_learning_codons == 0.0`, `signaling_rate == 0.0`, `symbol_diversity == 0`, `max_signal_information == 0.0` y `birth_source_ids == ()`.
 
 ### Requirement: Progenitores de los Nacimientos del Tick
-`birth_parent_ids` SHALL ser la tupla ascendente, con repeticiones, del `agent_id` del progenitor de cada nacimiento del tick: el que aporta la energía (en la reproducción neutral, el que se reproduce y no el donante; en $R_{17}$, la hoja progenitora de cada hoja hija), o `()` sin nacimientos (design precisión 68).
+`birth_source_ids` SHALL ser la tupla ascendente del `agent_id` cuyo ADN hereda cada hijo del tick antes de mutar: el progenitor con selección; el donante en la reproducción neutral y en $R_{17}$ neutral; con $R_{38}$, el que inicia el cruce, sin contar la pareja; o `()` sin nacimientos (design precisión 68).
 
 #### Scenario: Reproducción neutral
-- **WHEN** en un tick con `reproduction_mode == "neutral"` el agente 12 se reproduce dos veces con ADN de los donantes 4 y 30, y el agente 5 una vez
-- **THEN** `birth_parent_ids == (5, 12, 12)`.
+- **WHEN** en un tick con `reproduction_mode == "neutral"` se reproducen los agentes 5 y 12, con el ADN de los donantes 30 y 4
+- **THEN** `birth_source_ids == (4, 30)`, sin los ids de los que se reproducen.
+
+#### Scenario: Reproducción por selección
+- **WHEN** en un tick con selección se reproducen los agentes 12 y 5
+- **THEN** `birth_source_ids == (5, 12)`.
+
+#### Scenario: Donante repetido
+- **WHEN** en un tick con `reproduction_mode == "neutral"` se reproducen los agentes 5 y 12 y los dos sortean al donante 30
+- **THEN** `birth_source_ids == (30, 30)`: en un tick nadie se reproduce dos veces (D26), pero un donante puede repetirse.
+
+#### Scenario: Recombinación neutral
+- **WHEN** en un tick con `reproduction_mode == "neutral"` el agente 5 se reproduce con el donante 30 y recombina con la pareja 8
+- **THEN** `birth_source_ids == (30,)`, y la pareja no se cuenta.
 
 #### Scenario: Tick sin nacimientos
 - **WHEN** en un tick no nace ningún agente
-- **THEN** `birth_parent_ids == ()`.
+- **THEN** `birth_source_ids == ()`.
 
 ### Requirement: Genotipos Distintos y Codones Funcionales
 `distinct_genotypes` SHALL contar los cromosomas distintos entre las hojas vivas, y `mean_functional_codons`, que es descriptiva y no mide ninguna afirmación (design precisión 42), SHALL ser la media de los codones con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`, `0x0F`, precisión 54) o de conducta (`0x40`–`0x47`) y modo distinto de 3, cualquiera sea su promotor.
