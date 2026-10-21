@@ -49,7 +49,6 @@ from ide.experiments.metrics import (
 from ide.simulation.controls import nullify_belief
 from ide.simulation.pipeline import (
     CompositeContext,
-    DecisionSystem,
     EngineSystem,
     TickFrame,
     TickObserver,
@@ -216,23 +215,29 @@ class SimulationEngine:
         """Ejecuta el tick `next_tick` con los sistemas de `build_systems` y lo incrementa (D44).
 
         Los observadores (`metrics_observer` primero y después los de `observers`) reciben
-        `on_decisions` inmediatamente después del sistema de decisión, antes de ejecutar ninguna
-        acción, y `on_tick_end` al final del tick, con `frame.world_patterns` ya calculado.
+        `on_decisions` inmediatamente después del sistema marcado con `notifies_decisions`, antes
+        de ejecutar ninguna acción, y `on_tick_end` al final del tick, con `frame.world_patterns`
+        ya calculado. Si `metrics_observer` no produce el `TickMetrics`, el tick falla antes de
+        notificar a los demás observadores y de incrementar `next_tick`, para que ningún
+        historial quede desalineado.
         """
         frame = TickFrame(self.next_tick)
-        observers: tuple[TickObserver, ...] = (self.metrics_observer, *self.observers)
+        metrics_observer, observers = self.metrics_observer, self.observers
         for system in self.systems:
             system.run(self, frame)
-            if isinstance(system, DecisionSystem):
+            if system.notifies_decisions:
+                metrics_observer.on_decisions(self, frame)
                 for observer in observers:
                     observer.on_decisions(self, frame)
         frame.world_patterns = self.env.get_world_patterns()
+        metrics_observer.on_tick_end(self, frame)
+        metrics = frame.tick_metrics
+        if metrics is None:
+            raise RuntimeError("metrics_observer no produjo el TickMetrics del tick")
         for observer in observers:
             observer.on_tick_end(self, frame)
         self.next_tick += 1
-        if frame.tick_metrics is None:  # pragma: no cover - lo escribe `metrics_observer`
-            raise RuntimeError("el tick terminó sin TickMetrics")
-        return frame.tick_metrics
+        return metrics
 
     def run(self, ticks: int) -> list[TickMetrics]:
         """Ejecuta `ticks` ticks y devuelve sus métricas."""

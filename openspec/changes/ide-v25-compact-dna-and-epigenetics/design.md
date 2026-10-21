@@ -1151,7 +1151,8 @@ Surgen del refactor por sistemas (D44) y no cambian ninguna conducta: los hashes
     - `decision_opportunities` y `correct_decisions` (M2), escritos por `TickMetricsObserver` en `on_decisions`;
     - `world_patterns`, que `step()` calcula una sola vez al terminar los sistemas, antes de `on_tick_end`;
     - `tick_metrics: TickMetrics | None`, escrito por `TickMetricsObserver` en `on_tick_end`.
-    - El motor guarda `TickMetricsObserver` aparte, en `metrics_observer`, y lo notifica antes que los de `observers`; `step()` devuelve `frame.tick_metrics`, sin leer `history`. `step()` reconoce el sistema de decisión por su clase y no por su nombre (precisión 20).
+    - El motor guarda `TickMetricsObserver` aparte, en `metrics_observer`, y lo notifica antes que los de `observers`; `step()` devuelve `frame.tick_metrics`, sin leer `history`. Si `metrics_observer` no produce el `TickMetrics`, `step()` falla antes de notificar a los demás observadores y de incrementar `next_tick`.
+    - `EngineSystem` declara además `notifies_decisions: bool` (falso en la base `BaseSystem`): `step()` invoca `on_decisions` después del único sistema marcado, que hoy es el de decisión, y no reconoce ese sistema por su nombre (precisión 20). `build_systems` lanza `ValueError` si no hay exactamente un sistema marcado. El bloque de señales ($R_{41}$) puede partir la Fase 3 moviendo la marca.
 74. **Accesos a la memoria (D44.3).** La lista incluye también la herencia cultural vertical de $R_{14}$ en `_give_birth`, que ya leía la memoria del progenitor y la capacidad del hijo antes del refactor. El acceso de $R_{19}$ es el depósito estigmérgico del sistema de ejecución.
 
 ---

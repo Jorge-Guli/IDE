@@ -35,8 +35,8 @@ if TYPE_CHECKING:
 # (éxito, hojas que reciben la ganancia, holón raíz o None).
 CompositeContext = tuple[bool, list[int], CompositeAgent | None]
 
-# Nombre del sistema de decisión. `step()` reconoce ese sistema por su clase (`DecisionSystem`),
-# no por el nombre: los nombres los fija la implementación y no son contrato (precisión 20).
+# Nombre del sistema de decisión. `step()` no reconoce ese sistema por el nombre sino por la marca
+# `notifies_decisions`: los nombres los fija la implementación y no son contrato (precisión 20).
 DECISION_SYSTEM = "decision"
 
 
@@ -91,6 +91,8 @@ class EngineSystem(Protocol):
     """Una fase del tick: lee y escribe el motor y el marco, sin calcular métricas."""
 
     name: str
+    # `step()` invoca `on_decisions` inmediatamente después del único sistema que la tiene.
+    notifies_decisions: bool
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None: ...
 
@@ -104,10 +106,37 @@ class TickObserver(Protocol):
     def on_tick_end(self, engine: "SimulationEngine", frame: TickFrame) -> None: ...
 
 
+class BaseSystem:
+    """Base de los sistemas del motor: sin marca de `on_decisions` salvo que la redefinan.
+
+    La marca `notifies_decisions` señala el sistema tras el cual se notifica `on_decisions`. Hoy
+    es el de decisión; el bloque de señales ($R_{41}$) puede partir la Fase 3 (decisión,
+    emisión de señales, contexto de compuestos, `on_decisions` y estado interno) moviendo la
+    marca al sistema que corresponda.
+    """
+
+    name: str
+    notifies_decisions: bool = False
+
+
+def validate_systems(systems: tuple[EngineSystem, ...]) -> tuple[EngineSystem, ...]:
+    """Devuelve `systems` si exactamente uno tiene la marca `notifies_decisions`.
+
+    Raises:
+        ValueError: si ningún sistema o más de uno tiene la marca.
+    """
+    marked = [system.name for system in systems if system.notifies_decisions]
+    if len(marked) != 1:
+        raise ValueError(
+            f"exactamente un sistema debe marcar notifies_decisions; marcados: {marked}"
+        )
+    return systems
+
+
 # --- Fase 0 --------------------------------------------------------------------------------------
 
 
-class ExpressionSystem:
+class ExpressionSystem(BaseSystem):
     """Fase 0 (R24, D34.4): expresión del fenotipo, antes de la permutación y del alcance."""
 
     name = "expression"
@@ -119,7 +148,7 @@ class ExpressionSystem:
 # --- Fase 1 --------------------------------------------------------------------------------------
 
 
-class ScheduleSystem:
+class ScheduleSystem(BaseSystem):
     """Permutación del tick: el sorteo que resuelve los conflictos físicos de la Fase 4."""
 
     name = "schedule"
@@ -131,7 +160,7 @@ class ScheduleSystem:
         )
 
 
-class LocalReachSystem:
+class LocalReachSystem(BaseSystem):
     """Alcance local de las hojas de cada holón (D24.1); nadie se mueve antes de la Fase 4."""
 
     name = "local_reach"
@@ -140,7 +169,7 @@ class LocalReachSystem:
         frame.reach = engine._local_reach()
 
 
-class HolonViewSystem:
+class HolonViewSystem(BaseSystem):
     """Vista del holón (R22, D25.2): desde la memoria (tiempo 1) o desde lo propio (tiempo 2)."""
 
     def __init__(self, name: str, from_memory: bool) -> None:
@@ -151,7 +180,7 @@ class HolonViewSystem:
         engine._sync_holon_view(frame.reach, from_memory=self.from_memory)
 
 
-class PerceptionSystem:
+class PerceptionSystem(BaseSystem):
     """Percepción: la observación de cada agente, sobre la misma instantánea para todos.
 
     Ni la observación ni la emisión consumen generadores ni cambian el entorno, así que
@@ -167,7 +196,7 @@ class PerceptionSystem:
             observations[aid] = env.get_observation(aid, tick)
 
 
-class EmissionSystem:
+class EmissionSystem(BaseSystem):
     """Emisión de mensajes sobre la observación de la Fase 1 (la puerta de D46.6 llega después)."""
 
     name = "emission"
@@ -179,7 +208,7 @@ class EmissionSystem:
             emitted += agents[aid].perceive_and_emit_messages(observations[aid], tick)
 
 
-class StigmergyAssimilationSystem:
+class StigmergyAssimilationSystem(BaseSystem):
     """Rastros de la celda como testimonios del emisor sintético (R19, D27.3)."""
 
     name = "stigmergy_assimilation"
@@ -191,7 +220,7 @@ class StigmergyAssimilationSystem:
 # --- Fase 2 --------------------------------------------------------------------------------------
 
 
-class SocialExchangeSystem:
+class SocialExchangeSystem(BaseSystem):
     """Intercambio social en dos pasadas (Decisión 18)."""
 
     name = "social_exchange"
@@ -213,7 +242,7 @@ class SocialExchangeSystem:
 # --- Fase 3 --------------------------------------------------------------------------------------
 
 
-class DecisionSystem:
+class DecisionSystem(BaseSystem):
     """Decisión sobre la observación de la Fase 1 y contexto de los compuestos (D27).
 
     Registra, una sola vez por tick, los recursos compuestos alcanzables de cada agente
@@ -224,6 +253,7 @@ class DecisionSystem:
     """
 
     name = DECISION_SYSTEM
+    notifies_decisions = True
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, tick, rng = engine.agents, frame.tick, engine.rng
@@ -254,7 +284,7 @@ class DecisionSystem:
 # --- Fase 4 --------------------------------------------------------------------------------------
 
 
-class ExecutionSystem:
+class ExecutionSystem(BaseSystem):
     """Ejecución en el orden de la permutación, aprendizaje directo, energía y estigmergia."""
 
     name = "execution"
@@ -291,7 +321,7 @@ class ExecutionSystem:
 # --- Fase 5 --------------------------------------------------------------------------------------
 
 
-class MemoryDecaySystem:
+class MemoryDecaySystem(BaseSystem):
     """(i) Decaimiento de la memoria, en el orden del tick."""
 
     name = "memory_decay"
@@ -302,7 +332,7 @@ class MemoryDecaySystem:
             agents[aid].decay_memory(tick)
 
 
-class HolonCoordinationSystem:
+class HolonCoordinationSystem(BaseSystem):
     """(ii) Costo de coordinación, superávit y `SPLIT` (D24.2), y luego `BOND` (D24.3)."""
 
     name = "holon_coordination"
@@ -312,7 +342,7 @@ class HolonCoordinationSystem:
         engine._bond(frame.tick)
 
 
-class MetabolismSystem:
+class MetabolismSystem(BaseSystem):
     """(iii) Costo basal, del ADN, de movimiento y de mensajes (R13, D21, D34.5)."""
 
     name = "metabolism"
@@ -325,7 +355,7 @@ class MetabolismSystem:
         engine._metabolize(frame.moved, sent)
 
 
-class DeathSystem:
+class DeathSystem(BaseSystem):
     """(iv) Muerte de quien quedó con energía <= 0 tras el metabolismo (R13)."""
 
     name = "death"
@@ -334,7 +364,7 @@ class DeathSystem:
         frame.deaths = engine._remove_dead(frame.tick)
 
 
-class ReproductionSystem:
+class ReproductionSystem(BaseSystem):
     """(v) R17 y luego R12 (o su ablación neutral), con ADN e impronta cultural."""
 
     name = "reproduction"
@@ -343,7 +373,7 @@ class ReproductionSystem:
         frame.births = engine._reproduce(frame.tick)
 
 
-class DownwardCausationSystem:
+class DownwardCausationSystem(BaseSystem):
     """(vii) R18 sobre el bosque del final del tick."""
 
     name = "downward_causation"
@@ -352,7 +382,7 @@ class DownwardCausationSystem:
         engine._apply_downward_causation()
 
 
-class EnvironmentDynamicsSystem:
+class EnvironmentDynamicsSystem(BaseSystem):
     """(viii) Dinámica del entorno: reposición de recursos y decaimiento de los rastros."""
 
     name = "environment_dynamics"
@@ -405,4 +435,4 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
     if holonic:
         systems.append(DownwardCausationSystem())
     systems.append(EnvironmentDynamicsSystem())
-    return tuple(systems)
+    return validate_systems(tuple(systems))

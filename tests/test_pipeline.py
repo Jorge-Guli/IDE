@@ -33,6 +33,7 @@ from ide.simulation.pipeline import (
     TickFrame,
     TickObserver,
     build_systems,
+    validate_systems,
 )
 
 SRC = Path(__file__).resolve().parents[1] / "src" / "ide"
@@ -293,7 +294,24 @@ def test_step_devuelve_la_metrica_del_tick_sin_depender_de_la_lista_publica() ->
     assert engine.evolutionary_history == []
 
 
-def test_on_decisions_sigue_a_la_clase_del_sistema_de_decision_no_a_su_nombre(
+def test_solo_el_sistema_de_decision_tiene_la_marca() -> None:
+    for config in (SimulationConfig(), full_phase2_config()):
+        marked = [s for s in build_systems(config) if s.notifies_decisions]
+        assert len(marked) == 1 and isinstance(marked[0], DecisionSystem)
+
+
+@pytest.mark.parametrize("marks", [0, 2])
+def test_validate_systems_exige_exactamente_una_marca(marks: int) -> None:
+    systems = list(build_systems(SimulationConfig()))
+    for system in systems:
+        system.notifies_decisions = False
+    for system in systems[:marks]:
+        system.notifies_decisions = True
+    with pytest.raises(ValueError, match="notifies_decisions"):
+        validate_systems(tuple(systems))
+
+
+def test_on_decisions_sigue_a_la_marca_y_no_al_nombre_ni_a_la_clase(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     engine = SimulationEngine(SimulationConfig(num_agents=10, resources_per_pattern=3))
@@ -301,14 +319,35 @@ def test_on_decisions_sigue_a_la_clase_del_sistema_de_decision_no_a_su_nombre(
     engine.observers.append(RecordingObserver(log))
     systems = list(engine.systems)
     index = next(i for i, s in enumerate(systems) if isinstance(s, DecisionSystem))
-    renamed = DecisionSystem()
-    renamed.name = "otro_nombre"
-    systems[index] = renamed
-    impostor = systems[index + 1]  # la ejecución, con el nombre del sistema de decisión
-    monkeypatch.setattr(impostor, "name", DECISION_SYSTEM)
-    engine.systems = tuple(systems)
+    decision, execution = systems[index], systems[index + 1]
+    # La marca pasa a la ejecución, que además toma el nombre del sistema de decisión; la
+    # decisión cambia de nombre. `on_decisions` debe seguir a la marca: después de ejecutar.
+    monkeypatch.setattr(decision, "notifies_decisions", False)
+    monkeypatch.setattr(decision, "name", "otro_nombre")
+    monkeypatch.setattr(execution, "notifies_decisions", True)
+    monkeypatch.setattr(execution, "name", DECISION_SYSTEM)
+    original_execute = engine.env.execute_action
+
+    def execute(agent_id: int, action: AgentAction, tick: int) -> ActionResult:
+        log.append("execute")
+        return original_execute(agent_id, action, tick)
+
+    monkeypatch.setattr(engine.env, "execute_action", execute)
     engine.step()
-    assert log == ["on_decisions", "on_tick_end"]
+    assert log[-2:] == ["on_decisions", "on_tick_end"]
+    assert log.count("on_decisions") == 1 and log.index("execute") < log.index("on_decisions")
+
+
+def test_tick_sin_metricas_no_desalinea_los_historiales(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(SimulationConfig(num_agents=10, resources_per_pattern=3))
+    log: list[str] = []
+    engine.observers.append(RecordingObserver(log))
+    monkeypatch.setattr(engine.metrics_observer, "on_tick_end", lambda *_args: None)
+    with pytest.raises(RuntimeError, match="TickMetrics"):
+        engine.step()
+    assert engine.next_tick == 0
+    assert engine.history == [] and engine.evolutionary_history == []
+    assert "on_tick_end" not in log
 
 
 def test_momento_de_los_observadores(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -439,7 +478,7 @@ def test_telemetria_en_on_tick_end_con_historiales_por_observador() -> None:
 
 # Funciones del motor que acceden a `.memory`. Son los puntos que ya lo hacían antes del refactor:
 # R18 (causalidad descendente), R19 (depósito estigmérgico tras el aprendizaje directo), el
-# superávit de conocimiento del holón, la herencia cultural al nacer (R20) y la perturbación del
+# superávit de conocimiento del holón, la herencia cultural al nacer (R14) y la perturbación del
 # rumor. La lista no puede crecer sin cambiar este test.
 MEMORY_ACCESS = {
     "engine.py:SimulationEngine._apply_downward_causation",
@@ -524,6 +563,7 @@ DNA_CASES: dict[str, SimulationConfig] = {
     "002a-dna-R12": replace(ablate(_P["002a"], ["R12"]), enable_compact_dna=True),
     "002b-dna-null": replace(_P["002b"], comm_content_null=True, enable_compact_dna=True),
     "003a-dna": replace(_P["003a"], enable_compact_dna=True),
+    "003a-dna-aislado": replace(_P["003a"], enable_compact_dna=True, comm_enabled=False),
     "003a-dna-stigmergy": replace(
         _P["003a"], enable_compact_dna=True, enable_stigmergy=True, dna_point_mutation_rate=0.2
     ),
@@ -537,6 +577,7 @@ DNA_GOLDEN = {
     "002a-dna-R12": "3aaab7c352483a6f5535f262d337b186e2f4581d74ff0c2d1bd3a52d32a40b2f",
     "002b-dna-null": "8f50fdaf7d82eb80c139bd31fe0752f5582dc55e94bd42774c0c44b4cfcf00f3",
     "003a-dna": "a6107a946b2af5a0e7b650554e0b611edb6670d1c6532789decbeaa7b8715029",
+    "003a-dna-aislado": "a5cebac2e68408bb05a4b06485aaade20b7c6759d72dfad872b05f3e0463dd2a",
     "003a-dna-stigmergy": "5e13e85f466649046cb5d5bbd9130e31ed1355982bb3e76258246f48adb92b56",
 }
 

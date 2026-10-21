@@ -380,6 +380,10 @@ Con `enable_compact_dna=True` y las reglas de la Fase II-B activas, los historia
 - **WHEN** dos agentes de la misma celda observan el mismo recurso benéfico
 - **THEN** ambos deciden a partir de la observación de la fase 1, aunque el primero lo consuma en la fase 4.
 
+#### Scenario: Comienzo de la Fase 1
+- **WHEN** se ejecuta un tick con `enable_holonic_hierarchy` y `enable_holon_view` activas
+- **THEN** la Fase 1 sortea primero la permutación del tick, calcula después el alcance local de los holones y luego la vista del holón (tiempo 1), antes de la percepción (precisión 70).
+
 #### Scenario: Sin Fase 0 con las banderas por defecto
 - **WHEN** se ejecuta un tick con `enable_compact_dna=False`
 - **THEN** no se invoca `_express_phenotypes` y el tick empieza por la observación de la fase 1, como en la Fase II.
