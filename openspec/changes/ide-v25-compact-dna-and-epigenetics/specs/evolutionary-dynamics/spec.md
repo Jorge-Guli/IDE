@@ -93,11 +93,15 @@ Una endospora SHALL NOT llamar a `perceive_and_emit_messages`, asimilar estigmer
 - **THEN** su acción es `IDLE`, no recibe mensajes, no emite, no se reproduce, el estado de `self.rng` no cambia, su memoria decae y sigue en su holón.
 
 ### Requirement: Costo de la Endospora
-Una endospora SHALL pagar por tick `spore_cost_fraction * metabolic_base_cost`, más la senescencia de $R_{29}$, en lugar del costo basal, el del ADN, el de movimiento y el de mensajes. $R_{28}$ sólo pone a disposición ese estado de bajo gasto: si se usa lo decide el ADN.
+Una endospora SHALL pagar por tick `spore_cost_fraction * metabolic_base_cost`, más la senescencia de $R_{29}$, en lugar del costo basal, el del ADN, el de movimiento y el de mensajes, si lo fue todo el tick; quien esporula o germina en el tick paga el costo completo. $R_{28}$ sólo da el estado de bajo gasto: su uso lo decide el ADN.
 
 #### Scenario: Gasto reducido en endospora
 - **WHEN** con `metabolic_base_cost = 0.01`, `spore_cost_fraction = 0.05`, $R_{29}$ apagada y `enable_compact_dna=True` una endospora con 12 codones atraviesa un tick
 - **THEN** su energía baja exactamente `0.0005` (con tolerancia `1e-9`).
+
+#### Scenario: Tick de la esporulación
+- **WHEN** un agente ejecuta `SPORULATE` en la Fase 4 de un tick
+- **THEN** en ese tick paga el costo completo y desde el siguiente, si no germina, el de la endospora.
 
 ### Requirement: Endospora fuera del Alcance de SHARE y ATTACK
 Un `SHARE` ($R_{36}$) o un `ATTACK` ($R_{37}$) cuyo objetivo está en endospora al ejecutarse SHALL NOT cambiar la energía de nadie; el ataque cuenta igual como intento para su costo.

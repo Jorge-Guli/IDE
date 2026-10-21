@@ -17,8 +17,11 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from ide.agent.dna import BEHAVIOR_TARGETS, encode_codon, founder_dna
+from ide.agent.evolution import compute_dna_cost, compute_metabolic_cost
 from ide.config import SimulationConfig, sporulation_active
 from ide.domain.types import (
     ActionType,
@@ -35,6 +38,7 @@ from ide.simulation.engine import SimulationEngine, TickMetricsObserver
 from ide.simulation.pipeline import (
     DecisionSystem,
     EmissionSystem,
+    GerminationSystem,
     MetabolismSystem,
     PerceptionSystem,
     SocialPerceptionSystem,
@@ -272,7 +276,7 @@ def test_endospora_no_decide_ni_consume_rng() -> None:
     engine = SimulationEngine(cfg())
     clear_resources(engine)
     engine.agents[2].set_endospore(True)
-    frame = TickFrame(0, order=[2])
+    frame = TickFrame(0, order=[2], dormant=frozenset({2}))
     frame.observations[2] = engine.env.get_observation(2, 0)
     state = copy.deepcopy(engine.rng.bit_generator.state)
     engine.agents[2].decide_action = lambda *_a: (_ for _ in ()).throw(AssertionError("decide"))  # type: ignore[method-assign]
@@ -288,6 +292,8 @@ def test_endospora_no_emite_ni_se_percibe_socialmente() -> None:
     engine.agents[3].set_endospore(True)
     frame = TickFrame(0, order=sorted(engine.agents))
     PerceptionSystem().run(engine, frame)
+    GerminationSystem().run(engine, frame)
+    assert frame.dormant == frozenset({3})
     SocialPerceptionSystem().run(engine, frame)
     EmissionSystem().run(engine, frame)
     assert 3 not in frame.social
@@ -312,7 +318,7 @@ def test_ruteo_excluye_a_la_endospora(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     order = sorted(engine.agents)
     neighbors = {aid: [b for b in order if b != aid] for aid in order}
-    for aid, inbox in engine._route([broadcast], neighbors, order).items():  # pyright: ignore[reportPrivateUsage]
+    for aid, inbox in engine._route([broadcast], neighbors, order, frozenset({3})).items():  # pyright: ignore[reportPrivateUsage]
         engine.agents[aid].process_incoming_messages(inbox, 0)
     assert 3 not in received and {0, 2, 4, 5} <= set(received)
 
@@ -322,10 +328,10 @@ def test_endospora_sin_oportunidad_en_m2() -> None:
     clear_resources(engine)
     place_resource(engine, 2)
     engine.agents[2].set_endospore(True)
-    frame = TickFrame(0, order=[2], actions={2: IDLE})
+    frame = TickFrame(0, order=[2], actions={2: IDLE}, dormant=frozenset({2}))
     TickMetricsObserver().on_decisions(engine, frame)
     assert frame.decision_opportunities == 0
-    engine.agents[2].set_endospore(False)  # el control: decidiendo, sí suma
+    frame.dormant = frozenset()  # el control: decidiendo, sí suma
     TickMetricsObserver().on_decisions(engine, frame)
     assert frame.decision_opportunities == 1
 
@@ -427,7 +433,7 @@ def test_gasto_reducido_en_endospora() -> None:
     engine = SimulationEngine(config)
     engine.agents[2].set_endospore(True)
     before = {aid: a.energy for aid, a in engine.agents.items()}
-    frame = TickFrame(0, moved={2}, emitted=[], responses=[])
+    frame = TickFrame(0, moved={2}, dormant=frozenset({2}))
     MetabolismSystem().run(engine, frame)
     assert before[2] - engine.agents[2].energy == pytest.approx(0.0005, abs=1e-9)
     assert before[1] - engine.agents[1].energy > 0.0005  # el activo paga el costo completo
@@ -445,7 +451,7 @@ def test_endospora_senescente_pierde_costo_y_senescencia() -> None:
     engine = SimulationEngine(config)
     engine.agents[2].set_endospore(True)
     before = engine.agents[2].energy
-    frame = TickFrame(15)  # edad 15, longevidad 5: exceso 10
+    frame = TickFrame(15, dormant=frozenset({2}))  # edad 15, longevidad 5: exceso 10
     from ide.simulation.pipeline import SenescenceSystem
 
     MetabolismSystem().run(engine, frame)
@@ -538,3 +544,146 @@ def test_endosporas_independientes_del_hash() -> None:
     assert outputs[0] == outputs[1]
     seen, germinations = (int(x) for x in outputs[0].splitlines()[0].split())
     assert seen > 0 and germinations > 0  # esporula y germina de verdad
+
+
+# --- Costo en el tick de transición (precisión E6) y estigmergia ------------------------------
+
+
+def test_quien_esporula_en_el_tick_paga_el_costo_completo(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = cfg(metabolic_base_cost=0.01, move_cost=0.2, spore_energy_threshold=0.3)
+    engine = SimulationEngine(config)
+    clear_resources(engine)
+    engine.agents[1].set_dna(behavior_dna(config, Behavior.SPORULATE))
+    set_energy(engine, 1, 0.25)
+    idle_all(monkeypatch, engine, skip=1)
+    full = SimulationEngine(config).agents[1]
+    expected = compute_metabolic_cost(full.genome, config) + compute_dna_cost(
+        engine.agents[1].dna, config
+    )
+    engine.step()
+    assert engine.agents[1].is_endospore
+    assert 0.25 - engine.agents[1].energy == pytest.approx(expected, abs=1e-9)
+    assert expected > 0.0005 + 1e-6
+
+
+def test_quien_germina_en_el_tick_paga_el_costo_completo() -> None:
+    config = cfg(metabolic_base_cost=0.01)
+    engine = SimulationEngine(config)
+    clear_resources(engine)
+    place_resource(engine, 1)
+    agent = engine.agents[1]
+    agent.set_endospore(True)
+    expected = compute_metabolic_cost(agent.genome, config) + compute_dna_cost(agent.dna, config)
+    before = agent.energy
+    engine.step()
+    assert not agent.is_endospore
+    # Sin movimiento ni mensajes en el tick, paga el costo completo (y no el de la endospora).
+    assert before - agent.energy >= expected - 1e-9
+    assert before - agent.energy > 0.0005 + 1e-6
+
+
+def test_endospora_no_asimila_estigmergia(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = cfg(enable_stigmergy=True)
+    engine = SimulationEngine(config)
+    clear_resources(engine)
+    pattern = Pattern((("id", "p_0"),))
+    engine._evo.deposit_stigmergy(1, pattern, -1.0, 0.9, 0)  # pyright: ignore[reportPrivateUsage]
+    engine._evo.deposit_stigmergy(2, pattern, -1.0, 0.9, 0)  # pyright: ignore[reportPrivateUsage]
+    engine.agents[1].set_endospore(True)
+    seen: list[int] = []
+    for aid, agent in engine.agents.items():
+        monkeypatch.setattr(
+            agent,
+            "assimilate_testimony",
+            lambda *_a, a=aid: seen.append(a),
+        )
+    frame = phase1(engine)
+    assert frame.dormant == frozenset({1})
+    assert 1 not in seen and 2 in seen
+
+
+# --- Propiedades (Hypothesis, perfil ci) --------------------------------------------------------
+
+
+@given(st.sets(st.integers(0, 5)), st.booleans())
+def test_prop_una_endospora_nunca_recibe_mensajes(dormant_ids: set[int], null: bool) -> None:
+    engine = SimulationEngine(cfg(comm_content_null=null))
+    order = sorted(engine.agents)
+    pattern = Pattern((("id", "p_0"),))
+    belief = KnowledgeUnit(pattern, 1.0, 0.8, 1, 0, True)
+    msgs = [Message(MessageType.BROADCAST_BELIEF, s, None, pattern, belief) for s in order]
+    msgs.append(Message(MessageType.BROADCAST_BELIEF, 0, 1, pattern, belief))
+    neighbors = {aid: [b for b in order if b != aid] for aid in order}
+    dormant = frozenset(dormant_ids)
+    inboxes = engine._route(msgs, neighbors, order, dormant)  # pyright: ignore[reportPrivateUsage]
+    assert set(inboxes) == set(order) - dormant
+
+
+@given(st.sets(st.integers(0, 5)))
+def test_prop_una_endospora_no_consume_rng_ni_suma_m2(dormant_ids: set[int]) -> None:
+    engine = SimulationEngine(cfg())
+    dormant = frozenset(dormant_ids)
+    for aid in dormant:
+        engine.agents[aid].set_endospore(True)
+    order = sorted(engine.agents)
+    frame = TickFrame(0, order=order, dormant=dormant)
+    for aid in order:
+        frame.observations[aid] = engine.env.get_observation(aid, 0)
+    # Los demás deciden: sólo se mide que las dormidas no cambian el sorteo ni suman oportunidad.
+    reference = SimulationEngine(cfg())
+    ref_frame = TickFrame(0, order=[a for a in order if a not in dormant])
+    for aid in ref_frame.order:
+        ref_frame.observations[aid] = reference.env.get_observation(aid, 0)
+    DecisionSystem().run(engine, frame)
+    DecisionSystem().run(reference, ref_frame)
+    assert engine.rng.bit_generator.state == reference.rng.bit_generator.state
+    assert all(frame.actions[aid] == IDLE for aid in dormant)
+    TickMetricsObserver().on_decisions(engine, frame)
+    TickMetricsObserver().on_decisions(reference, ref_frame)
+    assert frame.decision_opportunities == ref_frame.decision_opportunities
+
+
+@given(
+    st.floats(0.0, 0.1),
+    st.floats(0.0, 1.0),
+    st.floats(0.0, 1.0),
+    st.booleans(),
+    st.booleans(),
+)
+def test_prop_costo_de_la_endospora_dormida_todo_el_tick(
+    base: float, fraction: float, rate: float, holon: bool, null: bool
+) -> None:
+    config = cfg(
+        num_agents=4,
+        metabolic_base_cost=base,
+        spore_cost_fraction=fraction,
+        enable_telomere_senescence=True,
+        senescence_cost_rate=rate * 1e-3,
+        telomere_min_lifespan=1,
+        telomere_base_lifespan=5,
+        move_cost=0.3,
+        message_cost=0.3,
+        comm_content_null=null,
+        enable_holonic_hierarchy=holon,
+        holon_coord_cost=0.0,
+        initial_energy=50.0,
+    )
+    engine = SimulationEngine(config)
+    crowd(engine)
+    clear_resources(engine)
+    if holon:
+        from ide.agent.holon import CompositeAgent
+
+        children = tuple(engine.root_nodes.pop(engine.agent_to_root[a]) for a in (0, 1))
+        node = CompositeAgent(engine.next_holon_id, children, 0, True)
+        engine.next_holon_id -= 1
+        engine.root_nodes[node.node_id] = node
+        for leaf in node.leaf_agents:
+            engine.agent_to_root[leaf.agent_id] = node.node_id
+    engine.next_tick = 15  # edad 15 con longevidad 5: exceso 10
+    engine.agents[1].set_endospore(True)
+    before = engine.agents[1].energy
+    engine.step()
+    assert engine.agents[1].is_endospore
+    expected = fraction * base + rate * 1e-3 * 10**2
+    assert before - engine.agents[1].energy == pytest.approx(expected, abs=1e-9)

@@ -114,9 +114,9 @@ class TickMetricsObserver:
         env = engine.env
         reachable, intents = frame.composite_reachable, frame.composite_intents
         opportunities = correct = 0
-        agents, dormant = engine.agents, engine.sporulation_active
+        dormant = frame.dormant
         for aid in frame.order:
-            if dormant and agents[aid].is_endospore:  # R28 (D38): no decide, no hay oportunidad
+            if aid in dormant:  # R28 (D38): no decide, no hay oportunidad
                 continue
             truth = env.get_reachable_true_values(aid)
             composite = reachable.get(aid)
@@ -303,23 +303,25 @@ class SimulationEngine:
         return [self.step() for _ in range(ticks)]
 
     def _route(
-        self, messages: list[Message], neighbors: Mapping[int, Sequence[int]], order: list[int]
+        self,
+        messages: list[Message],
+        neighbors: Mapping[int, Sequence[int]],
+        order: list[int],
+        dormant: frozenset[int] = frozenset(),
     ) -> dict[int, list[Message]]:
-        """Bandejas por agente, en `order`; cada entrega del control nulo es una extracción."""
-        # R28 (D38): una endospora no recibe en ninguna pasada, y no tiene bandeja.
-        asleep = (
-            {aid for aid in order if self.agents[aid].is_endospore}
-            if self.sporulation_active
-            else set[int]()
-        )
-        inboxes: dict[int, list[Message]] = {aid: [] for aid in order if aid not in asleep}
+        """Bandejas por agente, en `order`; cada entrega del control nulo es una extracción.
+
+        Las endosporas dormidas del tick (`frame.dormant`, R28, D38) no tienen bandeja: no reciben
+        en ninguna pasada ni consumen extracciones del control nulo.
+        """
+        inboxes: dict[int, list[Message]] = {aid: [] for aid in order if aid not in dormant}
         null = self.config.comm_content_null
         for msg in messages:
             reach: Sequence[int] = neighbors[msg.sender_id]
             if msg.recipient_id is not None:
                 reach = [msg.recipient_id] if msg.recipient_id in reach else []
             for receiver in reach:
-                if receiver in asleep:
+                if receiver in dormant:
                     continue
                 delivered = msg
                 if null and msg.belief is not None:
@@ -405,13 +407,13 @@ class SimulationEngine:
             for unit in views.get(aid, {}).values():
                 agent.inject_ephemeral_belief(nullify_belief(unit, self.null_rng) if null else unit)
 
-    def _assimilate_stigmergy(self, tick: int) -> None:
+    def _assimilate_stigmergy(self, tick: int, dormant: frozenset[int] = frozenset()) -> None:
         """Rastros de la celda como testimonios del emisor sintético (R19, D27.3)."""
         env = self._evo
         null = self.config.comm_content_null
         for aid in sorted(self.agents):
-            if self.sporulation_active and self.agents[aid].is_endospore:
-                continue  # R28 (D38): una endospora no asimila estigmergia
+            if aid in dormant:
+                continue  # R28 (D38): una endospora dormida no asimila estigmergia
             for trace in env.get_cell_stigmergy(aid):
                 unit = KnowledgeUnit(
                     trace.pattern,
@@ -600,8 +602,14 @@ class SimulationEngine:
         sent: Mapping[int, int],
         attacks: Mapping[int, int],
         signals: Mapping[int, int] | None = None,
+        dormant: frozenset[int] = frozenset(),
     ) -> None:
         """Cobra el costo basal, de movimiento y de mensajes a cada agente, por `agent_id`.
+
+        Con $R_{28}$ (D38, precisión E6), una endospora dormida todo el tick (`dormant`) paga sólo
+        `spore_cost_fraction * metabolic_base_cost`, en lugar del basal, del ADN, del movimiento y
+        de los mensajes. Quien esporuló en la Fase 4 o germinó en la Fase 1 actuó en el tick y paga
+        el costo completo.
 
         Con ADN (design D34.5), el costo basal se calcula sobre el genoma expresado en la Fase 0
         del tick y se le suma el costo del ADN; sin la bandera, la suma no se hace. Con $R_{37}$
@@ -612,12 +620,9 @@ class SimulationEngine:
         """
         config = self.config
         dna = config.enable_compact_dna
-        spores = self.sporulation_active
         for aid in sorted(self.agents):
             agent = self.agents[aid]
-            if spores and agent.is_endospore:
-                # R28 (D38): sólo el costo de la endospora, en lugar del basal, del ADN, del
-                # movimiento y de los mensajes (una endospora tampoco ataca).
+            if aid in dormant:
                 agent.apply_energy_delta(-(config.spore_cost_fraction * config.metabolic_base_cost))
                 continue
             cost = compute_metabolic_cost(agent.genome, config)

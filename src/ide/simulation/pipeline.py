@@ -85,6 +85,11 @@ class TickFrame:
     Por último, `signals`: la máscara de símbolos emitidos en la Fase 3 por cada emisor con
     alguno ($R_{41}$, D60.3, precisión 97), que escribe `SignalEmissionSystem` y lee el
     metabolismo para cobrar `signal_cost` por símbolo. Sin $R_{41}$ queda vacío.
+
+    Al final, `dormant` (R28, precisión E1 y E6): las endosporas que lo siguen siendo después de
+    la germinación, es decir, las que estuvieron en endospora todo el tick. Lo calcula una vez
+    `GerminationSystem`; sin $R_{28}$ efectiva queda vacío y nadie es "dormido". Quien esporula
+    en la Fase 4 no está en él: actuó en el tick.
     """
 
     tick: int
@@ -118,6 +123,7 @@ class TickFrame:
     ate: set[int] = field(default_factory=set[int])
     received: set[int] = field(default_factory=set[int])
     signals: dict[int, int] = field(default_factory=dict[int, int])
+    dormant: frozenset[int] = frozenset()
 
 
 @runtime_checkable
@@ -309,6 +315,7 @@ class GerminationSystem(BaseSystem):
                 trails and any(t.sign_value > 0 for t in engine._evo.get_cell_stigmergy(aid))
             ):
                 agent.set_endospore(False)
+        frame.dormant = frozenset(aid for aid in frame.order if agents[aid].is_endospore)
 
 
 class SocialPerceptionSystem(BaseSystem):
@@ -340,9 +347,9 @@ class SocialPerceptionSystem(BaseSystem):
         energy = {aid: agent.energy for aid, agent in agents.items()}
         frame.start_energy = energy
         crowding = engine.config.crowding_threshold
-        dormant = engine.sporulation_active
+        dormant = frame.dormant
         for aid in frame.order:
-            if dormant and agents[aid].is_endospore:
+            if aid in dormant:
                 continue
             own = energy[aid]
             active = [v for v in env.get_visible_agents(aid) if not agents[v.agent_id].is_endospore]
@@ -400,9 +407,9 @@ class EmissionSystem(BaseSystem):
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, tick = engine.agents, frame.tick
         observations, emitted = frame.observations, frame.emitted
-        dormant = engine.sporulation_active
+        dormant = frame.dormant
         for aid in frame.order:
-            if dormant and agents[aid].is_endospore:
+            if aid in dormant:
                 continue  # R28 (D38): una endospora no emite
             emitted += agents[aid].perceive_and_emit_messages(observations[aid], tick)
 
@@ -413,7 +420,7 @@ class StigmergyAssimilationSystem(BaseSystem):
     name = "stigmergy_assimilation"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        engine._assimilate_stigmergy(frame.tick)
+        engine._assimilate_stigmergy(frame.tick, frame.dormant)
 
 
 # --- Fase 2 --------------------------------------------------------------------------------------
@@ -430,9 +437,9 @@ class SocialExchangeSystem(BaseSystem):
         # sin volver a recorrer la vecindad (Decisión 18).
         neighbors = {aid: frame.observations[aid].neighbor_ids for aid in order}
         responses = frame.responses
-        for aid, inbox in engine._route(frame.emitted, neighbors, order).items():
+        for aid, inbox in engine._route(frame.emitted, neighbors, order, frame.dormant).items():
             responses += agents[aid].process_incoming_messages(inbox, tick)
-        for aid, inbox in engine._route(responses, neighbors, order).items():
+        for aid, inbox in engine._route(responses, neighbors, order, frame.dormant).items():
             if agents[aid].process_incoming_messages(inbox, tick):
                 raise RuntimeError("la segunda pasada no debe generar respuestas")
         frame.messages_sent = len(frame.emitted) + len(responses)
@@ -463,11 +470,11 @@ class DecisionSystem(BaseSystem):
         actions, intents = frame.actions, frame.composite_intents
         reachable = frame.composite_reachable
         social = frame.social
-        dormant = engine.sporulation_active
+        dormant = frame.dormant
         for aid in frame.order:
             observation = frame.observations[aid]
             agent, perception = agents[aid], social.get(aid)
-            if dormant and agent.is_endospore:
+            if aid in dormant:
                 # R28 (D38): `IDLE` sin decidir, sin consumir el generador y sin compuestos.
                 actions[aid] = AgentAction(ActionType.IDLE)
                 continue
@@ -720,7 +727,7 @@ def _execute_action(
         return
     sharing = flags.transfer and kind is ActionType.SHARE
     if sharing or (flags.predation and kind is ActionType.ATTACK):
-        if not engine.agents[aid].is_endospore:  # sólo una endospora puesta a mano (precisión E1)
+        if not engine.agents[aid].is_endospore:  # sólo una endospora puesta a mano, sin R28 (E3)
             execute = _execute_share if sharing else _execute_attack
             execute(engine, aid, action.target, frame)
         return
@@ -789,7 +796,7 @@ class MetabolismSystem(BaseSystem):
         sent = Counter(msg.sender_id for msg in (*frame.emitted, *frame.responses))
         if not engine.config.comm_enabled:
             sent.clear()
-        engine._metabolize(frame.moved, sent, frame.attacks, frame.signals)
+        engine._metabolize(frame.moved, sent, frame.attacks, frame.signals, frame.dormant)
 
 
 class SenescenceSystem(BaseSystem):
