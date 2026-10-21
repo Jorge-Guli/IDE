@@ -252,10 +252,10 @@ def test_ningun_modulo_del_agente_ve_el_valor_verdadero() -> None:
 
 def test_firmas_publicas_canonicas() -> None:
     expected = {
-        "__init__": ["self", "agent_id", "config", "trust_strategy", "protocol"],
+        "__init__": ["self", "agent_id", "config", "trust_strategy", "protocol", "policy"],
         "perceive_and_emit_messages": ["self", "obs", "tick"],
         "process_incoming_messages": ["self", "messages", "tick"],
-        "decide_action": ["self", "obs", "tick", "rng"],
+        "decide_action": ["self", "obs", "tick", "rng", "social"],
         "learn_from_experience": ["self", "pattern", "real_value", "tick"],
         "decay_memory": ["self", "tick"],
         "get_effective_belief": ["self", "pattern"],
@@ -266,6 +266,7 @@ def test_firmas_publicas_canonicas() -> None:
     init = inspect.signature(MicroAgent.__init__).parameters
     assert init["trust_strategy"].default is None
     assert init["protocol"].default is None
+    assert init["policy"].default is None
 
 
 def test_propiedades_de_solo_lectura() -> None:

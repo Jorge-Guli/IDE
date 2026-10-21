@@ -18,7 +18,7 @@
   - **Reformulada el 2026-10-20 (design D43–D56):** la regla da la capacidad y el ADN decide su uso. Agrega conducta codificada en el ADN, ecología con interacciones físicas, recombinación, motor por sistemas y métricas de evolución abierta; $R_{25}$, $R_{28}$ y $R_{31}$ se reformulan.
   - **Ampliada el 2026-10-21 (design D57–D63, especificada):** estado interno persistente ($R_{39}$), plasticidad en vida ($R_{40}$), señales evolucionables ($R_{41}$), rangos del codón, ADN de hasta 64 codones en los protocolos, entorno cambiante, detección de núcleos y telemetría. Agrega la etapa L (bloques 13 a 15) a `tasks.md`.
   - **Pre-registro vigente:** D56, aprobado el 2026-10-21 en la tarea 0.5 (inventario $R_{24}$–$R_{41}$, protocolos `25a`–`25d`, afirmaciones genuinas C13–C19 con Holm sobre $m = 7$, C17 y C19 por diferencia de diferencias, y C20 funcional, programada por construcción y fuera de Holm), por delegación del responsable del proyecto y tras dos revisiones cruzadas, antes de implementar ningún bloque nuevo. El pre-registro D42 quedó sustituido y sus afirmaciones C9–C12 se retiraron sin medir. El diagnóstico previo (tarea 0.1) confirmó el "Tapón de Matusalén".
-  - La implementación sigue su `tasks.md`: la etapa R (bloques 6 y 7).
+  - La implementación sigue su `tasks.md`: etapa R completa (motor por sistemas y puerto de política); sigue la etapa B (bloques 8 a 12).
 
 ## Idioma
 

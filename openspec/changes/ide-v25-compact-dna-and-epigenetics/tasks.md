@@ -32,7 +32,7 @@
 >
 > **Pre-registro.** Es design D56, **aprobado** el 2026-10-21 en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
-> **Etapa actual:** la etapa A está completa y el pre-registro D56 aprobado. Sigue la etapa R.
+> **Etapa actual:** las etapas A y R están completas y el pre-registro D56 aprobado. Sigue la etapa B.
 
 ## 0. Decisiones y pre-registro
 
@@ -161,9 +161,9 @@
 >
 > Punto de control: fin de la etapa R. Mostrar los hashes dorados, las huellas de la Fase II y los historiales del bloque 5 idénticos, y el benchmark contra la línea base de 6.1.
 
-- [ ] 7.1 **[RED]** Tests para `PolicyPort`, `HandwrittenPolicy` (misma conducta y mismas extracciones de `rng` que el `decide_action` actual), la delegación de `MicroAgent.decide_action` con y sin `social`, la herencia de la política en `create_offspring` y la auditoría AST de `policy.py`.
-- [ ] 7.2 **[GREEN]** Crear `src/ide/agent/policy.py` con `PolicyPort` y `HandwrittenPolicy`, y delegar desde `MicroAgent` (D45).
-- [ ] 7.3 **[REFACTOR]** Verificación del bloque, con los hashes dorados y las huellas de la Fase II intactos.
+- [x] 7.1 **[RED]** Tests para `PolicyPort`, `HandwrittenPolicy` (misma conducta y mismas extracciones de `rng` que el `decide_action` actual), la delegación de `MicroAgent.decide_action` con y sin `social`, la herencia de la política en `create_offspring` y la auditoría AST de `policy.py`.
+- [x] 7.2 **[GREEN]** Crear `src/ide/agent/policy.py` con `PolicyPort` y `HandwrittenPolicy`, y delegar desde `MicroAgent` (D45).
+- [x] 7.3 **[REFACTOR]** Verificación del bloque, con los hashes dorados y las huellas de la Fase II intactos. (998 tests, cobertura 99 %; `test_firmas_publicas_canonicas` actualizado según la precisión 22; `social` queda tipado `object | None` hasta el bloque 8. Punto de control de la etapa R: hashes dorados, 8 huellas de la Fase II y 6 huellas con ADN idénticos, también con `PYTHONHASHSEED=123`; benchmark intercalado contra el motor del bloque 6: 238–278 frente a 213–247 ticks/s, sin costo medible.)
 
 ## 8. Contratos de la reformulación (`domain-contracts`)
 

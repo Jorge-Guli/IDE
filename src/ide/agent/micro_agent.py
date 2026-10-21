@@ -12,12 +12,12 @@ from ide.agent.dna import (
     transcribe_phenotype,
 )
 from ide.agent.epistemology import (
-    is_known,
     merge_social_belief,
     update_from_direct_experience,
 )
 from ide.agent.evolution import genome_from_config
 from ide.agent.memory import BoundedMemory
+from ide.agent.policy import HandwrittenPolicy, PolicyPort
 from ide.agent.protocol import BeliefExchangeProtocol
 from ide.config import SimulationConfig
 from ide.domain.extensions import (
@@ -27,7 +27,6 @@ from ide.domain.extensions import (
     mutate_genome,
 )
 from ide.domain.types import (
-    ActionType,
     AgentAction,
     AgentGenome,
     CompactDNA,
@@ -38,7 +37,6 @@ from ide.domain.types import (
     Message,
     Observation,
     Pattern,
-    VisibleResource,
 )
 
 # Clave del caché de expresión (design D34.2): nivel acotado a 9, rol y banda de energía.
@@ -85,8 +83,9 @@ class MicroAgent:
         config: SimulationConfig,
         trust_strategy: TrustStrategyPort | None = None,
         protocol: BeliefExchangeProtocol | None = None,
+        policy: PolicyPort | None = None,
     ) -> None:
-        self._setup(agent_id, config, trust_strategy, protocol)
+        self._setup(agent_id, config, trust_strategy, protocol, policy)
         if config.enable_compact_dna:
             # El ADN fundador expresa exactamente la base (design D32): `_genome` no cambia.
             self._dna = founder_dna(config)
@@ -100,12 +99,14 @@ class MicroAgent:
         config: SimulationConfig,
         trust_strategy: TrustStrategyPort | None,
         protocol: BeliefExchangeProtocol | None,
+        policy: PolicyPort | None,
     ) -> None:
         """Estado común a fundadores y descendientes, sin ADN ni fenotipo todavía."""
         self._agent_id = agent_id
         self._config = config
         self._trust = UniformTrustStrategy() if trust_strategy is None else trust_strategy
         self._protocol = BeliefExchangeProtocol() if protocol is None else protocol
+        self._policy: PolicyPort = HandwrittenPolicy() if policy is None else policy
         self._memory = BoundedMemory(config.memory_capacity, config.lambda_decay)
         self._capabilities = AgentCapabilities()
         # Creencias asimiladas en el tick actual, aunque la memoria las haya rechazado.
@@ -141,6 +142,7 @@ class MicroAgent:
         protocol: BeliefExchangeProtocol | None = None,
         dna: CompactDNA | None = None,
         base_config: SimulationConfig | None = None,
+        policy: PolicyPort | None = None,
     ) -> "MicroAgent":
         """Descendiente cuyo fenotipo (configuración) expresa su genoma.
 
@@ -166,6 +168,7 @@ class MicroAgent:
                 parent_id=parent_id,
                 trust_strategy=trust_strategy,
                 protocol=protocol,
+                policy=policy,
                 base=base,
                 phenotype=phenotype_from_genome(genome, base),
                 dna=None,
@@ -185,6 +188,7 @@ class MicroAgent:
             parent_id=parent_id,
             trust_strategy=trust_strategy,
             protocol=protocol,
+            policy=policy,
             base=base,
             phenotype=phenotype,
             dna=dna,
@@ -202,6 +206,7 @@ class MicroAgent:
         parent_id: int | None,
         trust_strategy: TrustStrategyPort | None,
         protocol: BeliefExchangeProtocol | None,
+        policy: PolicyPort | None,
         base: SimulationConfig,
         phenotype: ExpressedPhenotype,
         dna: CompactDNA | None,
@@ -214,7 +219,7 @@ class MicroAgent:
         """
         genome = phenotype.genome
         agent = cls.__new__(cls)
-        agent._setup(agent_id, _phenotype_config(config, genome), trust_strategy, protocol)
+        agent._setup(agent_id, _phenotype_config(config, genome), trust_strategy, protocol, policy)
         agent._genome = genome
         agent._energy = energy
         agent._generation = generation
@@ -258,6 +263,10 @@ class MicroAgent:
     @property
     def genome(self) -> AgentGenome:
         return self._genome
+
+    @property
+    def policy(self) -> PolicyPort:
+        return self._policy
 
     @property
     def dna(self) -> CompactDNA | None:
@@ -437,6 +446,7 @@ class MicroAgent:
                 self._protocol,
                 dna=dna,
                 base_config=self._base_config,
+                policy=self._policy,
             )
         child._birth_tick = tick
         for codon in sorted(self._plasmid_trials):
@@ -473,6 +483,7 @@ class MicroAgent:
             self._trust,
             self._protocol,
             base_config=self._base_config,
+            policy=self._policy,
         )
         return child, child_energy
 
@@ -523,40 +534,15 @@ class MicroAgent:
     def process_incoming_messages(self, messages: list[Message], tick: int) -> list[Message]:
         return self._protocol.receive(self, messages, tick)
 
-    def decide_action(self, obs: Observation, tick: int, rng: np.random.Generator) -> AgentAction:
-        """Consumir, explorar, navegar o caminar al azar; desempates por menor `resource_id`."""
-        navigate = self._config.enable_navigation
-        beneficial: list[tuple[float, int]] = []  # (-v̂·c, resource_id): `min` elige el mejor
-        unknown: list[VisibleResource] = []
-        goals: list[VisibleResource] = []
-        for res in obs.visible_resources:
-            if not (res.is_reachable_now or navigate):
-                continue
-            belief = self.get_effective_belief(res.pattern)
-            if not is_known(belief, self._config):
-                if res.is_reachable_now:
-                    unknown.append(res)
-            elif belief.predicted_value > 0:
-                if res.is_reachable_now:
-                    beneficial.append(
-                        (-belief.predicted_value * belief.confidence, res.resource_id)
-                    )
-                else:
-                    goals.append(res)
-
-        if beneficial:
-            return AgentAction(ActionType.INTERACT, min(beneficial)[1])
-        if unknown and rng.random() < self._config.epsilon_explore:
-            target = min(unknown, key=lambda r: r.resource_id)
-            return AgentAction(ActionType.INTERACT, target.resource_id)
-        if goals:
-            goal = min(goals, key=lambda r: (r.distance, r.resource_id))
-            return AgentAction(ActionType.MOVE, goal.recommended_move)
-        if not obs.available_moves:
-            return AgentAction(ActionType.IDLE)
-        return AgentAction(
-            ActionType.MOVE, obs.available_moves[int(rng.integers(len(obs.available_moves)))]
-        )
+    def decide_action(
+        self,
+        obs: Observation,
+        tick: int,
+        rng: np.random.Generator,
+        social: object | None = None,
+    ) -> AgentAction:
+        """Delega en la política del agente (design D45.3); `social` es opcional."""
+        return self._policy.decide(self, obs, social, tick, rng)
 
     def learn_from_experience(self, pattern: Pattern, real_value: float, tick: int) -> None:
         """La experiencia directa siempre se retiene (prioridad empírica)."""
