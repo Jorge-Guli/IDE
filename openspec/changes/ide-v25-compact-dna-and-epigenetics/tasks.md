@@ -183,7 +183,7 @@
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 9.1 **[RED]** Ampliar `tests/test_compact_dna.py` con tests para:
+- [x] 9.1 **[RED]** Ampliar `tests/test_compact_dna.py` con tests para:
   - (a) los destinos de rasgo `0x0A`–`0x0C`, sus bases, escalas y cotas, y el conteo nuevo de `expressed_codons` (D46.7);
   - (b) los promotores sensoriales `0x20`–`0x27`: inactivos en la transcripción del fenotipo y activos en `evaluate_drives` según `SensorySignals` (D46.2);
   - (c) `evaluate_drives`: las dos pasadas con sensores, $d_B = \mu_B \cdot \rho_B \cdot S_B$, impulsos nulos sin codones y destinos de conducta inertes en el fenotipo (D46.3);
@@ -191,8 +191,8 @@
   - (e) `recombine_dna`, con el truncado y el mínimo de longitud (D51.2);
   - (e2) `expressible_codons`: promotores expresables y condicionales según el protocolo, valores distintos y la aproximación de los canales regulados (precisión 42);
   - (f) propiedades con Hypothesis: impulsos deterministas e independientes de `PYTHONHASHSEED`.
-- [ ] 9.2 **[GREEN]** Implementar en `dna.py`.
-- [ ] 9.3 **[REFACTOR]** Actualizar los tests de los bloques 2 y 3 que la reformulación modifica (destinos `0x0A`–`0x0C` y conteo de `expressed_codons`, D46.7) y verificación del bloque.
+- [x] 9.2 **[GREEN]** Implementar en `dna.py`.
+- [x] 9.3 **[REFACTOR]** Actualizar los tests de los bloques 2 y 3 que la reformulación modifica (destinos `0x0A`–`0x0C` y conteo de `expressed_codons`, D46.7) y verificación del bloque. (1135 tests, cobertura 99 %; dos huellas con ADN de `test_pipeline.py` actualizadas sólo por el conteo de D46.7; precisión 76: los promotores sensoriales son expresables sobre conducta, estado y señal, como fija la precisión 59; `plasticity_rate` se transcribe en el bloque 14.)
 
 ## 10. Política genética, percepción social y puerta de comunicación (`micro-agent`, `simulation-engine`)
 

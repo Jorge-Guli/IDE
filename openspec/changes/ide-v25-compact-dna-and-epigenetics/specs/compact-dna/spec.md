@@ -453,7 +453,7 @@ Sólo con `enable_plasmid_hgt=True`, después de la deleción, `mutate_dna` SHAL
 - **THEN** `expressible_codons(dna, False, False)` tiene 12 elementos, entre ellos esos tres codones sin enmascarar, cada uno con `False`.
 
 ### Requirement: Promotores Expresables en el Protocolo
-Para `expressible_codons`, un promotor SHALL ser expresable si es `0x00`, `0x01`, `0x18` o `0x19`; `0x02`–`0x0A` sólo con `holonic`; `0x10`–`0x12` sólo con `holonic` y `roles`; `0x20`–`0x27` sólo sobre conductas; `0x28`–`0x3F` según D61; y `0x80`–`0xBF` si hay en `chromosome + plasmids`, no en `crispr_memory`, un emisor activador de su canal con promotor expresable menor que `0x80` (los sensoriales, sólo para conductas). Los reservados SHALL NOT serlo (precisión 42).
+Para `expressible_codons`, un promotor SHALL ser expresable si es `0x00`, `0x01`, `0x18` o `0x19`; `0x02`–`0x0A` con `holonic`; `0x10`–`0x12` con `holonic` y `roles`; `0x20`–`0x27` sólo sobre destinos de conducta, de estado o de señal; `0x28`–`0x3F` según D61; y `0x80`–`0xBF` si su canal tiene un emisor activador expresable menor que `0x80` en `chromosome + plasmids` (no en `crispr_memory`). Los reservados SHALL NOT serlo (precisión 42).
 
 #### Scenario: Promotores según el protocolo
 - **WHEN** un ADN tiene codones aditivos de promotor `0x02` sobre `0x00`, `0x20` sobre `0x01`, `0x20` sobre `0x40` y `0x0B` sobre `0x41`, y se invoca `expressible_codons` con `holonic=False` y con `holonic=True`
@@ -466,6 +466,10 @@ Para `expressible_codons`, un promotor SHALL ser expresable si es `0x00`, `0x01`
 #### Scenario: Canal encendido por un sensor
 - **WHEN** un ADN tiene `encode_codon(0x20, 0x09, 0, 5)` (emisor sensorial del canal 5), un codón aditivo de promotor `0x85` sobre `0x40` y otro de promotor `0x85` sobre `0x00`
 - **THEN** es expresable el de destino `0x40` y no el de destino `0x00`.
+
+#### Scenario: Canal encendido por un sensor sobre estado y señal
+- **WHEN** un ADN tiene `encode_codon(0x20, 0x09, 0, 5)` (emisor sensorial del canal 5), un codón aditivo de promotor `0x85` sobre `0x0D` y otro sobre `0x48`
+- **THEN** son expresables los dos, cada uno con promotor condicional (precisión 59).
 
 #### Scenario: Emisor sólo en la memoria CRISPR
 - **WHEN** un ADN tiene en el cromosoma un codón aditivo de promotor `0x85` sobre `0x02`, y su único `EMIT_TF` de modo 0 y promotor `0x00` sobre el canal 5 está en `crispr_memory`

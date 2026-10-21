@@ -1,6 +1,7 @@
 """Tests del ADN compacto: codón, ADN fundador y transcripción (bloque 2, D32 y D33)."""
 
 import ast
+import dataclasses
 import os
 import subprocess
 import sys
@@ -13,19 +14,30 @@ from hypothesis import strategies as st
 
 from ide.agent import dna as dna_module
 from ide.agent.dna import (
+    BEHAVIOR_TARGETS,
     FOUNDER_DNA_LENGTH,
     Codon,
     decode_codon,
     encode_codon,
+    evaluate_drives,
+    expressible_codons,
     founder_dna,
+    founder_dna_length,
     mutate_dna,
     phenotype_from_genome,
+    recombine_dna,
     transcribe_phenotype,
 )
 from ide.agent.evolution import genome_from_config
-from ide.config import SimulationConfig
+from ide.config import FOUNDER_DNA_LENGTH_GENETIC, SimulationConfig
 from ide.domain.extensions import integer_trait_bounds
-from ide.domain.types import CompactDNA, EpigeneticContext, EpigeneticRole
+from ide.domain.types import (
+    Behavior,
+    CompactDNA,
+    EpigeneticContext,
+    EpigeneticRole,
+    SensorySignals,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 DNA_PATH = ROOT / "src" / "ide" / "agent" / "dna.py"
@@ -465,7 +477,7 @@ def test_promotor_tf_fuera_de_rango_de_canales_es_inerte() -> None:
 
 def test_destinos_reservados_inertes() -> None:
     config = make_config()
-    dna = with_codons(config, *(encode_codon(0x00, t, 0, 0, 127) for t in (0x0A, 0x80, 0xFF)))
+    dna = with_codons(config, *(encode_codon(0x00, t, 0, 0, 127) for t in (0x10, 0x80, 0xFF)))
     phenotype = transcribe_phenotype(dna, CTX0, config)
     reference = transcribe_phenotype(founder_dna(config), CTX0, config)
     assert phenotype == reference
@@ -1081,3 +1093,700 @@ def test_propiedad_adn_mutado_siempre_valido(
         assert len(set(new.plasmids)) == len(new.plasmids)
         assert all(type(c) is int for c in new.chromosome + new.plasmids)
         dna = new
+
+
+# ===========================================================================================
+# Bloque 9: ADN conductual (D46, D51.2 y precisión 42)
+# ===========================================================================================
+
+SYMB, RECOMB, COMM = 0x0A, 0x0B, 0x0C
+CONSUME, EXPLORE, NAVIGATE, WANDER, SHARE, ATTACK, FLEE, SPORULATE = BEHAVIOR_TARGETS
+SENSE_FIELDS = tuple(f.name for f in dataclasses.fields(SensorySignals))[:8]
+ZERO_DRIVES = (0.0,) * 8
+
+
+def signals(**true_fields: bool) -> SensorySignals:
+    """`SensorySignals` con todos los campos en `False` salvo los indicados."""
+    values = {f.name: False for f in dataclasses.fields(SensorySignals)}
+    values.update(true_fields)
+    return SensorySignals(**values)
+
+
+def all_signals(value: bool) -> SensorySignals:
+    return SensorySignals(**{f.name: value for f in dataclasses.fields(SensorySignals)})
+
+
+def drives_of(
+    *codons: int,
+    sig: SensorySignals | None = None,
+    ctx: EpigeneticContext = CTX0,
+    plasmids: tuple[int, ...] = (),
+    crispr: tuple[int, ...] = (),
+    config: SimulationConfig | None = None,
+) -> tuple[float, ...]:
+    """Impulsos de un cromosoma que contiene sólo los codones dados (sin fundador)."""
+    config = config or make_config()
+    dna = CompactDNA(chromosome=tuple(codons), plasmids=plasmids, crispr_memory=crispr)
+    return evaluate_drives(dna, ctx, sig or signals(), config)
+
+
+# (a) destinos de rasgo 0x0A-0x0C ---------------------------------------------------------
+
+
+def test_rasgos_de_la_reformulacion_con_sus_escalas() -> None:
+    config = make_config(
+        symbiotic_commitment_base=0.0, recombination_base=0.0, comm_propensity_base=1.0
+    )
+    dna = with_codons(
+        config,
+        encode_codon(0x00, SYMB, 0, 0, 64),
+        encode_codon(0x00, RECOMB, 0, 0, 32),
+        encode_codon(0x00, COMM, 0, 0, -64),
+    )
+    phenotype = transcribe_phenotype(dna, CTX0, config)
+    assert phenotype.symbiotic_commitment == pytest.approx(0.30, abs=1e-9)
+    assert phenotype.recombination_propensity == pytest.approx(0.15, abs=1e-9)
+    assert phenotype.comm_propensity == pytest.approx(0.70, abs=1e-9)
+    assert phenotype.expressed_codons == 12
+
+
+def test_un_solo_codon_alcanza_el_umbral_de_0_5() -> None:
+    config = make_config(recombination_base=0.0)
+    dna = with_codons(config, encode_codon(0x00, RECOMB, 0, 0, 108))
+    phenotype = transcribe_phenotype(dna, CTX0, config)
+    assert phenotype.recombination_propensity == pytest.approx(0.50625, abs=1e-9)
+    assert phenotype.recombination_propensity >= 0.5
+
+
+def test_saturacion_de_la_propension_a_comunicar() -> None:
+    config = make_config(comm_propensity_base=1.0)
+    dna = with_codons(config, encode_codon(0x00, COMM, 0, 0, 127))
+    assert transcribe_phenotype(dna, CTX0, config).comm_propensity == pytest.approx(1.0, abs=1e-9)
+
+
+def test_saturacion_inferior_de_los_rasgos_nuevos() -> None:
+    config = make_config(symbiotic_commitment_base=0.1)
+    dna = with_codons(config, *(encode_codon(0x00, SYMB, 0, 0, -128) for _ in range(2)))
+    assert transcribe_phenotype(dna, CTX0, config).symbiotic_commitment == 0.0
+
+
+def test_rasgos_nuevos_con_modos_represor_y_multiplicativo() -> None:
+    config = make_config(symbiotic_commitment_base=0.4)
+    mult = with_codons(config, encode_codon(0x00, SYMB, 2, 0, 64))  # 0.4 * 1.5
+    assert transcribe_phenotype(mult, CTX0, config).symbiotic_commitment == pytest.approx(
+        0.6, abs=1e-9
+    )
+    rep = with_codons(
+        config, encode_codon(0x00, SYMB, 1, 0, -64), encode_codon(0x00, SYMB, 0, 0, 64)
+    )  # 0.4 + 0.6 * 0.5 * 0.5
+    assert transcribe_phenotype(rep, CTX0, config).symbiotic_commitment == pytest.approx(
+        0.55, abs=1e-9
+    )
+
+
+@pytest.mark.parametrize("ctx", CONTEXTS)
+@pytest.mark.parametrize("policy", [False, True])
+def test_fundador_expresa_las_bases_de_los_rasgos_nuevos(
+    ctx: EpigeneticContext, policy: bool
+) -> None:
+    config = make_config(
+        enable_genetic_policy=policy,
+        symbiotic_commitment_base=0.2,
+        recombination_base=0.4,
+        comm_propensity_base=0.6,
+    )
+    phenotype = transcribe_phenotype(founder_dna(config), ctx, config)
+    assert phenotype.symbiotic_commitment == 0.2
+    assert phenotype.recombination_propensity == 0.4
+    assert phenotype.comm_propensity == 0.6
+    assert phenotype.expressed_codons == 9
+
+
+def test_rasgos_nuevos_con_plasmido_y_promotor_de_contexto() -> None:
+    config = make_config(comm_propensity_base=0.2)
+    dna = CompactDNA(
+        chromosome=founder_dna(config).chromosome,
+        plasmids=(encode_codon(0x02, COMM, 0, 0, 64),),  # sólo con nivel >= 1
+        crispr_memory=(encode_codon(0x00, COMM, 0, 0, 127),),
+    )
+    assert transcribe_phenotype(dna, CTX0, config).comm_propensity == pytest.approx(0.2, abs=1e-9)
+    ctx = EpigeneticContext(1)
+    assert transcribe_phenotype(dna, ctx, config).comm_propensity == pytest.approx(0.5, abs=1e-9)
+
+
+def test_conteo_de_expressed_codons_con_los_destinos_nuevos() -> None:
+    config = make_config()
+    dna = with_codons(
+        config,
+        encode_codon(0x00, EMIT, 0, 3),
+        encode_codon(0x00, ALPHA, 3, 0, 100),
+        encode_codon(0x01, LIFE, 0, 0, 64),
+        encode_codon(0x00, COMM, 0, 0, 64),
+        encode_codon(0x00, CONSUME, 0, 0, 64),
+    )
+    # cuentan los 9 fundadores, el de promotor 0x01 y el de 0x0C; no el EMIT_TF, el de modo 3
+    # ni el de conducta
+    assert transcribe_phenotype(dna, CTX0, config).expressed_codons == 11
+
+
+def test_phenotype_from_genome_devuelve_las_bases_nuevas() -> None:
+    config = make_config(
+        symbiotic_commitment_base=0.2, recombination_base=0.4, comm_propensity_base=0.6
+    )
+    phenotype = phenotype_from_genome(genome_from_config(config), config)
+    assert phenotype.symbiotic_commitment == 0.2
+    assert phenotype.recombination_propensity == 0.4
+    assert phenotype.comm_propensity == 0.6
+    assert phenotype.expressed_codons == 0
+
+
+@pytest.mark.parametrize("target", [0x0D, 0x0E, 0x0F, 0x10, 0x3E, 0x3F, 0x48, 0x49, 0x80, 0xFF])
+def test_destinos_de_otros_bloques_o_reservados_siguen_inertes_en_el_fenotipo(
+    target: int,
+) -> None:
+    """Estado, plasticidad y señal son de los bloques 13 a 15: aquí no modulan ningún rasgo."""
+    config = make_config()
+    reference = transcribe_phenotype(founder_dna(config), CTX0, config)
+    for mode in (0, 3):
+        dna = with_codons(config, encode_codon(0x00, target, mode, 1, 127))
+        assert transcribe_phenotype(dna, CTX0, config) == reference
+
+
+# (b) promotores sensoriales ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize("promoter", range(0x20, 0x28))
+def test_promotores_sensoriales_inactivos_en_el_fenotipo(promoter: int) -> None:
+    config = make_config()
+    dna = with_codons(config, encode_codon(promoter, ALPHA, 0, 0, 64))
+    for ctx in CONTEXTS:
+        assert alpha_of(dna, ctx, config) == pytest.approx(config.alpha_learning, abs=1e-9)
+
+
+def test_promotor_sensorial_emisor_no_enciende_canales_en_el_fenotipo() -> None:
+    config = make_config()
+    dna = with_codons(config, encode_codon(0x22, EMIT, 0, 2), encode_codon(0x82, ALPHA, 0, 0, 64))
+    assert alpha_of(dna, CTX0, config) == pytest.approx(config.alpha_learning, abs=1e-9)
+
+
+@pytest.mark.parametrize("index", range(8))
+def test_correspondencia_de_cada_promotor_sensorial(index: int) -> None:
+    codon = encode_codon(0x20 + index, CONSUME, 0, 0, 64)
+    on = drives_of(codon, sig=signals(**{SENSE_FIELDS[index]: True}))
+    off = drives_of(codon, sig=signals())
+    assert on[0] == pytest.approx(0.5, abs=1e-9)
+    assert off[0] == 0.0
+    # los demás campos no la encienden
+    others = {name: True for name in SENSE_FIELDS if name != SENSE_FIELDS[index]}
+    assert drives_of(codon, sig=signals(**others))[0] == 0.0
+
+
+def test_orden_de_los_campos_sensoriales() -> None:
+    assert SENSE_FIELDS == (
+        "known_good",
+        "unknown",
+        "no_resource",
+        "neighbor_adjacent",
+        "weaker_adjacent",
+        "stronger_near",
+        "crowded",
+        "carcass",
+    )
+
+
+def test_impulso_condicionado_a_la_ausencia_de_recursos() -> None:
+    codon = encode_codon(0x22, WANDER, 0, 0, 64)
+    assert drives_of(codon, sig=signals(no_resource=True))[3] == pytest.approx(0.5, abs=1e-9)
+    assert drives_of(codon, sig=signals(no_resource=False))[3] == 0.0
+
+
+# (c) evaluate_drives ----------------------------------------------------------------------
+
+
+def test_correspondencia_de_conductas_y_destinos() -> None:
+    assert BEHAVIOR_TARGETS == (0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47)
+    assert len(BEHAVIOR_TARGETS) == len(list(Behavior))
+
+
+def test_impulsos_nulos_sin_codones_de_conducta() -> None:
+    config = make_config()
+    assert evaluate_drives(founder_dna(config), CTX0, all_signals(True), config)[4:] == (
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    )
+    assert drives_of(encode_codon(0x00, ALPHA, 0, 0, 64)) == ZERO_DRIVES
+
+
+def test_combinacion_de_los_tres_modos_en_un_impulso() -> None:
+    drives = drives_of(
+        encode_codon(0x00, SHARE, 0, 0, 64),
+        encode_codon(0x00, SHARE, 0, 0, 32),
+        encode_codon(0x00, SHARE, 1, 0, -64),
+        encode_codon(0x00, SHARE, 2, 0, 64),
+        encode_codon(0x00, SHARE, 3, 0, 127),  # el modo 3 es inerte
+    )
+    assert drives[4] == pytest.approx(1.5 * 0.5 * 0.75, abs=1e-9)  # mu * rho * S = 0.5625
+    assert drives[:4] == (0.0, 0.0, 0.0, 0.0) and drives[5:] == (0.0, 0.0, 0.0)
+
+
+def test_impulso_negativo_sin_cotas() -> None:
+    two = encode_codon(0x00, ATTACK, 0, 0, -128)
+    assert drives_of(two, two)[5] == pytest.approx(-2.0, abs=1e-9)
+
+
+def test_solo_con_modulador_sin_aditivo_el_impulso_es_nulo() -> None:
+    """Con $S_B = 0$ (sin codones aditivos), $\\mu_B$ y $\\rho_B$ no producen impulso."""
+    assert drives_of(encode_codon(0x00, FLEE, 2, 0, 64))[6] == 0.0
+
+
+def test_destinos_de_conducta_inertes_en_el_fenotipo() -> None:
+    config = make_config(enable_genetic_policy=False)
+    dna = with_codons(config, encode_codon(0x00, FLEE, 0, 0, 127))
+    reference = transcribe_phenotype(founder_dna(config), CTX0, config)
+    assert transcribe_phenotype(dna, CTX0, config) == reference
+    assert reference.expressed_codons == 9
+    drives = evaluate_drives(dna, CTX0, signals(), config)
+    assert drives[6] == pytest.approx(0.9921875, abs=1e-9)
+    assert drives[:6] == (0.0,) * 6 and drives[7] == 0.0
+
+
+def test_los_rasgos_no_producen_impulsos() -> None:
+    config = make_config()
+    assert evaluate_drives(founder_dna(config), CTX0, signals(), config) == ZERO_DRIVES
+
+
+def test_canal_regulado_encendido_por_un_sensor() -> None:
+    codons = (encode_codon(0x23, EMIT, 0, 2), encode_codon(0x82, FLEE, 0, 0, 64))
+    on = drives_of(*codons, sig=signals(neighbor_adjacent=True))
+    off = drives_of(*codons, sig=signals(neighbor_adjacent=False))
+    assert on[6] == pytest.approx(0.5, abs=1e-9)
+    assert off[6] == 0.0
+
+
+def test_la_red_de_dos_pasadas_tambien_rige_en_los_impulsos() -> None:
+    # La pasada 2 no enciende canales: el EMIT_TF regulado de la cascada no activa el siguiente.
+    cascade = (
+        encode_codon(0x00, EMIT, 0, 1),
+        encode_codon(0x81, EMIT, 0, 2),
+        encode_codon(0x82, WANDER, 0, 0, 64),
+    )
+    assert drives_of(*cascade)[3] == 0.0
+    # Un represor neutraliza al activador (act > rep).
+    repressed = (
+        encode_codon(0x00, EMIT, 0, 1),
+        encode_codon(0x00, EMIT, 1, 1),
+        encode_codon(0x81, WANDER, 0, 0, 64),
+    )
+    assert drives_of(*repressed)[3] == 0.0
+    # Un EMIT_TF de modo 3 no cuenta.
+    reserved = (encode_codon(0x00, EMIT, 3, 1), encode_codon(0x81, WANDER, 0, 0, 64))
+    assert drives_of(*reserved)[3] == 0.0
+
+
+def test_promotores_de_contexto_en_los_impulsos() -> None:
+    codon = encode_codon(0x02, CONSUME, 0, 0, 64)  # nivel >= 1
+    assert drives_of(codon, ctx=EpigeneticContext(0))[0] == 0.0
+    assert drives_of(codon, ctx=EpigeneticContext(1))[0] == pytest.approx(0.5, abs=1e-9)
+    stress = encode_codon(0x18, FLEE, 0, 0, 64)
+    assert drives_of(stress, ctx=EpigeneticContext(energy_ratio=0.1))[6] == pytest.approx(
+        0.5, abs=1e-9
+    )
+    assert drives_of(stress, ctx=EpigeneticContext(energy_ratio=1.0))[6] == 0.0
+
+
+@pytest.mark.parametrize("promoter", [0x0B, 0x13, 0x1A, 0x2C, 0x2F, 0x40, 0x7F, 0xC0])
+def test_promotores_reservados_inactivos_en_los_impulsos(promoter: int) -> None:
+    assert drives_of(encode_codon(promoter, WANDER, 0, 0, 64), sig=all_signals(True)) == (
+        ZERO_DRIVES
+    )
+
+
+def test_plasmidos_cuentan_y_crispr_no_en_los_impulsos() -> None:
+    plasmid = encode_codon(0x00, WANDER, 0, 0, 64)
+    assert drives_of(encode_codon(0x00, ALPHA), plasmids=(plasmid,))[3] == pytest.approx(
+        0.5, abs=1e-9
+    )
+    assert drives_of(encode_codon(0x00, ALPHA), crispr=(plasmid,)) == ZERO_DRIVES
+
+
+def test_impulsos_acumulan_en_el_orden_de_recorrido() -> None:
+    a, b, c = (encode_codon(0x00, CONSUME, 0, 0, p) for p in (127, 3, -77))
+    expected = ((0.0 + 127 / 128) + 3 / 128) + (-77 / 128)
+    assert drives_of(a, b, c)[0] == expected  # igualdad exacta: mismo orden de sumas
+
+
+# (d) fundador y su longitud ---------------------------------------------------------------
+
+
+def test_fundador_con_politica_genetica() -> None:
+    config = make_config(enable_genetic_policy=True)
+    dna = founder_dna(config)
+    behavioral = (
+        encode_codon(0x00, 0x40, 0, 0, 127),
+        encode_codon(0x00, 0x41, 0, 0, 96),
+        encode_codon(0x00, 0x42, 0, 0, 64),
+        encode_codon(0x00, 0x43, 0, 0, 32),
+    )
+    assert dna.chromosome == tuple(encode_codon(0x00, t) for t in range(9)) + behavioral
+    assert dna.plasmids == () and dna.crispr_memory == ()
+    assert len(dna.chromosome) == 13
+
+
+def test_fundador_sin_politica_genetica_no_cambia() -> None:
+    config = make_config(enable_genetic_policy=False)
+    assert founder_dna(config).chromosome == tuple(encode_codon(0x00, t) for t in range(9))
+
+
+def test_longitud_del_fundador_con_y_sin_politica() -> None:
+    plain = make_config(enable_genetic_policy=False)
+    genetic = make_config(enable_genetic_policy=True)
+    assert founder_dna_length(plain) == 9 == FOUNDER_DNA_LENGTH
+    assert founder_dna_length(genetic) == 13
+    assert founder_dna_length(plain) == len(founder_dna(plain).chromosome)
+    assert founder_dna_length(genetic) == len(founder_dna(genetic).chromosome)
+    assert FOUNDER_DNA_LENGTH == 9
+    # `config.py` no puede importar de `agent`: su constante debe coincidir con la función.
+    assert founder_dna_length(genetic) == FOUNDER_DNA_LENGTH_GENETIC
+    assert founder_dna_length(plain) == FOUNDER_DNA_LENGTH
+
+
+@pytest.mark.parametrize("ctx", CONTEXTS)
+@pytest.mark.parametrize("sig_value", [False, True])
+def test_impulsos_del_fundador_independientes_del_contexto_y_las_senales(
+    ctx: EpigeneticContext, sig_value: bool
+) -> None:
+    config = make_config(enable_genetic_policy=True)
+    drives = evaluate_drives(founder_dna(config), ctx, all_signals(sig_value), config)
+    assert drives == pytest.approx((0.9921875, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0, 0.0), abs=1e-9)
+
+
+def test_fundador_con_politica_es_fenotipicamente_neutro() -> None:
+    config = make_config(enable_genetic_policy=True)
+    for ctx in CONTEXTS:
+        phenotype = transcribe_phenotype(founder_dna(config), ctx, config)
+        assert phenotype.genome == genome_from_config(config)
+        assert phenotype.expressed_codons == 9
+
+
+# (e) recombine_dna ------------------------------------------------------------------------
+
+
+def _chromosome(start: int, n: int) -> tuple[int, ...]:
+    return tuple(encode_codon(0x00, 0x00, 0, 0, start + i) for i in range(n))
+
+
+def test_recombine_dna_cruce_de_un_punto() -> None:
+    config = make_config()
+    parent = CompactDNA(_chromosome(0, 6), plasmids=(11,), crispr_memory=(22,))
+    partner = CompactDNA(_chromosome(50, 5), plasmids=(33,), crispr_memory=(44,))
+    child = recombine_dna(parent, partner, 2, 3, config)
+    assert child.chromosome == parent.chromosome[:2] + partner.chromosome[3:]
+    assert child.plasmids == (11,)
+    assert child.crispr_memory == (22,)
+
+
+def test_recombine_dna_conserva_el_prefijo_al_truncar() -> None:
+    config = make_config(dna_max_length=9)
+    parent = CompactDNA(_chromosome(0, 8))
+    partner = CompactDNA(_chromosome(50, 8))
+    child = recombine_dna(parent, partner, 8, 0, config)  # 8 + 8 = 16 > 9
+    assert len(child.chromosome) == 9
+    assert child.chromosome == (parent.chromosome + partner.chromosome)[:9]
+
+
+def test_recombine_dna_usa_el_progenitor_si_queda_mas_corto_que_el_minimo() -> None:
+    config = make_config(dna_min_length=6)
+    parent = CompactDNA(_chromosome(0, 6), plasmids=(7,))
+    partner = CompactDNA(_chromosome(50, 6))
+    child = recombine_dna(parent, partner, 1, 5, config)  # 1 + 1 = 2 < 6
+    assert child == parent
+    child = recombine_dna(parent, partner, 3, 3, config)  # 3 + 3 = 6, no es más corto
+    assert child.chromosome == parent.chromosome[:3] + partner.chromosome[3:]
+
+
+def test_recombine_dna_con_a_completo_y_b_al_final_da_el_progenitor() -> None:
+    config = make_config()
+    parent = CompactDNA(_chromosome(0, 5))
+    partner = CompactDNA(_chromosome(50, 5))
+    assert recombine_dna(parent, partner, 5, 5, config).chromosome == parent.chromosome
+
+
+def test_recombine_dna_es_pura() -> None:
+    config = make_config()
+    parent = CompactDNA(_chromosome(0, 4))
+    partner = CompactDNA(_chromosome(50, 4))
+    before = (parent, partner)
+    recombine_dna(parent, partner, 2, 1, config)
+    assert (parent, partner) == before
+
+
+@given(
+    cut_a=st.integers(1, 12),
+    cut_b=st.integers(0, 11),
+    n_parent=st.integers(1, 12),
+    n_partner=st.integers(1, 12),
+    min_length=st.integers(1, 9),
+    max_length=st.integers(9, 20),
+)
+def test_propiedad_recombine_dna_respeta_las_cotas(
+    cut_a: int, cut_b: int, n_parent: int, n_partner: int, min_length: int, max_length: int
+) -> None:
+    config = make_config(dna_min_length=min_length, dna_max_length=max_length)
+    parent = CompactDNA(_chromosome(0, n_parent), plasmids=(5,), crispr_memory=(6,))
+    partner = CompactDNA(_chromosome(50, n_partner))
+    a = min(cut_a, n_parent)
+    b = min(cut_b, n_partner - 1)
+    child = recombine_dna(parent, partner, a, b, config)
+    assert len(child.chromosome) >= 1
+    assert child.plasmids == parent.plasmids and child.crispr_memory == parent.crispr_memory
+    candidate = (parent.chromosome[:a] + partner.chromosome[b:])[:max_length]
+    if len(candidate) >= min_length:
+        assert child.chromosome == candidate
+        assert len(child.chromosome) <= max_length
+    else:
+        assert child.chromosome == parent.chromosome
+
+
+# (e2) expressible_codons ------------------------------------------------------------------
+
+
+def exp(
+    *codons: int,
+    plasmids: tuple[int, ...] = (),
+    crispr: tuple[int, ...] = (),
+    holonic: bool = False,
+    roles: bool = False,
+) -> tuple[tuple[int, bool], ...]:
+    dna = CompactDNA(chromosome=tuple(codons) or (0,), plasmids=plasmids, crispr_memory=crispr)
+    return expressible_codons(dna, holonic, roles)
+
+
+def test_expressible_codons_del_fundador() -> None:
+    config = make_config()
+    result = expressible_codons(founder_dna(config), False, False)
+    assert result == tuple((encode_codon(0x00, t), False) for t in range(9))
+    genetic = expressible_codons(founder_dna(make_config(enable_genetic_policy=True)), False, False)
+    assert len(genetic) == 13
+    assert all(conditional is False for _, conditional in genetic)
+
+
+def test_expressible_codons_excluye_emit_tf_modo_3_y_destinos_reservados() -> None:
+    result = exp(
+        encode_codon(0x00, EMIT, 0, 3),
+        encode_codon(0x00, ALPHA, 3, 0, 5),
+        encode_codon(0x00, 0x10, 0, 0, 5),
+        encode_codon(0x00, 0x3F, 0, 0, 5),
+        encode_codon(0x00, 0x49, 0, 0, 5),
+        encode_codon(0x00, ALPHA, 0, 0, 7),
+    )
+    assert result == ((encode_codon(0x00, ALPHA, 0, 0, 7), False),)
+
+
+def test_expressible_codons_incluye_todos_los_destinos_funcionales() -> None:
+    targets = (*range(0x00, 0x09), 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, *range(0x40, 0x49))
+    codons = tuple(encode_codon(0x00, t, 0, 0, 1) for t in targets)
+    assert exp(*codons) == tuple((c, False) for c in sorted(codons))
+
+
+def test_expressible_codons_promotores_de_contexto_segun_el_protocolo() -> None:
+    def one(
+        promoter: int, holonic: bool = False, roles: bool = False
+    ) -> tuple[tuple[int, bool], ...]:
+        return exp(encode_codon(promoter, ALPHA, 0, 0, 9), holonic=holonic, roles=roles)
+
+    def code(promoter: int) -> int:
+        return encode_codon(promoter, ALPHA, 0, 0, 9)
+
+    assert one(0x00) == ((code(0x00), False),)
+    assert one(0x01) == ((code(0x01), False),)  # sin holones es constitutivo
+    assert one(0x01, holonic=True) == ((code(0x01), True),)
+    assert one(0x02) == ()
+    assert one(0x0A) == ()
+    assert one(0x02, holonic=True) == ((code(0x02), True),)
+    assert one(0x0A, holonic=True) == ((code(0x0A), True),)
+    assert one(0x10, holonic=True) == ()
+    assert one(0x10, roles=True) == ()
+    assert one(0x12, holonic=True, roles=True) == ((code(0x12), True),)
+    assert one(0x18) == ((code(0x18), True),)
+    assert one(0x19) == ((code(0x19), True),)
+    for reserved in (0x0B, 0x0F, 0x13, 0x17, 0x1A, 0x1F, 0x2C, 0x2F, 0x40, 0x7F, 0xC0, 0xFF):
+        assert one(reserved, holonic=True, roles=True) == ()
+
+
+def test_expressible_codons_promotores_sensoriales_sobre_destinos_de_conducta() -> None:
+    sensory = encode_codon(0x20, ALPHA, 0, 0, 9)
+    assert exp(sensory, holonic=True, roles=True) == ()  # sobre un rasgo: no expresable
+    behavior = encode_codon(0x20, CONSUME, 0, 0, 9)
+    assert exp(behavior) == ((behavior, True),)
+    for promoter in (0x27, 0x28, 0x2B, 0x30, 0x37, 0x38, 0x3F):
+        assert exp(encode_codon(promoter, ATTACK, 0, 0, 9)) == (
+            (encode_codon(promoter, ATTACK, 0, 0, 9), True),
+        )
+    for target in (0x0D, 0x0E, 0x48):  # estado y señal también admiten los promotores nuevos
+        codon = encode_codon(0x30, target, 0, 2, 9)
+        assert exp(codon) == ((codon, True),)
+    assert exp(encode_codon(0x30, COMM, 0, 0, 9)) == ()
+
+
+def test_expressible_codons_regulados_exigen_un_emisor_activador() -> None:
+    reg = encode_codon(0x83, ALPHA, 0, 0, 9)
+    assert exp(reg) == ()  # sin emisor
+    assert exp(reg, encode_codon(0x00, EMIT, 0, 3)) == ((reg, False),)  # constitutivo
+    assert exp(reg, encode_codon(0x00, EMIT, 2, 3)) == ((reg, False),)  # modo 2 también activa
+    assert exp(reg, encode_codon(0x00, EMIT, 1, 3)) == ()  # un represor no activa
+    assert exp(reg, encode_codon(0x00, EMIT, 3, 3)) == ()  # modo 3: inerte
+    assert exp(reg, encode_codon(0x00, EMIT, 0, 4)) == ()  # otro canal
+    assert exp(reg, encode_codon(0x18, EMIT, 0, 3)) == ((reg, True),)  # emisor condicional
+    # emisor con promotor regulado (0x80-0xBF) o no expresable: no cuenta
+    assert exp(reg, encode_codon(0x83, EMIT, 0, 3)) == ()
+    assert exp(reg, encode_codon(0x02, EMIT, 0, 3)) == ()
+    assert exp(reg, encode_codon(0x02, EMIT, 0, 3), holonic=True) == ((reg, True),)
+
+
+def test_expressible_codons_regulado_constitutivo_si_algun_emisor_lo_es() -> None:
+    reg = encode_codon(0x83, ALPHA, 0, 0, 9)
+    result = exp(reg, encode_codon(0x18, EMIT, 0, 3), encode_codon(0x00, EMIT, 0, 3))
+    assert result == ((reg, False),)
+    # con holones, 0x01 deja de ser constitutivo
+    result = exp(reg, encode_codon(0x01, EMIT, 0, 3), holonic=True)
+    assert result == ((reg, True),)
+    assert exp(reg, encode_codon(0x01, EMIT, 0, 3)) == ((reg, False),)
+
+
+def test_expressible_codons_emisores_en_plasmidos_si_y_en_crispr_no() -> None:
+    reg = encode_codon(0x83, ALPHA, 0, 0, 9)
+    emitter = encode_codon(0x00, EMIT, 0, 3)
+    assert exp(reg, plasmids=(emitter,)) == ((reg, False),)
+    assert exp(reg, crispr=(emitter,)) == ()
+    # los codones de crispr_memory tampoco son expresables por sí mismos
+    assert exp(encode_codon(0x00, ALPHA, 0, 0, 9), crispr=(encode_codon(0x00, BOND, 0, 0, 9),)) == (
+        (encode_codon(0x00, ALPHA, 0, 0, 9), False),
+    )
+
+
+def test_expressible_codons_sensores_emisores_en_conducta_estado_y_senal() -> None:
+    sensor_emitter = encode_codon(0x23, EMIT, 0, 3)
+    on_trait = encode_codon(0x83, ALPHA, 0, 0, 9)
+    on_behavior = encode_codon(0x83, CONSUME, 0, 0, 9)
+    assert exp(on_trait, sensor_emitter) == ()
+    assert exp(on_behavior, sensor_emitter) == ((on_behavior, True),)
+    on_state = encode_codon(0x83, 0x0D, 0, 1, 9)
+    assert exp(on_state, sensor_emitter) == ((on_state, True),)
+    # un emisor de eventos, de estado o de señal percibida cuenta igual (precisión 59)
+    for promoter in (0x28, 0x30, 0x38):
+        assert exp(on_behavior, encode_codon(promoter, EMIT, 0, 3)) == ((on_behavior, True),)
+
+
+def test_expressible_codons_valores_canonicos_distintos() -> None:
+    # `channel` sólo se enmascara en destinos de rasgo y de conducta
+    a = encode_codon(0x00, ALPHA, 0, 0, 9)
+    b = encode_codon(0x00, ALPHA, 0, 5, 9)
+    c = encode_codon(0x00, CONSUME, 0, 7, 9)
+    assert exp(a, b, a, c) == ((a, False), (c & ~0x3F00, False))
+    d1, d2 = encode_codon(0x00, 0x0D, 0, 1, 9), encode_codon(0x00, 0x0D, 0, 2, 9)
+    s1, s2 = encode_codon(0x00, 0x48, 0, 1, 9), encode_codon(0x00, 0x48, 0, 2, 9)
+    assert exp(d1, d2, s1, s2) == tuple((c_, False) for c_ in sorted((d1, d2, s1, s2)))
+    # mutar el payload sí cambia el valor
+    assert len(exp(a, encode_codon(0x00, ALPHA, 0, 0, 10))) == 2
+
+
+def test_expressible_codons_ascendentes_y_duplicados_no_suman() -> None:
+    low, high = encode_codon(0x00, 0x00, 0, 0, 1), encode_codon(0x00, 0x08, 0, 0, 1)
+    assert exp(high, low, high, low, low) == ((low, False), (high, False))
+    # los plásmidos duplican valores del cromosoma sin sumar
+    assert exp(high, low, plasmids=(low,)) == ((low, False), (high, False))
+
+
+def test_expressible_codons_regulado_aproxima_sin_considerar_represores() -> None:
+    """Aproximación declarada: un represor constitutivo no cambia el carácter del regulado."""
+    reg = encode_codon(0x83, ALPHA, 0, 0, 9)
+    result = exp(reg, encode_codon(0x18, EMIT, 0, 3), encode_codon(0x00, EMIT, 1, 3))
+    assert result == ((reg, True),)
+
+
+# (f) propiedades --------------------------------------------------------------------------
+
+
+signal_strategy = st.builds(SensorySignals, *([st.booleans()] * 12))
+context_strategy = st.builds(
+    EpigeneticContext,
+    st.integers(0, 12),
+    st.sampled_from(list(EpigeneticRole)),
+    st.floats(0.0, 3.0),
+)
+
+
+@given(
+    config=valid_configs(),
+    codons=st.lists(st.integers(0, 2**32 - 1), min_size=1, max_size=40),
+    plasmids=st.lists(st.integers(0, 2**32 - 1), max_size=4, unique=True),
+    ctx=context_strategy,
+    sig=signal_strategy,
+)
+def test_propiedad_impulsos_deterministas_y_bien_formados(
+    config: SimulationConfig,
+    codons: list[int],
+    plasmids: list[int],
+    ctx: EpigeneticContext,
+    sig: SensorySignals,
+) -> None:
+    dna = CompactDNA(chromosome=tuple(codons), plasmids=tuple(plasmids))
+    first = evaluate_drives(dna, ctx, sig, config)
+    assert first == evaluate_drives(dna, ctx, sig, config)
+    assert len(first) == len(list(Behavior)) == 8
+    assert all(type(d) is float and d == d for d in first)
+    # los codones de crispr_memory nunca influyen
+    with_crispr = CompactDNA(
+        chromosome=dna.chromosome, plasmids=dna.plasmids, crispr_memory=(encode_codon(0, 0x40),)
+    )
+    assert evaluate_drives(with_crispr, ctx, sig, config) == first
+
+
+@given(
+    codons=st.lists(st.integers(0, 2**32 - 1), min_size=1, max_size=30),
+    holonic=st.booleans(),
+    roles=st.booleans(),
+)
+def test_propiedad_expressible_codons_bien_formado(
+    codons: list[int], holonic: bool, roles: bool
+) -> None:
+    dna = CompactDNA(chromosome=tuple(codons))
+    result = expressible_codons(dna, holonic, roles)
+    assert result == expressible_codons(dna, holonic, roles)
+    values = [value for value, _ in result]
+    assert values == sorted(set(values))
+    for value in values:
+        assert decode_codon(value).mode != 3
+
+
+def test_independencia_de_pythonhashseed_en_los_impulsos() -> None:
+    script = (
+        "from ide.agent.dna import *\n"
+        "from ide.config import SimulationConfig\n"
+        "from ide.domain.types import *\n"
+        "c = SimulationConfig(enable_evolution=True, enable_compact_dna=True,\n"
+        "                     enable_genetic_policy=True)\n"
+        "cod = [encode_codon(0x23, 0x09, 0, 3), encode_codon(0x83, 0x46, 0, 0, 64),\n"
+        "       encode_codon(0x22, 0x43, 2, 0, 90), encode_codon(0x02, 0x44, 0, 0, -50)]\n"
+        "d = CompactDNA(chromosome=founder_dna(c).chromosome + tuple(cod), plasmids=(77,))\n"
+        "s = SensorySignals(*([True] * 12))\n"
+        "for lvl in (0, 1, 4):\n"
+        "    for role in EpigeneticRole:\n"
+        "        print(evaluate_drives(d, EpigeneticContext(lvl, role, 0.2), s, c))\n"
+        "print(expressible_codons(d, True, True))\n"
+    )
+    outputs: list[str] = []
+    for hash_seed in ("0", "1", "12345"):
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed}
+        done = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=True,
+            cwd=ROOT,
+        )
+        outputs.append(done.stdout)
+    assert outputs[0] and outputs[0] == outputs[1] == outputs[2]

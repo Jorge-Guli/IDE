@@ -596,13 +596,17 @@ DNA_CASES: dict[str, SimulationConfig] = {
 # Huellas SHA-256 de `dna_digest` tras 100 ticks, calculadas con el motor previo al refactor por
 # sistemas (commit 93e66f1, bloque 5), con PYTHONHASHSEED 0 y 123, nunca con el motor nuevo.
 # Exigen igualdad de bits en la plataforma de referencia (Linux x86-64, numpy 2.x).
+# Las huellas de `002a-dna` y `003a-dna-stigmergy` cambian sólo por el conteo de `expressed_codons`
+# de D46.7 (destinos 0x0A-0x0C), verificado en el bloque 9 con el conteo previo parcheado, que
+# reproduce las huellas anteriores; el resto del historial es idéntico. Comprobadas con
+# PYTHONHASHSEED 0 y 123.
 DNA_GOLDEN = {
-    "002a-dna": "6d3c7529cbb3e37066b45e49fd4e117403703cb051e2133cdfcc45aba26214d7",
+    "002a-dna": "f0ec0fe13b278b3e968584adadf39a261a6cdf082c586044443f997bf088990a",
     "002a-dna-R12": "3aaab7c352483a6f5535f262d337b186e2f4581d74ff0c2d1bd3a52d32a40b2f",
     "002b-dna-null": "8f50fdaf7d82eb80c139bd31fe0752f5582dc55e94bd42774c0c44b4cfcf00f3",
     "003a-dna": "a6107a946b2af5a0e7b650554e0b611edb6670d1c6532789decbeaa7b8715029",
     "003a-dna-aislado": "a5cebac2e68408bb05a4b06485aaade20b7c6759d72dfad872b05f3e0463dd2a",
-    "003a-dna-stigmergy": "5e13e85f466649046cb5d5bbd9130e31ed1355982bb3e76258246f48adb92b56",
+    "003a-dna-stigmergy": "eddbb53ac3f77a773367d2b6ab5951805b5c90fef0f4223afbe3b1f24e2e9d22",
 }
 
 
