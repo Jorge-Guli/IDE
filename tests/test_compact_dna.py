@@ -1240,11 +1240,11 @@ def test_phenotype_from_genome_devuelve_las_bases_nuevas() -> None:
     assert phenotype.expressed_codons == 0
 
 
-@pytest.mark.parametrize("target", [0x0D, 0x0E, 0x0F, 0x10, 0x3E, 0x3F, 0x48, 0x49, 0x80, 0xFF])
+@pytest.mark.parametrize("target", [0x0D, 0x0E, 0x10, 0x3E, 0x3F, 0x48, 0x49, 0x80, 0xFF])
 def test_destinos_de_otros_bloques_o_reservados_siguen_inertes_en_el_fenotipo(
     target: int,
 ) -> None:
-    """Estado, plasticidad y señal son de los bloques 13 a 15: aquí no modulan ningún rasgo."""
+    """Estado y señal no modulan ningún rasgo; `0x0F` es un rasgo desde el bloque 14 (D59.3)."""
     config = make_config()
     reference = transcribe_phenotype(founder_dna(config), CTX0, config)
     for mode in (0, 3):

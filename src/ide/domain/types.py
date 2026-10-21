@@ -230,9 +230,7 @@ class ExpressedPhenotype:
     spore_threshold: float  # E_espora expresada (R28)
     expressed_codons: int  # codones que modulan un rasgo en este contexto (telemetría)
     # Rasgos de la reformulación y de la ampliación (D46.7, D59.3): los valores por defecto son las
-    # bases por defecto de `SimulationConfig`. El bloque 9 transcribe los tres primeros; el bloque
-    # 14 transcribirá `plasticity_rate` (destino 0x0F), que hasta entonces conserva el valor por
-    # defecto del tipo.
+    # bases por defecto de `SimulationConfig`. Se transcriben de los destinos 0x0A-0x0C y 0x0F.
     symbiotic_commitment: float = 0.0  # R31
     recombination_propensity: float = 0.0  # R38
     comm_propensity: float = 1.0  # R32

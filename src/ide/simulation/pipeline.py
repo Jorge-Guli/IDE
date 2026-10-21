@@ -531,6 +531,10 @@ def _execute_attack(
         frame.predated.add(victim.agent_id)
 
 
+# Acciones sin recompensa de R40 (D59.4): no cambian la energía del agente en la Fase 4.
+_UNREWARDED = frozenset((ActionType.MOVE, ActionType.IDLE, ActionType.SPORULATE))
+
+
 class ExecutionSystem(BaseSystem):
     """Ejecución en el orden de la permutación, aprendizaje directo, energía y estigmergia.
 
@@ -539,6 +543,13 @@ class ExecutionSystem(BaseSystem):
     la única fuente de orden. Sin ellas, la grilla las ejecuta como `IDLE`, como en la Fase II.
     Una endospora que decidió `SHARE` o `ATTACK` no tiene efecto ni paga el intento: actúa como
     `IDLE` hasta que el bloque 17 haga que no decida (precisión 82).
+
+    Con $R_{40}$ efectivamente activa, inmediatamente después de ejecutar la acción de cada
+    agente aplica la regla de aprendizaje (`MicroAgent.reinforce`, D59.4) con la recompensa $r$:
+    el cambio de la energía del agente durante su propia acción (consumir un recurso, un cadáver
+    o un compuesto, ceder o robar energía), y 0 en `MOVE`, `IDLE` y `SPORULATE`. Lo que le hacen
+    otros agentes ocurre en sus turnos y los costos de la Fase 5 después, así que no cuentan. No
+    consume generadores.
     """
 
     name = "execution"
@@ -552,43 +563,52 @@ class ExecutionSystem(BaseSystem):
         deposit = config.enable_stigmergy and config.stigmergy_deposit_rate > 0
         carcasses = engine.carcasses_active
         transfer, predation = engine.energy_transfer_active, engine.predation_active
+        learning = engine.plasticity_active
         events = frame.events
         # Evento `ate` de `EventSignals` (D58.5, precisión 87): sólo con R32 efectivamente activa.
         ate = frame.ate if engine.genetic_policy_active else None
+
         for aid in frame.order:
             action = actions[aid]
             kind = action.action_type
+            # R40 (D59.4): la recompensa es el cambio de la energía durante la propia acción.
+            learner = agents[aid] if learning and kind not in _UNREWARDED else None
+            before = 0.0 if learner is None else learner.energy
             sharing = transfer and kind is ActionType.SHARE
             if sharing or (predation and kind is ActionType.ATTACK):
                 if not agents[aid].is_endospore:  # hasta el bloque 17 (precisión 82)
                     execute = _execute_share if sharing else _execute_attack
                     execute(engine, aid, action.target, frame)
-                continue
-            result = env.execute_action(aid, action, tick)
-            if result.action_type is ActionType.MOVE:
-                moved.add(aid)
-            pattern, value = result.interacted_pattern, result.experienced_value
-            if value is None or pattern is None:
-                continue
-            if pattern in rules:
-                rule = rules[pattern]
-                engine._resolve_composite(aid, pattern, rule, contexts[aid], tick, surplus)
-                if ate is not None and contexts[aid][0]:  # con éxito, aprende el valor 1.0
-                    ate.add(aid)
-                continue
-            if ate is not None and value > 0:
-                ate.add(aid)
-            if carcasses and pattern == CARCASS_PATTERN:
-                events["carcasses_eaten"] += 1  # R35: sigue el camino de un recurso elemental
-            agent = agents[aid]
-            agent.learn_from_experience(pattern, value, tick)
-            engine.direct_discoverers[pattern].add(aid)
-            if evolution:
-                agent.apply_energy_delta(config.energy_gain_scale * value)
-            if deposit:
-                learned = agent.memory.get(pattern)
-                if learned is not None:  # siempre presente: la experiencia se fuerza en memoria
-                    engine._evo.deposit_stigmergy(aid, pattern, value, learned.confidence, tick)
+            else:
+                result = env.execute_action(aid, action, tick)
+                if result.action_type is ActionType.MOVE:
+                    moved.add(aid)
+                pattern, value = result.interacted_pattern, result.experienced_value
+                if value is None or pattern is None:
+                    pass
+                elif pattern in rules:
+                    rule = rules[pattern]
+                    engine._resolve_composite(aid, pattern, rule, contexts[aid], tick, surplus)
+                    if ate is not None and contexts[aid][0]:  # con éxito, aprende el valor 1.0
+                        ate.add(aid)
+                else:
+                    if ate is not None and value > 0:
+                        ate.add(aid)
+                    if carcasses and pattern == CARCASS_PATTERN:
+                        events["carcasses_eaten"] += 1  # R35: camino de un recurso elemental
+                    agent = agents[aid]
+                    agent.learn_from_experience(pattern, value, tick)
+                    engine.direct_discoverers[pattern].add(aid)
+                    if evolution:
+                        agent.apply_energy_delta(config.energy_gain_scale * value)
+                    if deposit:
+                        learned = agent.memory.get(pattern)
+                        if learned is not None:  # siempre presente: la experiencia se fuerza
+                            engine._evo.deposit_stigmergy(
+                                aid, pattern, value, learned.confidence, tick
+                            )
+            if learner is not None:
+                learner.reinforce(tick, learner.energy - before)
 
 
 # --- Fase 5 --------------------------------------------------------------------------------------

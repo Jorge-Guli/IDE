@@ -2,7 +2,8 @@
 
 Cubre D32 y D33 (codón y fenotipo), D46 (conducta en el ADN: promotores sensoriales, impulsos y
 fundador conductual), D58 y D60.1 (evaluación de conducta con eventos y estado interno, R39),
-D51.2 (recombinación) y la precisión 42 (codones expresables).
+D59 (modo plástico y tasa de plasticidad, R40), D51.2 (recombinación) y la precisión 42 (codones
+expresables).
 
 Módulo puro: sólo conoce `ide.domain`, `ide.config`, `numpy` (sólo para tipar el generador) y la
 biblioteca estándar (los codones son `int` de Python, no `numpy.uint32`, D32). No importa
@@ -11,6 +12,7 @@ biblioteca estándar (los codones son `int` de Python, no `numpy.uint32`, D32). 
 """
 
 import math
+from dataclasses import dataclass, replace
 from typing import NamedTuple
 
 import numpy as np
@@ -31,7 +33,10 @@ from ide.domain.types import (
 __all__ = [
     "BEHAVIOR_TARGETS",
     "FOUNDER_DNA_LENGTH",
+    "BehaviorTerms",
     "Codon",
+    "apply_plastic_weights",
+    "behavior_terms",
     "decode_codon",
     "encode_codon",
     "evaluate_behavior",
@@ -42,20 +47,24 @@ __all__ = [
     "internal_state_active",
     "mutate_dna",
     "phenotype_from_genome",
+    "plasticity_active",
     "recombine_dna",
     "transcribe_phenotype",
 ]
 
-# Modos del codón (D32).
+# Modos del codón (D32, D61). El modo 3 es plástico (D59.1): sólo actúa en la evaluación de
+# conducta, sobre los destinos de conducta y con R40; en el fenotipo y en los demás destinos es
+# inerte. La reserva de la Fase IV (`AST_PIPE`) es el destino reservado 0x3F, inerte.
 _MODE_ADDITIVE = 0
 _MODE_REPRESSOR = 1
 _MODE_MULTIPLICATIVE = 2
-_MODE_RESERVED = 3
+_MODE_PLASTIC = 3
 
-# Destinos (D32, D46.7): 0x00-0x08 y 0x0A-0x0C modulan un rasgo; 0x09 emite un canal.
+# Destinos (D32, D46.7, D59.3): 0x00-0x08, 0x0A-0x0C y 0x0F modulan un rasgo; 0x09 emite un canal.
 _FOUNDER_TRAITS = 9  # un codón fundador por cada rasgo 0x00-0x08
 _TARGET_EMIT_TF = 0x09
-_TRAIT_TARGETS = (*range(0x00, 0x09), 0x0A, 0x0B, 0x0C)
+_TARGET_PLASTICITY_RATE = 0x0F
+_TRAIT_TARGETS = (*range(0x00, 0x09), 0x0A, 0x0B, 0x0C, _TARGET_PLASTICITY_RATE)
 _TRAIT_SLOT = {target: slot for slot, target in enumerate(_TRAIT_TARGETS)}
 _TRAIT_COUNT = len(_TRAIT_TARGETS)
 _INTEGER_SLOTS = range(4, 8)  # memory_capacity, perception_radius, comm_radius, lifespan
@@ -66,19 +75,17 @@ assert len(BEHAVIOR_TARGETS) == len(Behavior), "BEHAVIOR_TARGETS debe tener un d
 _BEHAVIOR_SLOT = {target: slot for slot, target in enumerate(BEHAVIOR_TARGETS)}
 _BEHAVIOR_COUNT = len(Behavior)
 
-# Destinos de otras decisiones (D61, precisión 54): `0x0F` rasgo de plasticidad, `0x0D`/`0x0E`
-# estado interno (R39, D58.2) y `0x48` señal.
-_TARGET_PLASTICITY_RATE = 0x0F
+# Destinos de otras decisiones (D61): `0x0D`/`0x0E` estado interno (R39, D58.2) y `0x48` señal.
 _TARGET_SET_STATE = 0x0D
 _TARGET_CLEAR_STATE = 0x0E
 _TARGET_SIGNAL = 0x48
 _SENSING_TARGETS = frozenset(
     (_TARGET_SET_STATE, _TARGET_CLEAR_STATE, _TARGET_SIGNAL, *BEHAVIOR_TARGETS)
 )
-_FUNCTIONAL_TARGETS = _SENSING_TARGETS | {_TARGET_PLASTICITY_RATE, *_TRAIT_TARGETS}
+_FUNCTIONAL_TARGETS = _SENSING_TARGETS | set(_TRAIT_TARGETS)  # incluye 0x0F (precisión 54)
 _CHANNEL_MASK = 0x3F00  # bits 8-13 del codón
 # Destinos donde `channel` no tiene efecto (D61); en estado y señal elige un bit y no se enmascara.
-_CHANNEL_FREE_TARGETS = frozenset((*_TRAIT_TARGETS, _TARGET_PLASTICITY_RATE, *BEHAVIOR_TARGETS))
+_CHANNEL_FREE_TARGETS = frozenset((*_TRAIT_TARGETS, *BEHAVIOR_TARGETS))
 
 # Promotores (D32).
 _PROM_SOLITARY_L0 = 0x01
@@ -99,7 +106,7 @@ _PROM_TF_FIRST = 0x80
 _PROM_TF_LAST = 0xBF
 
 # Escalas k de los destinos de rasgo (D32 y D46.7), en el orden de `_TRAIT_TARGETS`.
-_SCALES = (0.40, 0.40, 0.35, 0.50, 3.0, 2.0, 2.0, 250.0, 0.50, 0.60, 0.60, 0.60)
+_SCALES = (0.40, 0.40, 0.35, 0.50, 3.0, 2.0, 2.0, 250.0, 0.50, 0.60, 0.60, 0.60, 0.60)
 
 _ROLE_PROMOTERS = {
     _PROM_ROLE_EXPLORER: EpigeneticRole.EXPLORER,
@@ -210,6 +217,7 @@ def _trait_bounds(config: SimulationConfig) -> tuple[tuple[float, float], ...]:
         (0.0, 1.0),
         (0.0, 1.0),
         (0.0, 1.0),
+        (0.0, 1.0),
     )
 
 
@@ -227,6 +235,7 @@ def _trait_bases(config: SimulationConfig) -> tuple[float, ...]:
         config.symbiotic_commitment_base,
         config.recombination_base,
         config.comm_propensity_base,
+        config.plasticity_rate_base,
     )
 
 
@@ -237,6 +246,14 @@ def internal_state_active(config: SimulationConfig) -> bool:
     destinos `0x0D`/`0x0E` y los promotores `0x30`-`0x37` son inertes (D58.7).
     """
     return genetic_policy_active(config) and config.enable_internal_state
+
+
+def plasticity_active(config: SimulationConfig) -> bool:
+    """$R_{40}$ efectivamente activa: `enable_plasticity` con $R_{32}$ efectiva (D57.3, D59.6).
+
+    Sin ella, el modo 3 es inerte también en la conducta y los pesos no se actualizan.
+    """
+    return genetic_policy_active(config) and config.enable_plasticity
 
 
 def _bits(mask: int) -> tuple[bool, ...]:
@@ -301,7 +318,7 @@ def _active_codons(
     act = [0] * 64
     rep = [0] * 64
     for codon, is_active in zip(codons, active, strict=True):
-        if is_active and codon.target == _TARGET_EMIT_TF and codon.mode != _MODE_RESERVED:
+        if is_active and codon.target == _TARGET_EMIT_TF and codon.mode != _MODE_PLASTIC:
             if codon.mode == _MODE_REPRESSOR:
                 rep[codon.channel] += 1
             else:
@@ -320,23 +337,36 @@ def _active_codons(
 class _Accumulated(NamedTuple):
     """Acumulación de D33 por destino: suma aditiva, producto represor y multiplicativo."""
 
-    additive: list[float]  # S
+    additive: list[float]  # S (con la carga de los codones plásticos, sin sus pesos)
     repressor: list[float]  # rho
     multiplier: list[float]  # mu
     hits: list[int]  # codones activos acumulados (0 = destino sin codones)
+    plastic: list[list[int]]  # posiciones de los codones plásticos activos, ascendentes
 
 
-def _accumulate(codons: list[Codon], active: list[bool], slots: dict[int, int]) -> _Accumulated:
-    """Acumula en el orden de recorrido los codones activos de modo distinto de 3 por destino.
+def _accumulate(
+    codons: list[Codon], active: list[bool], slots: dict[int, int], plastic: bool = False
+) -> _Accumulated:
+    """Acumula en el orden de recorrido los codones activos de cada destino.
 
     `slots` asigna a cada destino su posición. Es la regla común de la transcripción del fenotipo
-    y de la evaluación de conducta (el bloque 14 agregará aquí el modo plástico).
+    y de la evaluación de conducta. El modo 3 se ignora, salvo con `plastic` (evaluación de
+    conducta con $R_{40}$ efectivamente activa, D59.1): entonces su carga $\\delta$ suma a $S$
+    como un aditivo y su posición en `chromosome + plasmids` queda en `plastic`; el peso
+    aprendido se suma después (`apply_plastic_weights`, precisión 57).
     """
     n = len(slots)
-    acc = _Accumulated([0.0] * n, [1.0] * n, [1.0] * n, [0] * n)
-    for codon, is_active in zip(codons, active, strict=True):
+    acc = _Accumulated([0.0] * n, [1.0] * n, [1.0] * n, [0] * n, [[] for _ in range(n)])
+    for index, (codon, is_active) in enumerate(zip(codons, active, strict=True)):
         slot = slots.get(codon.target)
-        if not is_active or slot is None or codon.mode == _MODE_RESERVED:
+        if not is_active or slot is None:
+            continue
+        if codon.mode == _MODE_PLASTIC:
+            if not plastic:
+                continue
+            acc.plastic[slot].append(index)
+            acc.hits[slot] += 1
+            acc.additive[slot] += codon.delta
             continue
         acc.hits[slot] += 1
         if codon.mode == _MODE_ADDITIVE:
@@ -355,7 +385,8 @@ def transcribe_phenotype(
 
     Recorre `chromosome + plasmids` en orden; `crispr_memory` no se transcribe. Las bases salen
     de `config`, que debe ser la configuración base de la población. Los promotores sensoriales y
-    los destinos de conducta están inactivos aquí: sólo actúan en `evaluate_behavior` (D46.2).
+    los destinos de conducta están inactivos aquí: sólo actúan en `evaluate_behavior` (D46.2), y
+    el modo 3 es inerte (D59.1).
     """
     codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
     active = _active_codons(codons, context, config, None)
@@ -389,6 +420,7 @@ def transcribe_phenotype(
         symbiotic_commitment=values[9],
         recombination_propensity=values[10],
         comm_propensity=values[11],
+        plasticity_rate=values[12],
     )
 
 
@@ -401,13 +433,92 @@ def _majority_mask(codons: list[Codon], active: list[bool], target: int) -> int:
     act = [0] * _STATE_BITS
     rep = [0] * _STATE_BITS
     for codon, is_active in zip(codons, active, strict=True):
-        if not is_active or codon.target != target or codon.mode == _MODE_RESERVED:
+        if not is_active or codon.target != target or codon.mode == _MODE_PLASTIC:
             continue
         if codon.mode == _MODE_REPRESSOR:
             rep[codon.channel & 0x07] += 1
         else:
             act[codon.channel & 0x07] += 1
     return sum(1 << k for k in range(_STATE_BITS) if act[k] > rep[k])
+
+
+@dataclass(frozen=True)
+class BehaviorTerms:
+    """Evaluación de conducta sin los pesos aprendidos (D59.5, precisión 57).
+
+    Es lo que guarda el caché único de la evaluación del agente (precisión 88): por conducta,
+    $S_B$ sin los pesos (con la carga de sus codones plásticos), $\\mu_B$ y $\\rho_B$, y los
+    índices de sus codones plásticos activos (`base.plastic`). `base` es la evaluación con todos
+    los pesos en 0. `apply_plastic_weights` suma los pesos vigentes.
+    """
+
+    base: BehaviorEvaluation
+    additive: tuple[float, ...]  # S_B sin los pesos
+    repressor: tuple[float, ...]  # rho_B
+    multiplier: tuple[float, ...]  # mu_B
+
+
+def behavior_terms(
+    dna: CompactDNA,
+    context: EpigeneticContext,
+    signals: SensorySignals,
+    config: SimulationConfig,
+    state: int = 0,
+    perceived: int = 0,
+) -> BehaviorTerms:
+    """Parte de `evaluate_behavior` que no depende de los pesos aprendidos (precisión 57).
+
+    Repite las dos pasadas de la transcripción sobre `chromosome + plasmids`, con los promotores
+    `0x20`-`0x3F` activos según `signals` y `state` (`_behavior_promoters`), y acumula por
+    conducta los codones activos de modo distinto de 3 y, con $R_{40}$ efectivamente activa, los
+    de modo 3 (D59.1). Sin generador.
+    """
+    del perceived  # R41: bloque 15
+    stateful = internal_state_active(config)
+    codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
+    promoters = _behavior_promoters(signals, state if stateful else None)
+    active = _active_codons(codons, context, config, promoters)
+    acc = _accumulate(codons, active, _BEHAVIOR_SLOT, plasticity_active(config))
+    drives = tuple(
+        acc.multiplier[b] * acc.repressor[b] * acc.additive[b] if acc.hits[b] else 0.0
+        for b in range(_BEHAVIOR_COUNT)
+    )
+    if stateful:
+        set_mask = _majority_mask(codons, active, _TARGET_SET_STATE)
+        clear_mask = _majority_mask(codons, active, _TARGET_CLEAR_STATE)
+    else:
+        set_mask = clear_mask = 0
+    plastic = tuple(tuple(indices) for indices in acc.plastic) if any(acc.plastic) else _NO_PLASTIC
+    return BehaviorTerms(
+        BehaviorEvaluation(drives, set_mask, clear_mask, 0, plastic),
+        tuple(acc.additive),
+        tuple(acc.repressor),
+        tuple(acc.multiplier),
+    )
+
+
+def apply_plastic_weights(
+    terms: BehaviorTerms, plastic_weights: dict[int, float] | None
+) -> BehaviorEvaluation:
+    """Suma los pesos aprendidos a `terms` (D59.1, precisión 57).
+
+    Para cada conducta $B$ con codones plásticos activos, $d_B = \\mu_B \\cdot \\rho_B \\cdot
+    (S_B + \\sum_i w_i)$, con $w_i$ = `plastic_weights.get(i, 0.0)` sumados a $S_B$ en orden
+    ascendente de posición. Sin codones plásticos o sin pesos devuelve `terms.base`, que es
+    idéntica: sumar 0.0 a $S_B$ no la cambia. Las demás conductas conservan su impulso.
+    """
+    base = terms.base
+    if not plastic_weights or base.plastic is _NO_PLASTIC:
+        return base
+    drives = list(base.drives)
+    for b, indices in enumerate(base.plastic):
+        if not indices:
+            continue
+        total = terms.additive[b]
+        for index in indices:
+            total += plastic_weights.get(index, 0.0)
+        drives[b] = terms.multiplier[b] * terms.repressor[b] * total
+    return replace(base, drives=tuple(drives))
 
 
 def evaluate_behavior(
@@ -421,36 +532,21 @@ def evaluate_behavior(
 ) -> BehaviorEvaluation:
     """Evaluación pura de la conducta del tick (D60.1), sin generador.
 
-    Repite las dos pasadas de la transcripción sobre `chromosome + plasmids`, con los promotores
-    `0x20`-`0x3F` activos según `signals` y `state` (`_behavior_promoters`), y devuelve:
-    - `drives`: para cada destino de conducta $B$, con sus codones activos de modo distinto de 3,
-      `d_B = mu_B * rho_B * S_B`, acumulado en el orden de recorrido y sin cotas; 0.0 sin codones
-      (D46.3);
+    Es `apply_plastic_weights(behavior_terms(...), plastic_weights)`, y devuelve:
+    - `drives`: para cada destino de conducta $B$, $d_B = \\mu_B \\cdot \\rho_B \\cdot (S_B +
+      \\sum_i w_i)$ sobre sus codones activos, acumulado en el orden de recorrido y sin cotas;
+      0.0 sin codones (D46.3). Con $R_{40}$ efectivamente activa, un codón activo de modo 3 en la
+      posición $i$ de `chromosome + plasmids` suma su carga a $S_B$ y su peso
+      $w_i$ = `plastic_weights.get(i, 0.0)` después (D59.1, precisión 57); sin ella es inerte;
     - `set_mask` y `clear_mask`: la regla de mayoría por bit sobre `SET_STATE` (`0x0D`) y
       `CLEAR_STATE` (`0x0E`), sólo con $R_{39}$ efectivamente activa; si no, 0 (D58.3, D58.7).
       El estado siguiente lo aplica el motor al terminar la Fase 3;
-    - `emitted` y `plastic`: 0 y ocho tuplas vacías hasta los bloques 15 ($R_{41}$) y 14 ($R_{40}$).
-
-    `perceived` (máscara de símbolos percibidos) y `plastic_weights` (pesos aprendidos) son los
-    argumentos de D60.1 para $R_{41}$ y $R_{40}$: se aceptan, pero no tienen efecto hasta que
-    esos bloques los implementen.
+    - `plastic`: por conducta, las posiciones ascendentes de sus codones de modo 3 activos, con
+      $R_{40}$ efectivamente activa (D59.4); si no, ocho tuplas vacías;
+    - `emitted`: 0 hasta el bloque 15 ($R_{41}$), que dará efecto a `perceived`.
     """
-    del perceived, plastic_weights  # R41 y R40: bloques 15 y 14
-    stateful = internal_state_active(config)
-    codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
-    promoters = _behavior_promoters(signals, state if stateful else None)
-    active = _active_codons(codons, context, config, promoters)
-    acc = _accumulate(codons, active, _BEHAVIOR_SLOT)
-    drives = tuple(
-        acc.multiplier[b] * acc.repressor[b] * acc.additive[b] if acc.hits[b] else 0.0
-        for b in range(_BEHAVIOR_COUNT)
-    )
-    if stateful:
-        set_mask = _majority_mask(codons, active, _TARGET_SET_STATE)
-        clear_mask = _majority_mask(codons, active, _TARGET_CLEAR_STATE)
-    else:
-        set_mask = clear_mask = 0
-    return BehaviorEvaluation(drives, set_mask, clear_mask, 0, _NO_PLASTIC)
+    terms = behavior_terms(dna, context, signals, config, state, perceived)
+    return apply_plastic_weights(terms, plastic_weights)
 
 
 def evaluate_drives(
@@ -477,6 +573,7 @@ def phenotype_from_genome(genome: AgentGenome, config: SimulationConfig) -> Expr
         symbiotic_commitment=config.symbiotic_commitment_base,
         recombination_propensity=config.recombination_base,
         comm_propensity=config.comm_propensity_base,
+        plasticity_rate=config.plasticity_rate_base,
     )
 
 
@@ -609,7 +706,7 @@ def expressible_codons(dna: CompactDNA, holonic: bool, roles: bool) -> tuple[tup
             emitters.setdefault(codon.channel, []).append(codon.promoter)
     found: dict[int, bool] = {}
     for raw, codon in zip(dna.chromosome + dna.plasmids, codons, strict=True):
-        if codon.target not in _FUNCTIONAL_TARGETS or codon.mode == _MODE_RESERVED:
+        if codon.target not in _FUNCTIONAL_TARGETS or codon.mode == _MODE_PLASTIC:
             continue
         senses = codon.target in _SENSING_TARGETS
         if codon.promoter < _PROM_TF_FIRST:

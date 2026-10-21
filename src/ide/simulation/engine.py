@@ -7,6 +7,7 @@ from typing import cast
 
 import numpy as np
 
+from ide.agent.dna import plasticity_active
 from ide.agent.epistemology import is_known
 from ide.agent.evolution import (
     compute_dna_cost,
@@ -220,6 +221,8 @@ class SimulationEngine:
         # `ATTACK`; sin ellas, la grilla los ejecuta como `IDLE`.
         self.energy_transfer_active = energy_transfer_active(config)
         self.predation_active = predation_active(config)
+        # R40 efectivamente activa (D59): la Fase 4 aplica la regla de aprendizaje tras cada acción.
+        self.plasticity_active = plasticity_active(config)
         # `GeneticPolicy` no guarda estado: una sola instancia sirve a todos los fundadores.
         policy = GeneticPolicy() if self.genetic_policy_active else None
         self.agents: dict[int, MicroAgent] = {

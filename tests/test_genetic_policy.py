@@ -18,7 +18,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from ide.agent.dna import BEHAVIOR_TARGETS, encode_codon, evaluate_behavior, evaluate_drives
+from ide.agent.dna import BEHAVIOR_TARGETS, behavior_terms, encode_codon, evaluate_drives
 from ide.agent.micro_agent import MicroAgent
 from ide.agent.policy import GeneticPolicy, HandwrittenPolicy, sensory_signals
 from ide.config import SimulationConfig
@@ -842,11 +842,12 @@ def test_cache_de_impulsos_acotado_y_con_aciertos(monkeypatch: pytest.MonkeyPatc
 
     calls: list[SensorySignals] = []
 
+    # Desde el bloque 14, el caché guarda la evaluación sin los pesos (`behavior_terms`, D59.5).
     def counting(dna: CompactDNA, context: Any, signals: SensorySignals, *args: Any) -> Any:
         calls.append(signals)
-        return evaluate_behavior(dna, context, signals, *args)
+        return behavior_terms(dna, context, signals, *args)
 
-    monkeypatch.setattr(micro_agent, "evaluate_behavior", counting)
+    monkeypatch.setattr(micro_agent, "behavior_terms", counting)
     monkeypatch.setattr(micro_agent, "EVALUATION_CACHE_LIMIT", 5)
     agent = genetic_agent({})
     agent.set_dna(_CONTEXT_DNA)
