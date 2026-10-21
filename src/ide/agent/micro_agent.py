@@ -6,6 +6,7 @@ from dataclasses import replace
 import numpy as np
 
 from ide.agent.dna import (
+    evaluate_behavior,
     evaluate_drives,
     founder_dna,
     mutate_dna,
@@ -30,9 +31,11 @@ from ide.domain.extensions import (
 from ide.domain.types import (
     AgentAction,
     AgentGenome,
+    BehaviorEvaluation,
     CompactDNA,
     EpigeneticContext,
     EpigeneticRole,
+    EventSignals,
     ExpressedPhenotype,
     KnowledgeUnit,
     Message,
@@ -46,12 +49,17 @@ from ide.domain.types import (
 _ExpressionKey = tuple[int, EpigeneticRole, int]
 # Clave del caché de impulsos (D46.8): la del caché de expresión más las señales del tick.
 _DrivesKey = tuple[_ExpressionKey, SensorySignals]
+# Clave del caché de la evaluación de conducta (D46.8, precisión 57): la de impulsos más el estado
+# interno y la máscara percibida (0 hasta el bloque 15).
+_EvaluationKey = tuple[_ExpressionKey, SensorySignals, int, int]
+_STATE_MASK = 0xFF  # `internal_state` tiene 8 bits (D58.1)
 # Tope del caché de impulsos, por agente: al alcanzarlo se vacía. Las claves posibles son muchas
 # (10 niveles, 4 roles, 3 bandas y 2^12 señales), así que sin tope el caché crecería sin medida
 # en una vida larga. Medido en el bloque 10 (002a y 003a con ADN, política genética, mutación
 # 0.2, R36 y R37, 500 ticks), un agente usa a lo sumo 117 claves (media de 21 a 32), así que 512
 # casi nunca se alcanza y acota la memoria a unos cientos de tuplas por agente. Vaciarlo no
-# cambia ningún resultado: sólo obliga a recalcular.
+# cambia ningún resultado: sólo obliga a recalcular. El caché de la evaluación de conducta usa el
+# mismo tope.
 DRIVES_CACHE_LIMIT = 512
 _BAND_STRESS, _BAND_NORMAL, _BAND_SURPLUS = 0, 1, 2
 # Los promotores de nivel distinguen hasta `IN_HOLON_L9` (0x0A, design D32).
@@ -140,6 +148,16 @@ class MicroAgent:
         self._plasmid_trials: dict[int, tuple[int, float, float]] = {}
         self._expression_cache: dict[_ExpressionKey, ExpressedPhenotype] = {}
         self._drives_cache: dict[_DrivesKey, tuple[float, ...]] = {}
+        self._evaluation_cache: dict[_EvaluationKey, BehaviorEvaluation] = {}
+        # --- Ampliación de la Fase II-B (R39, design D58) ---
+        # Estado interno de 8 bits: 0 al nacer, no se hereda y se conserva en endospora (D58.1).
+        self._internal_state = 0
+        # Eventos del tick anterior, que escribe el motor al final de cada tick (D58.5).
+        self._last_events = EventSignals()
+        # Última evaluación de conducta y el estado siguiente que el motor aplica al terminar la
+        # Fase 3 (D58.3); `None` hasta la primera evaluación o tras aplicarlo.
+        self._last_evaluation: BehaviorEvaluation | None = None
+        self._next_state: int | None = None
         self._dna: CompactDNA | None = None
         self._phenotype: ExpressedPhenotype
         self._last_context: EpigeneticContext
@@ -317,6 +335,21 @@ class MicroAgent:
         return self._epigenetic_role
 
     @property
+    def internal_state(self) -> int:
+        """Estado interno de 8 bits ($R_{39}$, D58.1): 0 al nacer y sin $R_{39}$."""
+        return self._internal_state
+
+    @property
+    def last_events(self) -> EventSignals:
+        """Eventos del tick anterior (D58.5); `EventSignals()` en un recién nacido."""
+        return self._last_events
+
+    @property
+    def last_evaluation(self) -> BehaviorEvaluation | None:
+        """La última evaluación de conducta de `evaluate_behavior`, o `None` si no hubo."""
+        return self._last_evaluation
+
+    @property
     def birth_tick(self) -> int:
         return self._birth_tick
 
@@ -371,10 +404,15 @@ class MicroAgent:
         self._dna = dna
         self._expression_cache.clear()
         self._drives_cache.clear()
+        self._evaluation_cache.clear()
 
     def set_endospore(self, flag: bool) -> None:
-        """Entrada en endospora o germinación (R28, design D38)."""
+        """Entrada en endospora o germinación (R28, design D38); conserva `internal_state`."""
         self._is_endospore = flag
+
+    def set_last_events(self, events: EventSignals) -> None:
+        """Eventos del tick, que el motor escribe al final de cada tick (D58.5)."""
+        self._last_events = events
 
     def open_plasmid_trial(self, codon: int, tick: int) -> None:
         """Abre un ensayo CRISPR con la energía actual; no reabre uno abierto (precisión 4)."""
@@ -415,6 +453,9 @@ class MicroAgent:
     def behavior_drives(self, signals: SensorySignals) -> tuple[float, ...]:
         """Impulsos de `evaluate_drives` del ADN propio en `last_context`, memoizados (D46.8).
 
+        Son los impulsos con `state=0`, sin señales percibidas ni pesos (el envoltorio de D60.1);
+        la política genética decide con `evaluate_behavior`, que usa el estado interno.
+
         La clave es la del caché de expresión (D34.2) más `signals`: los promotores de contexto
         sólo distinguen el nivel acotado, el rol y la banda de energía. `set_dna` invalida el
         caché, así que nunca sirve los impulsos de otro ADN, y se vacía al superar
@@ -432,6 +473,44 @@ class MicroAgent:
                 self._drives_cache.clear()
             self._drives_cache[key] = drives
         return drives
+
+    def evaluate_behavior(self, signals: SensorySignals) -> BehaviorEvaluation:
+        """Evaluación de conducta del tick (D60.1) del ADN propio en `last_context`, memoizada.
+
+        Evalúa con `internal_state` (el estado anterior: la decisión del tick nunca ve el que
+        escribe) y la guarda en `last_evaluation`, junto con el estado siguiente
+        `(internal_state | set_mask) & ~clear_mask`, que el motor aplica al terminar la Fase 3
+        con `commit_internal_state` (D58.3). La clave del caché es la de los impulsos más el
+        estado y la máscara percibida (precisión 57); `set_dna` lo invalida y se vacía al superar
+        `DRIVES_CACHE_LIMIT` entradas. No consume generadores.
+        """
+        dna = self._dna
+        if dna is None:
+            raise ValueError("la evaluación de conducta exige un agente con ADN")
+        context, state, perceived = self._last_context, self._internal_state, 0
+        key = (self._expression_key(context), signals, state, perceived)
+        evaluation = self._evaluation_cache.get(key)
+        if evaluation is None:
+            evaluation = evaluate_behavior(
+                dna, context, signals, self._base_config, state, perceived
+            )
+            if len(self._evaluation_cache) >= DRIVES_CACHE_LIMIT:
+                self._evaluation_cache.clear()
+            self._evaluation_cache[key] = evaluation
+        self._last_evaluation = evaluation
+        self._next_state = (state | evaluation.set_mask) & ~evaluation.clear_mask & _STATE_MASK
+        return evaluation
+
+    def commit_internal_state(self) -> None:
+        """Aplica el estado siguiente de la última evaluación, una sola vez ($R_{39}$, D58.3).
+
+        Lo invoca el motor al terminar la Fase 3, sólo con $R_{39}$ efectivamente activa. Sin una
+        evaluación pendiente (el agente no decidió con la política genética desde la última
+        aplicación) no hace nada: el agente conserva su estado.
+        """
+        if self._next_state is not None:
+            self._internal_state = self._next_state
+            self._next_state = None
 
     def express(self, context: EpigeneticContext, tick: int) -> bool:
         """Expresa el ADN en el contexto del tick (R24, design D34.2 y precisión 2).

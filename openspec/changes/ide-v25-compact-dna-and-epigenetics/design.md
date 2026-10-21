@@ -1180,6 +1180,22 @@ No cambian ninguna conducta de las Fases I y II ni la aceptación de D46.5: con 
 85. **Eventos de las interacciones y de las muertes (precisión 20).** La ejecución suma `attacks` en cada intento y `successful_attacks` en cada éxito. Suma `shares` en cada `SHARE` que transfiere energía, con `amount > 0`; es la métrica de C18. El paso de muerte suma `predation_deaths` y `starvation_deaths` (excluyentes, precisiones 37 y 84) siempre que haya muertes, con o sin la política genética: sin $R_{37}$, toda muerte es por hambre. Sólo se registran claves con cuenta positiva.
 86. **Adyacencia al ejecutarse (D49.1 y D49.2).** `SHARE` y `ATTACK` exigen además que el objetivo sea otro agente y que siga a distancia $\le 1$ del actor al ejecutarse, la misma noción que `SocialPerception.adjacent` (D47.3). El motor la consulta al entorno con `get_agent_distance`, y el agente sigue sin conocer coordenadas. Si uno de los dos se movió antes en la permutación del tick y quedaron a distancia mayor, la acción no tiene efecto. Como D49.2 cobra el intento "haya éxito o no", un `ATTACK` sobre un objetivo que ya no está adyacente cuenta en `frame.attacks` y en `attacks` y paga `attack_cost`. Un `SHARE` sobre sí mismo no tiene efecto ni cuenta en `shares`. Los specs `simulation-engine` (R36 y R37) recogen la condición.
 
+### Precisiones de la implementación (2026-10-21, bloque 13)
+No cambian ninguna conducta de las Fases I y II ni la aceptación de D46.5: sin la política genética no hay eventos, y sin $R_{39}$ el estado interno queda en 0 y la lista de sistemas no cambia.
+
+87. **Eventos del tick (D58.5, precisión 64).** Los calcula `EventsSystem`, el último sistema del tick, después de `env.step_dynamics` y antes de `on_tick_end`, con la política genética efectivamente activa (también sin $R_{39}$, D58.7):
+    - `lost_energy` compara la energía al terminar el tick con la instantánea de energías de la percepción social (D47.3), que es la del principio del tick porque nada cambia la energía antes de la Fase 4; incluye, por eso, la energía cedida al hijo en la reproducción;
+    - `ate` vale si el valor que el agente aprende de su `INTERACT` en la Fase 4 es positivo: un recurso elemental o un cadáver de valor experimentado mayor que 0, o un compuesto resuelto con éxito (aprende 1.0, D27); un compuesto fallido no cuenta, ni las hojas que sólo reciben su parte de la ganancia;
+    - `received_energy` vale si fue objetivo de un `SHARE` que transfirió energía (`amount > 0`), la misma condición con que se cuenta `shares` (precisión 85);
+    - `attacked` es la pertenencia a `frame.predated` (precisión 84);
+    - un agente nacido en el tick no está en la instantánea y recibe `EventSignals()`, como al nacer.
+    - El `TickFrame` agrega al final, después de `predated`, `start_energy: dict[int, float]` (la instantánea, que escribe la percepción social), `ate: set[int]` y `received: set[int]` (que escribe la ejecución, sólo con la política genética efectivamente activa).
+88. **Aplicación del estado interno (D58.3).** `InternalStateSystem` va inmediatamente después del sistema de decisión (y de `on_decisions`), sólo con $R_{39}$ efectivamente activa:
+    - la condición es `internal_state_active(config)`, en `dna.py`, que la usan la evaluación de conducta y `build_systems`; repite la de $R_{32}$ efectiva (precisión 31) porque `dna.py` no puede importar `pipeline.py`, y un test exige que coincida con `genetic_policy_active(config) and enable_internal_state`;
+    - `MicroAgent.evaluate_behavior(signals)` evalúa con el `internal_state` anterior, guarda la evaluación en `last_evaluation` y el estado siguiente `(internal_state | set_mask) & ~clear_mask`; `commit_internal_state()` lo aplica una sola vez, y sin una evaluación pendiente no hace nada, así que un agente que no decidió con la política genética conserva su estado;
+    - el caché de la evaluación es aparte del de impulsos (D46.8) y su clave agrega `internal_state` y la máscara percibida (precisión 57); `behavior_drives` conserva la semántica del envoltorio `evaluate_drives` (`state=0`);
+    - `evaluate_behavior` ya recibe `perceived` y `plastic_weights` (D60.1), pero no tienen efecto hasta los bloques 15 ($R_{41}$) y 14 ($R_{40}$): `emitted` vale 0 y `plastic`, ocho tuplas vacías.
+
 ---
 
 ## Arquitectura de Módulos y Árbol de Archivos

@@ -1,9 +1,10 @@
 """Puerto de política de acción, política escrita a mano y política genética (D45, D46).
 
 `GeneticPolicy` (R32) decide con los impulsos que el ADN del agente asigna a cada `Behavior`
-(D46.4): construye las `SensorySignals` del tick desde la observación, las creencias efectivas y la
-percepción social (D47.4), y prueba las conductas con impulso positivo en orden de
-$(-d_B, \text{posición})$, con la factibilidad de D46.1 evaluada de forma perezosa (precisión 25).
+(D46.4): construye las `SensorySignals` del tick desde la observación, las creencias efectivas, la
+percepción social (D47.4) y los eventos del tick anterior (D58.5), y prueba las conductas con
+impulso positivo en orden de $(-d_B, \text{posición})$, con la factibilidad de D46.1 evaluada de
+forma perezosa (precisión 25).
 """
 
 from typing import TYPE_CHECKING, NamedTuple, Protocol
@@ -15,6 +16,7 @@ from ide.domain.types import (
     ActionType,
     AgentAction,
     Behavior,
+    EventSignals,
     Observation,
     SensorySignals,
     SocialPerception,
@@ -131,12 +133,10 @@ def _survey(agent: "MicroAgent", obs: Observation, far: bool = True) -> _Survey:
     return _Survey(beneficial, unknown, goals, known_good, any_unknown)
 
 
-def _signals(survey: _Survey, obs: Observation, social: SocialPerception) -> SensorySignals:
-    """Señales del tick (D46.2, D47.4).
-
-    Los cuatro campos de eventos (D58.5) quedan en `False` hasta que el motor calcule
-    `last_events` ($R_{39}$, bloque 13).
-    """
+def _signals(
+    survey: _Survey, obs: Observation, social: SocialPerception, events: EventSignals
+) -> SensorySignals:
+    """Señales del tick (D46.2, D47.4) y eventos del tick anterior (`agent.last_events`, D58.5)."""
     return SensorySignals(
         known_good=survey.known_good,
         unknown=survey.any_unknown,
@@ -146,28 +146,31 @@ def _signals(survey: _Survey, obs: Observation, social: SocialPerception) -> Sen
         stronger_near=social.flee_move is not None,
         crowded=social.crowded,
         carcass=social.carcass_visible,
-        attacked=False,
-        ate=False,
-        lost_energy=False,
-        received_energy=False,
+        attacked=events.attacked,
+        ate=events.ate,
+        lost_energy=events.lost_energy,
+        received_energy=events.received_energy,
     )
 
 
 def sensory_signals(
     agent: "MicroAgent", obs: Observation, social: SocialPerception | None
 ) -> SensorySignals:
-    """`SensorySignals` del tick desde la observación, las creencias efectivas y `social` (D47.4).
+    """`SensorySignals` del tick desde la observación, las creencias efectivas, `social` (D47.4)
+    y los eventos del tick anterior (`agent.last_events`, D58.5).
 
     Con `social=None` usa `SocialPerception()` (precisión 24). No consume generadores.
     """
-    return _signals(_survey(agent, obs), obs, _NO_SOCIAL if social is None else social)
+    social = _NO_SOCIAL if social is None else social
+    return _signals(_survey(agent, obs), obs, social, agent.last_events)
 
 
 class GeneticPolicy:
     """Política codificada en el ADN del agente (R32, design D46.4).
 
-    Calcula las señales y los impulsos (con el caché del agente, D46.8, sobre su `last_context`,
-    precisión 23), recorre las conductas con $d_B > 0$ en orden de $(-d_B, \text{posición})$ y
+    Calcula las señales y la evaluación de conducta (`agent.evaluate_behavior`, D60.1, con el
+    caché del agente, D46.8, sobre su `last_context`, precisión 23, y su estado interno, D58.3),
+    recorre las conductas con $d_B > 0$ en orden de $(-d_B, \text{posición})$ y
     devuelve la acción de la primera factible, o `IDLE` si ninguna lo es. La factibilidad se
     evalúa en ese orden y se detiene en la primera factible, así que `rng` sólo se consume en
     `EXPLORE` (si hay un recurso alcanzable desconocido) y en `WANDER`, como en
@@ -189,7 +192,8 @@ class GeneticPolicy:
             raise ValueError("GeneticPolicy exige un agente con ADN (enable_compact_dna)")
         social = _NO_SOCIAL if social is None else social
         survey = _survey(agent, obs)
-        drives = agent.behavior_drives(_signals(survey, obs, social))
+        signals = _signals(survey, obs, social, agent.last_events)
+        drives = agent.evaluate_behavior(signals).drives
         for _, slot in sorted((-drive, slot) for slot, drive in enumerate(drives) if drive > 0):
             action = _feasible_action(_BEHAVIORS[slot], agent, obs, social, survey, rng)
             if action is not None:

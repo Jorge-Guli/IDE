@@ -1,7 +1,8 @@
-"""ADN compacto de codones de 32 bits, su transcripción en dos pasadas y los impulsos (R24, R32).
+"""ADN compacto de codones de 32 bits, su transcripción en dos pasadas y la conducta (R24, R32).
 
 Cubre D32 y D33 (codón y fenotipo), D46 (conducta en el ADN: promotores sensoriales, impulsos y
-fundador conductual), D51.2 (recombinación) y la precisión 42 (codones expresables).
+fundador conductual), D58 y D60.1 (evaluación de conducta con eventos y estado interno, R39),
+D51.2 (recombinación) y la precisión 42 (codones expresables).
 
 Módulo puro: sólo conoce `ide.domain`, `ide.config`, `numpy` (sólo para tipar el generador) y la
 biblioteca estándar (los codones son `int` de Python, no `numpy.uint32`, D32). No importa
@@ -19,6 +20,7 @@ from ide.domain.extensions import integer_trait_bounds
 from ide.domain.types import (
     AgentGenome,
     Behavior,
+    BehaviorEvaluation,
     CompactDNA,
     EpigeneticContext,
     EpigeneticRole,
@@ -32,10 +34,12 @@ __all__ = [
     "Codon",
     "decode_codon",
     "encode_codon",
+    "evaluate_behavior",
     "evaluate_drives",
     "expressible_codons",
     "founder_dna",
     "founder_dna_length",
+    "internal_state_active",
     "mutate_dna",
     "phenotype_from_genome",
     "recombine_dna",
@@ -62,8 +66,8 @@ assert len(BEHAVIOR_TARGETS) == len(Behavior), "BEHAVIOR_TARGETS debe tener un d
 _BEHAVIOR_SLOT = {target: slot for slot, target in enumerate(BEHAVIOR_TARGETS)}
 _BEHAVIOR_COUNT = len(Behavior)
 
-# Destinos de otras decisiones, necesarios sólo para `expressible_codons` (D61, precisión 54):
-# `0x0F` rasgo de plasticidad, `0x0D`/`0x0E` estado y `0x48` señal.
+# Destinos de otras decisiones (D61, precisión 54): `0x0F` rasgo de plasticidad, `0x0D`/`0x0E`
+# estado interno (R39, D58.2) y `0x48` señal.
 _TARGET_PLASTICITY_RATE = 0x0F
 _TARGET_SET_STATE = 0x0D
 _TARGET_CLEAR_STATE = 0x0E
@@ -84,8 +88,13 @@ _PROM_ROLE_LIBRARIAN = 0x11
 _PROM_ROLE_NERVE = 0x12
 _PROM_STRESS = 0x18
 _PROM_SURPLUS = 0x19
-_PROM_SENSE_FIRST = 0x20  # sensoriales 0x20-0x27 (D46.2): sólo actúan en los impulsos
-_PROM_SENSE_LAST = 0x27
+# Promotores de la evaluación de conducta (D46.2, D58.4, D58.5, D60.4, D61), inactivos en el
+# fenotipo: sensoriales 0x20-0x27, eventos del tick anterior 0x28-0x2B, reservados 0x2C-0x2F,
+# estado interno 0x30-0x37 (`STATE_k`) y señales percibidas 0x38-0x3F (`HEARD_k`).
+_PROM_SENSE_FIRST = 0x20
+_PROM_SENSE_LAST = 0x3F
+_STATE_BITS = 8  # `internal_state` tiene 8 bits (D58.1)
+_NO_PLASTIC: tuple[tuple[int, ...], ...] = ((),) * len(Behavior)
 _PROM_TF_FIRST = 0x80
 _PROM_TF_LAST = 0xBF
 
@@ -221,8 +230,35 @@ def _trait_bases(config: SimulationConfig) -> tuple[float, ...]:
     )
 
 
-def _sensory_values(signals: SensorySignals) -> tuple[bool, ...]:
-    """Valores de los promotores sensoriales `0x20`-`0x27` (D46.2), en el orden de los campos."""
+def internal_state_active(config: SimulationConfig) -> bool:
+    """$R_{39}$ efectivamente activa: `enable_internal_state` con $R_{32}$ efectiva (D57.3).
+
+    $R_{32}$ efectiva es `enable_compact_dna` y `enable_genetic_policy` (precisión 31), la misma
+    condición que `genetic_policy_active` de `pipeline.py`, que este módulo no puede importar.
+    Sin ella, los destinos `0x0D`/`0x0E` y los promotores `0x30`-`0x37` son inertes (D58.7).
+    """
+    return (
+        config.enable_compact_dna and config.enable_genetic_policy and config.enable_internal_state
+    )
+
+
+def _bits(mask: int) -> tuple[bool, ...]:
+    """Los 8 bits de `mask`, del 0 al 7."""
+    return tuple(bool(mask >> k & 1) for k in range(_STATE_BITS))
+
+
+def _behavior_promoters(
+    signals: SensorySignals, config: SimulationConfig, state: int
+) -> tuple[bool, ...]:
+    """Valores de los promotores `0x20`-`0x3F` en la evaluación de conducta, en orden.
+
+    - `0x20`-`0x27`: los ocho campos sensoriales de `SensorySignals` (D46.2);
+    - `0x28`-`0x2B`: los cuatro eventos del tick anterior (D58.5), también sin $R_{39}$ (D58.7);
+    - `0x2C`-`0x2F`: reservados, siempre inactivos (D61);
+    - `0x30`-`0x37`: los bits de `state`, sólo con $R_{39}$ efectivamente activa (D58.4);
+    - `0x38`-`0x3F`: las señales percibidas ($R_{41}$), inactivas hasta el bloque 15.
+    """
+    state_bits = _bits(state) if internal_state_active(config) else (False,) * _STATE_BITS
     return (
         signals.known_good,
         signals.unknown,
@@ -232,6 +268,13 @@ def _sensory_values(signals: SensorySignals) -> tuple[bool, ...]:
         signals.stronger_near,
         signals.crowded,
         signals.carcass,
+        signals.attacked,
+        signals.ate,
+        signals.lost_energy,
+        signals.received_energy,
+        *(False,) * 4,
+        *state_bits,
+        *(False,) * _STATE_BITS,
     )
 
 
@@ -243,10 +286,11 @@ def _active_codons(
 ) -> list[bool]:
     """Las dos pasadas de D33: qué codones están activos.
 
-    Con `sensors=None` (transcripción del fenotipo) los promotores sensoriales están inactivos;
-    con `sensors` (evaluación de impulsos, D46.2) se activan según el valor que leen.
+    Con `sensors=None` (transcripción del fenotipo) los promotores `0x20`-`0x3F` están inactivos;
+    con `sensors` (evaluación de conducta, D46.2 y D58.6) se activan según el valor que leen,
+    uno por promotor en ese rango (`_behavior_promoters`).
     """
-    # Pasada 1: promotores de contexto, sensoriales y factores de transcripción.
+    # Pasada 1: promotores de contexto, de conducta y factores de transcripción.
     active = [
         c.promoter < _PROM_TF_FIRST
         and (
@@ -291,7 +335,7 @@ def _accumulate(codons: list[Codon], active: list[bool], slots: dict[int, int]) 
     """Acumula en el orden de recorrido los codones activos de modo distinto de 3 por destino.
 
     `slots` asigna a cada destino su posición. Es la regla común de la transcripción del fenotipo
-    y de la evaluación de impulsos (el bloque 14 agregará aquí el modo plástico).
+    y de la evaluación de conducta (el bloque 14 agregará aquí el modo plástico).
     """
     n = len(slots)
     acc = _Accumulated([0.0] * n, [1.0] * n, [1.0] * n, [0] * n)
@@ -316,7 +360,7 @@ def transcribe_phenotype(
 
     Recorre `chromosome + plasmids` en orden; `crispr_memory` no se transcribe. Las bases salen
     de `config`, que debe ser la configuración base de la población. Los promotores sensoriales y
-    los destinos de conducta están inactivos aquí: sólo actúan en `evaluate_drives` (D46.2).
+    los destinos de conducta están inactivos aquí: sólo actúan en `evaluate_behavior` (D46.2).
     """
     codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
     active = _active_codons(codons, context, config, None)
@@ -353,26 +397,77 @@ def transcribe_phenotype(
     )
 
 
+def _majority_mask(codons: list[Codon], active: list[bool], target: int) -> int:
+    """Máscara de 8 bits por la regla de canales de D33.2 sobre los codones activos de `target`.
+
+    El bit `channel & 0x07` vale 1 si sus codones de modo 0 o 2 superan en número a los de modo
+    1; el modo 3 y `payload` no cuentan (D58.2, D58.3).
+    """
+    act = [0] * _STATE_BITS
+    rep = [0] * _STATE_BITS
+    for codon, is_active in zip(codons, active, strict=True):
+        if not is_active or codon.target != target or codon.mode == _MODE_RESERVED:
+            continue
+        if codon.mode == _MODE_REPRESSOR:
+            rep[codon.channel & 0x07] += 1
+        else:
+            act[codon.channel & 0x07] += 1
+    return sum(1 << k for k in range(_STATE_BITS) if act[k] > rep[k])
+
+
+def evaluate_behavior(
+    dna: CompactDNA,
+    context: EpigeneticContext,
+    signals: SensorySignals,
+    config: SimulationConfig,
+    state: int = 0,
+    perceived: int = 0,
+    plastic_weights: dict[int, float] | None = None,
+) -> BehaviorEvaluation:
+    """Evaluación pura de la conducta del tick (D60.1), sin generador.
+
+    Repite las dos pasadas de la transcripción sobre `chromosome + plasmids`, con los promotores
+    `0x20`-`0x3F` activos según `signals` y `state` (`_behavior_promoters`), y devuelve:
+    - `drives`: para cada destino de conducta $B$, con sus codones activos de modo distinto de 3,
+      `d_B = mu_B * rho_B * S_B`, acumulado en el orden de recorrido y sin cotas; 0.0 sin codones
+      (D46.3);
+    - `set_mask` y `clear_mask`: la regla de mayoría por bit sobre `SET_STATE` (`0x0D`) y
+      `CLEAR_STATE` (`0x0E`), sólo con $R_{39}$ efectivamente activa; si no, 0 (D58.3, D58.7).
+      El estado siguiente lo aplica el motor al terminar la Fase 3;
+    - `emitted` y `plastic`: 0 y ocho tuplas vacías hasta los bloques 15 ($R_{41}$) y 14 ($R_{40}$).
+
+    `perceived` (máscara de símbolos percibidos) y `plastic_weights` (pesos aprendidos) son los
+    argumentos de D60.1 para $R_{41}$ y $R_{40}$: se aceptan, pero no tienen efecto hasta que
+    esos bloques los implementen.
+    """
+    del perceived, plastic_weights  # R41 y R40: bloques 15 y 14
+    codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
+    active = _active_codons(codons, context, config, _behavior_promoters(signals, config, state))
+    acc = _accumulate(codons, active, _BEHAVIOR_SLOT)
+    drives = tuple(
+        acc.multiplier[b] * acc.repressor[b] * acc.additive[b] if acc.hits[b] else 0.0
+        for b in range(_BEHAVIOR_COUNT)
+    )
+    if internal_state_active(config):
+        set_mask = _majority_mask(codons, active, _TARGET_SET_STATE)
+        clear_mask = _majority_mask(codons, active, _TARGET_CLEAR_STATE)
+    else:
+        set_mask = clear_mask = 0
+    return BehaviorEvaluation(drives, set_mask, clear_mask, 0, _NO_PLASTIC)
+
+
 def evaluate_drives(
     dna: CompactDNA,
     context: EpigeneticContext,
     signals: SensorySignals,
     config: SimulationConfig,
 ) -> tuple[float, ...]:
-    """Impulsos puros por conducta, en el orden de `Behavior` (D46.3).
+    """Impulsos por conducta, en el orden de `Behavior` (D46.3): envoltorio de D60.1.
 
-    Repite las dos pasadas de la transcripción con los promotores sensoriales activos según
-    `signals`. Para cada destino de conducta $B$, con sus codones activos de modo distinto de 3,
-    el impulso es `d_B = mu_B * rho_B * S_B` (suma aditiva, producto represor y
-    producto multiplicativo, acumulados en el orden de recorrido), sin cotas; vale 0.0 sin codones.
+    Devuelve exactamente `evaluate_behavior(dna, context, signals, config).drives`, con
+    `state=0`, `perceived=0` y sin pesos aprendidos.
     """
-    codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
-    active = _active_codons(codons, context, config, _sensory_values(signals))
-    acc = _accumulate(codons, active, _BEHAVIOR_SLOT)
-    return tuple(
-        acc.multiplier[b] * acc.repressor[b] * acc.additive[b] if acc.hits[b] else 0.0
-        for b in range(_BEHAVIOR_COUNT)
-    )
+    return evaluate_behavior(dna, context, signals, config).drives
 
 
 def phenotype_from_genome(genome: AgentGenome, config: SimulationConfig) -> ExpressedPhenotype:

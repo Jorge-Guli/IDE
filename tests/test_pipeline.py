@@ -149,6 +149,10 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
         "tick_metrics",
         # Objetivos de un ataque con éxito del tick (R37, precisión 84).
         "predated",
+        # Insumos de `EventSignals` (R32, D58.5, precisión 87).
+        "start_energy",
+        "ate",
+        "received",
     ]
     frame = TickFrame(7)
     assert frame.tick == 7

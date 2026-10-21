@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
 
 import numpy as np
 
+from ide.agent.dna import internal_state_active
 from ide.agent.holon import CompositeAgent
 from ide.config import SimulationConfig
 from ide.domain.ports import EcologicalEnvironmentPort
@@ -30,6 +31,7 @@ from ide.domain.types import (
     CARCASS_PATTERN,
     ActionType,
     AgentAction,
+    EventSignals,
     Message,
     Observation,
     Pattern,
@@ -71,6 +73,12 @@ class TickFrame:
 
     Al final, `predated`: los objetivos de un ataque con éxito y `stolen > 0` del tick
     ($R_{37}$), que escribe la ejecución y lee el paso de muerte (precisiones 37 y 84).
+
+    Después, los insumos de `EventSignals` ($R_{32}$, D58.5, precisión 87), que lee
+    `EventsSystem` al final del tick: `start_energy`, la instantánea de energías al empezar el
+    tick que toma la percepción social (D47.3); `ate`, quienes consumieron un recurso con valor
+    experimentado positivo; y `received`, los objetivos de un `SHARE` que transfirió energía.
+    Los llenan sólo con la política genética efectivamente activa.
     """
 
     tick: int
@@ -100,6 +108,9 @@ class TickFrame:
     world_patterns: dict[Pattern, float] = field(default_factory=dict[Pattern, float])
     tick_metrics: TickMetrics | None = None
     predated: set[int] = field(default_factory=set[int])
+    start_energy: dict[int, float] = field(default_factory=dict[int, float])
+    ate: set[int] = field(default_factory=set[int])
+    received: set[int] = field(default_factory=set[int])
 
 
 @runtime_checkable
@@ -294,8 +305,11 @@ class SocialPerceptionSystem(BaseSystem):
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         env = cast(EcologicalEnvironmentPort, engine.env)
         agents, social, observations = engine.agents, frame.social, frame.observations
-        # Instantánea de energías: sólo se consulta, nunca se recorre para dar un orden.
+        # Instantánea de energías: sólo se consulta, nunca se recorre para dar un orden. Es también
+        # la energía al empezar el tick de `EventSignals.lost_energy` (precisión 87): nada cambia
+        # la energía antes de la Fase 4.
         energy = {aid: agent.energy for aid, agent in agents.items()}
+        frame.start_energy = energy
         crowding = engine.config.crowding_threshold
         for aid in frame.order:
             own = energy[aid]
@@ -411,6 +425,25 @@ class DecisionSystem(BaseSystem):
         }
 
 
+class InternalStateSystem(BaseSystem):
+    """Aplicación del estado interno al terminar la Fase 3 ($R_{39}$, D58.3).
+
+    A cada agente que decidió le aplica el estado siguiente de su evaluación de conducta del tick,
+    `(internal_state | set_mask) & ~clear_mask`, después de la decisión y de `on_decisions`: la
+    decisión del tick usó el estado anterior, y la evaluación del tick siguiente lee el nuevo. Un
+    agente que no decidió con la política genética conserva su estado
+    (`MicroAgent.commit_internal_state`). Sólo está en la lista con $R_{39}$ efectivamente
+    activa; no consume generadores ni depende del orden.
+    """
+
+    name = "internal_state"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        agents = engine.agents
+        for aid in sorted(frame.actions):
+            agents[aid].commit_internal_state()
+
+
 # --- Fase 4 --------------------------------------------------------------------------------------
 
 
@@ -456,6 +489,7 @@ def _execute_share(
     receiver.apply_energy_delta(config.share_efficiency * amount)
     if amount > 0:
         frame.events["shares"] += 1
+        frame.received.add(receiver.agent_id)  # evento `received_energy` (D58.5)
 
 
 def _execute_attack(
@@ -508,6 +542,8 @@ class ExecutionSystem(BaseSystem):
         carcasses = engine.carcasses_active
         transfer, predation = engine.energy_transfer_active, engine.predation_active
         events = frame.events
+        # Evento `ate` de `EventSignals` (D58.5, precisión 87): sólo con R32 efectivamente activa.
+        ate = frame.ate if engine.genetic_policy_active else None
         for aid in frame.order:
             action = actions[aid]
             kind = action.action_type
@@ -526,7 +562,11 @@ class ExecutionSystem(BaseSystem):
             if pattern in rules:
                 rule = rules[pattern]
                 engine._resolve_composite(aid, pattern, rule, contexts[aid], tick, surplus)
+                if ate is not None and contexts[aid][0]:  # con éxito, aprende el valor 1.0
+                    ate.add(aid)
                 continue
+            if ate is not None and value > 0:
+                ate.add(aid)
             if carcasses and pattern == CARCASS_PATTERN:
                 events["carcasses_eaten"] += 1  # R35: sigue el camino de un recurso elemental
             agent = agents[aid]
@@ -632,6 +672,46 @@ class EnvironmentDynamicsSystem(BaseSystem):
         engine.env.step_dynamics(frame.tick)
 
 
+class EventsSystem(BaseSystem):
+    """Eventos del tick (D58.5, precisiones 64 y 87): un `EventSignals` por agente vivo.
+
+    Corre al final de la Fase 5, después de la muerte y de todo lo que cambia la energía del tick,
+    y antes de los observadores de `on_tick_end`. Escribe `agent.last_events`, que la política
+    genética lee en el tick siguiente:
+    - `attacked`: objetivo de un ataque con éxito y `stolen > 0` (`frame.predated`);
+    - `ate`: consumió un recurso con valor experimentado positivo (`frame.ate`);
+    - `lost_energy`: su energía al final del tick es menor que al empezar (`frame.start_energy`);
+    - `received_energy`: objetivo de un `SHARE` que transfirió energía (`frame.received`).
+    Un agente nacido en el tick no está en la instantánea y recibe `EventSignals()`, como al
+    nacer. Sólo está en la lista con la política genética efectivamente activa, también sin
+    $R_{39}$: los eventos son percepción, no memoria (D58.7). No consume generadores.
+    """
+
+    name = "events"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        start, predated, ate, received = (
+            frame.start_energy,
+            frame.predated,
+            frame.ate,
+            frame.received,
+        )
+        for aid in sorted(engine.agents):
+            agent = engine.agents[aid]
+            before = start.get(aid)
+            if before is None:  # nacido en el tick
+                agent.set_last_events(EventSignals())
+                continue
+            agent.set_last_events(
+                EventSignals(
+                    attacked=aid in predated,
+                    ate=aid in ate,
+                    lost_energy=agent.energy < before,
+                    received_energy=aid in received,
+                )
+            )
+
+
 def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
     """Lista ordenada de sistemas del tick (D53.1) para `config`.
 
@@ -668,8 +748,11 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
         systems.append(SocialExchangeSystem())
     if view:
         systems.append(HolonViewSystem("holon_view_own", from_memory=False))
-    # Fase 3 (los observadores reciben `on_decisions` después de este sistema).
+    # Fase 3 (los observadores reciben `on_decisions` después de este sistema) y, con R39, la
+    # aplicación del estado interno al terminarla (D58.3).
     systems.append(DecisionSystem())
+    if internal_state_active(config):
+        systems.append(InternalStateSystem())
     # Fase 4.
     systems.append(ExecutionSystem())
     # Fase 5.
@@ -681,4 +764,7 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
     if holonic:
         systems.append(DownwardCausationSystem())
     systems.append(EnvironmentDynamicsSystem())
+    # Final de la Fase 5: eventos del tick para la política genética (D58.5, precisión 87).
+    if genetic_policy_active(config):
+        systems.append(EventsSystem())
     return validate_systems(tuple(systems))
