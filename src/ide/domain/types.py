@@ -17,6 +17,11 @@ class Pattern:
         return "&".join(f"{key}={value}" for key, value in self.attributes)
 
 
+# Patrón de los cadáveres de R35 (design D48.3 y precisión 77): no forma parte de los patrones del
+# mundo. Vive en el dominio para que lo compartan el entorno, el motor, las métricas y el agente.
+CARCASS_PATTERN = Pattern((("id", "carcass"),))
+
+
 @dataclass(frozen=True)
 class KnowledgeUnit:
     """Creencia de un agente sobre un patrón. Los rangos los garantiza `epistemology.py`."""

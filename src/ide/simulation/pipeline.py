@@ -26,6 +26,7 @@ import numpy as np
 from ide.agent.holon import CompositeAgent
 from ide.config import SimulationConfig
 from ide.domain.types import (
+    CARCASS_PATTERN,
     ActionType,
     AgentAction,
     Message,
@@ -138,6 +139,26 @@ def validate_systems(systems: tuple[EngineSystem, ...]) -> tuple[EngineSystem, .
             f"exactamente un sistema debe marcar notifies_decisions; marcados: {marked}"
         )
     return systems
+
+
+# --- Comienzo del tick ---------------------------------------------------------------------------
+
+
+class WorldShiftSystem(BaseSystem):
+    """Cambio del entorno (D62.1, precisión 56): antes de la Fase 0 de los ticks múltiplos.
+
+    En cada tick `t > 0` con `t % world_shift_period == 0` invierte la fracción
+    `world_shift_fraction` de las reglas del mundo con el generador principal. Es una
+    manipulación experimental del entorno, no una regla del agente; sólo está en la lista con
+    `world_shift_period > 0`.
+    """
+
+    name = "world_shift"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        config = engine.config
+        if frame.tick > 0 and frame.tick % config.world_shift_period == 0:
+            engine.env.invert_world_rules(config.world_shift_fraction, engine.rng)
 
 
 # --- Fase 0 --------------------------------------------------------------------------------------
@@ -303,6 +324,8 @@ class ExecutionSystem(BaseSystem):
         moved, surplus = frame.moved, frame.surplus
         evolution = config.enable_evolution
         deposit = config.enable_stigmergy and config.stigmergy_deposit_rate > 0
+        carcasses = evolution and config.enable_carcasses
+        events = frame.events
         for aid in frame.order:
             result = env.execute_action(aid, actions[aid], tick)
             if result.action_type is ActionType.MOVE:
@@ -314,6 +337,8 @@ class ExecutionSystem(BaseSystem):
                 rule = rules[pattern]
                 engine._resolve_composite(aid, pattern, rule, contexts[aid], tick, surplus)
                 continue
+            if carcasses and pattern == CARCASS_PATTERN:
+                events["carcasses_eaten"] += 1  # R35: sigue el camino de un recurso elemental
             agent = agents[aid]
             agent.learn_from_experience(pattern, value, tick)
             engine.direct_discoverers[pattern].add(aid)
@@ -363,12 +388,16 @@ class MetabolismSystem(BaseSystem):
 
 
 class DeathSystem(BaseSystem):
-    """(iv) Muerte de quien quedó con energía <= 0 tras el metabolismo (R13)."""
+    """(iv) Muerte de quien quedó con energía <= 0 tras el metabolismo (R13) y, con R35, el
+    cadáver de cada muerto, depositado antes de quitarlo (D48.3, precisión 78)."""
 
     name = "death"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        frame.deaths = engine._remove_dead(frame.tick)
+        dead = engine._remove_dead(frame.tick)
+        frame.deaths = len(dead)
+        if dead and engine.config.enable_carcasses:
+            frame.events["carcasses_deposited"] += len(dead)
 
 
 class ReproductionSystem(BaseSystem):
@@ -411,6 +440,9 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
     view = holonic and config.enable_holon_view
     evolution = config.enable_evolution
     systems: list[EngineSystem] = []
+    # Comienzo del tick: cambio del entorno (D62.1), antes de la Fase 0.
+    if config.world_shift_period > 0:
+        systems.append(WorldShiftSystem())
     # Fase 0.
     if config.enable_compact_dna:
         systems.append(ExpressionSystem())

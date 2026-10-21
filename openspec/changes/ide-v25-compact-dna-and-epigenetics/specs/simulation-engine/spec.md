@@ -280,6 +280,20 @@ Con $R_{35}$ activa y `enable_evolution=True`, en el paso de muerte de la Fase 5
 - **WHEN** con $R_{35}$ activa se invoca `ablate_population(0.5)`
 - **THEN** no se deposita ningún cadáver.
 
+### Requirement: Cadáveres con la Lista de Muertos del Paso de Muerte
+El paso de muerte SHALL calcular una sola vez la lista de muertos y, con $R_{35}$, depositar el cadáver de cada uno, en ese orden, antes de quitar a ninguno; activar $R_{35}$ SHALL NOT agregar sistemas a la lista del motor (design precisión 78).
+
+#### Scenario: Depósitos antes de quitar
+- **WHEN** con $R_{35}$ activa los agentes 12 y 5 quedan con energía 0 tras el metabolismo
+- **THEN** se depositan los cadáveres de 5 y de 12, en ese orden, antes de quitar a los dos juntos, y los nombres de los sistemas son los mismos que con $R_{35}$ apagada.
+
+### Requirement: Entorno Ecológico Exigido
+El motor SHALL lanzar `TypeError` si el entorno no cumple `EcologicalEnvironmentPort` y están activas `enable_resource_depletion` o `enable_heterogeneity`, con o sin evolución, o `enable_carcasses` con `enable_evolution`. Sin evolución, $R_{35}$ es inerte y no lo exige (design precisión 79).
+
+#### Scenario: Entorno evolutivo con R33
+- **WHEN** se construye el motor con `enable_resource_depletion=True`, `enable_evolution=False` y un entorno que cumple `EvolutionaryEnvironmentPort` pero no `EcologicalEnvironmentPort`
+- **THEN** la construcción lanza `TypeError`, y con sólo `enable_carcasses=True` y sin evolución no lo lanza.
+
 ### Requirement: Consumo de Cadáveres como Recurso Elemental
 Comer un cadáver SHALL seguir en la Fase 4 el camino de cualquier recurso elemental: aprendizaje directo, suma a `direct_discoverers`, ganancia `energy_gain_scale * carcass_value` y, con $R_{19}$, depósito de estigmergia.
 

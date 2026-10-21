@@ -212,15 +212,15 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 11.1 **[RED]** Tests para:
+- [x] 11.1 **[RED]** Tests para:
   - (a) $R_{33}$: la agenda de reposición con `due`, su orden y la reposición de la Fase II con la regla apagada;
   - (b) $R_{34}$: las franjas, la región propia de cada patrón, la ubicación inicial y de reposición, y las estaciones con `winter_regen_factor`;
   - (c) $R_{35}$: el depósito del cadáver antes de quitar al agente, su consumo, su aprendizaje, su retiro tras `carcass_lifetime` y su ausencia de `get_world_patterns()`;
   - (d) `get_visible_agents`, `deposit_carcass` y `get_resource_count`;
   - (e) los hashes dorados y las huellas de la Fase II con las reglas apagadas;
   - (f) los cambios del entorno de D62.1 (`world_shift_period`, `invert_world_rules` con el generador principal al empezar cada tick múltiplo).
-- [ ] 11.2 **[GREEN]** Implementar D48 en `grid2d.py`, el depósito de cadáveres en el sistema de muerte y los cambios del entorno de D62.1.
-- [ ] 11.3 **[REFACTOR]** Verificación del bloque.
+- [x] 11.2 **[GREEN]** Implementar D48 en `grid2d.py`, el depósito de cadáveres en el sistema de muerte y los cambios del entorno de D62.1.
+- [x] 11.3 **[REFACTOR]** Verificación del bloque. (1194 tests, cobertura 99 %; hashes dorados y huellas idénticos, también con `PYTHONHASHSEED=123`; `CARCASS_PATTERN` en el dominio, depósito dentro del paso de muerte, el motor exige el puerto ecológico con R33, R34 o R35, y M9 y M11 no ven el cadáver: precisiones 77 a 81.)
 
 ## 12. Interacciones: transferencia y depredación (`simulation-engine`, `evolutionary-dynamics`)
 

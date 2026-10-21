@@ -82,6 +82,17 @@ Un cadáver no consumido SHALL retirarse en `step_dynamics(tick)` cuando `tick >
 - **WHEN** hay un cadáver en la celda del agente 2
 - **THEN** `get_reachable_true_values(2)` incluye su `resource_id` con su valor.
 
+### Requirement: Depósitos de Cadáveres en Orden de Tick
+`deposit_carcass` SHALL recibir ticks no decrecientes, como los del motor, y lanzar `ValueError` si `tick` es menor que el del último depósito; los cadáveres SHALL retirarse en orden de depósito, y uno ya comido SHALL NOT afectar el retiro de los demás (design precisión 81).
+
+#### Scenario: Tick decreciente
+- **WHEN** se deposita un cadáver en el tick 5 y después otro en el tick 4
+- **THEN** el segundo depósito lanza `ValueError`.
+
+#### Scenario: Cadáver comido antes de vencer
+- **WHEN** con `carcass_lifetime = 3` se depositan cadáveres en los ticks 0 y 1 y el primero se come en el tick 1
+- **THEN** `step_dynamics(3)` no retira nada y `step_dynamics(4)` retira el segundo.
+
 ### Requirement: Conteo de Recursos Presentes
 `get_resource_count()` SHALL devolver la cantidad de todos los recursos presentes en el tablero en el momento de la consulta: elementales, compuestos y cadáveres.
 

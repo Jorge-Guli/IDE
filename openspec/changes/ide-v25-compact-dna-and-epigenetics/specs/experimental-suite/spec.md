@@ -257,6 +257,13 @@ Sobre las decisiones del tick (precisión 5), `signaling_rate` SHALL ser la frac
 - **WHEN** en un tick hay decisiones pero ningún agente emite
 - **THEN** `signaling_rate == 0.0`, `symbol_diversity == 0` y `max_signal_information == 0.0`.
 
+### Requirement: Métricas de la Fase II sin el Cadáver
+`offspring_social_ratio` (M9) y `holonic_coverage_gain` (M11) SHALL NOT contar creencias sobre `CARCASS_PATTERN`, ni en las memorias de las hojas ni en la memoria colectiva; las de los patrones compuestos se siguen contando como en la Fase II (design D48.3 y precisión 80).
+
+#### Scenario: Descendiente que comió un cadáver
+- **WHEN** con $R_{35}$ activa una hoja con `generation >= 1` aprende `CARCASS_PATTERN` con confianza válida al comer un cadáver
+- **THEN** M9 y M11 valen lo mismo que si la hoja no tuviera esa creencia.
+
 ### Requirement: Telemetría Ecológica EcologyTickMetrics
 `metrics.py` SHALL definir `EcologyTickMetrics` como `@dataclass(frozen=True)` con `tick`, `resources_available`, `shares`, `attacks`, `successful_attacks`, `predation_deaths`, `starvation_deaths`, `carcasses_deposited`, `carcasses_eaten`, `sporulations`, `recombinations`, `share_rate`, `behavior_counts` y, al final, `signals_emitted`, `plastic_updates`, `decision_opportunities` y `correct_decisions` (D63.3 y D63.4), y el motor SHALL registrar uno en cada tick en `engine.ecology_history`.
 

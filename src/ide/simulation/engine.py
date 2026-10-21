@@ -27,7 +27,11 @@ from ide.agent.holon import (
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
 from ide.domain.extensions import CompositeRule, TrustStrategyPort
-from ide.domain.ports import EnvironmentPort, EvolutionaryEnvironmentPort
+from ide.domain.ports import (
+    EcologicalEnvironmentPort,
+    EnvironmentPort,
+    EvolutionaryEnvironmentPort,
+)
 from ide.domain.types import (
     EpigeneticContext,
     KnowledgeUnit,
@@ -65,6 +69,18 @@ def _needs_evolutionary_env(config: SimulationConfig) -> bool:
         or config.enable_holonic_hierarchy
         or config.enable_stigmergy
         or config.num_composite_patterns > 0
+    )
+
+
+def _needs_ecological_env(config: SimulationConfig) -> bool:
+    """Ecología del entorno (D48, precisión 79): R33 y R34 siempre; R35 sólo con evolución.
+
+    Sin evolución no hay muertes y R35 es inerte (D52.3): no exige el puerto ecológico.
+    """
+    return (
+        config.enable_resource_depletion
+        or config.enable_heterogeneity
+        or (config.enable_carcasses and config.enable_evolution)
     )
 
 
@@ -179,6 +195,8 @@ class SimulationEngine:
         )
         if self._evo_env is None and _needs_evolutionary_env(config):
             raise TypeError("los mecanismos de la Fase II exigen un EvolutionaryEnvironmentPort")
+        if _needs_ecological_env(config) and not isinstance(self.env, EcologicalEnvironmentPort):
+            raise TypeError("la ecología del entorno (R33-R35) exige un EcologicalEnvironmentPort")
         self.agents: dict[int, MicroAgent] = {
             aid: MicroAgent(aid, config, trust_strategy) for aid in self.env.get_active_agent_ids()
         }
@@ -535,12 +553,22 @@ class SimulationEngine:
             cost += config.move_cost * (aid in moved) + config.message_cost * sent.get(aid, 0)
             agent.apply_energy_delta(-cost)
 
-    def _remove_dead(self, tick: int) -> int:
-        """Elimina, por `agent_id`, a quien quedó con E <= 0 tras el metabolismo (R13)."""
+    def _remove_dead(self, tick: int) -> list[int]:
+        """Elimina, por `agent_id`, a quien quedó con E <= 0 tras el metabolismo (R13).
+
+        Con R35 (D48.3, precisiones 17 y 78), antes de quitarlos deposita el cadáver de cada
+        muerto en su celda, en el mismo orden de `agent_id`. Las perturbaciones no pasan por
+        aquí, así que no dejan cadáver. Devuelve los muertos, en orden.
+        """
         dead = [aid for aid in sorted(self.agents) if self.agents[aid].energy <= 0]
         if dead:
+            if self.config.enable_carcasses:
+                env = cast(EcologicalEnvironmentPort, self.env)
+                value = self.config.carcass_value
+                for aid in dead:
+                    env.deposit_carcass(aid, value, tick)
             self._remove(dead, tick)
-        return len(dead)
+        return dead
 
     def _reproduce(self, tick: int) -> int:
         """R17 y luego R12 (o su ablación neutral), a lo sumo un evento por agente (D26)."""
