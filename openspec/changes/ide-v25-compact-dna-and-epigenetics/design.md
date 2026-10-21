@@ -610,14 +610,15 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
        deaths: int
        messages_sent: int
        events: Counter[str]          # eventos ecológicos y genéticos del tick (D53)
+       # después, el estado del tick que leen los observadores (precisión 73)
    ```
    - `build_systems(config) -> tuple[EngineSystem, ...]` arma la lista ordenada de D53. Un mecanismo que vive en su propio sistema no aparece en la lista con su bandera apagada.
-   - `SimulationEngine.step()` crea el `TickFrame`, ejecuta los sistemas en orden, llama a `on_decisions` de cada observador después del sistema de decisión y a `on_tick_end` al final, e incrementa `next_tick`.
+   - `SimulationEngine.step()` crea el `TickFrame`, ejecuta los sistemas en orden, llama a `on_decisions` de cada observador después del sistema de decisión y a `on_tick_end` al final, e incrementa `next_tick`. Devuelve el `TickMetrics` del tick (precisión 73).
 2. **Observadores.** La telemetría sale del bucle:
-   - `TickMetricsObserver` produce `TickMetrics` (M1–M7) y juzga M2 en `on_decisions`, con el oráculo `get_reachable_true_values` consultado **antes** de ejecutar las acciones, como hoy;
+   - `TickMetricsObserver` produce `TickMetrics` (M1–M7) y juzga M2 en `on_decisions`, con el oráculo `get_reachable_true_values` consultado **antes** de ejecutar las acciones, como hoy. Como el oráculo es exclusivo del motor, los observadores que lo consultan viven en `engine.py` (precisión 72);
    - `EvolutionaryMetricsObserver`, `GeneticMetricsObserver` y `EcologyMetricsObserver` producen sus historiales (D53).
    - La API pública del motor no cambia: `history`, `evolutionary_history`, `agents`, `root_nodes`, `step()`, `run()`, `snapshot()` y las perturbaciones.
-3. **Acceso al agente.** Los sistemas no llaman a `agent.memory` directamente salvo en los puntos que hoy lo hacen ($R_{18}$, $R_{19}$, el superávit de conocimiento y las perturbaciones). La lista se fija en un test AST sobre `pipeline.py` y `engine.py`, para que no crezca.
+3. **Acceso al agente.** Los sistemas no llaman a `agent.memory` directamente salvo en los puntos que hoy lo hacen ($R_{18}$, $R_{19}$, el superávit de conocimiento, la herencia cultural de $R_{14}$ al nacer y las perturbaciones, precisión 74). La lista se fija en un test AST sobre `pipeline.py` y `engine.py`, para que no crezca.
 4. **Aceptación.** El refactor no cambia ningún comportamiento:
    - los hashes SHA-256 dorados de `tests/test_performance_equivalence.py` son idénticos;
    - las huellas de la Fase II y los historiales de `002a` y `003a` con y sin ADN (bloque 5) son idénticos;
@@ -840,7 +841,7 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
 ### Decisión 53: Orden del Tick y Telemetría de Evolución Abierta
 1. **Orden de los sistemas** (`build_systems`):
    - **Fase 0:** expresión del fenotipo (D34.4).
-   - **Fase 1:** percepción, germinación (D38), percepción social (D47.3), emisión con la puerta de comunicación (D46.6), estigmergia y vista del holón (tiempo 1).
+   - **Fase 1:** permutación del tick, alcance local de los holones, vista del holón (tiempo 1), percepción, germinación (D38), percepción social (D47.3), emisión con la puerta de comunicación (D46.6) y estigmergia (precisión 70).
    - **Fase 2:** intercambio social en dos pasadas y vista del holón (tiempo 2).
    - **Fase 3:** decisión con la política de cada agente; contexto de los compuestos. Observadores: `on_decisions`.
    - **Fase 4:** ejecución en el orden de la permutación (movimientos, interacciones con recursos, `SHARE`, `ATTACK` y `SPORULATE`), aprendizaje directo, energía y estigmergia.
@@ -1139,6 +1140,19 @@ Cierran los huecos que encontraron las revisiones cruzadas independientes de D56
 67. **Caché de corridas (D56).** Cada corrida se identifica por (protocolo, variante, semilla), donde la variante es una condición de D56 o el identificador de la regla ablacionada de un efecto de regla, y se ejecuta una sola vez por atribución: la misma corrida sirve a todas las afirmaciones del protocolo, a E4 y a los `rule_effects`. Como la salida es determinista, reutilizar entre claves distintas corridas de configuración idéntica (por ejemplo, `stable` de `25d` y `full` de `25a`) está permitido y no cambia ningún valor, pero no se exige.
 68. **Fuentes genéticas de los nacimientos (C16, precisión 44; corregida en la segunda ronda de la revisión cruzada).** `GeneticTickMetrics` agrega, como último campo y después de `max_signal_information`, `birth_source_ids: tuple[int, ...]`: por cada nacimiento del tick, la fuente genética: el `agent_id` cuyo ADN hereda el hijo antes de mutar (con selección, el progenitor; en la reproducción neutral, el donante sorteado con `donor_rng`; en $R_{17}$, la hoja de la que proviene el ADN, que es el donante si la reproducción es neutral, precisión 41; con $R_{38}$, el que inicia el cruce, es decir, el que se reproduce o, en neutral, el donante), en orden ascendente; `()` sin nacimientos. La pareja de la recombinación no se cuenta: es una limitación declarada, porque su segmento del cromosoma también es herencia. Dentro de un tick nadie se reproduce dos veces (D26), así que con selección no hay repeticiones; en la reproducción neutral un mismo donante puede sortearse varias veces y repetirse. Las repeticiones aparecen sobre todo al concatenar los ticks de la ventana. `effective_parents` no es un campo del tick: se calcula en `demography` concatenando `birth_source_ids` de la ventana final, como $1 / \sum_i p_i^2$ (0.0 sin nacimientos).
 69. **Valores informados en una diferencia de diferencias (D56).** En C17 y C19, `Phase25ClaimEvaluation.values` guarda, por semilla, $\text{full}(s) - \text{drift}(s)$ y `comparison_values` guarda $\text{comp}(s) - \text{comp\_drift}(s)$, así que la diferencia pareada sigue siendo `values[s] - comparison_values[s]` en todas las afirmaciones. Los valores crudos de cada condición se reconstruyen desde las corridas registradas.
+
+### Precisiones de la implementación (2026-10-21, bloque 6)
+Surgen del refactor por sistemas (D44) y no cambian ninguna conducta: los hashes dorados, las huellas de la Fase II y las de `002a` y `003a` con ADN siguen idénticos.
+70. **Orden de la Fase 1 (D53.1).** El orden real es: permutación del tick, alcance local de los holones, vista del holón (tiempo 1), percepción, germinación, percepción social y de señales, emisión con la puerta de comunicación y asimilación de la estigmergia. La vista del holón del tiempo 1 va **antes** de la percepción, como en la Fase II, porque la emisión ya la ve. Con las banderas por defecto rige exactamente el orden de la Fase II. La percepción y la emisión son sistemas separados: ninguna de las dos consume generadores ni cambia el entorno, así que recorrerlas por separado en el mismo orden no altera nada.
+71. **Tipo provisional de `TickFrame.social` (D44.1).** Hasta el bloque 8, que define `SocialPerception` (D47.1), el campo se declara `dict[int, object]` y queda vacío. El bloque 8 lo fija a `dict[int, SocialPerception]`.
+72. **Módulo de los observadores con el oráculo (D44.2).** `get_reachable_true_values` sólo puede referenciarse desde `simulation/engine.py` (test del oráculo de la Fase I). Por eso `TickMetricsObserver`, y cualquier observador que consulte el oráculo, vive en `engine.py`. Los protocolos, el `TickFrame`, los sistemas y `build_systems` viven en `pipeline.py`.
+73. **Estado del tick en el `TickFrame` (D44.1, D44.2).** Los observadores no guardan estado entre llamadas: lo que leen o producen va en campos del marco, después de los de D44.1 y en este orden:
+    - `composite_reachable: dict[int, dict[int, Pattern]]`: por agente con algún compuesto alcanzable, sus `resource_id` y patrones. Lo calcula una sola vez el sistema de decisión, y de él salen la intención compuesta y el criterio de M2 (D25.3);
+    - `decision_opportunities` y `correct_decisions` (M2), escritos por `TickMetricsObserver` en `on_decisions`;
+    - `world_patterns`, que `step()` calcula una sola vez al terminar los sistemas, antes de `on_tick_end`;
+    - `tick_metrics: TickMetrics | None`, escrito por `TickMetricsObserver` en `on_tick_end`.
+    - El motor guarda `TickMetricsObserver` aparte, en `metrics_observer`, y lo notifica antes que los de `observers`; `step()` devuelve `frame.tick_metrics`, sin leer `history`. `step()` reconoce el sistema de decisión por su clase y no por su nombre (precisión 20).
+74. **Accesos a la memoria (D44.3).** La lista incluye también la herencia cultural vertical de $R_{14}$ en `_give_birth`, que ya leía la memoria del progenitor y la capacidad del hijo antes del refactor. El acceso de $R_{19}$ es el depósito estigmérgico del sistema de ejecución.
 
 ---
 

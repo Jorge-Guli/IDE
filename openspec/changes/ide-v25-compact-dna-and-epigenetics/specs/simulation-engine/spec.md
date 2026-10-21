@@ -10,14 +10,14 @@
 - **THEN** la segunda lista contiene un sistema de conjugación que la primera no contiene, y en ambas los sistemas comunes aparecen en el mismo orden relativo.
 
 ### Requirement: Ejecución del Pipeline en step()
-`SimulationEngine.step()` SHALL crear un `TickFrame` para el tick `next_tick`, ejecutar en orden los sistemas de `build_systems(config)`, invocar `on_decisions` de cada observador inmediatamente después del sistema de decisión y `on_tick_end` al final del tick, e incrementar `next_tick`.
+`SimulationEngine.step()` SHALL crear un `TickFrame` para el tick `next_tick`, ejecutar en orden los sistemas de `build_systems(config)`, invocar `on_decisions` de cada observador inmediatamente después del sistema de decisión y `on_tick_end` al final del tick, incrementar `next_tick` y devolver el `TickMetrics` del tick sin leer `history`.
 
 #### Scenario: Momento de los observadores
 - **WHEN** se registra un observador de prueba y se ejecuta un tick
 - **THEN** `on_decisions` se invoca una vez, con `frame.actions` completo y antes de que cambie la posición de ningún agente, y `on_tick_end` se invoca una vez, después de `env.step_dynamics`.
 
 ### Requirement: Telemetría Producida por Observadores
-`TickMetricsObserver` SHALL producir `TickMetrics` (M1–M7) y juzgar M2 en `on_decisions`, consultando `get_reachable_true_values` antes de ejecutar las acciones; `EvolutionaryMetricsObserver`, `GeneticMetricsObserver` y `EcologyMetricsObserver` SHALL producir `evolutionary_history`, `genetic_history` y `ecology_history`. Ningún sistema calcula métricas.
+`TickMetricsObserver`, en `engine.py`, SHALL producir `TickMetrics` (M1–M7) y juzgar M2 en `on_decisions`, consultando `get_reachable_true_values` antes de ejecutar las acciones; `EvolutionaryMetricsObserver`, `GeneticMetricsObserver` y `EcologyMetricsObserver` SHALL producir `evolutionary_history`, `genetic_history` y `ecology_history`. Ningún sistema calcula métricas.
 
 #### Scenario: M2 sobre la verdad previa a la ejecución
 - **WHEN** los agentes 3 y 8 de la misma celda deciden `INTERACT` sobre el mismo recurso benéfico y 8 aparece antes en la permutación
@@ -31,7 +31,7 @@ El refactor por sistemas SHALL conservar la firma y la semántica de `history`, 
 - **THEN** todos pasan.
 
 ### Requirement: Accesos del Motor a la Memoria del Agente
-`pipeline.py` y `engine.py` SHALL NOT acceder a `agent.memory` salvo en los puntos que lo hacían antes del refactor: $R_{18}$, $R_{19}$, el superávit de conocimiento y las perturbaciones. Un test AST SHALL fijar la lista de funciones que acceden a `.memory`, para que no crezca.
+`pipeline.py` y `engine.py` SHALL NOT acceder a `agent.memory` salvo en los puntos que lo hacían antes del refactor: $R_{18}$, $R_{19}$, el superávit de conocimiento, la herencia cultural de $R_{14}$ y las perturbaciones. Un test AST SHALL fijar la lista de funciones que acceden a `.memory`, para que no crezca.
 
 #### Scenario: Auditoría AST de accesos a la memoria
 - **WHEN** el test recorre el AST de `pipeline.py` y `engine.py` buscando atributos `memory`
@@ -374,7 +374,7 @@ Con `enable_compact_dna=True` y las reglas de la Fase II-B activas, los historia
 ## MODIFIED Requirements
 
 ### Requirement: Orden de Fases del Tick
-`step()` SHALL ejecutar `next_tick` así y luego incrementarlo: cambio del entorno (D62.1); (0) con `enable_compact_dna`, expresión; (1) percepción, germinación, percepción social y de señales, emisión, estigmergia y vista del holón; (2) intercambio social y vista del holón; (3) decisión, emisión de señales, contexto de compuestos, `on_decisions` y estado interno; (4) ejecución en el orden de la permutación, aprendizaje directo y plástico; (5) "Orden de la Fase 5 con la Fase II-B" y eventos del tick.
+`step()` SHALL ejecutar `next_tick` así y luego incrementarlo: cambio del entorno (D62.1); (0) con `enable_compact_dna`, expresión; (1) vista del holón, percepción, germinación, percepción social y de señales, emisión y estigmergia; (2) intercambio social y vista del holón; (3) decisión, emisión de señales, contexto de compuestos, `on_decisions` y estado interno; (4) ejecución según la permutación, aprendizaje directo y plástico; (5) "Orden de la Fase 5 con la Fase II-B" y eventos del tick.
 
 #### Scenario: Decisiones sobre la misma instantánea
 - **WHEN** dos agentes de la misma celda observan el mismo recurso benéfico

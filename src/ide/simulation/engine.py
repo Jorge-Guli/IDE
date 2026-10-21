@@ -1,6 +1,6 @@
-"""Motor de simulación: pipeline determinista de 5 fases sin coordinador cognitivo."""
+"""Motor de simulación: pipeline determinista de sistemas sin coordinador cognitivo (D44)."""
 
-from collections import Counter, defaultdict
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import cast
@@ -29,12 +29,9 @@ from ide.config import SimulationConfig
 from ide.domain.extensions import CompositeRule, TrustStrategyPort
 from ide.domain.ports import EnvironmentPort, EvolutionaryEnvironmentPort
 from ide.domain.types import (
-    ActionType,
-    AgentAction,
     EpigeneticContext,
     KnowledgeUnit,
     Message,
-    Observation,
     Pattern,
 )
 from ide.environments.grid2d import ToroidalGrid2D
@@ -50,13 +47,17 @@ from ide.experiments.metrics import (
     knowledge_snapshot,
 )
 from ide.simulation.controls import nullify_belief
+from ide.simulation.pipeline import (
+    CompositeContext,
+    DecisionSystem,
+    EngineSystem,
+    TickFrame,
+    TickObserver,
+    build_systems,
+)
 
 # Emisor sintético de los testimonios estigmérgicos (D27); los holones usan IDs <= -2 (D23).
 STIGMERGY_SENDER_ID = -1
-
-# Contexto de una resolución compuesta, fijado al empezar la Fase 4 (D27):
-# (éxito, hojas que reciben la ganancia, holón raíz o None).
-_CompositeContext = tuple[bool, list[int], CompositeAgent | None]
 
 
 def _needs_evolutionary_env(config: SimulationConfig) -> bool:
@@ -68,6 +69,68 @@ def _needs_evolutionary_env(config: SimulationConfig) -> bool:
     )
 
 
+class TickMetricsObserver:
+    """Produce `TickMetrics` (M1 a M7) en `frame.tick_metrics` y `engine.history` (D44.2).
+
+    Juzga M2 en `on_decisions`, antes de ejecutar las acciones, con el oráculo
+    `get_reachable_true_values` y sólo sobre recursos elementales (D25.3): un agente con un
+    compuesto alcanzable (`frame.composite_reachable`) no cuenta esos recursos, y si decide
+    consumir uno, no cuenta el tick. El oráculo es exclusivo del motor; por eso este observador
+    vive en `engine.py` (precisión 72). No guarda estado propio: todo queda en el `TickFrame`.
+    """
+
+    def on_decisions(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        env = engine.env
+        reachable, intents = frame.composite_reachable, frame.composite_intents
+        opportunities = correct = 0
+        for aid in frame.order:
+            truth = env.get_reachable_true_values(aid)
+            composite = reachable.get(aid)
+            if composite:
+                if aid in intents:
+                    truth = {}
+                else:
+                    truth = {rid: v for rid, v in truth.items() if rid not in composite}
+            if truth:
+                opportunities += 1
+                correct += judge_decision(frame.actions[aid], truth)
+        frame.decision_opportunities, frame.correct_decisions = opportunities, correct
+
+    def on_tick_end(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        frame.tick_metrics = engine.collector.record_tick(
+            frame.tick,
+            engine.agents,
+            frame.world_patterns,
+            engine._neighbor_map(),  # pyright: ignore[reportPrivateUsage]
+            frame.decision_opportunities,
+            frame.correct_decisions,
+            frame.messages_sent,
+        )
+        engine.history.append(frame.tick_metrics)
+
+
+class EvolutionaryMetricsObserver:
+    """Produce `EvolutionaryTickMetrics` (M8 a M14) en `engine.evolutionary_history` (D44.2)."""
+
+    def on_decisions(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        """Las métricas evolutivas sólo miran el final del tick."""
+
+    def on_tick_end(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        evo_env = engine._evo_env  # pyright: ignore[reportPrivateUsage]
+        engine.evolutionary_history.append(
+            engine.evo_collector.record_tick(
+                frame.tick,
+                engine.agents,
+                engine.root_nodes,
+                frame.world_patterns,
+                frame.births,
+                frame.deaths,
+                engine.composite_completions,
+                evo_env.get_active_stigmergy_cells() if evo_env is not None else 0,
+            )
+        )
+
+
 class SimulationEngine:
     """Orquesta el tiempo discreto. Un único generador, compartido con la grilla por defecto.
 
@@ -75,6 +138,11 @@ class SimulationEngine:
     banderas activas: con los valores por defecto, `step()` reproduce bit a bit la Fase I.
     Con `enable_compact_dna` (R24, design D34), cada tick empieza por la Fase 0 de expresión
     del fenotipo; sin la bandera, no corre y la Fase II no cambia en un bit.
+
+    El tick lo ejecutan los sistemas de `build_systems(config)` (`systems`, design D44) y la
+    telemetría la producen los observadores: `metrics_observer`, obligatorio porque produce el
+    `TickMetrics` que devuelve `step()`, y después los de `observers`. Los métodos auxiliares de
+    este módulo son las piezas que comparten los sistemas y las perturbaciones.
     """
 
     def __init__(
@@ -131,6 +199,10 @@ class SimulationEngine:
         self._composite_rules: dict[Pattern, CompositeRule] = (
             self._evo_env.get_composite_rules() if self._evo_env is not None else {}
         )
+        # Motor por sistemas (D44): la lista de sistemas es fija para la configuración.
+        self.systems: tuple[EngineSystem, ...] = build_systems(config)
+        self.metrics_observer = TickMetricsObserver()
+        self.observers: list[TickObserver] = [EvolutionaryMetricsObserver()]
 
     @property
     def _evo(self) -> EvolutionaryEnvironmentPort:
@@ -141,146 +213,26 @@ class SimulationEngine:
     # --- Tick ----------------------------------------------------------------------------------
 
     def step(self) -> TickMetrics:
-        """Ejecuta el tick `next_tick` y lo incrementa."""
-        tick = self.next_tick
-        env = self.env
-        config = self.config
-        holonic = config.enable_holonic_hierarchy
-        view = holonic and config.enable_holon_view
-        rules = self._composite_rules
-        # 0. Expresión del fenotipo (R24), antes de la permutación y del alcance local.
-        if config.enable_compact_dna:
-            self._express_phenotypes(tick)
-        order = cast(
-            list[int],
-            self.rng.permutation(np.array(sorted(self.agents), dtype=np.int64)).tolist(),  # pyright: ignore[reportUnknownMemberType]
-        )
-        # Nadie se mueve antes de la Fase 4: el alcance local vale para las fases 1 a 3.
-        reach = self._local_reach() if holonic else {}
+        """Ejecuta el tick `next_tick` con los sistemas de `build_systems` y lo incrementa (D44).
 
-        # 1. Percepción y emisión, sobre la misma instantánea para todos.
-        if view:
-            self._sync_holon_view(reach, from_memory=True)
-        observations: dict[int, Observation] = {}
-        emitted: list[Message] = []
-        for aid in order:
-            observations[aid] = env.get_observation(aid, tick)
-            emitted += self.agents[aid].perceive_and_emit_messages(observations[aid], tick)
-        if config.enable_stigmergy:
-            self._assimilate_stigmergy(tick)
-
-        # 2. Intercambio social en dos pasadas.
-        messages_sent = 0
-        responses: list[Message] = []
-        if config.comm_enabled:
-            # Nadie se mueve entre las fases 1 y 2: los vecinos de la observación son los del
-            # ruteo, sin volver a recorrer la vecindad (Decisión 18).
-            neighbors = {aid: observations[aid].neighbor_ids for aid in order}
-            for aid, inbox in self._route(emitted, neighbors, order).items():
-                responses += self.agents[aid].process_incoming_messages(inbox, tick)
-            for aid, inbox in self._route(responses, neighbors, order).items():
-                if self.agents[aid].process_incoming_messages(inbox, tick):
-                    raise RuntimeError("la segunda pasada no debe generar respuestas")
-            messages_sent = len(emitted) + len(responses)
-        if view:
-            self._sync_holon_view(reach, from_memory=False)
-
-        # 3. Decisión sobre la observación de la fase 1; M2 juzga la intención, sólo sobre
-        # recursos elementales (D25.3).
-        actions: dict[int, AgentAction] = {}
-        composite_intents: dict[int, Pattern] = {}
-        opportunities = correct = 0
-        for aid in order:
-            truth = env.get_reachable_true_values(aid)
-            action = actions[aid] = self.agents[aid].decide_action(
-                observations[aid], tick, self.rng
-            )
-            if rules:
-                composite = {
-                    res.resource_id: res.pattern
-                    for res in observations[aid].visible_resources
-                    if res.is_reachable_now and res.pattern in rules
-                }
-                if composite:
-                    truth = {rid: value for rid, value in truth.items() if rid not in composite}
-                    target = action.target
-                    if action.action_type is ActionType.INTERACT and target in composite:
-                        composite_intents[aid] = composite[cast(int, target)]
-                        truth = {}
-            if truth:
-                opportunities += 1
-                correct += judge_decision(action, truth)
-        # Estado al empezar la Fase 4: la permutación no altera la resolución compuesta (D27).
-        contexts = {
-            aid: self._composite_context(aid, rules[pattern], reach)
-            for aid, pattern in composite_intents.items()
-        }
-
-        # 4. Ejecución y aprendizaje directo; los conflictos se resuelven por `order`.
-        moved: set[int] = set()
-        surplus: set[int] = set()
-        for aid in order:
-            result = env.execute_action(aid, actions[aid], tick)
-            if result.action_type is ActionType.MOVE:
-                moved.add(aid)
-            pattern, value = result.interacted_pattern, result.experienced_value
-            if value is None or pattern is None:
-                continue
-            if pattern in rules:
-                self._resolve_composite(aid, pattern, rules[pattern], contexts[aid], tick, surplus)
-                continue
-            agent = self.agents[aid]
-            agent.learn_from_experience(pattern, value, tick)
-            self.direct_discoverers[pattern].add(aid)
-            if config.enable_evolution:
-                agent.apply_energy_delta(config.energy_gain_scale * value)
-            if config.enable_stigmergy and config.stigmergy_deposit_rate > 0:
-                learned = agent.memory.get(pattern)
-                if learned is not None:  # siempre presente: la experiencia se fuerza en memoria
-                    self._evo.deposit_stigmergy(aid, pattern, value, learned.confidence, tick)
-
-        # 5. Mantenimiento y telemetría, con los vecinos posteriores al movimiento.
-        for aid in order:
-            self.agents[aid].decay_memory(tick)
-        births = deaths = 0
-        if holonic:
-            self._coordinate_and_split(tick, surplus)
-            self._bond(tick)
-        if config.enable_evolution:
-            # Sin comunicación ningún mensaje se envía: no hay costo de mensajes (D21).
-            sent = Counter(msg.sender_id for msg in (*emitted, *responses))
-            if not config.comm_enabled:
-                sent.clear()
-            deaths = self._metabolize(tick, moved, sent)
-            births = self._reproduce(tick)
-        if holonic:
-            self._apply_downward_causation()
-        env.step_dynamics(tick)
-        world = env.get_world_patterns()
-        metrics = self.collector.record_tick(
-            tick,
-            self.agents,
-            world,
-            self._neighbor_map(),
-            opportunities,
-            correct,
-            messages_sent,
-        )
-        self.history.append(metrics)
-        self.evolutionary_history.append(
-            self.evo_collector.record_tick(
-                tick,
-                self.agents,
-                self.root_nodes,
-                world,
-                births,
-                deaths,
-                self.composite_completions,
-                self._evo_env.get_active_stigmergy_cells() if self._evo_env is not None else 0,
-            )
-        )
+        Los observadores (`metrics_observer` primero y después los de `observers`) reciben
+        `on_decisions` inmediatamente después del sistema de decisión, antes de ejecutar ninguna
+        acción, y `on_tick_end` al final del tick, con `frame.world_patterns` ya calculado.
+        """
+        frame = TickFrame(self.next_tick)
+        observers: tuple[TickObserver, ...] = (self.metrics_observer, *self.observers)
+        for system in self.systems:
+            system.run(self, frame)
+            if isinstance(system, DecisionSystem):
+                for observer in observers:
+                    observer.on_decisions(self, frame)
+        frame.world_patterns = self.env.get_world_patterns()
+        for observer in observers:
+            observer.on_tick_end(self, frame)
         self.next_tick += 1
-        return metrics
+        if frame.tick_metrics is None:  # pragma: no cover - lo escribe `metrics_observer`
+            raise RuntimeError("el tick terminó sin TickMetrics")
+        return frame.tick_metrics
 
     def run(self, ticks: int) -> list[TickMetrics]:
         """Ejecuta `ticks` ticks y devuelve sus métricas."""
@@ -403,7 +355,7 @@ class SimulationEngine:
 
     def _composite_context(
         self, aid: int, rule: CompositeRule, reach: Mapping[int, list[int]]
-    ) -> _CompositeContext:
+    ) -> CompositeContext:
         root = self.root_nodes[self.agent_to_root[aid]]
         holon = root if isinstance(root, CompositeAgent) else None
         local = sorted([aid, *reach[aid]]) if holon is not None else [aid]
@@ -422,7 +374,7 @@ class SimulationEngine:
         aid: int,
         pattern: Pattern,
         rule: CompositeRule,
-        context: _CompositeContext,
+        context: CompositeContext,
         tick: int,
         surplus: set[int],
     ) -> None:
@@ -562,8 +514,8 @@ class SimulationEngine:
 
     # --- Fase II: metabolismo, muerte y reproducción (R12-R14, R17, R20, R21) -----------------
 
-    def _metabolize(self, tick: int, moved: set[int], sent: Mapping[int, int]) -> int:
-        """Cobra el costo basal, de movimiento y de mensajes; elimina a quien queda en E <= 0.
+    def _metabolize(self, moved: set[int], sent: Mapping[int, int]) -> None:
+        """Cobra el costo basal, de movimiento y de mensajes a cada agente, por `agent_id`.
 
         Con ADN (design D34.5), el costo basal se calcula sobre el genoma expresado en la Fase 0
         del tick y se le suma el costo del ADN; sin la bandera, la suma no se hace.
@@ -577,6 +529,9 @@ class SimulationEngine:
                 cost += compute_dna_cost(agent.dna, config)
             cost += config.move_cost * (aid in moved) + config.message_cost * sent.get(aid, 0)
             agent.apply_energy_delta(-cost)
+
+    def _remove_dead(self, tick: int) -> int:
+        """Elimina, por `agent_id`, a quien quedó con E <= 0 tras el metabolismo (R13)."""
         dead = [aid for aid in sorted(self.agents) if self.agents[aid].energy <= 0]
         if dead:
             self._remove(dead, tick)

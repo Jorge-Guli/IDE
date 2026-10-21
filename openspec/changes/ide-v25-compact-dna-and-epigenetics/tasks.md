@@ -146,14 +146,14 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 6.1 Registrar la línea base de rendimiento: `python -m ide.experiments.benchmark` y `--compact-dna`, con sus ticks por segundo en la nota de esta tarea (D54.1).
-- [ ] 6.2 **[RED]** Tests para:
+- [x] 6.1 Registrar la línea base de rendimiento: `python -m ide.experiments.benchmark` y `--compact-dna`, con sus ticks por segundo en la nota de esta tarea (D54.1). (Contenedor de 4 núcleos, 2026-10-21: 268.1 ticks/s sin ADN y 147.0 con `--compact-dna`.)
+- [x] 6.2 **[RED]** Tests para:
   - (a) `EngineSystem`, `TickObserver`, `TickFrame` y `build_systems`: el orden de D53.1 y la ausencia de los sistemas de los mecanismos apagados;
   - (b) que la telemetría la producen observadores y que M2 se juzga en `on_decisions`, antes de ejecutar;
   - (c) la auditoría AST de los accesos a `agent.memory` desde el motor (D44.3);
   - (d) la aceptación de D44.4: hashes dorados, huellas de la Fase II e historiales de `002a` y `003a` con y sin ADN idénticos a los de antes del refactor.
-- [ ] 6.3 **[GREEN]** Crear `src/ide/simulation/pipeline.py` y mover `step()` a sistemas y observadores, sin cambiar ninguna conducta.
-- [ ] 6.4 **[REFACTOR]** Benchmark contra 6.1 (no peor que un 10 %, D54.2) y verificación del bloque.
+- [x] 6.3 **[GREEN]** Crear `src/ide/simulation/pipeline.py` y mover `step()` a sistemas y observadores, sin cambiar ninguna conducta.
+- [x] 6.4 **[REFACTOR]** Benchmark contra 6.1 (no peor que un 10 %, D54.2) y verificación del bloque. (986 tests, cobertura 99 %; corridas intercaladas contra el motor previo: sin ADN 247.7–264.6 frente a 234.5–254.6 ticks/s, con ADN 144.0–148.0 frente a 123.4–143.6, dentro del ruido; hashes dorados, 8 huellas de la Fase II y 5 huellas nuevas con ADN idénticos, también con `PYTHONHASHSEED=123`; precisiones 70–74.)
 
 ## 7. Puerto de política (`micro-agent`)
 
