@@ -164,6 +164,8 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
         "start_energy",
         "ate",
         "received",
+        # Símbolos emitidos por emisor en la Fase 3 (R41, D60.3, precisión 97).
+        "signals",
     ]
     frame = TickFrame(7)
     assert frame.tick == 7

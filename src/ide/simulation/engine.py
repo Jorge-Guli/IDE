@@ -222,6 +222,9 @@ class SimulationEngine:
         self.predation_active = predation_active(config)
         # R40 efectivamente activa (D59): la Fase 4 aplica la regla de aprendizaje tras cada acción.
         self.plasticity_active = plasticity_active(config)
+        # R41 (D60.4): por receptor, el OR de los símbolos emitidos en la Fase 3 del tick anterior
+        # por los emisores de los que era vecino de comunicación; lo consume la Fase 1.
+        self.pending_signals: dict[int, int] = {}
         # `GeneticPolicy` no guarda estado: una sola instancia sirve a todos los fundadores.
         policy = GeneticPolicy() if self.genetic_policy_active else None
         self.agents: dict[int, MicroAgent] = {
@@ -576,13 +579,16 @@ class SimulationEngine:
         moved: set[int],
         sent: Mapping[int, int],
         attacks: Mapping[int, int],
+        signals: Mapping[int, int] | None = None,
     ) -> None:
         """Cobra el costo basal, de movimiento y de mensajes a cada agente, por `agent_id`.
 
         Con ADN (design D34.5), el costo basal se calcula sobre el genoma expresado en la Fase 0
         del tick y se le suma el costo del ADN; sin la bandera, la suma no se hace. Con $R_{37}$
         (D49.2), suma `attack_cost` por cada intento de ataque del tick en `attacks`, con éxito o
-        sin él; sin intentos, la suma no se hace.
+        sin él; sin intentos, la suma no se hace. Con $R_{41}$ (D60.3), suma `signal_cost` por
+        cada símbolo emitido en el tick (`signals`: emisor -> máscara); sin emisión, la suma no
+        se hace.
         """
         config = self.config
         dna = config.enable_compact_dna
@@ -594,6 +600,8 @@ class SimulationEngine:
             cost += config.move_cost * (aid in moved) + config.message_cost * sent.get(aid, 0)
             if aid in attacks:
                 cost += config.attack_cost * attacks[aid]
+            if signals and aid in signals:
+                cost += config.signal_cost * signals[aid].bit_count()
             agent.apply_energy_delta(-cost)
 
     def _charge_senescence(self, tick: int) -> None:

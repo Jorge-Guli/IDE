@@ -166,6 +166,10 @@ class MicroAgent:
         # Pesos aprendidos por posición en `chromosome + plasmids`, en orden ascendente de
         # posición: vacíos al nacer (todos en 0), no se heredan y se vacían en `set_dna` (D59.2).
         self._plastic_weights: dict[int, float] = {}
+        # --- R41 (design D60, precisión 65) ---
+        # Máscara de símbolos percibidos: 0 al nacer, no se hereda y la recalcula el motor en cada
+        # Fase 1. Es un canal sensorial: nunca se escribe en la memoria (D60.6).
+        self._perceived_symbols = 0
         self._dna: CompactDNA | None = None
         self._phenotype: ExpressedPhenotype
         self._last_context: EpigeneticContext
@@ -352,6 +356,11 @@ class MicroAgent:
         """Eventos del tick anterior (D58.5); `EventSignals()` en un recién nacido."""
         return self._last_events
 
+    @property
+    def perceived_symbols(self) -> int:
+        """Máscara de símbolos percibidos en la Fase 1 del tick ($R_{41}$, precisión 65)."""
+        return self._perceived_symbols
+
     def decision_evaluation(self, tick: int) -> BehaviorEvaluation | None:
         """La evaluación con que el agente decidió en `tick`, o `None` si no decidió con ella."""
         decision = self._decision
@@ -445,6 +454,19 @@ class MicroAgent:
         """Eventos del tick, que el motor escribe al final de cada tick (D58.5)."""
         self._last_events = events
 
+    def set_perceived_symbols(self, mask: int) -> None:
+        """Máscara percibida del tick, que el motor recalcula en cada Fase 1 (D60.4, D60.5).
+
+        Sólo la leen los promotores `HEARD_k` de la evaluación de conducta: no es un `Message`
+        ni una creencia y no pasa por el protocolo ni por la memoria (D60.6).
+
+        Raises:
+            ValueError: si `mask` no está en $[0, 255]$.
+        """
+        if not 0 <= mask <= _STATE_MASK:
+            raise ValueError(f"perceived_symbols debe estar en [0, 255]; recibió {mask}")
+        self._perceived_symbols = mask
+
     def record_stress(self, tick: int) -> None:
         """Registra `last_stress_tick = tick`: el motor lo llama tras la muerte (D39)."""
         self._last_stress_tick = tick
@@ -488,19 +510,23 @@ class MicroAgent:
     def evaluate_behavior(self, signals: SensorySignals) -> BehaviorEvaluation:
         """Evaluación de conducta (D60.1) del ADN propio en `last_context`, memoizada; sin efectos.
 
-        Evalúa con el `internal_state` y los `plastic_weights` vigentes. La clave del caché es la
-        de expresión (D34.2) más `signals`, el estado y la máscara percibida (precisión 57): los
-        promotores de contexto sólo distinguen el nivel acotado, el rol y la banda de energía. El
-        caché guarda la evaluación sin los pesos (`behavior_terms`) y los suma después
-        (`apply_plastic_weights`, D59.5), así que es igual a `evaluate_behavior` con los pesos
-        vigentes. `set_dna` invalida el caché, así que nunca sirve la evaluación de otro ADN, y se
-        vacía al alcanzar `EVALUATION_CACHE_LIMIT` entradas. No consume generadores ni cambia el
-        agente, salvo el caché.
+        Evalúa con el `internal_state`, la máscara percibida (`perceived_symbols`) y los
+        `plastic_weights` vigentes. La clave del caché es la de expresión (D34.2) más `signals`, el
+        estado y la máscara percibida (precisión 57): los promotores de contexto sólo distinguen el
+        nivel acotado, el rol y la banda de energía. El caché guarda la evaluación sin los pesos
+        (`behavior_terms`) y los suma después (`apply_plastic_weights`, D59.5), así que es igual a
+        `evaluate_behavior` con los pesos vigentes. `set_dna` invalida el caché, así que nunca
+        sirve la evaluación de otro ADN, y se vacía al alcanzar `EVALUATION_CACHE_LIMIT` entradas.
+        No consume generadores ni cambia el agente, salvo el caché.
         """
         dna = self._dna
         if dna is None:
             raise ValueError("la evaluación de conducta exige un agente con ADN")
-        context, state, perceived = self._last_context, self._internal_state, 0
+        context, state, perceived = (
+            self._last_context,
+            self._internal_state,
+            self._perceived_symbols,
+        )
         key = (self._expression_key(context), signals, state, perceived)
         terms = self._evaluation_cache.get(key)
         if terms is None:

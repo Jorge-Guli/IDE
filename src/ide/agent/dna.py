@@ -269,21 +269,34 @@ def plasticity_active(config: SimulationConfig) -> bool:
     return config.enable_evolution and genetic_policy_active(config) and config.enable_plasticity
 
 
+def signals_active(config: SimulationConfig) -> bool:
+    """$R_{41}$ efectivamente activa: `enable_signals` con $R_{32}$ efectiva (D57.3, D60.7).
+
+    Es la única definición: la usan la evaluación de conducta y `build_systems`. Sin ella, el
+    destino `0x48` y los promotores `0x38`-`0x3F` son inertes y no hay emisión ni costo.
+    """
+    return genetic_policy_active(config) and config.enable_signals
+
+
 def _bits(mask: int) -> tuple[bool, ...]:
     """Los 8 bits de `mask`, del 0 al 7."""
     return tuple(bool(mask >> k & 1) for k in range(_STATE_BITS))
 
 
-def _behavior_promoters(signals: SensorySignals, state: int | None) -> tuple[bool, ...]:
+def _behavior_promoters(
+    signals: SensorySignals, state: int | None, perceived: int | None
+) -> tuple[bool, ...]:
     """Valores de los promotores `0x20`-`0x3F` en la evaluación de conducta, en orden.
 
     - `0x20`-`0x27`: los ocho campos sensoriales de `SensorySignals` (D46.2);
     - `0x28`-`0x2B`: los cuatro eventos del tick anterior (D58.5), también sin $R_{39}$ (D58.7);
     - `0x2C`-`0x2F`: reservados, siempre inactivos (D61);
     - `0x30`-`0x37`: los bits de `state`; `state=None` (sin $R_{39}$) los deja inactivos (D58.4);
-    - `0x38`-`0x3F`: las señales percibidas ($R_{41}$), inactivas hasta el bloque 15.
+    - `0x38`-`0x3F`: los bits de `perceived`, la máscara de símbolos percibidos;
+      `perceived=None` (sin $R_{41}$) los deja inactivos (D60.4, D60.7).
     """
     state_bits = (False,) * _STATE_BITS if state is None else _bits(state)
+    heard_bits = (False,) * _STATE_BITS if perceived is None else _bits(perceived)
     return (
         signals.known_good,
         signals.unknown,
@@ -299,7 +312,7 @@ def _behavior_promoters(signals: SensorySignals, state: int | None) -> tuple[boo
         signals.received_energy,
         *(False,) * 4,
         *state_bits,
-        *(False,) * _STATE_BITS,
+        *heard_bits,
     )
 
 
@@ -441,7 +454,8 @@ def _majority_mask(codons: list[Codon], active: list[bool], target: int) -> int:
     """Máscara de 8 bits por la regla de canales de D33.2 sobre los codones activos de `target`.
 
     El bit `channel & 0x07` vale 1 si sus codones de modo 0 o 2 superan en número a los de modo
-    1; el modo 3 y `payload` no cuentan (D58.2, D58.3).
+    1; el modo 3 y `payload` no cuentan. Es la regla del estado interno (D58.2, D58.3) y de la
+    emisión de señales (D60.3).
     """
     act = [0] * _STATE_BITS
     rep = [0] * _STATE_BITS
@@ -492,14 +506,17 @@ def behavior_terms(
     """Parte de `evaluate_behavior` que no depende de los pesos aprendidos (precisión 57).
 
     Repite las dos pasadas de la transcripción sobre `chromosome + plasmids`, con los promotores
-    `0x20`-`0x3F` activos según `signals` y `state` (`_behavior_promoters`), y acumula por
-    conducta los codones activos de modo distinto de 3 y, con $R_{40}$ efectivamente activa, los
-    de modo 3 (D59.1). Sin generador.
+    `0x20`-`0x3F` activos según `signals`, `state` y `perceived` (`_behavior_promoters`), y
+    acumula por conducta los codones activos de modo distinto de 3 y, con $R_{40}$
+    efectivamente activa, los de modo 3 (D59.1). Con $R_{41}$ efectivamente activa, la máscara
+    `emitted` sale de la regla de mayoría por símbolo sobre `SIGNAL` (D60.3). Sin generador.
     """
-    del perceived  # R41: bloque 15
     stateful = internal_state_active(config)
+    signaling = signals_active(config)
     codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
-    promoters = _behavior_promoters(signals, state if stateful else None)
+    promoters = _behavior_promoters(
+        signals, state if stateful else None, perceived if signaling else None
+    )
     active = _active_codons(codons, context, config, promoters)
     acc = _accumulate(codons, active, _BEHAVIOR_SLOT, plasticity_active(config))
     drives = tuple(
@@ -511,11 +528,12 @@ def behavior_terms(
         clear_mask = _majority_mask(codons, active, _TARGET_CLEAR_STATE)
     else:
         set_mask = clear_mask = 0
+    emitted = _majority_mask(codons, active, _TARGET_SIGNAL) if signaling else 0
     if not any(acc.plastic):
-        return BehaviorTerms(BehaviorEvaluation(drives, set_mask, clear_mask, 0, _NO_PLASTIC))
+        return BehaviorTerms(BehaviorEvaluation(drives, set_mask, clear_mask, emitted, _NO_PLASTIC))
     plastic = tuple(tuple(indices) for indices in acc.plastic)
     return BehaviorTerms(
-        BehaviorEvaluation(drives, set_mask, clear_mask, 0, plastic),
+        BehaviorEvaluation(drives, set_mask, clear_mask, emitted, plastic),
         tuple(acc.additive),
         tuple(acc.repressor),
         tuple(acc.multiplier),
@@ -570,7 +588,10 @@ def evaluate_behavior(
       El estado siguiente lo aplica el motor al terminar la Fase 3;
     - `plastic`: por conducta, las posiciones ascendentes de sus codones de modo 3 activos, con
       $R_{40}$ efectivamente activa (D59.4); si no, ocho tuplas vacías;
-    - `emitted`: 0 hasta el bloque 15 ($R_{41}$), que dará efecto a `perceived`.
+    - `emitted`: la máscara de símbolos emitidos, por la regla de mayoría por símbolo sobre
+      `SIGNAL` (`0x48`, símbolo `channel & 0x07`), sólo con $R_{41}$ efectivamente activa; si
+      no, 0 (D60.3, D60.7). `SIGNAL` no es una conducta: no tiene impulso. Con $R_{41}$, los
+      promotores `HEARD_k` (`0x38`-`0x3F`) leen el bit $k$ de `perceived` (D60.4).
     """
     terms = behavior_terms(dna, context, signals, config, state, perceived)
     return apply_plastic_weights(terms, plastic_weights)
