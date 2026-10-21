@@ -950,7 +950,7 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
 1. **Estado `OBSERVED`.** `ClaimStatus` agrega el miembro `OBSERVED = "OBSERVED"`, que sólo usan las afirmaciones de D56. Los estados de las Fases I y II no cambian.
 2. **Reglas inactivas (`PHASE25_INACTIVE_RULES`).** `"25a"` y `"25c"`: `R14`–`R19`, `R22`, `R23`, `R25` y `R31` (sin herencia cultural, holones ni estigmergia, como `002a`). `"25b"`: `R14`, `R18` y `R19`, como `003a`. Un test las contrasta con las configuraciones.
 3. **Tipos y función de la atribución.**
-   - `Phase25Claim` (`frozen`): `claim_id`, `statement`, `protocol`, `metric`, `comparison` (`"drift"` o `"no_predation"`), `rule_ids`, `channel`, `delta_min` y `delta_relative` (D56).
+   - `Phase25Claim` (`frozen`): `claim_id`, `statement`, `protocol`, `metric`, `comparison` (`"drift"`, `"no_predation"`, `"stable"` o `"no_learning"`, precisión 50), `rule_ids`, `channel`, `delta_min` y `delta_relative` (D56).
    - `Phase25ClaimEvaluation` (`frozen`): `claim_id`, `status`, `p_value`, `p_adjusted`, `median_difference`, `values`, `comparison_values`, `demography`, `e4_p_value`, `e4_interpretable`, `excluded_seeds`, `excluded_pairs` y `evaluable` (precisión 47).
    - `Phase25Report` (`frozen`): `profile = "phase25"`, `rules = PHASE25_ALL_RULES`, `evaluations` y `rule_effects` (exploratorios).
    - `run_phase25_attribution(seeds=PHASE25_SEEDS, claims=PHASE25_CLAIMS, jobs=1, configs=None, rule_effect_seeds=PHASE25_RULE_EFFECT_SEEDS) -> Phase25Report`, con `PHASE25_RULE_EFFECT_SEEDS = tuple(range(42, 52))` y `PROFILES["phase25"]`.
@@ -1098,6 +1098,18 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
    - `max_signal_information`: el máximo, sobre los pares (símbolo $k$, campo $j$ de `SensorySignals` del emisor), de la información mutua entre "emitió $k$" y "$j$ vale verdadero" en las decisiones del tick, en bits (0.0 sin decisiones). Es descriptiva.
 3. **`EcologyTickMetrics`** agrega `signals_emitted` (símbolos emitidos en el tick) y `plastic_updates` (actualizaciones de pesos con $r \ne 0$).
 4. **M2 por tick.** `EcologyTickMetrics` agrega `decision_opportunities` y `correct_decisions`, las oportunidades y los aciertos de M2 del tick, sin cambiar `TickMetrics`. C20 los usa (D56).
+
+### Precisiones de la ampliación (2026-10-21)
+50. **Comparaciones.** `Phase25Claim.comparison` vale `"drift"`, `"no_predation"`, `"stable"` o `"no_learning"`.
+51. **Reglas inactivas de `25d`.** Son las de `25a` (precisión 2).
+52. **Codones de aprendizaje (C19).** `mean_learning_codons` no se limita a los codones funcionales de la precisión 42, que excluyen el modo 3. Es la media, sobre las hojas con ADN, de la cantidad de valores canónicos distintos (D61) en `chromosome + plasmids` que cumplen alguna de estas condiciones, con promotor expresable en el protocolo:
+    - destino `0x0D` o `0x0E` y modo distinto de 3;
+    - promotor `0x30`–`0x37` sobre un destino de conducta, de estado o de señal;
+    - modo 3 sobre un destino de conducta, en una hoja con `plasticity_rate > 0`.
+53. **Estado de C20.** Como es funcional y no entra en Holm, su estado es `OBSERVED` si el p-valor **crudo** de la prueba de signo sobre los pares válidos es menor que 0.05 y la mediana de las diferencias es al menos $\delta_{\min}$. Se clasifica programada por construcción y no recorre la escalera E1–E5.
+54. **Destino `0x0F` en los conteos.** `plasticity_rate` es un rasgo: el destino `0x0F` cuenta en `expressed_codons` (D46.7) y es funcional a los efectos de la precisión 42 y de `mean_functional_codons`, junto con `0x00`–`0x08` y `0x0A`–`0x0C`.
+55. **Alcance de `--jobs` (D62.3).** El valor por defecto con los núcleos detectados rige para todos los runners y CLI de calibración del proyecto, también los de las Fases I y II. Como la salida es idéntica para cualquier `--jobs`, ningún resultado registrado cambia.
+56. **Momento del cambio del entorno (D62.1).** Ocurre al empezar el tick, antes de la Fase 0, en los ticks $t > 0$ con $t \bmod$ `world_shift_period` $= 0$.
 
 ---
 
