@@ -470,6 +470,17 @@ def genetic_policy_active(config: SimulationConfig) -> bool:
     return config.enable_compact_dna and config.enable_genetic_policy
 
 
+def sporulation_active(config: SimulationConfig) -> bool:
+    """R28 efectivamente activa: `enable_sporulation` con evolución (precisión 30, D38, D50.2).
+
+    Es la única definición de la condición: con ella la política factibiliza `SPORULATE` y el
+    motor agrega la germinación y aplica la física y el costo de la endospora. Sin evolución la
+    bandera es inerte. La entrada exige además la política genética (`SPORULATE` sólo existe
+    como conducta del ADN): sin ella nadie entra nunca en endospora, aunque esta condición valga.
+    """
+    return config.enable_evolution and config.enable_sporulation
+
+
 def stress_energy_limit(config: SimulationConfig) -> float:
     """Límite de energía del estrés (D39, precisión 93): hay estrés si `energy` es menor.
 

@@ -541,8 +541,8 @@ class MicroAgent:
 
         La invoca la política genética al decidir. La decisión usa el estado anterior; el motor
         aplica el estado siguiente al terminar la Fase 3 con `apply_internal_state`. Una
-        endospora no registra nada: conserva su estado (D58.1), aunque hasta el bloque 17 todavía
-        decida (precisión 82).
+        endospora no registra nada: conserva su estado (D58.1). Con $R_{28}$ el motor no la hace
+        decidir (D38); el caso de una endospora puesta a mano, que sí decide, es el de los tests.
 
         Raises:
             RuntimeError: si ya hay una decisión registrada en `tick`: se decide una vez por tick.

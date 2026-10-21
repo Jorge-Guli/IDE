@@ -29,7 +29,12 @@ from ide.agent.holon import (
 )
 from ide.agent.micro_agent import MicroAgent
 from ide.agent.policy import GeneticPolicy
-from ide.config import SimulationConfig, genetic_policy_active, stress_energy_limit
+from ide.config import (
+    SimulationConfig,
+    genetic_policy_active,
+    sporulation_active,
+    stress_energy_limit,
+)
 from ide.domain.extensions import CompositeRule, TrustStrategyPort
 from ide.domain.ports import (
     EcologicalEnvironmentPort,
@@ -109,7 +114,10 @@ class TickMetricsObserver:
         env = engine.env
         reachable, intents = frame.composite_reachable, frame.composite_intents
         opportunities = correct = 0
+        agents, dormant = engine.agents, engine.sporulation_active
         for aid in frame.order:
+            if dormant and agents[aid].is_endospore:  # R28 (D38): no decide, no hay oportunidad
+                continue
             truth = env.get_reachable_true_values(aid)
             composite = reachable.get(aid)
             if composite:
@@ -220,6 +228,8 @@ class SimulationEngine:
         # `ATTACK`; sin ellas, la grilla los ejecuta como `IDLE`.
         self.energy_transfer_active = energy_transfer_active(config)
         self.predation_active = predation_active(config)
+        # R28 efectivamente activa (precisión 30): germinación, física y costo de la endospora.
+        self.sporulation_active = sporulation_active(config)
         # R40 efectivamente activa (D59): la Fase 4 aplica la regla de aprendizaje tras cada acción.
         self.plasticity_active = plasticity_active(config)
         # R41 (D60.4): por receptor, el OR de los símbolos emitidos en la Fase 3 del tick anterior
@@ -296,13 +306,21 @@ class SimulationEngine:
         self, messages: list[Message], neighbors: Mapping[int, Sequence[int]], order: list[int]
     ) -> dict[int, list[Message]]:
         """Bandejas por agente, en `order`; cada entrega del control nulo es una extracción."""
-        inboxes: dict[int, list[Message]] = {aid: [] for aid in order}
+        # R28 (D38): una endospora no recibe en ninguna pasada, y no tiene bandeja.
+        asleep = (
+            {aid for aid in order if self.agents[aid].is_endospore}
+            if self.sporulation_active
+            else set[int]()
+        )
+        inboxes: dict[int, list[Message]] = {aid: [] for aid in order if aid not in asleep}
         null = self.config.comm_content_null
         for msg in messages:
             reach: Sequence[int] = neighbors[msg.sender_id]
             if msg.recipient_id is not None:
                 reach = [msg.recipient_id] if msg.recipient_id in reach else []
             for receiver in reach:
+                if receiver in asleep:
+                    continue
                 delivered = msg
                 if null and msg.belief is not None:
                     delivered = replace(msg, belief=nullify_belief(msg.belief, self.null_rng))
@@ -392,6 +410,8 @@ class SimulationEngine:
         env = self._evo
         null = self.config.comm_content_null
         for aid in sorted(self.agents):
+            if self.sporulation_active and self.agents[aid].is_endospore:
+                continue  # R28 (D38): una endospora no asimila estigmergia
             for trace in env.get_cell_stigmergy(aid):
                 unit = KnowledgeUnit(
                     trace.pattern,
@@ -592,8 +612,14 @@ class SimulationEngine:
         """
         config = self.config
         dna = config.enable_compact_dna
+        spores = self.sporulation_active
         for aid in sorted(self.agents):
             agent = self.agents[aid]
+            if spores and agent.is_endospore:
+                # R28 (D38): sólo el costo de la endospora, en lugar del basal, del ADN, del
+                # movimiento y de los mensajes (una endospora tampoco ataca).
+                agent.apply_energy_delta(-(config.spore_cost_fraction * config.metabolic_base_cost))
+                continue
             cost = compute_metabolic_cost(agent.genome, config)
             if dna:
                 cost += compute_dna_cost(agent.dna, config)
@@ -656,7 +682,17 @@ class SimulationEngine:
         config = self.config
         reproduced: set[int] = set()
         neutral = config.reproduction_mode == "neutral"
-        donors = [self.agents[aid] for aid in sorted(self.agents)] if neutral else []
+        spores = self.sporulation_active
+        # Donantes: los vivos que no están en endospora al empezar la fase (D38, precisión 14).
+        donors = (
+            [
+                self.agents[aid]
+                for aid in sorted(self.agents)
+                if not (spores and self.agents[aid].is_endospore)
+            ]
+            if neutral
+            else []
+        )
         births = 0
         if config.enable_holonic_hierarchy and config.enable_holon_reproduction:
             for nid in sorted(self.root_nodes):
@@ -666,6 +702,8 @@ class SimulationEngine:
                 leaves = node.leaf_agents
                 if any(leaf.agent_id in reproduced for leaf in leaves):
                     continue
+                if spores and any(leaf.is_endospore for leaf in leaves):
+                    continue  # R28 (D38, precisión 14): un holón con una endospora no se reproduce
                 if node.total_energy < len(leaves) * config.reproduction_threshold:
                     continue
                 if len(self.agents) + len(leaves) > config.max_population:
@@ -683,6 +721,8 @@ class SimulationEngine:
             agent = self.agents[aid]
             if aid in reproduced or agent.energy < config.reproduction_threshold:
                 continue
+            if spores and agent.is_endospore:
+                continue  # R28 (D38): una endospora no se reproduce
             if len(self.agents) >= config.max_population:
                 break
             donor = donors[int(self.donor_rng.integers(len(donors)))] if neutral else None

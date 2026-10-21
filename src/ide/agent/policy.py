@@ -13,6 +13,7 @@ import numpy as np
 
 from ide.agent.dna import BEHAVIORS
 from ide.agent.epistemology import is_known
+from ide.config import sporulation_active
 from ide.domain.types import (
     ActionType,
     AgentAction,
@@ -246,10 +247,6 @@ def _feasible_action(
             if social.flee_move is not None:
                 return AgentAction(ActionType.MOVE, social.flee_move)
         case Behavior.SPORULATE:
-            if (
-                config.enable_evolution
-                and config.enable_sporulation
-                and agent.energy <= agent.phenotype.spore_threshold
-            ):
+            if sporulation_active(config) and agent.energy <= agent.phenotype.spore_threshold:
                 return AgentAction(ActionType.SPORULATE)
     return None

@@ -240,7 +240,7 @@ def test_senescencia_tambien_en_las_endosporas() -> None:
     """Sólo la parte de R29 (0.001) del escenario del spec "Endospora senescente".
 
     El costo reducido de la endospora (`spore_cost_fraction * metabolic_base_cost`, 0.0005) en
-    lugar del basal es del bloque 17 (D38, precisión 90): lo cubre el xfail de abajo.
+    lugar del basal es del bloque 17 (D38, precisión 90): lo cubre el test de abajo.
     """
     engine = SimulationEngine(senescent_config(enable_sporulation=True))
     engine.agents[2].set_endospore(True)
@@ -249,11 +249,6 @@ def test_senescencia_tambien_en_las_endosporas() -> None:
     assert before[2] - engine.agents[2].energy == pytest.approx(0.001, abs=1e-9)
 
 
-@pytest.mark.xfail(
-    reason="bloque 17: el costo de la endospora reemplaza al basal (D38, precisión 90)",
-    raises=AssertionError,
-    strict=True,
-)
 def test_endospora_senescente_paga_su_costo_mas_la_senescencia() -> None:
     """Escenario completo del spec: 0.0005 + 0.001 = 0.0015 en el tick."""
     config = senescent_config(

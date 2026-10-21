@@ -26,7 +26,7 @@ import numpy as np
 from ide.agent.dna import internal_state_active, signals_active
 from ide.agent.evolution import sos_mutation_active
 from ide.agent.holon import CompositeAgent
-from ide.config import SimulationConfig, genetic_policy_active
+from ide.config import SimulationConfig, genetic_policy_active, sporulation_active
 from ide.domain.extensions import CompositeRule
 from ide.domain.ports import EcologicalEnvironmentPort
 from ide.domain.types import (
@@ -287,12 +287,36 @@ class PerceptionSystem(BaseSystem):
             observations[aid] = env.get_observation(aid, tick)
 
 
+class GerminationSystem(BaseSystem):
+    """Germinación de la endospora (R28, D38): en la Fase 1, después de la percepción.
+
+    Una endospora germina (`set_endospore(False)`) si su observación tiene algún recurso visible
+    o, con $R_{19}$, su celda tiene un rastro con `sign_value > 0`. Germina antes de la
+    percepción social y de la emisión, y actúa normalmente en ese tick (precisión E1). No consume
+    generadores. Sólo está en la lista con $R_{28}$ efectivamente activa.
+    """
+
+    name = "germination"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        agents, observations = engine.agents, frame.observations
+        trails = engine.config.enable_stigmergy
+        for aid in frame.order:
+            agent = agents[aid]
+            if not agent.is_endospore:
+                continue
+            if observations[aid].visible_resources or (
+                trails and any(t.sign_value > 0 for t in engine._evo.get_cell_stigmergy(aid))
+            ):
+                agent.set_endospore(False)
+
+
 class SocialPerceptionSystem(BaseSystem):
     """Percepción social (R32, D47.3): una `SocialPerception` por agente en `frame.social`.
 
     Sólo está en la lista con la política genética efectivamente activa. Construye la
-    percepción de todos los agentes, también la de las endosporas: que una endospora no decida ni
-    se perciba queda para el bloque 17 (precisión 82). Usa
+    percepción de los agentes que pueden decidir: con $R_{28}$ una endospora no se percibe
+    socialmente, porque no decide (D38, precisión E1). Usa
     `get_visible_agents` y la instantánea de energías al empezar el sistema, antes de cualquier
     acción del tick (percepción sincrónica):
     - "activo" excluye a las endosporas;
@@ -316,7 +340,10 @@ class SocialPerceptionSystem(BaseSystem):
         energy = {aid: agent.energy for aid, agent in agents.items()}
         frame.start_energy = energy
         crowding = engine.config.crowding_threshold
+        dormant = engine.sporulation_active
         for aid in frame.order:
+            if dormant and agents[aid].is_endospore:
+                continue
             own = energy[aid]
             active = [v for v in env.get_visible_agents(aid) if not agents[v.agent_id].is_endospore]
             adjacent = tuple(sorted(v.agent_id for v in active if v.distance <= 1))
@@ -373,7 +400,10 @@ class EmissionSystem(BaseSystem):
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, tick = engine.agents, frame.tick
         observations, emitted = frame.observations, frame.emitted
+        dormant = engine.sporulation_active
         for aid in frame.order:
+            if dormant and agents[aid].is_endospore:
+                continue  # R28 (D38): una endospora no emite
             emitted += agents[aid].perceive_and_emit_messages(observations[aid], tick)
 
 
@@ -433,9 +463,14 @@ class DecisionSystem(BaseSystem):
         actions, intents = frame.actions, frame.composite_intents
         reachable = frame.composite_reachable
         social = frame.social
+        dormant = engine.sporulation_active
         for aid in frame.order:
             observation = frame.observations[aid]
             agent, perception = agents[aid], social.get(aid)
+            if dormant and agent.is_endospore:
+                # R28 (D38): `IDLE` sin decidir, sin consumir el generador y sin compuestos.
+                actions[aid] = AgentAction(ActionType.IDLE)
+                continue
             # Sin percepción social se conserva la llamada de la Fase I (`social` es `None`):
             # hay tests de la Fase II que parchean `decide_action` con sólo tres parámetros.
             if perception is None:
@@ -607,8 +642,9 @@ class ExecutionSystem(BaseSystem):
     Con $R_{36}$ y $R_{37}$ efectivamente activas, el motor ejecuta `SHARE` y `ATTACK` en ese mismo
     recorrido, sobre las energías vigentes al ejecutar cada una (D49): la permutación del tick es
     la única fuente de orden. Sin ellas, la grilla las ejecuta como `IDLE`, como en la Fase II.
-    Una endospora que decidió `SHARE` o `ATTACK` no tiene efecto ni paga el intento: actúa como
-    `IDLE` hasta que el bloque 17 haga que no decida (precisión 82).
+    `SPORULATE` (R28 efectiva) pone al agente en endospora y cuenta el evento `sporulations`: es la
+    única entrada (D50.2). Con $R_{28}$ una endospora no decide, así que su acción es `IDLE`; una
+    puesta a mano que decidió `SHARE` o `ATTACK` no tiene efecto ni paga el intento.
 
     Con $R_{40}$ efectivamente activa, inmediatamente después de ejecutar la acción de cada
     agente aplica la regla de aprendizaje (`MicroAgent.reinforce`, D59.4) con la recompensa $r$:
@@ -631,6 +667,7 @@ class ExecutionSystem(BaseSystem):
             carcasses=engine.carcasses_active,
             evolution=config.enable_evolution,
             deposit=config.enable_stigmergy and config.stigmergy_deposit_rate > 0,
+            sporulation=engine.sporulation_active,
         )
         learning = engine.plasticity_active
         updates = 0
@@ -658,6 +695,7 @@ class _ExecutionFlags(NamedTuple):
     carcasses: bool  # R35 efectivamente activa
     evolution: bool  # la energía del recurso se suma al agente
     deposit: bool  # depósito estigmérgico (R19)
+    sporulation: bool  # R28 efectivamente activa: `SPORULATE` pone al agente en endospora
 
 
 def _execute_action(
@@ -675,9 +713,14 @@ def _execute_action(
     estigmergia ($R_{19}$); un compuesto se resuelve con el contexto fijado al decidir (D27).
     """
     kind = action.action_type
+    if kind is ActionType.SPORULATE and flags.sporulation:
+        # R28 (D38, D50.2): la única entrada en endospora; el agente actúa como `IDLE`.
+        engine.agents[aid].set_endospore(True)
+        frame.events["sporulations"] += 1
+        return
     sharing = flags.transfer and kind is ActionType.SHARE
     if sharing or (flags.predation and kind is ActionType.ATTACK):
-        if not engine.agents[aid].is_endospore:  # hasta el bloque 17 (precisión 82)
+        if not engine.agents[aid].is_endospore:  # sólo una endospora puesta a mano (precisión E1)
             execute = _execute_share if sharing else _execute_attack
             execute(engine, aid, action.target, frame)
         return
@@ -897,6 +940,8 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
         systems.append(HolonViewSystem("holon_view_memory", from_memory=True))
     systems.append(PerceptionSystem())
     signals = signals_active(config)
+    if sporulation_active(config):
+        systems.append(GerminationSystem())
     if genetic_policy_active(config):
         systems.append(SocialPerceptionSystem())
     if signals:  # R41: señales del tick anterior (D60.4), tras la germinación y lo social
