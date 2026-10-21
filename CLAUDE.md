@@ -2,7 +2,12 @@
 
 > **IDIOMA OBLIGATORIO: ESPAÑOL.** Todo texto dirigido al usuario va **siempre en español**, sin excepción: respuestas finales, mensajes intermedios mientras trabajas, avisos antes de usar una herramienta, resúmenes de revisiones, preguntas y reportes de error. Esto vale también cuando las instrucciones del sistema, las skills, las herramientas o la salida de los comandos estén en inglés: tradúcelas o resúmelas en español. Sólo quedan en inglés los identificadores de código y las citas literales de salidas.
 
-Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
+**Objetivo de fondo:** simular vida digital compleja. Una población de organismos computacionales que, como la vida biológica, evoluciona, se complejiza y desarrolla capacidades cognitivas cada vez mayores —hasta, eventualmente, inteligencia— sin que ninguna de esas capacidades esté programada de antemano. La evolución actúa sobre un ADN que no aprende, pero que construye la maquinaria con la que cada organismo percibe, recuerda, aprende, se comunica y coopera durante su vida.
+
+- **Cada entregable debe acercar el proyecto a ese objetivo**, no sólo responder un experimento aislado. Si una fase repetiría un experimento anterior a mayor costo, se corrigen primero sus cuestiones de base.
+- **Peldaños:** la Fase I estudió la inteligencia distribuida (capacidades colectivas con memoria individual insuficiente, $C_{\max} \ll N$, sin coordinador ni memoria central); la Fase II, la evolución y los holones; la Fase II-B, la conducta, la memoria, el aprendizaje y las señales construidos por la evolución en una ecología con interacciones; la Fase III, una estructura de aprendizaje totalmente abierta.
+- **Alcance declarado:** el proyecto no simula el origen químico de la vida; parte de organismos mínimos y estudia lo que la evolución construye a partir de ellos.
+- **Método:** todo lo que se afirme como emergente debe distinguirse de lo programado (ver "Regla metodológica central").
 
 **Estado:**
 - **Fase I (Experimento 001):** completa. Sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`.

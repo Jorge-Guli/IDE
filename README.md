@@ -1,6 +1,8 @@
 # IDE: Inteligencia Distribuida Emergente
 
-Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
+Plataforma de simulación en Python de **vida digital compleja**: una población de organismos computacionales que, como la vida biológica, evoluciona, se complejiza y desarrolla capacidades cognitivas cada vez mayores —hasta, eventualmente, inteligencia— sin que ninguna de esas capacidades esté programada de antemano. La evolución actúa sobre un ADN que no aprende, pero que construye la maquinaria con la que cada organismo percibe, recuerda, aprende y se comunica en vida.
+
+El proyecto avanza por peldaños: la inteligencia distribuida con memoria individual insuficiente ($C_{\max} \ll N$, Fase I), la evolución y los holones (Fase II), la conducta, la memoria, el aprendizaje y las señales construidos por la evolución en una ecología con interacciones (Fase II-B) y una estructura de aprendizaje totalmente abierta (Fase III). No simula el origen químico de la vida: parte de organismos mínimos.
 
 El proyecto es una herramienta de investigación, no una demostración: los resultados negativos se reportan tal cual y no se ajustan parámetros para que una hipótesis "pase".
 
