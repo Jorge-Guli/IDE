@@ -833,7 +833,7 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
    - no negativos: `attack_power`, `attack_cost`;
    - $\ge 1$: `crowding_threshold`, `resource_regen_delay`, `num_regions`, `carcass_lifetime`, `activity_threshold`, `winter_regen_factor`;
    - $\ge 0$: `season_length`;
-   - `num_regions <= grid_width`.
+   - `num_regions <= grid_width`, **sólo con `enable_heterogeneity=True`** (precisión 75).
 3. **Dependencias inertes** (D30.3): $R_{31}$, $R_{32}$ y $R_{38}$ exigen `enable_compact_dna`; $R_{28}$, $R_{36}$ y $R_{37}$ exigen $R_{32}$, porque sólo actúan como conductas; $R_{35}$ y $R_{38}$ exigen `enable_evolution`; las estaciones de $R_{34}$ exigen $R_{33}$. Con el requisito apagado, la bandera es inerte y no lanza error.
 4. **Campo eliminado.** `lock_composite_threshold` se elimina (D50.3); sus tests de validación se retiran en el bloque que implementa D50.
 5. **Valores por defecto propuestos.** Se aprueban con el pre-registro en la tarea 0.5. La compuerta de viabilidad (D55) sólo puede cambiar `resources_per_pattern` y `resource_regen_delay`.
@@ -1144,7 +1144,7 @@ Cierran los huecos que encontraron las revisiones cruzadas independientes de D56
 ### Precisiones de la implementación (2026-10-21, bloque 6)
 Surgen del refactor por sistemas (D44) y no cambian ninguna conducta: los hashes dorados, las huellas de la Fase II y las de `002a` y `003a` con ADN siguen idénticos.
 70. **Orden de la Fase 1 (D53.1).** El orden real es: permutación del tick, alcance local de los holones, vista del holón (tiempo 1), percepción, germinación, percepción social y de señales, emisión con la puerta de comunicación y asimilación de la estigmergia. La vista del holón del tiempo 1 va **antes** de la percepción, como en la Fase II, porque la emisión ya la ve. Con las banderas por defecto rige exactamente el orden de la Fase II. La percepción y la emisión son sistemas separados: ninguna de las dos consume generadores ni cambia el entorno, así que recorrerlas por separado en el mismo orden no altera nada.
-71. **Tipo provisional de `TickFrame.social` (D44.1).** Hasta el bloque 8, que define `SocialPerception` (D47.1), el campo se declara `dict[int, object]` y queda vacío. El bloque 8 lo fija a `dict[int, SocialPerception]`.
+71. **Tipo provisional de `TickFrame.social` (D44.1).** Hasta el bloque 8, que define `SocialPerception` (D47.1), el campo se declaró `dict[int, object]` y quedó vacío. **Saldada en el bloque 8:** el campo es `dict[int, SocialPerception]`, y el `social` de `PolicyPort.decide`, `HandwrittenPolicy.decide` y `MicroAgent.decide_action` pasó de `object | None` a `SocialPerception | None`.
 72. **Módulo de los observadores con el oráculo (D44.2).** `get_reachable_true_values` sólo puede referenciarse desde `simulation/engine.py` (test del oráculo de la Fase I). Por eso `TickMetricsObserver`, y cualquier observador que consulte el oráculo, vive en `engine.py`. Los protocolos, el `TickFrame`, los sistemas y `build_systems` viven en `pipeline.py`.
 73. **Estado del tick en el `TickFrame` (D44.1, D44.2).** Los observadores no guardan estado entre llamadas: lo que leen o producen va en campos del marco, después de los de D44.1 y en este orden:
     - `composite_reachable: dict[int, dict[int, Pattern]]`: por agente con algún compuesto alcanzable, sus `resource_id` y patrones. Lo calcula una sola vez el sistema de decisión, y de él salen la intención compuesta y el criterio de M2 (D25.3);
@@ -1154,6 +1154,7 @@ Surgen del refactor por sistemas (D44) y no cambian ninguna conducta: los hashes
     - El motor guarda `TickMetricsObserver` aparte, en `metrics_observer`, y lo notifica antes que los de `observers`; `step()` devuelve `frame.tick_metrics`, sin leer `history`. Si `metrics_observer` no produce el `TickMetrics`, `step()` falla antes de notificar a los demás observadores y de incrementar `next_tick`.
     - `EngineSystem` declara además `notifies_decisions: bool` (falso en la base `BaseSystem`): `step()` invoca `on_decisions` después del único sistema marcado, que hoy es el de decisión, y no reconoce ese sistema por su nombre (precisión 20). `build_systems` lanza `ValueError` si no hay exactamente un sistema marcado. El bloque de señales ($R_{41}$) puede partir la Fase 3 moviendo la marca.
 74. **Accesos a la memoria (D44.3).** La lista incluye también la herencia cultural vertical de $R_{14}$ en `_give_birth`, que ya leía la memoria del progenitor y la capacidad del hijo antes del refactor. El acceso de $R_{19}$ es el depósito estigmérgico del sistema de ejecución.
+75. **`num_regions <= grid_width` sólo con $R_{34}$ (modifica D52.2).** Se valida únicamente con `enable_heterogeneity=True`. Motivo: `num_regions` tiene un valor por defecto (3) que sólo tiene sentido con las franjas de $R_{34}$; validarlo siempre rechazaría configuraciones válidas de las Fases I y II con grillas de ancho menor que 3, y rompería la compatibilidad (bloque 8). Con la bandera apagada, `num_regions` es inerte.
 
 ---
 

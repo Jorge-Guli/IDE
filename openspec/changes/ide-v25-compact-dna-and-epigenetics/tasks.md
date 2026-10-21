@@ -169,15 +169,15 @@
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 8.1 **[RED]** Ampliar `tests/test_domain_contracts.py` con tests para:
+- [x] 8.1 **[RED]** Ampliar `tests/test_domain_contracts.py` con tests para:
   - `Behavior`, `VisibleAgent`, `SocialPerception`, `SensorySignals` y los miembros nuevos de `ActionType` (D47.1);
   - los campos nuevos de `ExpressedPhenotype` con sus valores por defecto (D46.7);
   - los campos de D52 con sus valores por defecto, la validación siempre activa y las dependencias inertes;
   - la eliminación de `lock_composite_threshold` (D52.4), retirando sus tests;
   - `EcologicalEnvironmentPort` (D47.2);
   - los tipos y campos de la ampliación: `EventSignals`, `BehaviorEvaluation`, los campos nuevos de `SensorySignals` y `ExpressedPhenotype` (`plasticity_rate`) y los de D62 y D63.1.
-- [ ] 8.2 **[GREEN]** Implementar los tipos, los campos y la validación en `types.py`, `config.py` y `ports.py`.
-- [ ] 8.3 **[REFACTOR]** Verificación del bloque.
+- [x] 8.2 **[GREEN]** Implementar los tipos, los campos y la validación en `types.py`, `config.py` y `ports.py`.
+- [x] 8.3 **[REFACTOR]** Verificación del bloque. (1041 tests, cobertura 99 %; `social` tipado como `SocialPerception`; precisión 75: `num_regions <= grid_width` sólo con R34 activa; los escenarios de `ToroidalGrid2D` como `EcologicalEnvironmentPort` quedan para el bloque 11.)
 
 ## 9. ADN conductual (`compact-dna`)
 

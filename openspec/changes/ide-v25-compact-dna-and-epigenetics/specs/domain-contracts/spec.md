@@ -95,11 +95,15 @@
 - **THEN** la construcción es válida.
 
 ### Requirement: Validación Siempre Activa de los Enteros de la Reformulación
-`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo, aunque las banderas estén apagadas, si `crowding_threshold`, `resource_regen_delay`, `num_regions`, `carcass_lifetime`, `activity_threshold` o `winter_regen_factor` son menores que 1, si `season_length` es negativo, o si `num_regions > grid_width` (design D52.2).
+`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo, aunque las banderas estén apagadas, si `crowding_threshold`, `resource_regen_delay`, `num_regions`, `carcass_lifetime`, `activity_threshold` o `winter_regen_factor` son menores que 1, si `season_length` es negativo, o, sólo con `enable_heterogeneity=True`, si `num_regions > grid_width` (design D52.2 y precisión 75).
 
 #### Scenario: Valores enteros inválidos
-- **WHEN** se construye `SimulationConfig(resource_regen_delay=0)`, `SimulationConfig(winter_regen_factor=0.5)`, `SimulationConfig(season_length=-1)` o `SimulationConfig(grid_width=8, num_regions=9)`
+- **WHEN** se construye `SimulationConfig(resource_regen_delay=0)`, `SimulationConfig(winter_regen_factor=0.5)`, `SimulationConfig(season_length=-1)` o `SimulationConfig(enable_heterogeneity=True, grid_width=8, num_regions=9)`
 - **THEN** cada construcción lanza `ValueError` cuyo mensaje nombra el campo.
+
+#### Scenario: Regiones sin heterogeneidad
+- **WHEN** se construye `SimulationConfig(grid_width=6, num_regions=7)` con `enable_heterogeneity=False`
+- **THEN** la construcción es válida, porque las regiones sólo se usan con $R_{34}$.
 
 ### Requirement: Campos de la Ampliación en SimulationConfig
 `SimulationConfig` SHALL incorporar al final, en este orden, `enable_internal_state: bool = False`, `enable_plasticity: bool = False`, `plasticity_rate_base: float = 0.0`, `enable_signals: bool = False`, `signal_cost: float = 0.002`, `world_shift_period: int = 0` (0 = sin cambios del entorno) y `world_shift_fraction: float = 0.5`, sin cambiar el valor por defecto `dna_max_length = 32` (design D62.1, D62.2 y D63.1).

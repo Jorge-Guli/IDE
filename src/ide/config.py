@@ -6,6 +6,9 @@ from typing import Any
 # Longitud del ADN fundador (D32): un codón por cada rasgo 0x00-0x08. `ide.agent.dna` reutiliza
 # este valor; vive aquí porque la configuración lo necesita y no puede importar del agente.
 FOUNDER_DNA_LENGTH = 9
+# Longitud del ADN fundador con la política genética (D46.5): los 9 codones de rasgo más los cuatro
+# codones conductuales neutros. `ide.agent.dna.founder_dna_length` debe coincidir con este valor.
+FOUNDER_DNA_LENGTH_GENETIC = FOUNDER_DNA_LENGTH + 4
 
 _TAU_POLICIES = ("validation", "evidence_age")
 _UPDATE_SCHEMES = ("synchronous", "asynchronous")
@@ -37,6 +40,14 @@ _UNIT_INTERVAL_FIELDS = (
     "spore_cost_fraction",
     "sos_high_fidelity_factor",
     "lock_coord_discount",
+    "comm_propensity_base",
+    "symbiotic_commitment_base",
+    "recombination_base",
+    "share_fraction",
+    "share_efficiency",
+    "predation_efficiency",
+    "plasticity_rate_base",
+    "world_shift_fraction",
 )
 _MIN_ONE_FIELDS = (
     "num_agents",
@@ -49,8 +60,12 @@ _MIN_ONE_FIELDS = (
     "crispr_eval_ticks",
     "crispr_memory_size",
     "sos_window",
-    "lock_composite_threshold",
     "telomere_min_lifespan",
+    "crowding_threshold",
+    "resource_regen_delay",
+    "num_regions",
+    "carcass_lifetime",
+    "activity_threshold",
 )
 _POSITIVE_FIELDS = (
     "initial_energy",
@@ -85,6 +100,11 @@ _NON_NEGATIVE_FIELDS = (
     "crispr_toxicity_threshold",
     "senescence_cost_rate",
     "spore_energy_threshold",
+    "attack_power",
+    "attack_cost",
+    "season_length",
+    "signal_cost",
+    "world_shift_period",
 )
 
 
@@ -213,8 +233,48 @@ class SimulationConfig:
     sos_high_fidelity_energy_ratio: float = 1.5
     # --- R31 ---
     enable_symbiotic_ratchet: bool = False
-    lock_composite_threshold: int = 3
-    lock_coord_discount: float = 0.5
+    lock_coord_discount: float = 0.5  # `lock_composite_threshold` se eliminó (D50.3 y D52.4)
+
+    # --- Fase II-B reformulada (D52) ---
+    # R32: conducta en el ADN
+    enable_genetic_policy: bool = False
+    comm_propensity_base: float = 1.0
+    crowding_threshold: int = 3
+    # R31 reformulada
+    symbiotic_commitment_base: float = 0.0
+    # R33 y R34
+    enable_resource_depletion: bool = False
+    resource_regen_delay: int = 20
+    enable_heterogeneity: bool = False
+    num_regions: int = 3
+    season_length: int = 0  # 0 = sin estaciones
+    winter_regen_factor: float = 3.0
+    # R35
+    enable_carcasses: bool = False
+    carcass_value: float = 0.6
+    carcass_lifetime: int = 50
+    # R36 y R37
+    enable_energy_transfer: bool = False
+    share_fraction: float = 0.25
+    share_efficiency: float = 0.9
+    enable_predation: bool = False
+    attack_power: float = 0.5
+    predation_efficiency: float = 0.6
+    attack_cost: float = 0.01
+    # R38
+    enable_recombination: bool = False
+    recombination_base: float = 0.0
+    # Telemetría de evolución abierta (D53): nacimientos portadores (precisión 43)
+    activity_threshold: int = 10
+
+    # --- Ampliación (D57-D63): estado interno, plasticidad, señales y entorno cambiante ---
+    enable_internal_state: bool = False  # R39
+    enable_plasticity: bool = False  # R40
+    plasticity_rate_base: float = 0.0
+    enable_signals: bool = False  # R41
+    signal_cost: float = 0.002
+    world_shift_period: int = 0  # 0 = sin cambios del entorno (D62.1)
+    world_shift_fraction: float = 0.5
 
     def __post_init__(self) -> None:
         if self.memory_capacity < 1:
@@ -339,8 +399,22 @@ class SimulationConfig:
                 f"telomere_base_lifespan ({self.telomere_base_lifespan}) <= "
                 f"telomere_max_lifespan ({self.telomere_max_lifespan}) no se cumple"
             )
+        self._validate_phase25_reformulation()
         if self.enable_compact_dna:
             self._validate_compact_dna()
+
+    def _validate_phase25_reformulation(self) -> None:
+        # Los rangos de D52.2 y D63.1 se validan siempre con las tuplas de `__post_init__`.
+        if not self.winter_regen_factor >= 1:  # `not >=` también rechaza NaN
+            raise ValueError(
+                f"winter_regen_factor debe ser >= 1, recibido {self.winter_regen_factor}"
+            )
+        if not 0.0 < self.carcass_value <= 1.0:  # `not` también rechaza NaN
+            raise ValueError(f"carcass_value debe estar en (0, 1], recibido {self.carcass_value}")
+        if self.enable_heterogeneity and self.num_regions > self.grid_width:
+            raise ValueError(
+                f"num_regions ({self.num_regions}) debe ser <= grid_width ({self.grid_width})"
+            )
 
     def _validate_compact_dna(self) -> None:
         if not self.enable_evolution:
@@ -353,6 +427,13 @@ class SimulationConfig:
         if self.comm_radius < 1:
             raise ValueError(
                 f"comm_radius debe ser >= 1 con enable_compact_dna, recibido {self.comm_radius}"
+            )
+        # R32 efectiva (precisión 31): el fundador conductual debe caber en las cotas (D46.5).
+        # `dna_min_length <= 13` ya lo garantiza la cota de D31 (`dna_min_length <= 9`).
+        if self.enable_genetic_policy and self.dna_max_length < FOUNDER_DNA_LENGTH_GENETIC:
+            raise ValueError(
+                f"dna_max_length ({self.dna_max_length}) debe ser >= "
+                f"{FOUNDER_DNA_LENGTH_GENETIC} con enable_genetic_policy"
             )
         if not 0.01 <= self.alpha_learning <= 1.0:
             raise ValueError(

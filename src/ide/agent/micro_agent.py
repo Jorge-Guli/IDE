@@ -37,6 +37,7 @@ from ide.domain.types import (
     Message,
     Observation,
     Pattern,
+    SocialPerception,
 )
 
 # Clave del caché de expresión (design D34.2): nivel acotado a 9, rol y banda de energía.
@@ -539,7 +540,7 @@ class MicroAgent:
         obs: Observation,
         tick: int,
         rng: np.random.Generator,
-        social: object | None = None,
+        social: SocialPerception | None = None,
     ) -> AgentAction:
         """Delega en la política del agente (design D45.3); `social` es opcional."""
         return self._policy.decide(self, obs, social, tick, rng)

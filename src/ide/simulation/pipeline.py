@@ -25,7 +25,14 @@ import numpy as np
 
 from ide.agent.holon import CompositeAgent
 from ide.config import SimulationConfig
-from ide.domain.types import ActionType, AgentAction, Message, Observation, Pattern
+from ide.domain.types import (
+    ActionType,
+    AgentAction,
+    Message,
+    Observation,
+    Pattern,
+    SocialPerception,
+)
 from ide.experiments.metrics import TickMetrics
 
 if TYPE_CHECKING:
@@ -45,8 +52,8 @@ class TickFrame:
     """Estado mutable de un tick (D44.1); no es una entidad de dominio.
 
     Los conjuntos (`moved`, `surplus`) se recorren siempre con `sorted(...)` (precisión 39).
-    `social` guardará la `SocialPerception` de cada agente (D47.3, bloque 10); hasta que ese tipo
-    exista (bloque 8) su tipo es provisional, `dict[int, object]`, y queda vacío (precisión 71).
+    `social` guarda la `SocialPerception` de cada agente (D47.3, bloque 10); hasta entonces queda
+    vacío (precisión 71, saldada en el bloque 8).
     `attacks` y `events` los llenan los sistemas de las interacciones y de la ecología (D49, D53);
     sin esas reglas quedan vacíos.
 
@@ -62,7 +69,7 @@ class TickFrame:
     order: list[int] = field(default_factory=list[int])
     reach: dict[int, list[int]] = field(default_factory=dict[int, list[int]])
     observations: dict[int, Observation] = field(default_factory=dict[int, Observation])
-    social: dict[int, object] = field(default_factory=dict[int, object])
+    social: dict[int, SocialPerception] = field(default_factory=dict[int, SocialPerception])
     emitted: list[Message] = field(default_factory=list[Message])
     responses: list[Message] = field(default_factory=list[Message])
     actions: dict[int, AgentAction] = field(default_factory=dict[int, AgentAction])

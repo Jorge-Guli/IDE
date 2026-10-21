@@ -524,6 +524,30 @@ def _rounded(value: Any) -> Any:
     return value
 
 
+class _LegacyPhenotype:
+    """Representa un `ExpressedPhenotype` con los cuatro campos que tenía al calcular las huellas.
+
+    D46.7 y D59.3 agregan cuatro campos con valores por defecto al fenotipo. Para conservar las
+    huellas calculadas con el motor previo sin recalcularlas, se proyecta sobre los campos
+    originales: los nuevos los cubren otros tests. Las huellas son una prueba de equivalencia
+    contra el motor previo, así que no se recalculan.
+    """
+
+    def __init__(self, phenotype: Any) -> None:
+        self._p = phenotype
+
+    def __repr__(self) -> str:
+        p = self._p
+        return (
+            f"ExpressedPhenotype(genome={p.genome!r}, lifespan={p.lifespan!r}, "
+            f"spore_threshold={p.spore_threshold!r}, expressed_codons={p.expressed_codons!r})"
+        )
+
+
+def _legacy_phenotype(phenotype: Any) -> Any:
+    return None if phenotype is None else _LegacyPhenotype(phenotype)
+
+
 def dna_digest(config: SimulationConfig, ticks: int = 100) -> str:
     """Historiales, posiciones, memorias, genomas, ADN, fenotipos, bosque y generadores.
 
@@ -541,7 +565,7 @@ def dna_digest(config: SimulationConfig, ticks: int = 100) -> str:
         [engine.agents[a].memory.all_units() for a in ids],
         [engine.agents[a].genome for a in ids],
         [engine.agents[a].dna for a in ids],
-        [engine.agents[a].phenotype for a in ids],
+        [_legacy_phenotype(engine.agents[a].phenotype) for a in ids],
         [
             (nid, node.holon_level, tuple(leaf.agent_id for leaf in node.leaf_agents))
             for nid, node in sorted(engine.root_nodes.items())

@@ -11,6 +11,7 @@ from ide.domain.types import (
     Observation,
     Pattern,
     StigmergicTrace,
+    VisibleAgent,
 )
 
 
@@ -84,3 +85,18 @@ class EvolutionaryEnvironmentPort(EnvironmentPort, Protocol):
     def get_cell_stigmergy(self, agent_id: int) -> tuple[StigmergicTrace, ...]: ...
 
     def get_active_stigmergy_cells(self) -> int: ...
+
+
+@runtime_checkable
+class EcologicalEnvironmentPort(EvolutionaryEnvironmentPort, Protocol):
+    """Sub-puerto de la Fase II-B: agentes visibles, cadáveres y conteo de recursos (D47.2)."""
+
+    def get_visible_agents(self, agent_id: int) -> tuple[VisibleAgent, ...]:
+        """Agentes dentro del radio de percepción, ordenados por `(distance, agent_id)`, sin él."""
+        ...
+
+    def deposit_carcass(self, agent_id: int, value: float, tick: int) -> None: ...
+
+    def get_resource_count(self) -> int:
+        """Todos los recursos presentes en el tablero, incluidos compuestos y cadáveres."""
+        ...

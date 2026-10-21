@@ -9,6 +9,7 @@ from ide.domain.types import (
     ActionType,
     AgentAction,
     Observation,
+    SocialPerception,
     VisibleResource,
 )
 
@@ -19,16 +20,14 @@ if TYPE_CHECKING:
 class PolicyPort(Protocol):
     """Componente intercambiable que decide la acción de un agente (design D45.1).
 
-    `social` es la percepción social del tick o `None`. Su tipo concreto
-    (`SocialPerception`) lo introduce el bloque 8; hasta entonces el puerto la trata como
-    opaca.
+    `social` es la `SocialPerception` del tick o `None` (design D47.1).
     """
 
     def decide(
         self,
         agent: "MicroAgent",
         obs: Observation,
-        social: object | None,
+        social: SocialPerception | None,
         tick: int,
         rng: np.random.Generator,
     ) -> AgentAction: ...
@@ -46,7 +45,7 @@ class HandwrittenPolicy:
         self,
         agent: "MicroAgent",
         obs: Observation,
-        social: object | None,
+        social: SocialPerception | None,
         tick: int,
         rng: np.random.Generator,
     ) -> AgentAction:

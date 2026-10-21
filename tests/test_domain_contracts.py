@@ -10,14 +10,22 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from ide.config import SimulationConfig
-from ide.domain.ports import EnvironmentPort, EvolutionaryEnvironmentPort
+from ide.domain.ports import (
+    EcologicalEnvironmentPort,
+    EnvironmentPort,
+    EvolutionaryEnvironmentPort,
+)
 from ide.domain.types import (
     ActionResult,
+    ActionType,
     AgentAction,
     AgentGenome,
+    Behavior,
+    BehaviorEvaluation,
     CompactDNA,
     EpigeneticContext,
     EpigeneticRole,
+    EventSignals,
     ExpressedPhenotype,
     HolonSnapshot,
     KnowledgeUnit,
@@ -26,7 +34,10 @@ from ide.domain.types import (
     Observation,
     Pattern,
     Resource,
+    SensorySignals,
+    SocialPerception,
     StigmergicTrace,
+    VisibleAgent,
     VisibleResource,
 )
 from ide.environments.grid2d import ToroidalGrid2D
@@ -573,6 +584,11 @@ def test_campos_de_los_tipos_de_fase_iib() -> None:
         "lifespan",
         "spore_threshold",
         "expressed_codons",
+        # Rasgos nuevos de D46.7 y D59.3, al final y con valores por defecto.
+        "symbiotic_commitment",
+        "recombination_propensity",
+        "comm_propensity",
+        "plasticity_rate",
     ]
 
 
@@ -625,7 +641,6 @@ def test_config_fase_iib_valores_por_defecto() -> None:
         "sos_hypermutation_factor": 4.0,
         "sos_high_fidelity_factor": 0.25,
         "sos_high_fidelity_energy_ratio": 1.5,
-        "lock_composite_threshold": 3,
         "lock_coord_discount": 0.5,
     }
     for name, value in expected.items():
@@ -668,12 +683,13 @@ def test_config_fase_iib_campos_al_final_en_orden() -> None:
         "sos_high_fidelity_factor",
         "sos_high_fidelity_energy_ratio",
         "enable_symbiotic_ratchet",
-        "lock_composite_threshold",
         "lock_coord_discount",
     ]
     names = [f.name for f in fields(SimulationConfig)]
-    assert names[-len(esperados) :] == esperados
-    assert names[-len(esperados) - 1] == "stigmergy_decay"
+    # Los campos de la reformulación y de la ampliación se agregan después (D52, D63).
+    inicio = names.index("enable_compact_dna")
+    assert names[inicio : inicio + len(esperados)] == esperados
+    assert names[inicio - 1] == "stigmergy_decay"
 
 
 @pytest.mark.parametrize(
@@ -706,7 +722,6 @@ def test_config_fase_iib_campos_al_final_en_orden() -> None:
         {"crispr_eval_ticks": 0},
         {"crispr_memory_size": 0},
         {"sos_window": 0},
-        {"lock_composite_threshold": 0},
         {"telomere_min_lifespan": 0},
         {"telomere_base_lifespan": 100},
         {"telomere_base_lifespan": 1300},
@@ -875,3 +890,392 @@ def test_compact_dna_rechaza_todo_codon_fuera_de_rango(
 def test_compact_dna_rechaza_repetidos_en_plasmidos_y_crispr(codon: int, where: str) -> None:
     with pytest.raises(ValueError, match=where):
         CompactDNA(chromosome=(1,), **{where: (codon, codon)})
+
+
+# --- Reformulación y ampliación de la Fase II-B (D46.7, D47, D52, D58-D63) ---------------------
+
+_REFORM_FLAGS = (
+    "enable_genetic_policy",
+    "enable_resource_depletion",
+    "enable_heterogeneity",
+    "enable_carcasses",
+    "enable_energy_transfer",
+    "enable_predation",
+    "enable_recombination",
+)
+
+_REFORM_DEFAULTS: dict[str, object] = {
+    "comm_propensity_base": 1.0,
+    "crowding_threshold": 3,
+    "symbiotic_commitment_base": 0.0,
+    "recombination_base": 0.0,
+    "activity_threshold": 10,
+    "resource_regen_delay": 20,
+    "num_regions": 3,
+    "season_length": 0,
+    "winter_regen_factor": 3.0,
+    "carcass_value": 0.6,
+    "carcass_lifetime": 50,
+    "share_fraction": 0.25,
+    "share_efficiency": 0.9,
+    "attack_power": 0.5,
+    "predation_efficiency": 0.6,
+    "attack_cost": 0.01,
+}
+
+_REFORM_FIELD_ORDER = [
+    "enable_genetic_policy",
+    "comm_propensity_base",
+    "crowding_threshold",
+    "symbiotic_commitment_base",
+    "enable_resource_depletion",
+    "resource_regen_delay",
+    "enable_heterogeneity",
+    "num_regions",
+    "season_length",
+    "winter_regen_factor",
+    "enable_carcasses",
+    "carcass_value",
+    "carcass_lifetime",
+    "enable_energy_transfer",
+    "share_fraction",
+    "share_efficiency",
+    "enable_predation",
+    "attack_power",
+    "predation_efficiency",
+    "attack_cost",
+    "enable_recombination",
+    "recombination_base",
+    "activity_threshold",
+]
+
+_AMPLIACION_FIELD_ORDER = [
+    "enable_internal_state",
+    "enable_plasticity",
+    "plasticity_rate_base",
+    "enable_signals",
+    "signal_cost",
+    "world_shift_period",
+    "world_shift_fraction",
+]
+
+
+def test_config_lock_composite_threshold_eliminado() -> None:
+    with pytest.raises(TypeError):
+        SimulationConfig(lock_composite_threshold=3)  # type: ignore[call-arg]
+    assert "lock_composite_threshold" not in SimulationConfig().to_dict()
+    assert "lock_composite_threshold" not in {f.name for f in fields(SimulationConfig)}
+
+
+def test_config_reformulacion_valores_por_defecto() -> None:
+    cfg = SimulationConfig()
+    for flag in _REFORM_FLAGS:
+        assert getattr(cfg, flag) is False, flag
+    for name, value in _REFORM_DEFAULTS.items():
+        assert getattr(cfg, name) == value, name
+    assert SimulationConfig(**json.loads(json.dumps(cfg.to_dict()))) == cfg
+
+
+def test_config_reformulacion_campos_al_final_en_orden() -> None:
+    names = [f.name for f in fields(SimulationConfig)]
+    inicio = names.index("enable_genetic_policy")
+    assert names[inicio - 1] == "lock_coord_discount"
+    assert names[inicio : inicio + len(_REFORM_FIELD_ORDER)] == _REFORM_FIELD_ORDER
+    assert names[inicio + len(_REFORM_FIELD_ORDER) :] == _AMPLIACION_FIELD_ORDER
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"share_efficiency": 1.1},
+        {"share_efficiency": -0.1},
+        {"share_fraction": 1.1},
+        {"predation_efficiency": 1.5},
+        {"comm_propensity_base": -0.1},
+        {"comm_propensity_base": 1.1},
+        {"symbiotic_commitment_base": 1.1},
+        {"recombination_base": -0.1},
+        {"carcass_value": 0.0},
+        {"carcass_value": 1.1},
+        {"attack_power": -0.1},
+        {"attack_cost": -0.01},
+        {"crowding_threshold": 0},
+        {"resource_regen_delay": 0},
+        {"num_regions": 0},
+        {"carcass_lifetime": 0},
+        {"activity_threshold": 0},
+        {"winter_regen_factor": 0.5},
+        {"season_length": -1},
+        {"enable_heterogeneity": True, "grid_width": 8, "num_regions": 9},
+    ],
+)
+def test_config_reformulacion_validacion_siempre_activa(overrides: dict[str, object]) -> None:
+    campo = "num_regions" if "num_regions" in overrides else next(iter(overrides))
+    with pytest.raises(ValueError, match=campo):
+        SimulationConfig(**overrides)  # type: ignore[arg-type]
+
+
+def test_config_reformulacion_acepta_bordes_y_nan_se_rechaza() -> None:
+    SimulationConfig(share_efficiency=1.0, predation_efficiency=1.0, carcass_value=1.0)
+    SimulationConfig(
+        comm_propensity_base=0.0,
+        attack_power=0.0,
+        attack_cost=0.0,
+        season_length=0,
+        winter_regen_factor=1.0,
+        grid_width=8,
+        num_regions=8,
+    )
+    with pytest.raises(ValueError, match="attack_power"):
+        SimulationConfig(attack_power=float("nan"))
+    with pytest.raises(ValueError, match="winter_regen_factor"):
+        SimulationConfig(winter_regen_factor=float("nan"))
+    # `num_regions > grid_width` sólo se valida con R34 (precisión 75).
+    SimulationConfig(grid_width=6, grid_height=6, num_regions=7)
+
+
+def test_config_reformulacion_dependencias_inertes() -> None:
+    SimulationConfig(enable_genetic_policy=True, enable_recombination=True, enable_carcasses=True)
+    SimulationConfig(
+        enable_evolution=True,
+        enable_compact_dna=True,
+        enable_energy_transfer=True,
+        enable_predation=True,
+        enable_sporulation=True,
+    )
+    SimulationConfig(enable_heterogeneity=True, season_length=500)
+    SimulationConfig(**{flag: True for flag in _REFORM_FLAGS})  # type: ignore[arg-type]
+
+
+def test_config_ampliacion_valores_y_orden() -> None:
+    cfg = SimulationConfig()
+    assert cfg.enable_internal_state is False
+    assert cfg.enable_plasticity is False
+    assert cfg.enable_signals is False
+    assert cfg.plasticity_rate_base == 0.0
+    assert cfg.signal_cost == 0.002
+    assert cfg.world_shift_period == 0
+    assert cfg.world_shift_fraction == 0.5
+    assert cfg.dna_max_length == 32
+    names = [f.name for f in fields(SimulationConfig)]
+    assert names[-7:] == _AMPLIACION_FIELD_ORDER
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"plasticity_rate_base": 1.1},
+        {"plasticity_rate_base": -0.1},
+        {"world_shift_fraction": -0.1},
+        {"world_shift_fraction": 1.1},
+        {"signal_cost": -0.001},
+        {"world_shift_period": -1},
+    ],
+)
+def test_config_ampliacion_validacion_siempre_activa(overrides: dict[str, object]) -> None:
+    with pytest.raises(ValueError, match=next(iter(overrides))):
+        SimulationConfig(**overrides)  # type: ignore[arg-type]
+
+
+def test_config_ampliacion_bordes_y_dependencias_inertes() -> None:
+    SimulationConfig(
+        plasticity_rate_base=1.0, world_shift_fraction=0.0, signal_cost=0.0, world_shift_period=0
+    )
+    SimulationConfig(enable_internal_state=True, enable_plasticity=True, enable_signals=True)
+    SimulationConfig(
+        enable_evolution=True,
+        enable_compact_dna=True,
+        enable_internal_state=True,
+        enable_signals=True,
+    )
+
+
+def test_config_politica_genetica_exige_cromosoma_para_el_fundador() -> None:
+    # Con política genética el fundador tiene 13 codones (D46.5, precisión 27).
+    base: dict[str, object] = {**_DNA_ON, "enable_genetic_policy": True}
+    with pytest.raises(ValueError, match="dna_max_length"):
+        SimulationConfig(**{**base, "dna_max_length": 12})  # type: ignore[arg-type]
+    SimulationConfig(**{**base, "dna_max_length": 13})  # type: ignore[arg-type]
+    SimulationConfig(**{**base, "dna_min_length": 9, "dna_max_length": 13})  # type: ignore[arg-type]
+    # `dna_min_length <= 13` ya lo garantiza el tope de 9 de la validación de la Fase II-B.
+    # Sin política genética, o sin ADN, la misma cota es válida (el fundador tiene 9 codones).
+    SimulationConfig(**{**_DNA_ON, "dna_max_length": 12})  # type: ignore[arg-type]
+    SimulationConfig(enable_genetic_policy=True, dna_max_length=12)
+
+
+def test_expressed_phenotype_campos_nuevos_con_defaults_y_orden() -> None:
+    phen = ExpressedPhenotype(AgentGenome(), 600, 0.30, 9)
+    assert phen.symbiotic_commitment == 0.0
+    assert phen.recombination_propensity == 0.0
+    assert phen.comm_propensity == 1.0
+    assert phen.plasticity_rate == 0.0
+    assert [f.name for f in fields(ExpressedPhenotype)] == [
+        "genome",
+        "lifespan",
+        "spore_threshold",
+        "expressed_codons",
+        "symbiotic_commitment",
+        "recombination_propensity",
+        "comm_propensity",
+        "plasticity_rate",
+    ]
+    with pytest.raises(FrozenInstanceError):
+        phen.plasticity_rate = 0.5  # type: ignore[misc]
+
+
+def test_behavior_miembros_orden_y_valores() -> None:
+    assert list(Behavior) == [
+        Behavior.CONSUME,
+        Behavior.EXPLORE,
+        Behavior.NAVIGATE,
+        Behavior.WANDER,
+        Behavior.SHARE,
+        Behavior.ATTACK,
+        Behavior.FLEE,
+        Behavior.SPORULATE,
+    ]
+    assert all(m.value == m.name for m in Behavior)
+    assert Behavior.FLEE.value == "FLEE"
+
+
+def test_visible_agent_sin_coordenadas_e_inmutable() -> None:
+    va = VisibleAgent(4, 1, (1, 0), (-1, 0))
+    assert {f.name for f in fields(VisibleAgent)} == {
+        "agent_id",
+        "distance",
+        "recommended_move",
+        "flee_move",
+    }
+    with pytest.raises(FrozenInstanceError):
+        va.distance = 2  # type: ignore[misc]
+
+
+def test_social_perception_por_defecto_vacia_e_inmutable() -> None:
+    sp = SocialPerception()
+    assert sp.adjacent == ()
+    assert sp.weakest_adjacent is None
+    assert sp.weaker_adjacent is False
+    assert sp.flee_move is None
+    assert sp.crowded is False
+    assert sp.carcass_visible is False
+    assert [f.name for f in fields(SocialPerception)] == [
+        "adjacent",
+        "weakest_adjacent",
+        "weaker_adjacent",
+        "flee_move",
+        "crowded",
+        "carcass_visible",
+    ]
+    with pytest.raises(FrozenInstanceError):
+        sp.crowded = True  # type: ignore[misc]
+
+
+_SIGNAL_FIELDS = [
+    "known_good",
+    "unknown",
+    "no_resource",
+    "neighbor_adjacent",
+    "weaker_adjacent",
+    "stronger_near",
+    "crowded",
+    "carcass",
+    "attacked",
+    "ate",
+    "lost_energy",
+    "received_energy",
+]
+
+
+def test_sensory_signals_campos_orden_y_hashable() -> None:
+    assert [f.name for f in fields(SensorySignals)] == _SIGNAL_FIELDS
+    todas = SensorySignals(*([False] * 12))
+    otra = SensorySignals(*([True] * 12))
+    cache = {todas: 1, otra: 2}
+    assert cache[SensorySignals(*([False] * 12))] == 1
+    assert all(f.type is bool or f.type == "bool" for f in fields(SensorySignals))
+    with pytest.raises(FrozenInstanceError):
+        todas.ate = True  # type: ignore[misc]
+
+
+def test_event_signals_por_defecto_e_inmutable() -> None:
+    ev = EventSignals()
+    assert [f.name for f in fields(EventSignals)] == [
+        "attacked",
+        "ate",
+        "lost_energy",
+        "received_energy",
+    ]
+    assert not any(getattr(ev, f.name) for f in fields(EventSignals))
+    assert EventSignals(ate=True).ate is True
+    with pytest.raises(FrozenInstanceError):
+        ev.ate = True  # type: ignore[misc]
+
+
+def test_behavior_evaluation_campos_orden_e_inmutable() -> None:
+    be = BehaviorEvaluation((0.0,) * 8, 0, 0, 0, ((),) * 8)
+    assert [f.name for f in fields(BehaviorEvaluation)] == [
+        "drives",
+        "set_mask",
+        "clear_mask",
+        "emitted",
+        "plastic",
+    ]
+    assert len(be.drives) == len(Behavior)
+    with pytest.raises(FrozenInstanceError):
+        be.emitted = 1  # type: ignore[misc]
+
+
+def test_action_type_acciones_de_interaccion() -> None:
+    assert AgentAction(ActionType.SHARE, 4).target == 4
+    assert AgentAction(ActionType.ATTACK, 4).target == 4
+    assert AgentAction(ActionType.SPORULATE).target is None
+    assert ActionType.SPORULATE.value == "SPORULATE"
+    assert ActionType.SHARE.value == "SHARE"
+    assert ActionType.ATTACK.value == "ATTACK"
+    assert {a.name for a in ActionType} >= {"MOVE", "INTERACT", "IDLE"}
+    assert [a.name for a in ActionType][:3] == ["MOVE", "INTERACT", "IDLE"]
+
+
+_METODOS_ECOLOGICOS = {"get_visible_agents", "deposit_carcass", "get_resource_count"}
+
+
+def test_ecological_environment_port_declara_solo_los_tres_metodos_nuevos() -> None:
+    def metodos(port: type) -> set[str]:
+        return {n for n in vars(port) if not n.startswith("_")}
+
+    assert issubclass(EcologicalEnvironmentPort, EvolutionaryEnvironmentPort)
+    assert metodos(EcologicalEnvironmentPort) == _METODOS_ECOLOGICOS
+    # Los puertos anteriores conservan exactamente los métodos de la Fase II.
+    assert metodos(EnvironmentPort) == set(METODOS_PUERTO)
+    assert metodos(EvolutionaryEnvironmentPort) == {
+        "spawn_agent_near",
+        "set_agent_radii",
+        "get_agent_distance",
+        "get_composite_rules",
+        "deposit_stigmergy",
+        "get_cell_stigmergy",
+        "get_active_stigmergy_cells",
+    }
+
+
+def test_ecological_environment_port_es_runtime_checkable() -> None:
+    todos = {
+        n
+        for port in (EnvironmentPort, EvolutionaryEnvironmentPort, EcologicalEnvironmentPort)
+        for n in vars(port)
+        if not n.startswith("_")
+    }
+
+    class Completo:
+        pass
+
+    class SinEcologia:
+        pass
+
+    for nombre in todos:
+        setattr(Completo, nombre, lambda self, *a, **k: None)
+        if nombre not in _METODOS_ECOLOGICOS:
+            setattr(SinEcologia, nombre, lambda self, *a, **k: None)
+    assert isinstance(Completo(), EcologicalEnvironmentPort)
+    assert not isinstance(SinEcologia(), EcologicalEnvironmentPort)
+    assert not isinstance(object(), EcologicalEnvironmentPort)

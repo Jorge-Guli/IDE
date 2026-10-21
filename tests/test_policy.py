@@ -18,6 +18,7 @@ from ide.domain.types import (
     KnowledgeUnit,
     Observation,
     Pattern,
+    SocialPerception,
     VisibleResource,
 )
 
@@ -112,7 +113,8 @@ def test_politica_de_prueba_conforme_al_puerto() -> None:
 def test_delegacion_con_y_sin_social() -> None:
     policy = RecordingPolicy()
     a = MicroAgent(1, CFG, policy=policy)
-    o, g, social = an_obs(), rng(), object()
+    o, g = an_obs(), rng()
+    social = SocialPerception(adjacent=(2, 3), weakest_adjacent=2, weaker_adjacent=True)
     a.decide_action(o, 5, g)
     a.decide_action(o, 6, g, social)
     assert policy.calls[0] == (a, o, None, 5, g)
@@ -177,7 +179,7 @@ def test_handwritten_igual_a_la_fase_i(
     a = MicroAgent(1, replace(CFG, enable_navigation=navigate))
     for i, value, conf in beliefs:
         a.assimilate_testimony(KnowledgeUnit(pat(i), value, conf, 1, 0, True), 2, 0)
-    social = object() if with_social else None
+    social = SocialPerception(adjacent=(2,), crowded=True) if with_social else None
     g1, g2, g3 = rng(seed), rng(seed), rng(seed)
     expected = legacy_decide(a, o, g1)
     assert HandwrittenPolicy().decide(a, o, social, 0, g2) == expected

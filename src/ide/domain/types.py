@@ -87,12 +87,15 @@ class ActionType(Enum):
     MOVE = "MOVE"
     INTERACT = "INTERACT"
     IDLE = "IDLE"
+    SHARE = "SHARE"  # Fase II-B (R36, D47.1)
+    ATTACK = "ATTACK"  # Fase II-B (R37, D47.1)
+    SPORULATE = "SPORULATE"  # Fase II-B (R28, D47.1)
 
 
 @dataclass(frozen=True)
 class AgentAction:
     action_type: ActionType
-    target: Any = None  # movimiento si MOVE, resource_id si INTERACT
+    target: Any = None  # movimiento si MOVE, resource_id si INTERACT, agent_id si SHARE o ATTACK
 
 
 @dataclass(frozen=True)
@@ -198,3 +201,87 @@ class ExpressedPhenotype:
     lifespan: int  # T_max expresada (R29)
     spore_threshold: float  # E_espora expresada (R28)
     expressed_codons: int  # codones que modulan un rasgo en este contexto (telemetría)
+    # Rasgos de la reformulación y de la ampliación (D46.7, D59.3): los valores por defecto son las
+    # bases por defecto de `SimulationConfig`. El bloque 9 los transcribe; hasta entonces el agente
+    # recibe el valor por defecto del tipo.
+    symbiotic_commitment: float = 0.0  # R31
+    recombination_propensity: float = 0.0  # R38
+    comm_propensity: float = 1.0  # R32
+    plasticity_rate: float = 0.0  # R40
+
+
+class Behavior(Enum):
+    """Conducta que el ADN puede activar (R32, D46.1). El orden es el de desempate."""
+
+    CONSUME = "CONSUME"
+    EXPLORE = "EXPLORE"
+    NAVIGATE = "NAVIGATE"
+    WANDER = "WANDER"
+    SHARE = "SHARE"
+    ATTACK = "ATTACK"
+    FLEE = "FLEE"
+    SPORULATE = "SPORULATE"
+
+
+@dataclass(frozen=True)
+class VisibleAgent:
+    """Proyección de un agente que percibe el observador, sin coordenadas (D47.1)."""
+
+    agent_id: int
+    distance: int  # Chebyshev toroidal
+    recommended_move: Any  # hacia el agente; None si distance == 0
+    flee_move: Any  # movimiento de Moore que maximiza la distancia (desempate por MOORE_MOVES)
+
+
+@dataclass(frozen=True)
+class SocialPerception:
+    """Percepción social de un agente en un tick (D47.1 y D47.3)."""
+
+    adjacent: tuple[int, ...] = ()  # agentes activos a distancia <= 1, ascendentes
+    weakest_adjacent: int | None = None  # de `adjacent`, el de menor (energía, agent_id)
+    weaker_adjacent: bool = False  # su energía es menor que la propia
+    flee_move: Any = None  # huida del más cercano con más energía que la propia
+    crowded: bool = False  # agentes activos visibles >= crowding_threshold
+    carcass_visible: bool = False  # algún recurso visible es un cadáver (R35)
+
+
+@dataclass(frozen=True)
+class SensorySignals:
+    """Señales que leen los promotores `0x20`-`0x2B` de la evaluación de conducta (D46.2, D60.1).
+
+    Los cuatro últimos campos son los eventos del tick anterior (`EventSignals`, D58.5).
+    """
+
+    known_good: bool
+    unknown: bool
+    no_resource: bool
+    neighbor_adjacent: bool
+    weaker_adjacent: bool
+    stronger_near: bool
+    crowded: bool
+    carcass: bool
+    attacked: bool
+    ate: bool
+    lost_energy: bool
+    received_energy: bool
+
+
+@dataclass(frozen=True)
+class EventSignals:
+    """Eventos del tick anterior de un agente, que leen los promotores `0x28`-`0x2B` (D58.5)."""
+
+    attacked: bool = False  # fue objetivo de un ataque con éxito y `stolen > 0`
+    ate: bool = False  # consumió un recurso con valor experimentado positivo
+    lost_energy: bool = False  # su energía al final del tick fue menor que al principio
+    received_energy: bool = False  # fue objetivo de un `SHARE` que lo alcanzó
+
+
+@dataclass(frozen=True)
+class BehaviorEvaluation:
+    """Resultado de `evaluate_behavior` (D60.1): impulsos, estado interno, señales y plasticidad."""
+
+    drives: tuple[float, ...]  # uno por `Behavior`, en el orden del enumerado
+    set_mask: int  # bits de `internal_state` a encender (D58.3)
+    clear_mask: int  # bits de `internal_state` a apagar (D58.3)
+    emitted: int  # máscara de símbolos emitidos (D60.3)
+    plastic: tuple[tuple[int, ...], ...]  # codones plásticos activos por conducta (D59.4)
