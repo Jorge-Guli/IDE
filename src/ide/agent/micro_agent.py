@@ -481,10 +481,18 @@ class MicroAgent:
         """`evaluate_behavior` de la decisión de `tick`, registrada para el motor (D58.3).
 
         La invoca la política genética al decidir. La decisión usa el estado anterior; el motor
-        aplica el estado siguiente al terminar la Fase 3 con `apply_internal_state`.
+        aplica el estado siguiente al terminar la Fase 3 con `apply_internal_state`. Una
+        endospora no registra nada: conserva su estado (D58.1), aunque hasta el bloque 17 todavía
+        decida (precisión 82).
+
+        Raises:
+            RuntimeError: si ya hay una decisión registrada en `tick`: se decide una vez por tick.
         """
+        if self._decision is not None and self._decision[0] == tick:
+            raise RuntimeError(f"el agente {self._agent_id} ya decidió en el tick {tick}")
         evaluation = self.evaluate_behavior(signals)
-        self._decision = (tick, evaluation)
+        if not self._is_endospore:
+            self._decision = (tick, evaluation)
         return evaluation
 
     def apply_internal_state(self, tick: int) -> None:

@@ -440,9 +440,9 @@ class InternalStateSystem(BaseSystem):
     decisión del tick (`MicroAgent.apply_internal_state`), `(internal_state | set_mask) &
     ~clear_mask`, después de la decisión y de `on_decisions`: la decisión del tick usó el estado
     anterior, y la evaluación del tick siguiente lee el nuevo. Un agente que no decidió con la
-    política genética conserva su estado, y una endospora también: el estado se conserva en
-    endospora (D58.1). Sólo está en la lista con $R_{39}$ efectivamente activa; no consume
-    generadores ni depende del orden.
+    política genética conserva su estado, y una endospora también, porque no registra su
+    decisión: el estado se conserva en endospora (D58.1). Sólo está en la lista con $R_{39}$
+    efectivamente activa; no consume generadores ni depende del orden.
     """
 
     name = "internal_state"
@@ -450,9 +450,7 @@ class InternalStateSystem(BaseSystem):
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, tick = engine.agents, frame.tick
         for aid in sorted(frame.actions):
-            agent = agents[aid]
-            if not agent.is_endospore:
-                agent.apply_internal_state(tick)
+            agents[aid].apply_internal_state(tick)
 
 
 # --- Fase 4 --------------------------------------------------------------------------------------

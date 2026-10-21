@@ -29,7 +29,7 @@ from ide.agent.holon import (
 )
 from ide.agent.micro_agent import MicroAgent
 from ide.agent.policy import GeneticPolicy
-from ide.config import SimulationConfig
+from ide.config import SimulationConfig, genetic_policy_active
 from ide.domain.extensions import CompositeRule, TrustStrategyPort
 from ide.domain.ports import (
     EcologicalEnvironmentPort,
@@ -64,7 +64,6 @@ from ide.simulation.pipeline import (
     build_systems,
     carcasses_active,
     energy_transfer_active,
-    genetic_policy_active,
     predation_active,
 )
 

@@ -260,7 +260,7 @@
   - (b) el rasgo `plasticity_rate` (`0x0F`) con base 0 (D59.3);
   - (c) la recompensa de la Fase 4, los codones elegibles y la actualización acotada (D59.4);
   - (d) `plastic_weights` vacío al nacer, no heredado y vaciado en `set_dna` (D59.2);
-  - (e) el caché de impulsos con pesos igual a la evaluación directa (D59.5);
+  - (e) el caché único de la evaluación (precisión 88), extendido con los pesos, igual a la evaluación directa (D59.5);
   - (f) la inercia sin $R_{40}$.
 - [ ] 14.2 **[GREEN]** Implementar D59.
 - [ ] 14.3 **[REFACTOR]** Verificación del bloque.

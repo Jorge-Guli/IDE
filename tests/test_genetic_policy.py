@@ -102,10 +102,15 @@ def obs(
 
 
 def decide_twin(
-    agent: MicroAgent, o: Observation, social: SocialPerception | None = None, seed: int = 3
+    agent: MicroAgent,
+    o: Observation,
+    social: SocialPerception | None = None,
+    seed: int = 3,
+    tick: int = 0,
 ) -> tuple[AgentAction, np.random.Generator]:
+    """Decide en `tick`; un agente decide una sola vez por tick (precisión 88)."""
     g = rng(seed)
-    return GeneticPolicy().decide(agent, o, social, 0, g), g
+    return GeneticPolicy().decide(agent, o, social, tick, g), g
 
 
 # --- (a) GeneticPolicy.decide ------------------------------------------------------------------
@@ -200,7 +205,7 @@ def test_esporulacion_por_debajo_del_umbral_expresado() -> None:
     assert agent.energy == agent.phenotype.spore_threshold
     assert decide_twin(agent, obs())[0] == AgentAction(ActionType.SPORULATE)
     agent.apply_energy_delta(0.1)
-    assert decide_twin(agent, obs())[0] == IDLE
+    assert decide_twin(agent, obs(), tick=1)[0] == IDLE
 
 
 def test_esporulacion_sin_r28_no_es_factible() -> None:
@@ -215,7 +220,7 @@ def test_donante_sin_energia() -> None:
     assert decide_twin(agent, obs(), social)[0] == AgentAction(ActionType.SHARE, 3)
     agent.apply_energy_delta(-agent.energy)
     assert agent.energy == 0.0
-    assert decide_twin(agent, obs(), social)[0] == IDLE
+    assert decide_twin(agent, obs(), social, tick=1)[0] == IDLE
 
 
 def test_huida() -> None:

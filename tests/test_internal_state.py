@@ -332,6 +332,51 @@ def test_la_consulta_no_tiene_efectos_laterales() -> None:
     assert agent.internal_state == 0
 
 
+def test_una_sola_decision_por_tick() -> None:
+    agent = agent_with(encode_codon(0x00, SET_STATE, 0, 2))
+    agent.evaluate_for_decision(signals(), 7)
+    with pytest.raises(RuntimeError):
+        agent.evaluate_for_decision(signals(), 7)
+    agent.evaluate_for_decision(signals(), 8)  # otro tick: se registra
+    assert agent.decision_evaluation(8) is not None
+
+
+def test_la_endospora_no_registra_su_decision() -> None:
+    agent = agent_with(encode_codon(0x00, CLEAR_STATE, 0, 0))
+    set_state(agent, 0b1)
+    agent.set_endospore(True)
+    evaluation = agent.evaluate_for_decision(signals(), 3)
+    assert evaluation.clear_mask == 0b1  # la evaluación se calcula igual
+    assert agent.decision_evaluation(3) is None
+    agent.apply_internal_state(3)
+    assert agent.internal_state == 0b1
+    agent.evaluate_for_decision(signals(), 3)  # sin registro, no cuenta como decisión repetida
+
+
+def test_cache_con_estado_distinto() -> None:
+    codons = (
+        encode_codon(0x30, WANDER, 0, 0, 64),
+        encode_codon(0x31, SET_STATE, 0, 2),
+        encode_codon(0x30, CLEAR_STATE, 0, 0),
+        encode_codon(0x32, FLEE, 0, 0, 32),
+    )
+    agent = agent_with(*codons)
+    assert agent.dna is not None
+    for state in (0b000, 0b001, 0b010, 0b011, 0b100, 0b111, 0b001, 0b000):
+        set_state(agent, state)
+        expected = evaluate_behavior(agent.dna, agent.last_context, signals(), R39, state=state)
+        assert agent.evaluate_behavior(signals()) == expected
+    set_state(agent, 0b011)
+    evaluation = agent.evaluate_behavior(signals())
+    assert evaluation.set_mask == 0b100 and evaluation.clear_mask == 0b1
+    assert evaluation.drives[3] == pytest.approx(0.5, abs=1e-9) and evaluation.drives[6] == 0.0
+    set_state(agent, 0b100)
+    evaluation = agent.evaluate_behavior(signals())
+    assert evaluation.set_mask == 0 and evaluation.clear_mask == 0
+    assert evaluation.drives[3] == 0.0
+    assert evaluation.drives[6] == pytest.approx(0.25, abs=1e-9)
+
+
 def test_set_dna_descarta_la_decision_registrada() -> None:
     agent = agent_with(encode_codon(0x00, SET_STATE, 0, 2))
     agent.evaluate_for_decision(signals(), 7)
@@ -458,7 +503,7 @@ def test_la_politica_decide_con_los_eventos() -> None:
     g = np.random.Generator(np.random.PCG64(3))
     assert agent.decide_action(observation(), 0, g) == IDLE
     agent.set_last_events(EventSignals(received_energy=True))
-    assert agent.decide_action(observation(), 0, g).action_type is ActionType.MOVE
+    assert agent.decide_action(observation(), 1, g).action_type is ActionType.MOVE
 
 
 def test_la_politica_decide_con_el_estado_anterior() -> None:
@@ -495,7 +540,7 @@ def test_cache_de_la_evaluacion_igual_a_la_directa(steps: list[tuple[Any, ...]])
     )
     second = (encode_codon(0x31, CONSUME, 0, 0, 64), encode_codon(0x29, SET_STATE, 0, 0))
     agent = agent_with(*first)
-    for sig, state, context, swap in steps:
+    for tick, (sig, state, context, swap) in enumerate(steps):
         if swap:
             agent.set_dna(CompactDNA(chromosome=FOUNDER_TRAITS + second))
         agent.express(context, 0)
@@ -506,8 +551,8 @@ def test_cache_de_la_evaluacion_igual_a_la_directa(steps: list[tuple[Any, ...]])
         )
         assert agent.evaluate_behavior(sig) == expected
         assert agent.evaluate_behavior(sig) == expected  # segunda lectura, desde el caché
-        assert agent.evaluate_for_decision(sig, 0) == expected
-        assert agent.decision_evaluation(0) == expected
+        assert agent.evaluate_for_decision(sig, tick) == expected
+        assert agent.decision_evaluation(tick) == expected
 
 
 # --- (e) ciclo de vida de internal_state y last_events (D58.1, D58.5) --------------------------
@@ -719,9 +764,9 @@ def test_la_endospora_conserva_su_estado() -> None:
         set_state(engine.agents[aid], 0b1)
     spore, active = engine.agents[2], engine.agents[3]
     spore.set_endospore(True)
+    assert spore.evaluate_behavior(signals()).clear_mask == 0b1  # su ADN borraría el bit 0
     engine.step()
-    decision = spore.decision_evaluation(0)
-    assert decision is not None and decision.clear_mask == 0b1  # su ADN borraría el bit 0
+    assert spore.decision_evaluation(0) is None  # decidió, pero no registró la decisión
     assert spore.is_endospore and spore.internal_state == 0b1
     assert active.internal_state == 0
 
@@ -744,7 +789,9 @@ def test_sin_r39_el_estado_queda_en_cero() -> None:
     assert all(agent.internal_state == 0 for agent in engine.agents.values())
     for agent in engine.agents.values():
         decision = agent.decision_evaluation(4)
-        assert decision is not None and decision.set_mask == 0
+        if agent.birth_tick < 4:  # un nacido en el tick 4 no decidió en él
+            assert decision is not None
+        assert decision is None or decision.set_mask == 0
 
 
 def interacting(
