@@ -32,7 +32,7 @@
 >
 > **Pre-registro.** Es design D56, **aprobado** el 2026-10-21 en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
-> **Etapa actual:** las etapas A y R están completas y el pre-registro D56 aprobado. Sigue la etapa B.
+> **Etapa actual:** las etapas A, R y B están completas y el pre-registro D56 aprobado. Sigue la etapa L.
 
 ## 0. Decisiones y pre-registro
 
@@ -228,14 +228,14 @@
 >
 > Punto de control: fin de la etapa B. Mostrar la aceptación de D46.5, que cada ablación de $R_{32}$–$R_{37}$ deja su regla inerte y que los historiales son iguales entre procesos con distinto `PYTHONHASHSEED`.
 
-- [ ] 12.1 **[RED]** Tests para:
+- [x] 12.1 **[RED]** Tests para:
   - (a) `SHARE`: cantidad, eficiencia, objetivo muerto o en endospora (D49.1);
   - (b) `ATTACK`: éxito sólo contra un objetivo más débil en el momento de ejecutarse, robo acotado, eficiencia, costo por intento y muerte con cadáver (D49.2);
   - (c) conflictos resueltos por la permutación del tick;
   - (d) que M2 juzga la decisión cualquiera sea la conducta elegida (D49.4 y precisión 21);
   - (e) los eventos del tick en `frame.events`.
-- [ ] 12.2 **[GREEN]** Implementar D49 en el sistema de la Fase 4 y el costo de los ataques en el metabolismo.
-- [ ] 12.3 **[REFACTOR]** Verificación del bloque.
+- [x] 12.2 **[GREEN]** Implementar D49 en el sistema de la Fase 4 y el costo de los ataques en el metabolismo.
+- [x] 12.3 **[REFACTOR]** Verificación del bloque. (1309 tests, cobertura 99 %; conservación de energía por propiedades; `shares` cuenta las cesiones que transfieren energía y `predation_deaths` exige energía robada mayor que 0, precisiones 37, 84 y 85. Punto de control de la etapa B: aceptación de D46.5 en `002a` y `003a`, ablaciones de R32–R37 inertes y historiales iguales con `PYTHONHASHSEED` 0 y 123, cubiertos por `test_genetic_policy.py`, `test_ecology.py` y `test_interactions.py`.)
 
 ## 13. Estado interno persistente y eventos (R39) (`compact-dna`, `micro-agent`, `simulation-engine`)
 

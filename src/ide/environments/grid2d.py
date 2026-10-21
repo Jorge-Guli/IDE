@@ -21,6 +21,7 @@ from ide.domain.types import (
     StigmergicTrace,
     VisibleAgent,
     VisibleResource,
+    integer_id,
 )
 
 Cell = tuple[int, int]
@@ -273,9 +274,8 @@ class ToroidalGrid2D:
 
     def _interact(self, agent_id: int, resource_id: object, tick: int) -> ActionResult:
         cell = self._agent_cell[agent_id]
-        resource = None
-        if isinstance(resource_id, int | np.integer) and not isinstance(resource_id, bool):
-            resource = self.cell_resources[cell].get(cast(int, resource_id))
+        rid = integer_id(resource_id)
+        resource = None if rid is None else self.cell_resources[cell].get(rid)
         if resource is None:
             return ActionResult(ActionType.INTERACT, None, None)
         carcass = resource.resource_id in self._carcasses  # antes de quitarlo del registro

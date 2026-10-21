@@ -279,7 +279,7 @@ Las decisiones del tick SHALL ser las de las hojas vivas que no estaban en endos
 - **THEN** el tick tiene 10 decisiones.
 
 ### Requirement: Semántica de los Campos Ecológicos
-`share_rate` SHALL ser `shares` dividido por las decisiones del tick (0.0 sin decisiones); `behavior_counts` SHALL ser una tupla con las decisiones de cada `Behavior` del tick, en el orden de la tabla de design D46; y `predation_deaths` SHALL contar las muertes del tick de agentes atacados con éxito en ese tick.
+`share_rate` SHALL ser `shares` dividido por las decisiones del tick (0.0 sin decisiones); `behavior_counts` SHALL ser una tupla con las decisiones de cada `Behavior` del tick, en el orden de la tabla de design D46; y `predation_deaths` SHALL contar las muertes del tick de agentes atacados con éxito con energía robada mayor que 0 en ese tick (precisión 37).
 
 #### Scenario: Tasa de transferencia
 - **WHEN** en un tick hay 40 decisiones y 2 transferencias `SHARE` ejecutadas
@@ -288,6 +288,10 @@ Las decisiones del tick SHALL ser las de las hojas vivas que no estaban en endos
 #### Scenario: Sin decisiones
 - **WHEN** en un tick no decide ninguna hoja
 - **THEN** `share_rate == 0.0`.
+
+#### Scenario: Ataque con éxito sin energía robada
+- **WHEN** un agente con energía 0.0 es atacado con éxito con `stolen = 0` y muere en el paso de muerte de ese tick
+- **THEN** su muerte cuenta en `starvation_deaths` y no en `predation_deaths`.
 
 #### Scenario: Conteo de conductas
 - **WHEN** en un tick se decide `CONSUME` 3 veces y `WANDER` 1 vez con la política genética

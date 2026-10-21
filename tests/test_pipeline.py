@@ -147,6 +147,8 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
         "correct_decisions",
         "world_patterns",
         "tick_metrics",
+        # Objetivos de un ataque con éxito del tick (R37, precisión 84).
+        "predated",
     ]
     frame = TickFrame(7)
     assert frame.tick == 7
@@ -155,6 +157,7 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
     assert frame.decision_opportunities == frame.correct_decisions == 0
     assert frame.composite_reachable == {} and frame.world_patterns == {}
     assert frame.tick_metrics is None
+    assert frame.predated == set()
     assert sum(frame.events.values()) == 0
     frame.births += 1  # estado mutable de un tick, no una entidad de dominio
     assert frame.births == 1

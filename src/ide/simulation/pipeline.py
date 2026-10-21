@@ -34,10 +34,12 @@ from ide.domain.types import (
     Observation,
     Pattern,
     SocialPerception,
+    integer_id,
 )
 from ide.experiments.metrics import TickMetrics
 
 if TYPE_CHECKING:
+    from ide.agent.micro_agent import MicroAgent
     from ide.simulation.engine import SimulationEngine
 
 # Contexto de una resolución compuesta, fijado al empezar la Fase 4 (D27):
@@ -66,6 +68,9 @@ class TickFrame:
     `correct_decisions` (M2), `TickMetricsObserver` en `on_decisions`; `world_patterns`, `step()`
     una sola vez, al terminar los sistemas; y `tick_metrics`, `TickMetricsObserver` en
     `on_tick_end`.
+
+    Al final, `predated`: los objetivos de un ataque con éxito y `stolen > 0` del tick
+    ($R_{37}$), que escribe la ejecución y lee el paso de muerte (precisiones 37 y 84).
     """
 
     tick: int
@@ -94,6 +99,7 @@ class TickFrame:
     correct_decisions: int = 0
     world_patterns: dict[Pattern, float] = field(default_factory=dict[Pattern, float])
     tick_metrics: TickMetrics | None = None
+    predated: set[int] = field(default_factory=set[int])
 
 
 @runtime_checkable
@@ -145,6 +151,27 @@ def genetic_policy_active(config: SimulationConfig) -> bool:
     comunicación no actúa y la política es la escrita a mano.
     """
     return config.enable_compact_dna and config.enable_genetic_policy
+
+
+def energy_transfer_active(config: SimulationConfig) -> bool:
+    """R36 efectivamente activa: `enable_energy_transfer` con R32 efectiva (D52.3, precisión 83).
+
+    `SHARE` sólo existe como conducta del ADN: sin la política genética la bandera es inerte, y
+    sin evolución no hay energía que ceder. Es la única definición de la condición; el motor la
+    guarda en `engine.energy_transfer_active`.
+    """
+    return (
+        config.enable_evolution and genetic_policy_active(config) and config.enable_energy_transfer
+    )
+
+
+def predation_active(config: SimulationConfig) -> bool:
+    """R37 efectivamente activa: `enable_predation` con R32 efectiva (D52.3, precisión 83).
+
+    Sin evolución no hay energía que robar. Es la única definición de la condición; el motor la
+    guarda en `engine.predation_active`.
+    """
+    return config.enable_evolution and genetic_policy_active(config) and config.enable_predation
 
 
 def validate_systems(systems: tuple[EngineSystem, ...]) -> tuple[EngineSystem, ...]:
@@ -387,8 +414,74 @@ class DecisionSystem(BaseSystem):
 # --- Fase 4 --------------------------------------------------------------------------------------
 
 
+def _interaction_target(engine: "SimulationEngine", target: object) -> "MicroAgent | None":
+    """El objetivo de un `SHARE` o un `ATTACK` si sigue vivo y no es endospora; si no, `None`.
+
+    "Sigue vivo" es "sigue en `engine.agents`": nadie muere en la Fase 4 (precisión 12).
+    """
+    target_id = integer_id(target)
+    agent = None if target_id is None else engine.agents.get(target_id)
+    if agent is None or agent.is_endospore:
+        return None
+    return agent
+
+
+def _execute_share(
+    engine: "SimulationEngine", donor_id: int, target: object, frame: TickFrame
+) -> None:
+    """`SHARE` ($R_{36}$, D49.1, precisiones 11 y 12) con las energías vigentes al ejecutarse.
+
+    Si el donante tiene energía > 0 y el objetivo sigue vivo y no es endospora, el donante pierde
+    `amount = share_fraction * energía` y el receptor gana `share_efficiency * amount`; si no, no
+    ocurre nada. Cuenta el evento `shares` sólo si transfiere energía, `amount > 0` (precisión
+    85; métrica de C18).
+    """
+    donor, receiver = engine.agents[donor_id], _interaction_target(engine, target)
+    if receiver is None or donor.energy <= 0:
+        return
+    config = engine.config
+    amount = config.share_fraction * donor.energy
+    donor.apply_energy_delta(-amount)
+    receiver.apply_energy_delta(config.share_efficiency * amount)
+    if amount > 0:
+        frame.events["shares"] += 1
+
+
+def _execute_attack(
+    engine: "SimulationEngine", attacker_id: int, target: object, frame: TickFrame
+) -> None:
+    """`ATTACK` ($R_{37}$, D49.2, precisión 12) con las energías vigentes al ejecutarse.
+
+    El intento se cuenta siempre en `frame.attacks` (su costo lo cobra el metabolismo) y en el
+    evento `attacks`. Tiene éxito si el objetivo sigue vivo, no es endospora y es estrictamente
+    más débil que el atacante; entonces `stolen = min(attack_power, max(0, energía_del_objetivo))`
+    pasa del objetivo al atacante con la eficiencia `predation_efficiency`. Un ataque con éxito y
+    `stolen > 0` deja al objetivo en `frame.predated`, que el paso de muerte usa para separar las
+    muertes por depredación de las de hambre (precisiones 37 y 84).
+    """
+    frame.attacks[attacker_id] = frame.attacks.get(attacker_id, 0) + 1
+    frame.events["attacks"] += 1
+    attacker, victim = engine.agents[attacker_id], _interaction_target(engine, target)
+    if victim is None or attacker.energy <= victim.energy:
+        return
+    config = engine.config
+    stolen = min(config.attack_power, max(0.0, victim.energy))
+    victim.apply_energy_delta(-stolen)
+    attacker.apply_energy_delta(config.predation_efficiency * stolen)
+    frame.events["successful_attacks"] += 1
+    if stolen > 0:
+        frame.predated.add(victim.agent_id)
+
+
 class ExecutionSystem(BaseSystem):
-    """Ejecución en el orden de la permutación, aprendizaje directo, energía y estigmergia."""
+    """Ejecución en el orden de la permutación, aprendizaje directo, energía y estigmergia.
+
+    Con $R_{36}$ y $R_{37}$ efectivamente activas, el motor ejecuta `SHARE` y `ATTACK` en ese mismo
+    recorrido, sobre las energías vigentes al ejecutar cada una (D49): la permutación del tick es
+    la única fuente de orden. Sin ellas, la grilla las ejecuta como `IDLE`, como en la Fase II.
+    Una endospora que decidió `SHARE` o `ATTACK` no tiene efecto ni paga el intento: actúa como
+    `IDLE` hasta que el bloque 17 haga que no decida (precisión 82).
+    """
 
     name = "execution"
 
@@ -400,9 +493,20 @@ class ExecutionSystem(BaseSystem):
         evolution = config.enable_evolution
         deposit = config.enable_stigmergy and config.stigmergy_deposit_rate > 0
         carcasses = engine.carcasses_active
+        transfer, predation = engine.energy_transfer_active, engine.predation_active
         events = frame.events
         for aid in frame.order:
-            result = env.execute_action(aid, actions[aid], tick)
+            action = actions[aid]
+            kind = action.action_type
+            if transfer and kind is ActionType.SHARE:
+                if not agents[aid].is_endospore:
+                    _execute_share(engine, aid, action.target, frame)
+                continue
+            if predation and kind is ActionType.ATTACK:
+                if not agents[aid].is_endospore:
+                    _execute_attack(engine, aid, action.target, frame)
+                continue
+            result = env.execute_action(aid, action, tick)
             if result.action_type is ActionType.MOVE:
                 moved.add(aid)
             pattern, value = result.interacted_pattern, result.experienced_value
@@ -450,7 +554,8 @@ class HolonCoordinationSystem(BaseSystem):
 
 
 class MetabolismSystem(BaseSystem):
-    """(iii) Costo basal, del ADN, de movimiento y de mensajes (R13, D21, D34.5)."""
+    """(iii) Costo basal, del ADN, de movimiento, de mensajes y de los ataques (R13, D21, D34.5,
+    D49.2): `attack_cost` por cada intento registrado en `frame.attacks`, con éxito o sin él."""
 
     name = "metabolism"
 
@@ -459,20 +564,34 @@ class MetabolismSystem(BaseSystem):
         sent = Counter(msg.sender_id for msg in (*frame.emitted, *frame.responses))
         if not engine.config.comm_enabled:
             sent.clear()
-        engine._metabolize(frame.moved, sent)
+        engine._metabolize(frame.moved, sent, frame.attacks)
 
 
 class DeathSystem(BaseSystem):
     """(iv) Muerte de quien quedó con energía <= 0 tras el metabolismo (R13) y, con R35, el
-    cadáver de cada muerto, depositado antes de quitarlo (D48.3, precisión 78)."""
+    cadáver de cada muerto, depositado antes de quitarlo (D48.3, precisión 78).
+
+    Cuenta además, siempre que haya muertes, las del tick por depredación (objetivos de un ataque
+    con éxito y `stolen > 0` en el tick, `frame.predated`) y por hambre (las demás),
+    excluyentes (precisiones 37, 84 y 85).
+    """
 
     name = "death"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         dead = engine._remove_dead(frame.tick)
         frame.deaths = len(dead)
-        if dead and engine.carcasses_active:
-            frame.events["carcasses_deposited"] += len(dead)
+        if not dead:
+            return
+        events = frame.events
+        if engine.carcasses_active:
+            events["carcasses_deposited"] += len(dead)
+        predated = frame.predated
+        by_predation = sum(1 for aid in dead if aid in predated)
+        if by_predation:
+            events["predation_deaths"] += by_predation
+        if by_predation < len(dead):
+            events["starvation_deaths"] += len(dead) - by_predation
 
 
 class ReproductionSystem(BaseSystem):

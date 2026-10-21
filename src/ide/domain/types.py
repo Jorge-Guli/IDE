@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from itertools import pairwise
+from numbers import Integral
 from typing import Any
 
 
@@ -30,6 +31,18 @@ def counts_as_knowledge(pattern: Pattern) -> bool:
     conocimiento de los holones. El agente lo aprende y lo usa como cualquier patrón.
     """
     return pattern != CARCASS_PATTERN
+
+
+def integer_id(value: object) -> int | None:
+    """`value` como identificador entero (`resource_id` o `agent_id`); `None` si no lo es.
+
+    Acepta los enteros de Python y de NumPy (`numbers.Integral`) y rechaza `bool`. Es la única
+    validación de los objetivos de `AgentAction`: la usan la grilla (`INTERACT`) y el motor
+    (`SHARE` y `ATTACK`).
+    """
+    if isinstance(value, bool) or not isinstance(value, Integral):
+        return None
+    return int(value)
 
 
 @dataclass(frozen=True)

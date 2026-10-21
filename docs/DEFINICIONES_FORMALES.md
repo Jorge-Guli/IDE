@@ -886,6 +886,7 @@ Se ejecutan en la Fase 4, en el orden de la permutación del tick, junto con las
 "Sigue vivo" quiere decir "sigue en la población": nadie muere en la Fase 4.
 - **Transferencia ($R_{36}$).** `SHARE` sobre un objetivo vivo que no es endospora, con el donante en $E > 0$: el donante pierde $a = $ `share_fraction` $\cdot E_{\text{donante}}$ y el receptor gana `share_efficiency` $\cdot\, a$. Si no, no ocurre nada.
 - **Depredación ($R_{37}$).** Cada intento de `ATTACK` cuesta `attack_cost` en el metabolismo, haya éxito o no. Tiene éxito si el objetivo sigue vivo, no es endospora y el atacante tiene estrictamente más energía que él **al ejecutarse**. Con éxito, $s = \min(\texttt{attack\_power}, \max(0, E_{\text{objetivo}}))$: el objetivo pierde $s$ y el atacante gana `predation_efficiency` $\cdot\, s$ (un objetivo con $E \le 0$ rinde $s = 0$). Un objetivo que queda con $E \le 0$ muere en el paso de muerte de la Fase 5 y, con $R_{35}$, deja un cadáver.
+- **Eventos (precisiones 84 y 85).** Una cesión cuenta en `shares` sólo si transfiere energía ($a > 0$). Una muerte del tick es por depredación si el agente fue objetivo de un ataque con éxito y $s > 0$ en ese tick (precisión 37), y por hambre en otro caso.
 - **M2 (precisión 21).** M2 juzga **decisiones**, no acciones: si un agente tiene recursos elementales alcanzables (incluidos los cadáveres) y elige `FLEE`, `SHARE`, `ATTACK` o `SPORULATE`, la decisión cuenta como oportunidad y se juzga como hoy, como una decisión que no es `INTERACT` sobre el mejor recurso.
 
 ### 9.13. Recombinación ($R_{38}$)

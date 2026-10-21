@@ -847,7 +847,9 @@ def test_eventos_de_los_cadaveres(monkeypatch: pytest.MonkeyPatch) -> None:
 
     engine.observers.append(Spy())
     engine.step()
-    assert events == [{"carcasses_eaten": 1, "carcasses_deposited": 2}]
+    assert events == [
+        {"carcasses_eaten": 1, "carcasses_deposited": 2, "starvation_deaths": 2},
+    ]
 
 
 def test_la_ecologia_exige_un_entorno_ecologico() -> None:

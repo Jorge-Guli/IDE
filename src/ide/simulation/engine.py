@@ -60,7 +60,9 @@ from ide.simulation.pipeline import (
     TickObserver,
     build_systems,
     carcasses_active,
+    energy_transfer_active,
     genetic_policy_active,
+    predation_active,
 )
 
 # Emisor sintético de los testimonios estigmérgicos (D27); los holones usan IDs <= -2 (D23).
@@ -212,6 +214,10 @@ class SimulationEngine:
         # R32 efectivamente activa (precisión 31): los fundadores deciden con `GeneticPolicy`
         # (D45.4) y la Fase 1 construye su percepción social (D47.3); si no, `HandwrittenPolicy`.
         self.genetic_policy_active = genetic_policy_active(config)
+        # R36 y R37 efectivamente activas (D52.3, precisión 83): la Fase 4 ejecuta `SHARE` y
+        # `ATTACK`; sin ellas, la grilla los ejecuta como `IDLE`.
+        self.energy_transfer_active = energy_transfer_active(config)
+        self.predation_active = predation_active(config)
         # `GeneticPolicy` no guarda estado: una sola instancia sirve a todos los fundadores.
         policy = GeneticPolicy() if self.genetic_policy_active else None
         self.agents: dict[int, MicroAgent] = {
@@ -561,11 +567,18 @@ class SimulationEngine:
 
     # --- Fase II: metabolismo, muerte y reproducción (R12-R14, R17, R20, R21) -----------------
 
-    def _metabolize(self, moved: set[int], sent: Mapping[int, int]) -> None:
+    def _metabolize(
+        self,
+        moved: set[int],
+        sent: Mapping[int, int],
+        attacks: Mapping[int, int],
+    ) -> None:
         """Cobra el costo basal, de movimiento y de mensajes a cada agente, por `agent_id`.
 
         Con ADN (design D34.5), el costo basal se calcula sobre el genoma expresado en la Fase 0
-        del tick y se le suma el costo del ADN; sin la bandera, la suma no se hace.
+        del tick y se le suma el costo del ADN; sin la bandera, la suma no se hace. Con $R_{37}$
+        (D49.2), suma `attack_cost` por cada intento de ataque del tick en `attacks`, con éxito o
+        sin él; sin intentos, la suma no se hace.
         """
         config = self.config
         dna = config.enable_compact_dna
@@ -575,6 +588,8 @@ class SimulationEngine:
             if dna:
                 cost += compute_dna_cost(agent.dna, config)
             cost += config.move_cost * (aid in moved) + config.message_cost * sent.get(aid, 0)
+            if aid in attacks:
+                cost += config.attack_cost * attacks[aid]
             agent.apply_energy_delta(-cost)
 
     def _remove_dead(self, tick: int) -> list[int]:
