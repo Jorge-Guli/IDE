@@ -127,6 +127,14 @@ class BaseSystem:
     notifies_decisions: bool = False
 
 
+def carcasses_active(config: SimulationConfig) -> bool:
+    """R35 efectivamente activa: con `enable_carcasses` y evolución (D48.3, D52.3, precisión 78).
+
+    Es la única definición de la condición; el motor la guarda en `engine.carcasses_active`.
+    """
+    return config.enable_evolution and config.enable_carcasses
+
+
 def validate_systems(systems: tuple[EngineSystem, ...]) -> tuple[EngineSystem, ...]:
     """Devuelve `systems` si exactamente uno tiene la marca `notifies_decisions`.
 
@@ -324,7 +332,7 @@ class ExecutionSystem(BaseSystem):
         moved, surplus = frame.moved, frame.surplus
         evolution = config.enable_evolution
         deposit = config.enable_stigmergy and config.stigmergy_deposit_rate > 0
-        carcasses = evolution and config.enable_carcasses
+        carcasses = engine.carcasses_active
         events = frame.events
         for aid in frame.order:
             result = env.execute_action(aid, actions[aid], tick)
@@ -396,7 +404,7 @@ class DeathSystem(BaseSystem):
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         dead = engine._remove_dead(frame.tick)
         frame.deaths = len(dead)
-        if dead and engine.config.enable_carcasses:
+        if dead and engine.carcasses_active:
             frame.events["carcasses_deposited"] += len(dead)
 
 

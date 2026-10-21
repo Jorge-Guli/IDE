@@ -89,6 +89,7 @@ class ToroidalGrid2D:
         # todos los depositados: con una vida fija, vencen en el orden en que se depositaron.
         self._carcasses: set[int] = set()
         self._carcass_queue: deque[tuple[int, int]] = deque()
+        self._last_carcass_tick: int | None = None  # tick del último depósito (precisión 81)
         # Huida de cada desplazamiento `(dx, dy)`: depende sólo de él y del tamaño de la grilla.
         self._flee_cache: dict[tuple[int, int], Cell] = {}
         # Franja propia `(x0, ancho)` de cada patrón elemental con R34; vacío sin la regla.
@@ -208,8 +209,7 @@ class ToroidalGrid2D:
     def _remove_resource(self, resource_id: int) -> None:
         cell = self._resource_cell.pop(resource_id)
         del self.cell_resources[cell][resource_id]
-        if self._carcasses:
-            self._carcasses.discard(resource_id)
+        self._carcasses.discard(resource_id)
 
     # --- EnvironmentPort -----------------------------------------------------------------------
 
@@ -303,9 +303,6 @@ class ToroidalGrid2D:
     def retire_pattern_resources(self, pattern: Pattern) -> None:
         self._retired.add(pattern)
         self._pending = [p for p in self._pending if p != pattern]
-        if any(entry[2] == pattern for entry in self._agenda):
-            self._agenda = [entry for entry in self._agenda if entry[2] != pattern]
-            heapq.heapify(self._agenda)
         self._pending_composite = [p for p in self._pending_composite if p != pattern]
         doomed = sorted(
             rid
@@ -543,15 +540,20 @@ class ToroidalGrid2D:
         Lo invoca el motor antes de quitar al agente. El cadáver toma su `resource_id` del
         contador monótono, no se repone y se retira en `step_dynamics` tras `carcass_lifetime`.
         Los depósitos llegan con `tick` no decreciente, como los ticks del motor: así la cola
-        de retiro queda en orden de vencimiento (precisión 81).
+        de retiro queda en orden de vencimiento (precisión 81). Si `CARCASS_PATTERN` fue
+        retirado con `retire_pattern_resources`, no deposita nada, como no se repone un patrón
+        retirado.
         """
-        queue = self._carcass_queue
-        if queue and tick < queue[-1][0]:
-            raise ValueError(f"tick de depósito decreciente: {tick} < {queue[-1][0]}")
+        last = self._last_carcass_tick
+        if last is not None and tick < last:
+            raise ValueError(f"tick de depósito decreciente: {tick} < {last}")
+        self._last_carcass_tick = tick
+        if CARCASS_PATTERN in self._retired:
+            return
         resource_id = self._next_resource_id
         self._place_resource(CARCASS_PATTERN, value, self._agent_cell[agent_id])
         self._carcasses.add(resource_id)
-        queue.append((tick, resource_id))
+        self._carcass_queue.append((tick, resource_id))
 
     def get_resource_count(self) -> int:
         """Todos los recursos presentes: elementales, compuestos y cadáveres (precisión 18)."""

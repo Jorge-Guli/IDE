@@ -37,6 +37,7 @@ from ide.domain.types import (
     KnowledgeUnit,
     Message,
     Pattern,
+    counts_as_knowledge,
 )
 from ide.environments.grid2d import ToroidalGrid2D
 from ide.experiments.metrics import (
@@ -57,6 +58,7 @@ from ide.simulation.pipeline import (
     TickFrame,
     TickObserver,
     build_systems,
+    carcasses_active,
 )
 
 # Emisor sintético de los testimonios estigmérgicos (D27); los holones usan IDs <= -2 (D23).
@@ -78,9 +80,7 @@ def _needs_ecological_env(config: SimulationConfig) -> bool:
     Sin evolución no hay muertes y R35 es inerte (D52.3): no exige el puerto ecológico.
     """
     return (
-        config.enable_resource_depletion
-        or config.enable_heterogeneity
-        or (config.enable_carcasses and config.enable_evolution)
+        config.enable_resource_depletion or config.enable_heterogeneity or carcasses_active(config)
     )
 
 
@@ -197,6 +197,8 @@ class SimulationEngine:
             raise TypeError("los mecanismos de la Fase II exigen un EvolutionaryEnvironmentPort")
         if _needs_ecological_env(config) and not isinstance(self.env, EcologicalEnvironmentPort):
             raise TypeError("la ecología del entorno (R33-R35) exige un EcologicalEnvironmentPort")
+        # R35 efectivamente activa (precisión 78): la leen el paso de muerte y la ejecución.
+        self.carcasses_active = carcasses_active(config)
         self.agents: dict[int, MicroAgent] = {
             aid: MicroAgent(aid, config, trust_strategy) for aid in self.env.get_active_agent_ids()
         }
@@ -451,11 +453,17 @@ class SimulationEngine:
                     self._set_root(child)
 
     def _has_knowledge_surplus(self, holon: CompositeAgent, reach: Mapping[int, list[int]]) -> bool:
-        """La mayor componente conexa de alcance local sabe más que la mejor hoja (D24.2)."""
+        """La mayor componente conexa de alcance local sabe más que la mejor hoja (D24.2).
+
+        Sólo cuentan los patrones que `counts_as_knowledge`: comer carroña no sostiene un holón
+        (D48.3, precisión 80).
+        """
         threshold = self.config.decision_conf_threshold
         known = {
             leaf.agent_id: frozenset(
-                u.pattern for u in leaf.memory.all_units() if u.confidence >= threshold
+                u.pattern
+                for u in leaf.memory.all_units()
+                if u.confidence >= threshold and counts_as_knowledge(u.pattern)
             )
             for leaf in holon.leaf_agents
         }
@@ -562,7 +570,7 @@ class SimulationEngine:
         """
         dead = [aid for aid in sorted(self.agents) if self.agents[aid].energy <= 0]
         if dead:
-            if self.config.enable_carcasses:
+            if self.carcasses_active:
                 env = cast(EcologicalEnvironmentPort, self.env)
                 value = self.config.carcass_value
                 for aid in dead:

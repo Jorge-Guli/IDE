@@ -22,6 +22,15 @@ class Pattern:
 CARCASS_PATTERN = Pattern((("id", "carcass"),))
 
 
+def counts_as_knowledge(pattern: Pattern) -> bool:
+    """Si una creencia sobre `pattern` cuenta como conocimiento para el motor y las métricas.
+
+    El cadáver de R35 no cuenta (D48.3, precisión 80): ni para M9 y M11 ni para el superávit de
+    conocimiento de los holones. El agente lo aprende y lo usa como cualquier patrón.
+    """
+    return pattern != CARCASS_PATTERN
+
+
 @dataclass(frozen=True)
 class KnowledgeUnit:
     """Creencia de un agente sobre un patrón. Los rangos los garantiza `epistemology.py`."""

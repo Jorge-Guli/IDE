@@ -287,6 +287,13 @@ El paso de muerte SHALL calcular una sola vez la lista de muertos y, con $R_{35}
 - **WHEN** con $R_{35}$ activa los agentes 12 y 5 quedan con energía 0 tras el metabolismo
 - **THEN** se depositan los cadáveres de 5 y de 12, en ese orden, antes de quitar a los dos juntos, y los nombres de los sistemas son los mismos que con $R_{35}$ apagada.
 
+### Requirement: Superávit de Conocimiento sin el Cadáver
+El superávit de conocimiento del holón (D24.2) SHALL contar sólo los patrones con `counts_as_knowledge`, sin `CARCASS_PATTERN`, para que comer carroña no sostenga un holón (design D48.3 y precisión 80).
+
+#### Scenario: Hoja que sólo sabe del cadáver
+- **WHEN** un holón de dos hojas mutuamente alcanzables tiene una que sólo sabe `CARCASS_PATTERN` y otra que sólo sabe `p_0`, ambas con confianza válida
+- **THEN** el holón no tiene superávit de conocimiento.
+
 ### Requirement: Entorno Ecológico Exigido
 El motor SHALL lanzar `TypeError` si el entorno no cumple `EcologicalEnvironmentPort` y están activas `enable_resource_depletion` o `enable_heterogeneity`, con o sin evolución, o `enable_carcasses` con `enable_evolution`. Sin evolución, $R_{35}$ es inerte y no lo exige (design precisión 79).
 

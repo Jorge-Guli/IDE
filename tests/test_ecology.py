@@ -735,6 +735,46 @@ def test_las_metricas_de_la_fase_2_no_ven_el_cadaver(monkeypatch: pytest.MonkeyP
     )
 
 
+def test_comer_carrona_no_sostiene_un_holon(monkeypatch: pytest.MonkeyPatch) -> None:
+    # D48.3, precisión 80: el superávit de conocimiento del holón (D24.2) no cuenta el cadáver.
+    engine = SimulationEngine(quiet(enable_carcasses=True))
+    grid = grid_of(engine)
+    grid.deposit_carcass(3, 0.6, 0)
+    (_, carcass), *_ = carcasses(grid)
+    act(monkeypatch, engine, {3: AgentAction(ActionType.INTERACT, carcass.resource_id)})
+    engine.step()
+    threshold = engine.config.decision_conf_threshold
+    eater, other = engine.agents[3], engine.agents[4]
+    other.learn_from_experience(pat(0), 1.0, 1)
+
+    def valid(agent: Any) -> set[Pattern]:
+        return {u.pattern for u in agent.memory.all_units() if u.confidence >= threshold}
+
+    assert valid(eater) == {CARCASS_PATTERN}
+    assert valid(other) == {pat(0)}
+    holon = CompositeAgent(-1, cast(Any, (eater, other)), 0, False)
+    reach = {3: [4], 4: [3]}
+    assert not engine._has_knowledge_surplus(holon, reach)  # pyright: ignore[reportPrivateUsage]
+
+
+def test_no_se_deposita_un_cadaver_retirado() -> None:
+    grid = make_grid()
+    grid.retire_pattern_resources(CARCASS_PATTERN)
+    total = grid.get_resource_count()
+    grid.deposit_carcass(1, 0.6, 0)
+    assert grid.get_resource_count() == total
+    assert count_pattern(grid, CARCASS_PATTERN) == 0
+
+
+def test_la_validacion_del_tick_no_depende_de_la_cola() -> None:
+    grid = make_grid(carcass_lifetime=1)
+    grid.deposit_carcass(1, 0.6, 5)
+    grid.step_dynamics(6)  # el cadáver vence y la cola queda vacía
+    assert count_pattern(grid, CARCASS_PATTERN) == 0
+    with pytest.raises(ValueError, match="decreciente"):
+        grid.deposit_carcass(2, 0.6, 4)
+
+
 def test_m11_no_cuenta_el_cadaver(monkeypatch: pytest.MonkeyPatch) -> None:
     # D48.3: la ganancia holónica compara creencias válidas sin el cadáver, en el holón y en hojas.
     engine = SimulationEngine(quiet(enable_carcasses=True))

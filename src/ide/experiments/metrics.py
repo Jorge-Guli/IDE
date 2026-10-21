@@ -12,7 +12,7 @@ from typing import Literal
 from ide.agent.holon import AgentNode, CompositeAgent, composite_nodes
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
-from ide.domain.types import CARCASS_PATTERN, ActionType, AgentAction, Pattern
+from ide.domain.types import ActionType, AgentAction, Pattern, counts_as_knowledge
 
 
 @dataclass(frozen=True)
@@ -244,14 +244,14 @@ class EvolutionaryMetricsCollector:
     def _valid(self, agent: MicroAgent) -> list[bool]:
         """Origen (`from_direct_experience`) de cada creencia válida de la memoria.
 
-        No cuenta las creencias sobre `CARCASS_PATTERN`: las métricas de la Fase II no ven el
-        cadáver de R35 (D48.3, precisión 80). Sin R35 no hay cadáveres y nada cambia.
+        Sólo cuenta las que `counts_as_knowledge`: las métricas de la Fase II no ven el cadáver de
+        R35 (D48.3, precisión 80). Sin R35 no hay cadáveres y nada cambia.
         """
         threshold = self._config.decision_conf_threshold
         return [
             unit.from_direct_experience
             for unit in agent.memory.all_units()
-            if unit.confidence >= threshold and unit.pattern != CARCASS_PATTERN
+            if unit.confidence >= threshold and counts_as_knowledge(unit.pattern)
         ]
 
     def record_tick(
@@ -283,7 +283,7 @@ class EvolutionaryMetricsCollector:
         gains: list[float] = []
         for holon in root_holons:
             collective = sum(
-                u.confidence >= config.decision_conf_threshold and u.pattern != CARCASS_PATTERN
+                u.confidence >= config.decision_conf_threshold and counts_as_knowledge(u.pattern)
                 for u in holon.collective_memory().values()
             )
             leaves = holon.leaf_agents

@@ -258,7 +258,7 @@ Sobre las decisiones del tick (precisión 5), `signaling_rate` SHALL ser la frac
 - **THEN** `signaling_rate == 0.0`, `symbol_diversity == 0` y `max_signal_information == 0.0`.
 
 ### Requirement: Métricas de la Fase II sin el Cadáver
-`offspring_social_ratio` (M9) y `holonic_coverage_gain` (M11) SHALL NOT contar creencias sobre `CARCASS_PATTERN`, ni en las memorias de las hojas ni en la memoria colectiva; las de los patrones compuestos se siguen contando como en la Fase II (design D48.3 y precisión 80).
+`offspring_social_ratio` (M9) y `holonic_coverage_gain` (M11) SHALL NOT contar creencias sobre `CARCASS_PATTERN` (`counts_as_knowledge`), ni en las memorias de las hojas ni en la memoria colectiva; las de los patrones compuestos se siguen contando como en la Fase II (design D48.3 y precisión 80).
 
 #### Scenario: Descendiente que comió un cadáver
 - **WHEN** con $R_{35}$ activa una hoja con `generation >= 1` aprende `CARCASS_PATTERN` con confianza válida al comer un cadáver

@@ -83,11 +83,15 @@ Un cadáver no consumido SHALL retirarse en `step_dynamics(tick)` cuando `tick >
 - **THEN** `get_reachable_true_values(2)` incluye su `resource_id` con su valor.
 
 ### Requirement: Depósitos de Cadáveres en Orden de Tick
-`deposit_carcass` SHALL recibir ticks no decrecientes, como los del motor, y lanzar `ValueError` si `tick` es menor que el del último depósito; los cadáveres SHALL retirarse en orden de depósito, y uno ya comido SHALL NOT afectar el retiro de los demás (design precisión 81).
+`deposit_carcass` SHALL recibir ticks no decrecientes, como los del motor, y lanzar `ValueError` si `tick` es menor que el del último depósito, aunque ya no quede ningún cadáver; con `CARCASS_PATTERN` retirado SHALL NOT depositar; los cadáveres SHALL retirarse en orden de depósito, y uno ya comido SHALL NOT afectar el retiro de los demás (design precisión 81).
 
 #### Scenario: Tick decreciente
-- **WHEN** se deposita un cadáver en el tick 5 y después otro en el tick 4
+- **WHEN** se deposita un cadáver en el tick 5, vence con `carcass_lifetime = 1` y después se deposita otro en el tick 4
 - **THEN** el segundo depósito lanza `ValueError`.
+
+#### Scenario: Cadáver retirado
+- **WHEN** se invoca `retire_pattern_resources(CARCASS_PATTERN)` y después `deposit_carcass`
+- **THEN** no aparece ningún cadáver y `get_resource_count()` no cambia.
 
 #### Scenario: Cadáver comido antes de vencer
 - **WHEN** con `carcass_lifetime = 3` se depositan cadáveres en los ticks 0 y 1 y el primero se come en el tick 1
