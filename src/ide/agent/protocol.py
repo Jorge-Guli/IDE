@@ -12,11 +12,15 @@ _TESTIMONY_TYPES = (MessageType.BROADCAST_BELIEF, MessageType.QUERY_RESPONSE)
 
 
 class BeliefExchangeProtocol:
-    """Consultas en vivo (R9) y difusión de creencias confiables (R8), sin estado propio."""
+    """Consultas en vivo (R9) y difusión de creencias confiables (R8), sin estado propio.
+
+    Puerta de comunicación (R32, D46.6): un agente con `communicates == False` no emite ni
+    responde consultas, pero sigue recibiendo y asimilando testimonios. No consume generadores.
+    """
 
     def emit(self, agent: "MicroAgent", obs: Observation, tick: int) -> list[Message]:
         """Primero las consultas por patrones visibles no conocidos; luego los broadcasts."""
-        if not obs.neighbor_ids:
+        if not obs.neighbor_ids or not agent.communicates:
             return []
         config = agent.config
 
@@ -56,7 +60,8 @@ class BeliefExchangeProtocol:
         # permutación del tick y no debe alterar el contenido de una respuesta (Decisión 15).
         # El caché efímero no se re-difunde: sólo responde lo que el agente sostiene en memoria.
         responses: list[Message] = []
-        for msg in inbox:
+        queries = inbox if agent.communicates else []  # puerta de D46.6: sin respuestas
+        for msg in queries:
             if msg.msg_type is not MessageType.QUERY_PATTERN:
                 continue
             unit = agent.memory.get(msg.pattern)

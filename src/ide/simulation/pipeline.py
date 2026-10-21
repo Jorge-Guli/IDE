@@ -25,6 +25,7 @@ import numpy as np
 
 from ide.agent.holon import CompositeAgent
 from ide.config import SimulationConfig
+from ide.domain.ports import EcologicalEnvironmentPort
 from ide.domain.types import (
     CARCASS_PATTERN,
     ActionType,
@@ -53,8 +54,9 @@ class TickFrame:
     """Estado mutable de un tick (D44.1); no es una entidad de dominio.
 
     Los conjuntos (`moved`, `surplus`) se recorren siempre con `sorted(...)` (precisión 39).
-    `social` guarda la `SocialPerception` de cada agente (D47.3, bloque 10); hasta entonces queda
-    vacío (precisión 71, saldada en el bloque 8).
+    `social` guarda la `SocialPerception` de cada agente (D47.3); sólo la llena
+    `SocialPerceptionSystem`, con la política genética efectivamente activa, y sin ella queda
+    vacío, de modo que la decisión recibe `None`.
     `attacks` y `events` los llenan los sistemas de las interacciones y de la ecología (D49, D53);
     sin esas reglas quedan vacíos.
 
@@ -133,6 +135,16 @@ def carcasses_active(config: SimulationConfig) -> bool:
     Es la única definición de la condición; el motor la guarda en `engine.carcasses_active`.
     """
     return config.enable_evolution and config.enable_carcasses
+
+
+def genetic_policy_active(config: SimulationConfig) -> bool:
+    """R32 efectivamente activa: con `enable_compact_dna` y `enable_genetic_policy` (prec. 31).
+
+    Es la única definición de la condición; el motor la guarda en `engine.genetic_policy_active`.
+    Sin ADN, `enable_genetic_policy` es inerte: no hay percepción social, la puerta de
+    comunicación no actúa y la política es la escrita a mano.
+    """
+    return config.enable_compact_dna and config.enable_genetic_policy
 
 
 def validate_systems(systems: tuple[EngineSystem, ...]) -> tuple[EngineSystem, ...]:
@@ -220,8 +232,8 @@ class PerceptionSystem(BaseSystem):
     """Percepción: la observación de cada agente, sobre la misma instantánea para todos.
 
     Ni la observación ni la emisión consumen generadores ni cambian el entorno, así que
-    separarlas en dos recorridos con el mismo orden no altera nada; entre ellas entrarán la
-    germinación y la percepción social (D53.1).
+    separarlas en dos recorridos con el mismo orden no altera nada; entre ellas van la
+    germinación ($R_{28}$) y la percepción social (D53.1, precisión 70).
     """
 
     name = "perception"
@@ -232,8 +244,52 @@ class PerceptionSystem(BaseSystem):
             observations[aid] = env.get_observation(aid, tick)
 
 
+class SocialPerceptionSystem(BaseSystem):
+    """Percepción social (R32, D47.3): una `SocialPerception` por agente en `frame.social`.
+
+    Sólo está en la lista con la política genética efectivamente activa. Usa
+    `get_visible_agents` y la instantánea de energías al empezar el sistema, antes de cualquier
+    acción del tick (percepción sincrónica):
+    - "activo" excluye a las endosporas;
+    - `adjacent` son los activos a distancia <= 1, ascendentes, y `weakest_adjacent` el de menor
+      `(energía, agent_id)`; `weaker_adjacent` dice si su energía es menor que la propia;
+    - `flee_move` es el de la entrada del activo más cercano con energía estrictamente mayor que
+      la propia, con desempate por `(distance, agent_id)`, el orden de `get_visible_agents`;
+    - `crowded` vale si hay al menos `crowding_threshold` activos visibles;
+    - `carcass_visible`, si algún recurso visible de la observación tiene `CARCASS_PATTERN`.
+    No consume generadores ni cambia el entorno.
+    """
+
+    name = "social_perception"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        env = cast(EcologicalEnvironmentPort, engine.env)
+        agents, social, observations = engine.agents, frame.social, frame.observations
+        energy = {aid: agents[aid].energy for aid in sorted(agents)}
+        crowding = engine.config.crowding_threshold
+        for aid in frame.order:
+            own = energy[aid]
+            active = [v for v in env.get_visible_agents(aid) if not agents[v.agent_id].is_endospore]
+            adjacent = tuple(sorted(v.agent_id for v in active if v.distance <= 1))
+            weakest = min(adjacent, key=lambda other: (energy[other], other)) if adjacent else None
+            flee = next((v.flee_move for v in active if energy[v.agent_id] > own), None)
+            social[aid] = SocialPerception(
+                adjacent=adjacent,
+                weakest_adjacent=weakest,
+                weaker_adjacent=weakest is not None and energy[weakest] < own,
+                flee_move=flee,
+                crowded=len(active) >= crowding,
+                carcass_visible=any(
+                    res.pattern == CARCASS_PATTERN for res in observations[aid].visible_resources
+                ),
+            )
+
+
 class EmissionSystem(BaseSystem):
-    """Emisión de mensajes sobre la observación de la Fase 1 (la puerta de D46.6 llega después)."""
+    """Emisión de mensajes sobre la observación de la Fase 1, con la puerta de D46.6.
+
+    La puerta vive en `protocol.py` (`agent.communicates`): este sistema no la conoce.
+    """
 
     name = "emission"
 
@@ -296,9 +352,16 @@ class DecisionSystem(BaseSystem):
         rules = engine._composite_rules
         actions, intents = frame.actions, frame.composite_intents
         reachable = frame.composite_reachable
+        social = frame.social
         for aid in frame.order:
             observation = frame.observations[aid]
-            action = actions[aid] = agents[aid].decide_action(observation, tick, rng)
+            agent, perception = agents[aid], social.get(aid)
+            # Sin percepción social se conserva la llamada de la Fase I (`social` es `None`).
+            if perception is None:
+                action = agent.decide_action(observation, tick, rng)
+            else:
+                action = agent.decide_action(observation, tick, rng, perception)
+            actions[aid] = action
             if not rules:
                 continue
             composite = {
@@ -461,6 +524,8 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
     if view:
         systems.append(HolonViewSystem("holon_view_memory", from_memory=True))
     systems.append(PerceptionSystem())
+    if genetic_policy_active(config):
+        systems.append(SocialPerceptionSystem())
     systems.append(EmissionSystem())
     if config.enable_stigmergy:
         systems.append(StigmergyAssimilationSystem())

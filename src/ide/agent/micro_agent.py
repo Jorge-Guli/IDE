@@ -6,6 +6,7 @@ from dataclasses import replace
 import numpy as np
 
 from ide.agent.dna import (
+    evaluate_drives,
     founder_dna,
     mutate_dna,
     phenotype_from_genome,
@@ -17,7 +18,7 @@ from ide.agent.epistemology import (
 )
 from ide.agent.evolution import genome_from_config
 from ide.agent.memory import BoundedMemory
-from ide.agent.policy import HandwrittenPolicy, PolicyPort
+from ide.agent.policy import GeneticPolicy, HandwrittenPolicy, PolicyPort
 from ide.agent.protocol import BeliefExchangeProtocol
 from ide.config import SimulationConfig
 from ide.domain.extensions import (
@@ -37,11 +38,14 @@ from ide.domain.types import (
     Message,
     Observation,
     Pattern,
+    SensorySignals,
     SocialPerception,
 )
 
 # Clave del caché de expresión (design D34.2): nivel acotado a 9, rol y banda de energía.
 _ExpressionKey = tuple[int, EpigeneticRole, int]
+# Clave del caché de impulsos (D46.8): la del caché de expresión más las señales del tick.
+_DrivesKey = tuple[_ExpressionKey, SensorySignals]
 _BAND_STRESS, _BAND_NORMAL, _BAND_SURPLUS = 0, 1, 2
 # Los promotores de nivel distinguen hasta `IN_HOLON_L9` (0x0A, design D32).
 _MAX_DISTINCT_LEVEL = 9
@@ -87,10 +91,11 @@ class MicroAgent:
         policy: PolicyPort | None = None,
     ) -> None:
         self._setup(agent_id, config, trust_strategy, protocol, policy)
+        self._last_context = _birth_context(config.initial_energy, config)
         if config.enable_compact_dna:
             # El ADN fundador expresa exactamente la base (design D32): `_genome` no cambia.
             self._dna = founder_dna(config)
-            self._phenotype = self._transcribe(_birth_context(config.initial_energy, config))
+            self._phenotype = self._transcribe(self._last_context)
         else:
             self._phenotype = phenotype_from_genome(self._genome, config)
 
@@ -127,8 +132,10 @@ class MicroAgent:
         # Ensayos CRISPR abiertos: codón -> (tick de apertura, energía de ingreso, cedida).
         self._plasmid_trials: dict[int, tuple[int, float, float]] = {}
         self._expression_cache: dict[_ExpressionKey, ExpressedPhenotype] = {}
+        self._drives_cache: dict[_DrivesKey, tuple[float, ...]] = {}
         self._dna: CompactDNA | None = None
         self._phenotype: ExpressedPhenotype
+        self._last_context: EpigeneticContext
 
     @classmethod
     def from_lineage(
@@ -228,6 +235,7 @@ class MicroAgent:
         agent._base_config = base
         agent._dna = dna
         agent._phenotype = phenotype
+        agent._last_context = _birth_context(energy, base) if context is None else context
         if dna is not None:
             assert context is not None, "el fenotipo con ADN se cachea con su contexto"
             agent._expression_cache[agent._expression_key(context)] = phenotype
@@ -280,6 +288,21 @@ class MicroAgent:
     @property
     def base_config(self) -> SimulationConfig:
         return self._base_config
+
+    @property
+    def last_context(self) -> EpigeneticContext:
+        """Contexto de la última expresión: el de la Fase 0 o el del nacimiento (precisión 23)."""
+        return self._last_context
+
+    @property
+    def communicates(self) -> bool:
+        """Puerta de comunicación (D46.6): con `GeneticPolicy`, `comm_propensity >= 0.5`.
+
+        Con cualquier otra política vale siempre `True`. La lee `protocol.py`.
+        """
+        if isinstance(self._policy, GeneticPolicy):
+            return self._phenotype.comm_propensity >= 0.5
+        return True
 
     @property
     def epigenetic_role(self) -> EpigeneticRole:
@@ -339,6 +362,7 @@ class MicroAgent:
             raise ValueError("set_dna exige base_config.enable_compact_dna=True")
         self._dna = dna
         self._expression_cache.clear()
+        self._drives_cache.clear()
 
     def set_endospore(self, flag: bool) -> None:
         """Entrada en endospora o germinación (R28, design D38)."""
@@ -380,6 +404,24 @@ class MicroAgent:
             self._expression_cache[key] = phenotype
         return phenotype
 
+    def behavior_drives(self, signals: SensorySignals) -> tuple[float, ...]:
+        """Impulsos de `evaluate_drives` del ADN propio en `last_context`, memoizados (D46.8).
+
+        La clave es la del caché de expresión (D34.2) más `signals`: los promotores de contexto
+        sólo distinguen el nivel acotado, el rol y la banda de energía. `set_dna` invalida el
+        caché, así que nunca sirve los impulsos de otro ADN.
+        """
+        dna = self._dna
+        if dna is None:
+            raise ValueError("los impulsos exigen un agente con ADN")
+        context = self._last_context
+        key = (self._expression_key(context), signals)
+        drives = self._drives_cache.get(key)
+        if drives is None:
+            drives = evaluate_drives(dna, context, signals, self._base_config)
+            self._drives_cache[key] = drives
+        return drives
+
     def express(self, context: EpigeneticContext, tick: int) -> bool:
         """Expresa el ADN en el contexto del tick (R24, design D34.2 y precisión 2).
 
@@ -390,6 +432,7 @@ class MicroAgent:
         """
         if self._dna is None:
             return False
+        self._last_context = context
         self._phenotype = self._transcribe(context)
         genome, previous = self._phenotype.genome, self._genome
         if genome == previous:

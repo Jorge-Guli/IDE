@@ -25,6 +25,7 @@ from ide.agent.holon import (
     should_split_holon,
 )
 from ide.agent.micro_agent import MicroAgent
+from ide.agent.policy import GeneticPolicy
 from ide.config import SimulationConfig
 from ide.domain.extensions import CompositeRule, TrustStrategyPort
 from ide.domain.ports import (
@@ -59,6 +60,7 @@ from ide.simulation.pipeline import (
     TickObserver,
     build_systems,
     carcasses_active,
+    genetic_policy_active,
 )
 
 # Emisor sintético de los testimonios estigmérgicos (D27); los holones usan IDs <= -2 (D23).
@@ -75,12 +77,17 @@ def _needs_evolutionary_env(config: SimulationConfig) -> bool:
 
 
 def _needs_ecological_env(config: SimulationConfig) -> bool:
-    """Ecología del entorno (D48, precisión 79): R33 y R34 siempre; R35 sólo con evolución.
+    """Ecología del entorno (D48, precisiones 79 y 82): R33 y R34 siempre; R35 sólo con evolución;
+    y la percepción social de R32 (`get_visible_agents`, D47.3) con la política genética
+    efectivamente activa.
 
     Sin evolución no hay muertes y R35 es inerte (D52.3): no exige el puerto ecológico.
     """
     return (
-        config.enable_resource_depletion or config.enable_heterogeneity or carcasses_active(config)
+        config.enable_resource_depletion
+        or config.enable_heterogeneity
+        or carcasses_active(config)
+        or genetic_policy_active(config)
     )
 
 
@@ -196,11 +203,21 @@ class SimulationEngine:
         if self._evo_env is None and _needs_evolutionary_env(config):
             raise TypeError("los mecanismos de la Fase II exigen un EvolutionaryEnvironmentPort")
         if _needs_ecological_env(config) and not isinstance(self.env, EcologicalEnvironmentPort):
-            raise TypeError("la ecología del entorno (R33-R35) exige un EcologicalEnvironmentPort")
+            raise TypeError(
+                "la ecología del entorno (R33-R35) y la percepción social (R32) exigen un "
+                "EcologicalEnvironmentPort"
+            )
         # R35 efectivamente activa (precisión 78): la leen el paso de muerte y la ejecución.
         self.carcasses_active = carcasses_active(config)
+        # R32 efectivamente activa (precisión 31): los fundadores deciden con `GeneticPolicy`
+        # (D45.4) y la Fase 1 construye su percepción social (D47.3); si no, `HandwrittenPolicy`.
+        self.genetic_policy_active = genetic_policy_active(config)
+        genetic = self.genetic_policy_active
         self.agents: dict[int, MicroAgent] = {
-            aid: MicroAgent(aid, config, trust_strategy) for aid in self.env.get_active_agent_ids()
+            aid: MicroAgent(
+                aid, config, trust_strategy, policy=GeneticPolicy() if genetic else None
+            )
+            for aid in self.env.get_active_agent_ids()
         }
         self.direct_discoverers: dict[Pattern, set[int]] = defaultdict(set)
         self.collector = MetricsCollector(config)
