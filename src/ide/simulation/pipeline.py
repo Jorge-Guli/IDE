@@ -414,14 +414,24 @@ class DecisionSystem(BaseSystem):
 # --- Fase 4 --------------------------------------------------------------------------------------
 
 
-def _interaction_target(engine: "SimulationEngine", target: object) -> "MicroAgent | None":
-    """El objetivo de un `SHARE` o un `ATTACK` si sigue vivo y no es endospora; si no, `None`.
+def _interaction_target(
+    engine: "SimulationEngine", actor_id: int, target: object
+) -> "MicroAgent | None":
+    """El objetivo de un `SHARE` o un `ATTACK` si sigue vivo, no es endospora y sigue adyacente.
 
     "Sigue vivo" es "sigue en `engine.agents`": nadie muere en la Fase 4 (precisión 12).
+    "Adyacente" es a distancia <= 1 del actor al ejecutarse, la misma noción que
+    `SocialPerception.adjacent` (precisión 86): el motor la consulta al entorno, y el agente
+    sigue sin conocer coordenadas. Si el objetivo o el actor se movieron antes en la permutación
+    del tick y quedaron a distancia mayor, devuelve `None`.
     """
     target_id = integer_id(target)
-    agent = None if target_id is None else engine.agents.get(target_id)
+    if target_id is None:
+        return None
+    agent = engine.agents.get(target_id)
     if agent is None or agent.is_endospore:
+        return None
+    if engine._evo.get_agent_distance(actor_id, target_id) > 1:
         return None
     return agent
 
@@ -429,15 +439,16 @@ def _interaction_target(engine: "SimulationEngine", target: object) -> "MicroAge
 def _execute_share(
     engine: "SimulationEngine", donor_id: int, target: object, frame: TickFrame
 ) -> None:
-    """`SHARE` ($R_{36}$, D49.1, precisiones 11 y 12) con las energías vigentes al ejecutarse.
+    """`SHARE` ($R_{36}$, D49.1, precisiones 11, 12 y 86) con las energías vigentes al ejecutarse.
 
-    Si el donante tiene energía > 0 y el objetivo sigue vivo y no es endospora, el donante pierde
+    Si el donante tiene energía > 0 y el objetivo es otro agente, sigue vivo, no es endospora y
+    sigue adyacente, el donante pierde
     `amount = share_fraction * energía` y el receptor gana `share_efficiency * amount`; si no, no
     ocurre nada. Cuenta el evento `shares` sólo si transfiere energía, `amount > 0` (precisión
     85; métrica de C18).
     """
-    donor, receiver = engine.agents[donor_id], _interaction_target(engine, target)
-    if receiver is None or donor.energy <= 0:
+    donor, receiver = engine.agents[donor_id], _interaction_target(engine, donor_id, target)
+    if receiver is None or receiver is donor or donor.energy <= 0:
         return
     config = engine.config
     amount = config.share_fraction * donor.energy
@@ -453,15 +464,17 @@ def _execute_attack(
     """`ATTACK` ($R_{37}$, D49.2, precisión 12) con las energías vigentes al ejecutarse.
 
     El intento se cuenta siempre en `frame.attacks` (su costo lo cobra el metabolismo) y en el
-    evento `attacks`. Tiene éxito si el objetivo sigue vivo, no es endospora y es estrictamente
-    más débil que el atacante; entonces `stolen = min(attack_power, max(0, energía_del_objetivo))`
+    evento `attacks`, también si el objetivo ya no está adyacente (precisión 86). Tiene éxito si el
+    objetivo sigue vivo, no es endospora, sigue adyacente y es estrictamente más débil que el
+    atacante; entonces `stolen = min(attack_power, max(0, energía_del_objetivo))`
     pasa del objetivo al atacante con la eficiencia `predation_efficiency`. Un ataque con éxito y
     `stolen > 0` deja al objetivo en `frame.predated`, que el paso de muerte usa para separar las
     muertes por depredación de las de hambre (precisiones 37 y 84).
     """
     frame.attacks[attacker_id] = frame.attacks.get(attacker_id, 0) + 1
     frame.events["attacks"] += 1
-    attacker, victim = engine.agents[attacker_id], _interaction_target(engine, target)
+    attacker = engine.agents[attacker_id]
+    victim = _interaction_target(engine, attacker_id, target)
     if victim is None or attacker.energy <= victim.energy:
         return
     config = engine.config
@@ -498,13 +511,11 @@ class ExecutionSystem(BaseSystem):
         for aid in frame.order:
             action = actions[aid]
             kind = action.action_type
-            if transfer and kind is ActionType.SHARE:
-                if not agents[aid].is_endospore:
-                    _execute_share(engine, aid, action.target, frame)
-                continue
-            if predation and kind is ActionType.ATTACK:
-                if not agents[aid].is_endospore:
-                    _execute_attack(engine, aid, action.target, frame)
+            sharing = transfer and kind is ActionType.SHARE
+            if sharing or (predation and kind is ActionType.ATTACK):
+                if not agents[aid].is_endospore:  # hasta el bloque 17 (precisión 82)
+                    execute = _execute_share if sharing else _execute_attack
+                    execute(engine, aid, action.target, frame)
                 continue
             result = env.execute_action(aid, action, tick)
             if result.action_type is ActionType.MOVE:

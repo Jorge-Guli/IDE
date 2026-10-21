@@ -87,6 +87,23 @@ def grid_of(engine: SimulationEngine) -> ToroidalGrid2D:
     return cast(ToroidalGrid2D, engine.env)
 
 
+def put(engine: SimulationEngine, aid: int, cell: tuple[int, int]) -> None:
+    """Ubica al agente `aid` en `cell` (sólo para preparar el escenario del test)."""
+    grid = grid_of(engine)
+    old = grid._agent_cell[aid]  # pyright: ignore[reportPrivateUsage]
+    grid.cell_agents[old].discard(aid)
+    grid.cell_agents[cell].add(aid)
+    grid._agent_cell[aid] = cell  # pyright: ignore[reportPrivateUsage]
+
+
+def engine_of(config: SimulationConfig) -> SimulationEngine:
+    """Motor con todos los agentes en la celda (5, 5): todos adyacentes entre sí (precisión 86)."""
+    engine = SimulationEngine(config)
+    for aid in sorted(engine.agents):
+        put(engine, aid, (5, 5))
+    return engine
+
+
 class FixedOrder(BaseSystem):
     """Reemplaza la permutación del tick: primero `order` y después el resto, ascendente."""
 
@@ -188,7 +205,7 @@ def test_condiciones_efectivas_de_r36_y_r37() -> None:
 
 
 def test_cesion_con_perdida(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(share_fraction=0.25, share_efficiency=0.9))
+    engine = engine_of(cfg(share_fraction=0.25, share_efficiency=0.9))
     set_energy(engine, 1, 2.0)
     set_energy(engine, 3, 0.5)
     act(monkeypatch, engine, {1: share(3)})
@@ -200,7 +217,7 @@ def test_cesion_con_perdida(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_cesion_a_una_endospora_sin_efecto(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     set_energy(engine, 1, 2.0)
     set_energy(engine, 3, 0.5)
     engine.agents[3].set_endospore(True)
@@ -214,7 +231,7 @@ def test_cesion_a_una_endospora_sin_efecto(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.parametrize("donor_energy", [0.0, -0.2])
 def test_donante_sin_energia_no_cede(donor_energy: float) -> None:
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     set_energy(engine, 1, donor_energy)
     set_energy(engine, 3, 0.5)
     before = {aid: agent.energy for aid, agent in engine.agents.items()}
@@ -229,7 +246,7 @@ def test_donante_sin_energia_no_cede(donor_energy: float) -> None:
 
 def test_donante_vaciado_antes_en_la_misma_fase(monkeypatch: pytest.MonkeyPatch) -> None:
     """El donante con energía 0.3 al decidir es robado antes de ceder: su SHARE no hace nada."""
-    engine = SimulationEngine(cfg(attack_power=0.5, predation_efficiency=0.6))
+    engine = engine_of(cfg(attack_power=0.5, predation_efficiency=0.6))
     set_energy(engine, 5, 1.0)
     set_energy(engine, 1, 0.3)
     set_energy(engine, 3, 0.5)
@@ -246,7 +263,7 @@ def test_donante_vaciado_antes_en_la_misma_fase(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_cesion_a_un_objetivo_inexistente_sin_efecto(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     before = {aid: agent.energy for aid, agent in engine.agents.items()}
     act(monkeypatch, engine, {1: share(999)})
     spy = spied(engine)
@@ -257,7 +274,7 @@ def test_cesion_a_un_objetivo_inexistente_sin_efecto(monkeypatch: pytest.MonkeyP
 
 def test_cesion_nula_no_cuenta(monkeypatch: pytest.MonkeyPatch) -> None:
     """Con `share_fraction = 0` la cesión no transfiere energía: no cuenta en `shares` (C18)."""
-    engine = SimulationEngine(cfg(share_fraction=0.0))
+    engine = engine_of(cfg(share_fraction=0.0))
     set_energy(engine, 1, 2.0)
     act(monkeypatch, engine, {1: share(3)})
     before = {aid: agent.energy for aid, agent in engine.agents.items()}
@@ -269,7 +286,7 @@ def test_cesion_nula_no_cuenta(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_endospora_no_cede_ni_ataca(monkeypatch: pytest.MonkeyPatch) -> None:
     """Hasta el bloque 17, una endospora que decidió SHARE o ATTACK actúa como IDLE (prec. 82)."""
-    engine = SimulationEngine(cfg(attack_cost=0.3))
+    engine = engine_of(cfg(attack_cost=0.3))
     set_energy(engine, 1, 2.0)
     set_energy(engine, 4, 2.0)
     for aid in (1, 4):
@@ -284,7 +301,7 @@ def test_endospora_no_cede_ni_ataca(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_cesion_inerte_sin_r36(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(enable_energy_transfer=False))
+    engine = engine_of(cfg(enable_energy_transfer=False))
     set_energy(engine, 1, 2.0)
     act(monkeypatch, engine, {1: share(3)})
     before = {aid: agent.energy for aid, agent in engine.agents.items()}
@@ -298,7 +315,7 @@ def test_cesion_inerte_sin_r36(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_robo_acotado_y_muerte_por_depredacion(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(attack_power=0.5, predation_efficiency=0.6))
+    engine = engine_of(cfg(attack_power=0.5, predation_efficiency=0.6))
     set_energy(engine, 4, 1.2)
     set_energy(engine, 6, 0.3)
     act(monkeypatch, engine, {4: attack(6)})
@@ -312,7 +329,7 @@ def test_robo_acotado_y_muerte_por_depredacion(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_robo_sin_muerte(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(attack_power=0.5, predation_efficiency=0.6))
+    engine = engine_of(cfg(attack_power=0.5, predation_efficiency=0.6))
     set_energy(engine, 4, 2.0)
     set_energy(engine, 6, 1.0)
     act(monkeypatch, engine, {4: attack(6)})
@@ -322,7 +339,7 @@ def test_robo_sin_muerte(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_objetivo_igual_de_fuerte(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     set_energy(engine, 4, 0.8)
     set_energy(engine, 6, 0.8)
     act(monkeypatch, engine, {4: attack(6)})
@@ -335,7 +352,7 @@ def test_objetivo_igual_de_fuerte(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_objetivo_mas_fuerte(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     set_energy(engine, 4, 0.5)
     set_energy(engine, 6, 0.8)
     act(monkeypatch, engine, {4: attack(6)})
@@ -347,7 +364,7 @@ def test_objetivo_mas_fuerte(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_objetivo_ya_sin_energia(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(attack_power=0.5, predation_efficiency=0.6))
+    engine = engine_of(cfg(attack_power=0.5, predation_efficiency=0.6))
     set_energy(engine, 4, 1.2)
     set_energy(engine, 6, 0.3)
     set_energy(engine, 8, 0.5)
@@ -362,7 +379,7 @@ def test_objetivo_ya_sin_energia(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_muerte_tras_un_ataque_con_exito_sin_robo(monkeypatch: pytest.MonkeyPatch) -> None:
     """Precisión 37: un ataque con éxito y `stolen = 0` no hace depredación; muere de hambre."""
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     set_energy(engine, 6, 0.0)
     set_energy(engine, 8, 0.5)
     act(monkeypatch, engine, {8: attack(6)})
@@ -374,7 +391,7 @@ def test_muerte_tras_un_ataque_con_exito_sin_robo(monkeypatch: pytest.MonkeyPatc
 
 
 def test_ataque_a_una_endospora_paga_el_costo(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(attack_cost=0.01))
+    engine = engine_of(cfg(attack_cost=0.01))
     set_energy(engine, 4, 1.5)
     set_energy(engine, 6, 0.2)
     engine.agents[6].set_endospore(True)
@@ -387,7 +404,7 @@ def test_ataque_a_una_endospora_paga_el_costo(monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_ataque_fallido_con_costo_en_el_metabolismo(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(attack_cost=0.01, metabolic_base_cost=0.01))
+    engine = engine_of(cfg(attack_cost=0.01, metabolic_base_cost=0.01))
     set_energy(engine, 4, 0.5)
     set_energy(engine, 6, 0.8)
     act(monkeypatch, engine, {4: attack(6)})
@@ -399,7 +416,7 @@ def test_ataque_fallido_con_costo_en_el_metabolismo(monkeypatch: pytest.MonkeyPa
 
 def test_el_metabolismo_cobra_cada_intento_de_frame_attacks() -> None:
     """El costo es por intento registrado en `frame.attacks` (D49.2), vía `MetabolismSystem`."""
-    engine = SimulationEngine(cfg(attack_cost=0.01))
+    engine = engine_of(cfg(attack_cost=0.01))
     set_energy(engine, 4, 0.5)
     set_energy(engine, 5, 0.5)
     before = {aid: agent.energy for aid, agent in engine.agents.items()}
@@ -411,7 +428,7 @@ def test_el_metabolismo_cobra_cada_intento_de_frame_attacks() -> None:
 
 
 def test_muerte_por_depredacion_deja_cadaver(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(enable_carcasses=True, carcass_value=0.6))
+    engine = engine_of(cfg(enable_carcasses=True, carcass_value=0.6))
     grid = grid_of(engine)
     set_energy(engine, 4, 1.2)
     set_energy(engine, 6, 0.3)
@@ -438,7 +455,7 @@ def test_robado_que_muere_en_el_metabolismo_cuenta_como_depredacion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Precisión 37: atacado con éxito y `stolen > 0` en el tick, aunque lo remate el costo."""
-    engine = SimulationEngine(cfg(attack_power=0.2, metabolic_base_cost=0.2))
+    engine = engine_of(cfg(attack_power=0.2, metabolic_base_cost=0.2))
     set_energy(engine, 4, 1.2)
     set_energy(engine, 6, 0.3)
     act(monkeypatch, engine, {4: attack(6)})
@@ -450,7 +467,7 @@ def test_robado_que_muere_en_el_metabolismo_cuenta_como_depredacion(
 
 
 def test_ataque_inerte_sin_r37(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(enable_predation=False, attack_cost=0.5))
+    engine = engine_of(cfg(enable_predation=False, attack_cost=0.5))
     set_energy(engine, 4, 1.2)
     set_energy(engine, 6, 0.3)
     act(monkeypatch, engine, {4: attack(6)})
@@ -468,7 +485,7 @@ def test_ataque_inerte_sin_r37(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.parametrize("target_first", [True, False])
 def test_mas_debil_al_ejecutarse(monkeypatch: pytest.MonkeyPatch, target_first: bool) -> None:
     """El 1 (0.7) ataca al 2 (0.8), que cede al 3: sólo si cede antes, el ataque tiene éxito."""
-    engine = SimulationEngine(cfg(share_fraction=0.25, share_efficiency=0.9, attack_power=0.5))
+    engine = engine_of(cfg(share_fraction=0.25, share_efficiency=0.9, attack_power=0.5))
     set_energy(engine, 1, 0.7)
     set_energy(engine, 2, 0.8)
     set_energy(engine, 3, 0.5)
@@ -494,7 +511,7 @@ def test_mas_debil_al_ejecutarse(monkeypatch: pytest.MonkeyPatch, target_first: 
 def test_dos_depredadores_sobre_la_misma_presa(
     monkeypatch: pytest.MonkeyPatch, order: list[int]
 ) -> None:
-    engine = SimulationEngine(cfg(attack_power=0.5, predation_efficiency=0.6))
+    engine = engine_of(cfg(attack_power=0.5, predation_efficiency=0.6))
     set_energy(engine, 4, 1.0)
     set_energy(engine, 5, 1.0)
     set_energy(engine, 6, 0.6)
@@ -509,7 +526,7 @@ def test_dos_depredadores_sobre_la_misma_presa(
 
 def test_el_orden_es_el_de_la_permutacion_del_tick(monkeypatch: pytest.MonkeyPatch) -> None:
     """Sin fijar el orden, el resultado es el que dicta la permutación sorteada del tick."""
-    engine = SimulationEngine(cfg(attack_power=0.5, predation_efficiency=0.6))
+    engine = engine_of(cfg(attack_power=0.5, predation_efficiency=0.6))
     set_energy(engine, 4, 1.0)
     set_energy(engine, 5, 1.0)
     set_energy(engine, 6, 0.6)
@@ -537,7 +554,7 @@ def test_el_orden_es_el_de_la_permutacion_del_tick(monkeypatch: pytest.MonkeyPat
 def _m2_with_truth(
     monkeypatch: pytest.MonkeyPatch, action: AgentAction, truth: dict[int, float]
 ) -> tuple[int, int]:
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     grid = grid_of(engine)
     monkeypatch.setattr(
         grid, "get_reachable_true_values", lambda aid: dict(truth) if aid == 1 else {}
@@ -566,7 +583,7 @@ def test_m2_conductas_nuevas_con_solo_recursos_daninos(
 
 
 def test_m2_cadaver_en_el_oraculo(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(enable_carcasses=True))
+    engine = engine_of(cfg(enable_carcasses=True))
     grid = grid_of(engine)
     for pattern in sorted(grid.get_world_patterns()):
         grid.retire_pattern_resources(pattern)
@@ -585,7 +602,7 @@ def test_m2_cadaver_en_el_oraculo(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_eventos_con_nombres_de_ecology_tick_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg(enable_carcasses=True))
+    engine = engine_of(cfg(enable_carcasses=True))
     set_energy(engine, 1, 2.0)
     set_energy(engine, 4, 1.2)
     set_energy(engine, 6, 0.3)
@@ -600,7 +617,7 @@ def test_eventos_con_nombres_de_ecology_tick_metrics(monkeypatch: pytest.MonkeyP
 
 
 def test_sin_interacciones_no_hay_eventos(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     act(monkeypatch, engine)
     spy = spied(engine)
     engine.run(3)
@@ -631,7 +648,7 @@ def interaction_scenarios(draw: st.DrawFn) -> tuple[Any, ...]:
 @given(interaction_scenarios())
 def test_ninguna_interaccion_crea_energia(scenario: tuple[Any, ...]) -> None:
     energies, kinds, targets, order, endospores, params = scenario
-    engine = SimulationEngine(cfg(num_agents=6, **params))
+    engine = engine_of(cfg(num_agents=6, **params))
     ids = sorted(engine.agents)
     actions: dict[int, AgentAction] = {}
     for i, aid in enumerate(ids):
@@ -777,7 +794,7 @@ def test_interacciones_independientes_del_hash() -> None:
 @pytest.mark.parametrize("target", [None, True, (1, 0), "3"])
 def test_objetivo_que_no_es_un_agent_id(target: object) -> None:
     """Un objetivo que no es un `agent_id` entero no recibe ni pierde energía."""
-    engine = SimulationEngine(cfg())
+    engine = engine_of(cfg())
     set_energy(engine, 1, 2.0)
     before = {aid: agent.energy for aid, agent in engine.agents.items()}
     actions = {aid: IDLE for aid in engine.agents}
@@ -787,3 +804,77 @@ def test_objetivo_que_no_es_un_agent_id(target: object) -> None:
     ExecutionSystem().run(engine, frame)
     assert {aid: agent.energy for aid, agent in engine.agents.items()} == before
     assert dict(frame.events) == {"attacks": 1} and frame.attacks == {4: 1}
+
+
+def test_cesion_a_si_mismo_sin_efecto(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = engine_of(cfg())
+    set_energy(engine, 1, 2.0)
+    act(monkeypatch, engine, {1: share(1)})
+    before = {aid: agent.energy for aid, agent in engine.agents.items()}
+    spy = spied(engine)
+    engine.step()
+    assert {aid: agent.energy for aid, agent in engine.agents.items()} == before
+    assert spy.events == [{}]
+
+
+# --- Adyacencia al ejecutarse (precisión 86) ----------------------------------------------------
+
+
+@pytest.mark.parametrize("target_moves_first", [True, False])
+def test_cesion_exige_adyacencia_al_ejecutarse(
+    monkeypatch: pytest.MonkeyPatch, target_moves_first: bool
+) -> None:
+    """El 3 está a distancia 1 del 1 y se aleja a distancia 2: sólo si se aleja antes, no recibe."""
+    engine = engine_of(cfg(share_fraction=0.25, share_efficiency=0.9))
+    put(engine, 3, (5, 6))
+    set_energy(engine, 1, 2.0)
+    set_energy(engine, 3, 0.5)
+    act(monkeypatch, engine, {1: share(3), 3: AgentAction(ActionType.MOVE, (0, 1))})
+    fix_order(engine, [3, 1] if target_moves_first else [1, 3])
+    spy = spied(engine)
+    engine.step()
+    assert grid_of(engine).get_agent_position(3) == (5, 7)
+    if target_moves_first:
+        assert engine.agents[1].energy == pytest.approx(2.0, abs=1e-9)
+        assert engine.agents[3].energy == pytest.approx(0.5, abs=1e-9)
+        assert spy.events == [{}]
+    else:
+        assert engine.agents[1].energy == pytest.approx(1.5, abs=1e-9)
+        assert engine.agents[3].energy == pytest.approx(0.95, abs=1e-9)
+        assert spy.events == [{"shares": 1}]
+
+
+@pytest.mark.parametrize("target_moves_first", [True, False])
+def test_ataque_exige_adyacencia_al_ejecutarse(
+    monkeypatch: pytest.MonkeyPatch, target_moves_first: bool
+) -> None:
+    """Si la presa se aleja antes, el ataque no tiene efecto, pero el intento cuenta y paga."""
+    engine = engine_of(cfg(attack_power=0.5, predation_efficiency=0.6, attack_cost=0.01))
+    put(engine, 6, (5, 6))
+    set_energy(engine, 4, 2.0)
+    set_energy(engine, 6, 1.0)
+    act(monkeypatch, engine, {4: attack(6), 6: AgentAction(ActionType.MOVE, (0, 1))})
+    fix_order(engine, [6, 4] if target_moves_first else [4, 6])
+    spy = spied(engine)
+    engine.step()
+    assert spy.attacks == [{4: 1}]
+    if target_moves_first:
+        assert engine.agents[4].energy == pytest.approx(2.0 - 0.01, abs=1e-9)
+        assert engine.agents[6].energy == pytest.approx(1.0, abs=1e-9)
+        assert spy.events == [{"attacks": 1}]
+    else:
+        assert engine.agents[4].energy == pytest.approx(2.0 + 0.3 - 0.01, abs=1e-9)
+        assert engine.agents[6].energy == pytest.approx(0.5, abs=1e-9)
+        assert spy.events == [{"attacks": 1, "successful_attacks": 1}]
+
+
+def test_objetivo_nunca_adyacente(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = engine_of(cfg())
+    put(engine, 3, (0, 0))
+    set_energy(engine, 1, 2.0)
+    act(monkeypatch, engine, {1: share(3), 4: attack(3)})
+    before = {aid: agent.energy for aid, agent in engine.agents.items()}
+    spy = spied(engine)
+    engine.step()
+    assert {aid: agent.energy for aid, agent in engine.agents.items()} == before
+    assert spy.events == [{"attacks": 1}]

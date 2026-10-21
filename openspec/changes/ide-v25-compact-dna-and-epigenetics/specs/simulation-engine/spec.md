@@ -70,7 +70,7 @@ El motor SHALL ejecutar `SHARE`, `ATTACK` y `SPORULATE` en la Fase 4, en el orde
 - **THEN** el agente 2 queda en endospora, el ataque falla, `frame.attacks[5] == 1`, `frame.events` tiene `attacks == 1`, `successful_attacks == 0` y `sporulations == 1`, y la `EcologyTickMetrics` del tick registra los mismos valores.
 
 ### Requirement: Transferencia de Energía (R36)
-Con $R_{36}$ activa, un `SHARE` sobre `target` SHALL, si el donante tiene energía $> 0$ y el objetivo sigue en `engine.agents` ("sigue vivo": nadie muere en la Fase 4) y no es endospora, restar `amount = share_fraction * energía_del_donante` al donante y sumar `share_efficiency * amount` al receptor; si no, SHALL NOT tener efecto.
+Con $R_{36}$ activa, un `SHARE` sobre `target` SHALL, si el donante tiene energía $> 0$ y el objetivo es otro agente, sigue en `engine.agents` ("sigue vivo": nadie muere en la Fase 4), no es endospora y está a distancia $\le 1$ al ejecutarse, restar `amount = share_fraction * energía_del_donante` al donante y sumar `share_efficiency * amount` al receptor; si no, SHALL NOT tener efecto.
 
 #### Scenario: Cesión con pérdida
 - **WHEN** con `share_fraction = 0.25` y `share_efficiency = 0.9` el agente 1, con energía 2.0, ejecuta `SHARE` sobre el agente 3, con energía 0.5
@@ -80,16 +80,24 @@ Con $R_{36}$ activa, un `SHARE` sobre `target` SHALL, si el donante tiene energ�
 - **WHEN** el objetivo de un `SHARE` está en endospora al ejecutarse
 - **THEN** ninguna energía cambia.
 
+#### Scenario: Objetivo que se alejó
+- **WHEN** el objetivo de un `SHARE`, adyacente al decidir, se mueve antes en la permutación del tick y queda a distancia 2 del donante
+- **THEN** ninguna energía cambia por el `SHARE` y no cuenta en `shares`.
+
 #### Scenario: Donante sin energía
 - **WHEN** un agente que decidió `SHARE` con energía 0.3 consume antes, en la misma Fase 4, un recurso dañino que lo deja con energía -0.2, y luego se ejecuta su `SHARE`
 - **THEN** ninguna energía cambia por el `SHARE`.
 
 ### Requirement: Depredación (R37)
-Con $R_{37}$ activa, un `ATTACK` sobre `target` SHALL tener éxito sólo si el objetivo sigue en `engine.agents` (aunque su energía sea $\le 0$), no es endospora y la energía del atacante es estrictamente mayor que la del objetivo al ejecutarse; con éxito, `stolen = min(attack_power, max(0, energía_del_objetivo))`, el objetivo pierde `stolen` y el atacante gana `predation_efficiency * stolen`.
+Con $R_{37}$ activa, un `ATTACK` sobre `target` SHALL tener éxito sólo si el objetivo sigue en `engine.agents` (aunque su energía sea $\le 0$), no es endospora, está a distancia $\le 1$ y la energía del atacante es estrictamente mayor que la del objetivo al ejecutarse; con éxito, `stolen = min(attack_power, max(0, energía_del_objetivo))`, el objetivo pierde `stolen` y el atacante gana `predation_efficiency * stolen`.
 
 #### Scenario: Robo acotado
 - **WHEN** con `attack_power = 0.5` y `predation_efficiency = 0.6` el agente 4, con energía 1.2, ataca al agente 6, con energía 0.3
 - **THEN** el agente 6 queda con 0.0 y el agente 4 con 1.38 (con tolerancia `1e-9`), y el agente 6 muere en el paso de muerte de esa Fase 5.
+
+#### Scenario: Presa que se alejó
+- **WHEN** la presa de un `ATTACK`, adyacente al decidir, se mueve antes en la permutación del tick y queda a distancia 2 del atacante
+- **THEN** el ataque fracasa, ninguna energía cambia en la Fase 4, el intento se cuenta en `frame.attacks` y el atacante paga `attack_cost`.
 
 #### Scenario: Objetivo igual o más fuerte
 - **WHEN** el atacante y el objetivo tienen la misma energía al ejecutarse el ataque
