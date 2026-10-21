@@ -2,7 +2,7 @@
 
 > **Verificación de cada bloque (CLAUDE.md).** Un bloque sólo está completo cuando pasan `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide`, y después `/code-review` sobre el cambio del bloque. Si el bloque toca specs, también corre `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict`. Un commit por bloque.
 >
-> **Reformulación del 2026-10-20 (design D43–D56).** Con la etapa A completa, la Fase II-B se reformuló para corregir las cuestiones de base de la Fase II: conducta codificada en el ADN, ecología con interacciones físicas, motor por sistemas y medición de evolución abierta. Los bloques 1 a 5 se conservan. Los bloques 6 en adelante reemplazan a los anteriores 6 a 12.
+> **Reformulación del 2026-10-20 (design D43–D56).** Con la etapa A completa, la Fase II-B se reformuló para corregir las cuestiones de base de la Fase II: conducta codificada en el ADN, ecología con interacciones físicas, motor por sistemas y medición de evolución abierta. Los bloques 1 a 5 se conservan. Los bloques 6 en adelante reemplazan a los anteriores 6 a 12. La ampliación del 2026-10-21 (design D57–D63: estado interno, plasticidad, señales, entorno cambiante y detección de núcleos) agrega la etapa L.
 >
 > **Etapas.** El orden es deliberado. Cada etapa termina en un **punto de control**: la ejecución se detiene y espera al responsable del proyecto.
 >
@@ -11,9 +11,10 @@
 > | A | 1 a 5 | $R_{24}$ sola, verificada contra la Fase II | completa |
 > | R | 6 y 7 | refactor sin cambio de conducta: motor por sistemas y puerto de política | hashes dorados, huellas de la Fase II y benchmark |
 > | B | 8 a 12 | conducta en el ADN y ecología ($R_{32}$–$R_{37}$) | fundador genético igual a la política escrita a mano; ablaciones y determinismo |
-> | M | 13 a 17 | mecanismos del ADN ($R_{25}$–$R_{31}$, $R_{38}$) | ablaciones y determinismo de los mecanismos |
-> | C | 18 a 22 | telemetría, atribución, compuerta de viabilidad, prueba de humo y runners | compuerta de viabilidad (bloque 20) y prueba de humo (bloque 21) |
-> | D | 23 | corridas y registro | resultados |
+> | L | 13 a 15 | memoria, aprendizaje y señales construidos por la evolución ($R_{39}$–$R_{41}$, ampliación D57–D63) | ablaciones, fundador neutro y determinismo |
+> | M | 16 a 20 | mecanismos del ADN ($R_{25}$–$R_{31}$, $R_{38}$) | ablaciones y determinismo de los mecanismos |
+> | C | 21 a 25 | telemetría, atribución, compuerta de viabilidad, prueba de humo y runners | compuerta de viabilidad (bloque 23) y prueba de humo (bloque 24) |
+> | D | 26 | corridas y registro | resultados |
 >
 > **Ejecución automática.** La skill `ejecutar-bloque` (`.claude/skills/ejecutar-bloque/`) ejecuta cada bloque con el ciclo de `CLAUDE.md`:
 > - lo delega en el subagente que indica su línea `> Ejecuta:`;
@@ -29,7 +30,7 @@
 >
 > **Compatibilidad.** Ningún bloque puede cambiar los hashes dorados de la Fase I ni los historiales de la Fase II con las banderas por defecto. Los tests de los bloques 1 a 5 sólo cambian donde la reformulación lo dice explícitamente (D46.7, D50.3 y D52.4), más el test de firmas canónicas de la Fase I (precisión 22).
 >
-> **Pre-registro.** Es design D56 (borrador). Se aprueba en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 19 deben coincidir **exactamente** con él.
+> **Pre-registro.** Es design D56 (borrador). Se aprueba en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
 > **Etapa actual:** la etapa A está completa. Sigue la tarea 0.5 y, después, la etapa R.
 
@@ -54,10 +55,11 @@
   - Commitear el pre-registro aprobado.
 
 - [x] 0.4 **Reformular la Fase II-B** (2026-10-20, decisión del responsable del proyecto): design D43–D56, specs delta, `proposal.md`, este `tasks.md` y los documentos raíz, con `openspec validate --all --strict` y revisión cruzada independiente. Sustituye el pre-registro D42 por el borrador D56; C9–C12 se retiran sin medir.
+- [x] 0.6 **Ampliar la Fase II-B** (2026-10-21, decisión del responsable del proyecto): design D57–D63 (estado interno, plasticidad, señales, ADN de 64 codones, entorno cambiante y detección de núcleos), D56 reabierto con C19 y C20, specs, este `tasks.md` y documentos raíz.
 - [ ] 0.5 **Aprobar el pre-registro D56 con el responsable del proyecto**, antes del bloque 6:
-  - el inventario $R_{24}$–$R_{38}$ con sus propósitos y ablaciones;
-  - los protocolos `25a`, `25b` y `25c`, y sus condiciones;
-  - las afirmaciones C13–C18, sus métricas, sus comparaciones y sus $\delta_{\min}$;
+  - el inventario $R_{24}$–$R_{41}$ con sus propósitos y ablaciones;
+  - los protocolos `25a`, `25b`, `25c` y `25d`, y sus condiciones;
+  - las afirmaciones C13–C19 (genuinas) y C20 (funcional), sus métricas, sus comparaciones y sus $\delta_{\min}$;
   - la prueba, la corrección de Holm, el perfil `phase25` (5000 ticks) y las semillas 42–71;
   - la compuerta de viabilidad de D55, con su grilla y su criterio;
   - los valores por defecto de D52.
@@ -171,7 +173,8 @@
   - los campos nuevos de `ExpressedPhenotype` con sus valores por defecto (D46.7);
   - los campos de D52 con sus valores por defecto, la validación siempre activa y las dependencias inertes;
   - la eliminación de `lock_composite_threshold` (D52.4), retirando sus tests;
-  - `EcologicalEnvironmentPort` (D47.2).
+  - `EcologicalEnvironmentPort` (D47.2);
+  - los tipos y campos de la ampliación: `EventSignals`, `BehaviorEvaluation`, los campos nuevos de `SensorySignals` y `ExpressedPhenotype` (`plasticity_rate`) y los de D62 y D63.1.
 - [ ] 8.2 **[GREEN]** Implementar los tipos, los campos y la validación en `types.py`, `config.py` y `ports.py`.
 - [ ] 8.3 **[REFACTOR]** Verificación del bloque.
 
@@ -213,8 +216,9 @@
   - (b) $R_{34}$: las franjas, la región propia de cada patrón, la ubicación inicial y de reposición, y las estaciones con `winter_regen_factor`;
   - (c) $R_{35}$: el depósito del cadáver antes de quitar al agente, su consumo, su aprendizaje, su retiro tras `carcass_lifetime` y su ausencia de `get_world_patterns()`;
   - (d) `get_visible_agents`, `deposit_carcass` y `get_resource_count`;
-  - (e) los hashes dorados y las huellas de la Fase II con las reglas apagadas.
-- [ ] 11.2 **[GREEN]** Implementar D48 en `grid2d.py` y el depósito de cadáveres en el sistema de muerte.
+  - (e) los hashes dorados y las huellas de la Fase II con las reglas apagadas;
+  - (f) los cambios del entorno de D62.1 (`world_shift_period`, `invert_world_rules` con el generador principal al empezar cada tick múltiplo).
+- [ ] 11.2 **[GREEN]** Implementar D48 en `grid2d.py`, el depósito de cadáveres en el sistema de muerte y los cambios del entorno de D62.1.
 - [ ] 11.3 **[REFACTOR]** Verificación del bloque.
 
 ## 12. Interacciones: transferencia y depredación (`simulation-engine`, `evolutionary-dynamics`)
@@ -232,135 +236,180 @@
 - [ ] 12.2 **[GREEN]** Implementar D49 en el sistema de la Fase 4 y el costo de los ataques en el metabolismo.
 - [ ] 12.3 **[REFACTOR]** Verificación del bloque.
 
-## 13. Senescencia (R29) y mutación SOS (R30) (`evolutionary-dynamics`, `simulation-engine`)
+## 13. Estado interno persistente y eventos (R39) (`compact-dna`, `micro-agent`, `simulation-engine`)
 
 > Ejecuta: implementador-delicado
 
 - [ ] 13.1 **[RED]** Tests para:
+  - (a) `evaluate_behavior` y `BehaviorEvaluation` (D60.1), con `evaluate_drives` como envoltorio que devuelve los mismos impulsos;
+  - (b) los destinos `SET_STATE` y `CLEAR_STATE`, la regla de mayoría por bit, `clear` prevaleciente y la aplicación al terminar la Fase 3 (D58.3);
+  - (c) los promotores de estado `0x30`–`0x37` y de eventos `0x28`–`0x2B`, inactivos en la transcripción del fenotipo (D58.4–D58.6);
+  - (d) `EventSignals` calculados por el motor al final del tick y guardados en `agent.last_events` (D58.5);
+  - (e) `internal_state` en 0 al nacer, conservado en la endospora y no heredado;
+  - (f) la inercia sin $R_{39}$ y la aceptación de D46.5 con las banderas de la ampliación activas y el ADN fundador.
+- [ ] 13.2 **[GREEN]** Implementar D58 y la parte de D60.1 que corresponde al estado.
+- [ ] 13.3 **[REFACTOR]** Verificación del bloque.
+
+## 14. Plasticidad en vida (R40) (`compact-dna`, `micro-agent`, `simulation-engine`)
+
+> Ejecuta: implementador-delicado
+
+- [ ] 14.1 **[RED]** Tests para:
+  - (a) el modo 3 plástico sólo sobre destinos de conducta e inerte en el fenotipo, y `AST_PIPE` mudado a `0x3F` (D59.1, D61);
+  - (b) el rasgo `plasticity_rate` (`0x0F`) con base 0 (D59.3);
+  - (c) la recompensa de la Fase 4, los codones elegibles y la actualización acotada (D59.4);
+  - (d) `plastic_weights` vacío al nacer, no heredado y vaciado en `set_dna` (D59.2);
+  - (e) el caché de impulsos con pesos igual a la evaluación directa (D59.5);
+  - (f) la inercia sin $R_{40}$.
+- [ ] 14.2 **[GREEN]** Implementar D59.
+- [ ] 14.3 **[REFACTOR]** Verificación del bloque.
+
+## 15. Señales evolucionables (R41) (`compact-dna`, `simulation-engine`)
+
+> Ejecuta: implementador-delicado
+>
+> Punto de control: fin de la etapa L. Mostrar, para $R_{39}$–$R_{41}$, que cada ablación deja la regla inerte, que el ADN fundador sigue reproduciendo la política escrita a mano y que los historiales son iguales entre procesos con distinto `PYTHONHASHSEED`.
+
+- [ ] 15.1 **[RED]** Tests para:
+  - (a) la emisión por mayoría por símbolo, su costo en el metabolismo y que `SIGNAL` no ocupa la acción (D60.2, D60.3);
+  - (b) la percepción en la Fase 1 del tick siguiente por los vecinos del emisor en el tick de emisión, sin endosporas (D60.4);
+  - (c) los promotores `0x38`–`0x3F` sólo en la evaluación de conducta;
+  - (d) el control nulo con `null_rng`, en orden de `agent_id` (D60.5);
+  - (e) que las señales no pasan por `protocol.py` ni por la memoria (D60.6);
+  - (f) la inercia sin $R_{41}$.
+- [ ] 15.2 **[GREEN]** Implementar D60.
+- [ ] 15.3 **[REFACTOR]** Verificación del bloque.
+
+## 16. Senescencia (R29) y mutación SOS (R30) (`evolutionary-dynamics`, `simulation-engine`)
+
+> Ejecuta: implementador-delicado
+
+- [ ] 16.1 **[RED]** Tests para:
   - `compute_senescence_cost`;
   - la edad y la longevidad expresada (con y sin ADN);
   - el cobro también a las endosporas;
   - el registro de `last_stress_tick`;
   - las tres escalas de SOS decididas antes de partir la energía, por hoja en la reproducción holónica;
   - la escala 1.0 con la regla apagada, con Fase II bit a bit.
-- [ ] 13.2 **[GREEN]** Implementar D39 como sistemas del pipeline.
-- [ ] 13.3 **[REFACTOR]** Verificación del bloque.
+- [ ] 16.2 **[GREEN]** Implementar D39 como sistemas del pipeline.
+- [ ] 16.3 **[REFACTOR]** Verificación del bloque.
 
-## 14. Endospora como conducta (R28) (`evolutionary-dynamics`, `simulation-engine`)
+## 17. Endospora como conducta (R28) (`evolutionary-dynamics`, `simulation-engine`)
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 14.1 **[RED]** Tests para:
+- [ ] 17.1 **[RED]** Tests para:
   - la entrada en endospora sólo por `SPORULATE` (D50.2), con su factibilidad y su inercia sin la política genética;
   - la germinación en la Fase 1;
   - la física de la endospora de D38: sin emisión ni recepción de mensajes, `IDLE` sin decidir ni consumir `rng`, sin oportunidad de decisión en M2, sin reproducción, sin ser objetivo de `SHARE` ni de `ATTACK`, y el costo `spore_cost_fraction * metabolic_base_cost`.
-- [ ] 14.2 **[GREEN]** Implementar D38 con la entrada de D50.2.
-- [ ] 14.3 **[REFACTOR]** Verificación del bloque.
+- [ ] 17.2 **[GREEN]** Implementar D38 con la entrada de D50.2.
+- [ ] 17.3 **[REFACTOR]** Verificación del bloque.
 
-## 15. Señal posicional (R25) y compromiso simbiótico (R31) (`holonic-hierarchy`, `simulation-engine`)
+## 18. Señal posicional (R25) y compromiso simbiótico (R31) (`holonic-hierarchy`, `simulation-engine`)
 
 > Ejecuta: implementador-delicado
 
-- [ ] 15.1 **[RED]** Ampliar `tests/test_holonic_hierarchy.py` y `tests/test_simulation_engine.py` con tests para:
+- [ ] 18.1 **[RED]** Ampliar `tests/test_holonic_hierarchy.py` y `tests/test_simulation_engine.py` con tests para:
   - (a) `assign_epigenetic_roles` de D36, con su asignación por el motor, el regreso a `NONE` y la impronta;
   - (b) el sello de $R_{31}$ por compromiso expresado medio $\ge 0.5$ (D50.3), su permanencia, `should_split_holon` en `False`, el descuento de coordinación sólo en la raíz soldada y la poda;
   - (c) que con `symbiotic_commitment_base = 0.0` y el ADN fundador ningún holón se suelda.
-- [ ] 15.2 **[GREEN]** Implementar D36 y D50.3.
-- [ ] 15.3 **[REFACTOR]** Verificación del bloque.
+- [ ] 18.2 **[GREEN]** Implementar D36 y D50.3.
+- [ ] 18.3 **[REFACTOR]** Verificación del bloque.
 
-## 16. Plásmidos (R26) e inmunidad CRISPR (R27) (`compact-dna`, `simulation-engine`)
+## 19. Plásmidos (R26) e inmunidad CRISPR (R27) (`compact-dna`, `simulation-engine`)
 
 > Ejecuta: implementador-delicado
 
-- [ ] 16.1 **[RED]** Tests para:
+- [ ] 19.1 **[RED]** Tests para:
   - `receive_plasmid` (bloqueo, duplicado y FIFO) y `purge_plasmid` (FIFO de firmas);
   - la conjugación con `hgt_rng` (`spawn_key=(5,)`): donantes y candidatos fijados al empezar el paso, sin endosporas, la secuencia exacta de extracciones de D37 y la aplicación después del sorteo;
   - la apertura y el cierre de ensayos CRISPR, la purga por toxicidad y el cierre sin purga si el plásmido se perdió;
   - que `hgt_rng` no se consume con $R_{26}$ apagada;
   - la igualdad entre procesos con distinto `PYTHONHASHSEED`.
-- [ ] 16.2 **[GREEN]** Implementar D37.
-- [ ] 16.3 **[REFACTOR]** Verificación del bloque.
+- [ ] 19.2 **[GREEN]** Implementar D37.
+- [ ] 19.3 **[REFACTOR]** Verificación del bloque.
 
-## 17. Recombinación (R38) (`compact-dna`, `simulation-engine`)
+## 20. Recombinación (R38) (`compact-dna`, `simulation-engine`)
 
 > Ejecuta: implementador-delicado
 >
 > Punto de control: fin de la etapa M. Mostrar, para $R_{25}$–$R_{31}$ y $R_{38}$, que cada ablación deja la regla inerte y que los historiales son iguales entre procesos con distinto `PYTHONHASHSEED`.
 
-- [ ] 17.1 **[RED]** Tests para:
+- [ ] 20.1 **[RED]** Tests para:
   - la búsqueda de pareja con la propensión expresada de los dos, sin endosporas y a distancia $\le 1$;
   - la secuencia exacta de extracciones de `evo_rng` de D51.2 y su ausencia sin candidatas o con la regla apagada;
   - la reproducción asexual sin pareja, la herencia de plásmidos y firmas del progenitor y la mutación posterior;
   - la reproducción neutral: el ADN del donante en la recombinación (precisiones 14 y 35) y la reproducción holónica neutral con ADN, con el orden de sorteo de `donor_rng` y sin cambios sin ADN (precisión 41);
   - que la pareja no cede energía y que $R_{17}$ no recombina.
-- [ ] 17.2 **[GREEN]** Implementar D51 y la precisión 41 en el sistema de reproducción.
-- [ ] 17.3 **[REFACTOR]** Verificación del bloque.
+- [ ] 20.2 **[GREEN]** Implementar D51 y la precisión 41 en el sistema de reproducción.
+- [ ] 20.3 **[REFACTOR]** Verificación del bloque.
 
-## 18. Telemetría de evolución abierta (`experimental-suite`)
+## 21. Telemetría de evolución abierta (`experimental-suite`)
 
 > Ejecuta: implementador-delicado
 
-- [ ] 18.1 **[RED]** Ampliar `tests/test_metrics.py` y `tests/test_simulation_engine.py` con tests para:
+- [ ] 21.1 **[RED]** Ampliar `tests/test_metrics.py` y `tests/test_simulation_engine.py` con tests para:
   - `GeneticTickMetrics` de D53.2, incluidas `mean_conditional_codons`, `mean_expressible_nonattack_codons`, `regulated_expression_fraction` y `mean_expressible_codons` con los valores canónicos expresables de la precisión 42, `policy_divergence` (sin extraer de `rng`), `communicating_fraction`, `distinct_genotypes`, `mean_functional_codons`, la actividad de Bedau–Packard por nacimientos portadores y sin los codones fundadores, `cumulative_births`, `new_activity_per_birth` y `mean_age_at_death` (precisiones 43 y 49);
-  - `EcologyTickMetrics` de D53.3;
+  - `EcologyTickMetrics` de D53.3, con `signals_emitted`, `plastic_updates`, `decision_opportunities` y `correct_decisions` (D63.3, D63.4);
+  - los campos de la ampliación en `GeneticTickMetrics` (D63.2), incluidos `mean_learning_codons` y `max_signal_information`;
   - el registro en cada tick con cualquier combinación de banderas y los valores con la población vacía;
   - que `TickMetrics` y `EvolutionaryTickMetrics` no cambian.
-- [ ] 18.2 **[GREEN]** Implementar los observadores y los tipos de métricas.
-- [ ] 18.3 **[REFACTOR]** Verificación del bloque.
+- [ ] 21.2 **[GREEN]** Implementar los observadores y los tipos de métricas.
+- [ ] 21.3 **[REFACTOR]** Verificación del bloque.
 
-## 19. Atribución del pre-registro (`emergence-attribution`)
+## 22. Atribución del pre-registro (`emergence-attribution`)
 
 > Ejecuta: implementador-delicado
 
-- [ ] 19.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
-  - `PHASE25_DESIGN_RULES` (`R24`–`R38`) con sus `purpose`, `PHASE25_ALL_RULES` y `ablate()` con las reglas nuevas;
-  - `PHASE25_PROTOCOL_CONFIGS` (`25a`, `25b` y `25c`), sus condiciones y `PHASE25_CLAIMS` (C13–C18) con métricas, comparaciones, $R_C$, canales y $\delta_{\min}$;
-  - la ventana final, los pares válidos con `excluded_seeds`, `excluded_pairs` y `evaluable` (precisiones 45 y 47), la prueba de signo pareada sobre los pares válidos, la corrección de Holm–Bonferroni con las afirmaciones no evaluables (precisión 48) y el estado `OBSERVED` sólo con significancia ajustada y mediana mayor o igual que el umbral de efecto, incluido el umbral relativo de C16 (`delta_relative`);
+- [ ] 22.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
+  - `PHASE25_DESIGN_RULES` (`R24`–`R41`) con sus `purpose`, `PHASE25_ALL_RULES` y `ablate()` con las reglas nuevas;
+  - `PHASE25_PROTOCOL_CONFIGS` (`25a`, `25b`, `25c` y `25d`, con `dna_max_length = 64`), sus condiciones (incluidas `stable` y `no_learning`) y `PHASE25_CLAIMS` (C13–C19 genuinas y C20 funcional, con `post_shift_accuracy`) con métricas, comparaciones, $R_C$, canales y $\delta_{\min}$;
+  - la ventana final, los pares válidos con `excluded_seeds`, `excluded_pairs` y `evaluable` (precisiones 45 y 47), la prueba de signo pareada sobre los pares válidos, la corrección de Holm–Bonferroni sobre C13–C19 ($m = 7$) con las afirmaciones no evaluables (precisión 48), C20 fuera de Holm y clasificada programada por construcción y el estado `OBSERVED` sólo con significancia ajustada y mediana mayor o igual que el umbral de efecto, incluido el umbral relativo de C16 (`delta_relative`);
   - `demography` con sus covariables (precisiones 45 y 49);
-  - la clasificación no programada de C13–C18 y E4 condicionado a la compuerta;
+  - la clasificación no programada de C13–C19, C20 programada por construcción, y E4 condicionado a la compuerta;
   - los `rule_effects` exploratorios con las semillas 42–51;
   - que los reportes de C1–C8 no cambian.
-- [ ] 19.2 **[GREEN]** Implementar en `attribution.py` el pre-registro aprobado en 0.5. Las constantes deben coincidir exactamente con design D56.
-- [ ] 19.3 **[REFACTOR]** Verificación del bloque.
+- [ ] 22.2 **[GREEN]** Implementar en `attribution.py` el pre-registro aprobado en 0.5. Las constantes deben coincidir exactamente con design D56.
+- [ ] 22.3 **[REFACTOR]** Verificación del bloque.
 
-## 20. Rendimiento del perfil largo y compuerta de viabilidad (`experimental-suite`)
+## 23. Rendimiento del perfil largo y compuerta de viabilidad (`experimental-suite`)
 
 > Ejecuta: implementador-delicado
 >
 > Punto de control: compuerta de viabilidad. Mostrar, por configuración de la grilla, protocolo y condición, las semillas viables, y la configuración elegida o la ausencia de una. Si ninguna es viable, decide el responsable del proyecto.
 
-- [ ] 20.1 Medir el costo de un tick con todas las reglas de `25b` activas (D54.3). Si una corrida de `phase25` supera los 5 minutos, optimizar con historiales idénticos antes de seguir.
-- [ ] 20.2 **[RED]** Tests de `phase25_viability.py`: el criterio por corrida y por configuración, el orden de la grilla, la detención en la primera viable y que no calcula ninguna métrica de afirmación.
-- [ ] 20.3 **[GREEN]** Crear `src/ide/experiments/phase25_viability.py` con su CLI (D55).
-- [ ] 20.4 Correr la compuerta con `PHASE25_VIABILITY_SEEDS` y registrar la salida en `registros/` y en `docs/RESULTADOS.md`. Fijar en `PHASE25_PROTOCOL_CONFIGS` la configuración elegida, en un commit propio.
+- [ ] 23.1 Medir el costo de un tick con todas las reglas de `25b` activas (D54.3). Si una corrida de `phase25` supera los 5 minutos, optimizar con historiales idénticos antes de seguir.
+- [ ] 23.2 **[RED]** Tests de `phase25_viability.py`: el `--jobs` por defecto con los núcleos detectados y la salida idéntica para cualquier `--jobs` (D62.3), el criterio por corrida y por configuración, el orden de la grilla, la detención en la primera viable y que no calcula ninguna métrica de afirmación.
+- [ ] 23.3 **[GREEN]** Crear `src/ide/experiments/phase25_viability.py` con su CLI (D55).
+- [ ] 23.4 Correr la compuerta con `PHASE25_VIABILITY_SEEDS` y registrar la salida en `registros/` y en `docs/RESULTADOS.md`. Fijar en `PHASE25_PROTOCOL_CONFIGS` la configuración elegida, en un commit propio.
 
-## 21. Prueba de humo (`experimental-suite`)
+## 24. Prueba de humo (`experimental-suite`)
 
 > Ejecuta: implementador-delicado
 >
 > Punto de control: prueba de humo, antes de los runners. Mostrar, por protocolo, condición y semilla, sólo la terminación, la generación máxima y la población final.
 
-- [ ] 21.1 Correr la prueba de humo de D56 sobre `PHASE25_PROTOCOL_CONFIGS` y `PHASE25_SEEDS`, **sin** calcular ni mirar las métricas de las afirmaciones. Registrar su salida en `registros/` y en `docs/RESULTADOS.md`.
+- [ ] 24.1 Correr la prueba de humo de D56 sobre `PHASE25_PROTOCOL_CONFIGS` y `PHASE25_SEEDS`, **sin** calcular ni mirar las métricas de las afirmaciones. Registrar su salida en `registros/` y en `docs/RESULTADOS.md`.
 
-## 22. Runners de los protocolos (`experimental-suite`)
+## 25. Runners de los protocolos (`experimental-suite`)
 
 > Ejecuta: implementador-delicado
 
-- [ ] 22.1 **[RED]** Crear `tests/test_exp25.py` con tests para la ejecución, la serialización JSON y la CLI de `25a`, `25b` y `25c`, sus condiciones y el resumen por condición, con los historiales genético y ecológico.
-- [ ] 22.2 **[GREEN]** Crear `src/ide/experiments/exp25_runner.py` con la infraestructura de `phase2_cli.py`.
-- [ ] 22.3 **[REFACTOR]** Verificación completa:
+- [ ] 25.1 **[RED]** Crear `tests/test_exp25.py` con tests para la ejecución, la serialización JSON y la CLI de `25a`, `25b`, `25c` y `25d`, el `--jobs` por defecto con los núcleos detectados (D62.3), sus condiciones y el resumen por condición, con los historiales genético y ecológico.
+- [ ] 25.2 **[GREEN]** Crear `src/ide/experiments/exp25_runner.py` con la infraestructura de `phase2_cli.py`.
+- [ ] 25.3 **[REFACTOR]** Verificación completa:
   - `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide` (cobertura $\ge 90\%$);
   - `python -m pytest -m slow`;
   - `openspec validate --all --strict`;
   - agregar los comandos nuevos a `CLAUDE.md` y `README.md`;
   - actualizar `.github/workflows/ci.yml` si cambian los pasos de verificación.
 
-## 23. Corridas y registro
+## 26. Corridas y registro
 
 > Ejecuta: agente principal. Sin subagente: las corridas largas se hacen en el equipo del responsable del proyecto, como en la Fase II, y el agente principal registra e interpreta.
 >
 > Punto de control: resultados. Presentarlos tal cual, incluidos los negativos, antes de archivar.
 
-- [ ] 23.1 Correr los tres protocolos con sus condiciones y `PHASE25_SEEDS`, y los `rule_effects` exploratorios con las semillas 42–51. Registrar todos los resultados, incluidos los negativos y las métricas descriptivas de evolución abierta, en `docs/RESULTADOS.md`, sin tocar el pre-registro.
-- [ ] 23.2 Actualizar `CLAUDE.md` (estado), `README.md` y los documentos de `docs/`, incluida la hoja de ruta de la Fase III con lo aprendido.
-- [ ] 23.3 Completar la Definition of Done de `design.md` con su evidencia y archivar el cambio.
+- [ ] 26.1 Correr los tres protocolos con sus condiciones y `PHASE25_SEEDS`, y los `rule_effects` exploratorios con las semillas 42–51. Registrar todos los resultados, incluidos los negativos y las métricas descriptivas de evolución abierta, en `docs/RESULTADOS.md`, sin tocar el pre-registro.
+- [ ] 26.2 Actualizar `CLAUDE.md` (estado), `README.md` y los documentos de `docs/`, incluida la hoja de ruta de la Fase III con lo aprendido.
+- [ ] 26.3 Completar la Definition of Done de `design.md` con su evidencia y archivar el cambio.

@@ -866,7 +866,7 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
 ### Decisión 55: Compuerta de Viabilidad (antes de cualquier afirmación)
 1. **Qué mide.** Sólo demografía: si la corrida termina con población viva y la generación máxima. No calcula ninguna métrica de afirmación.
 2. **Semillas.** `PHASE25_VIABILITY_SEEDS = tuple(range(0, 10))`, disjuntas de `PHASE25_SEEDS`.
-3. **Criterio.** Cada corrida dura el perfil `phase25` (5000 ticks). Una corrida es viable si termina con al menos una hoja viva **que no esté en endospora** y `max_generation >= 20`. Una configuración es viable si, para **cada** protocolo de D56 y **cada** una de sus condiciones `full`, `drift` y `no_predation`, al menos 9 de las 10 semillas son viables (con 9 de 10 por condición, la estimación puntual es de unos 24 pares válidos de 30, por encima de los 20 que exige la precisión 45; no es una garantía: con 10 semillas, 9 de 10 es compatible con una supervivencia real menor, y alguna afirmación podría quedar no evaluable). La condición `null_content` se corre y se registra, pero **no** decide la viabilidad: sólo decide si E4 es interpretable (D56).
+3. **Criterio.** Cada corrida dura el perfil `phase25` (5000 ticks). Una corrida es viable si termina con al menos una hoja viva **que no esté en endospora** y `max_generation >= 20`. Una configuración es viable si, para **cada** protocolo de D56 y **cada** una de sus condiciones `full`, `drift`, `no_predation`, `stable` y `no_learning`, al menos 9 de las 10 semillas son viables (con 9 de 10 por condición, la estimación puntual es de unos 24 pares válidos de 30, por encima de los 20 que exige la precisión 45; no es una garantía: con 10 semillas, 9 de 10 es compatible con una supervivencia real menor, y alguna afirmación podría quedar no evaluable). La condición `null_content` se corre y se registra, pero **no** decide la viabilidad: sólo decide si E4 es interpretable (D56).
 4. **Grilla declarada**, en orden de preferencia (menos abundancia primero: menos recursos por patrón y, a igual cantidad, mayor retardo), sobre `(resources_per_pattern, resource_regen_delay)`: `(20, 20)`, `(20, 10)`, `(30, 20)`, `(30, 10)`, `(40, 40)` y `(40, 20)`. Se elige la **primera** viable, y se detiene al encontrarla.
 5. **Sin viables.** Si ninguna lo es, se reporta como resultado y decide el responsable del proyecto. No se prueba nada fuera de la grilla sin una enmienda.
 6. **Registro.** La salida completa va a `registros/` y a `docs/RESULTADOS.md` antes de la prueba de humo.
@@ -893,18 +893,26 @@ Esta decisión es **pre-registro**. Se aprueba antes de implementar los bloques 
 | `R36` | Transferencia de energía | Permitir ceder energía a un vecino; su uso lo decide el ADN. | `(("enable_energy_transfer", False),)` |
 | `R37` | Depredación | Permitir robar energía a un vecino más débil; su uso lo decide el ADN. | `(("enable_predation", False),)` |
 | `R38` | Recombinación | Permitir el cruce de cromosomas con una pareja; su uso lo decide el ADN. | `(("enable_recombination", False),)` |
+| `R39` | Estado interno persistente | Permitir que el ADN escriba y lea bits de estado que persisten entre ticks; su uso lo decide el ADN. | `(("enable_internal_state", False),)` |
+| `R40` | Plasticidad en vida | Permitir codones cuya fuerza se ajusta en vida con una regla de refuerzo mínima; qué y cuánto se aprende lo decide el ADN. | `(("enable_plasticity", False),)` |
+| `R41` | Señales evolucionables | Permitir emitir y percibir símbolos sin significado de fábrica; su uso y su significado los construye la evolución. | `(("enable_signals", False),)` |
 
 - `PHASE25_ALL_RULES = ALL_DESIGN_RULES + PHASE25_DESIGN_RULES`, y `ablate()` busca en las dos tuplas.
 
-**Protocolos `PHASE25_PROTOCOL_CONFIGS`**, con `(resources_per_pattern, resource_regen_delay)` fijados por la compuerta de viabilidad (D55):
-- `"25a"` (ecología individual): `PHASE2_PROTOCOL_CONFIGS["002a"]` con `enable_compact_dna`, `enable_genetic_policy`, `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sporulation`, `enable_telomere_senescence`, `enable_sos_mutation`, `enable_resource_depletion`, `enable_heterogeneity` (`season_length = 500`), `enable_carcasses`, `enable_energy_transfer`, `enable_predation` y `enable_recombination` en `True`.
+> **Reabierta el 2026-10-21 (ampliación D57–D63):** agrega $R_{39}$–$R_{41}$ al inventario, el protocolo `25d`, las afirmaciones C19 y C20 y `dna_max_length = 64` en todos los protocolos.
+
+**Protocolos `PHASE25_PROTOCOL_CONFIGS`**, con `(resources_per_pattern, resource_regen_delay)` fijados por la compuerta de viabilidad (D55) y, en todos, `dna_max_length = 64` (D62.2):
+- `"25a"` (ecología individual): `PHASE2_PROTOCOL_CONFIGS["002a"]` con `enable_compact_dna`, `enable_genetic_policy`, `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sporulation`, `enable_telomere_senescence`, `enable_sos_mutation`, `enable_resource_depletion`, `enable_heterogeneity` (`season_length = 500`), `enable_carcasses`, `enable_energy_transfer`, `enable_predation`, `enable_recombination`, `enable_internal_state`, `enable_plasticity` y `enable_signals` en `True`.
 - `"25b"` (ecología holónica): `PHASE2_PROTOCOL_CONFIGS["003a"]` con las banderas de `"25a"` más `enable_epigenetic_roles` y `enable_symbiotic_ratchet`.
 - `"25c"` (comunicación desde cero): `"25a"` con `comm_propensity_base = 0.0`.
+- `"25d"` (entorno cambiante): `"25a"` con `world_shift_period = 1000` y `world_shift_fraction = 0.5` (D62.1).
 
 **Condiciones de comparación:**
 - `full`: la configuración del protocolo;
 - `drift`: `ablate(config, ["R12"])`, **reproducción neutral**. Con `enable_compact_dna` activa, la reproducción holónica ($R_{17}$) también es neutral: cada hoja hija recibe el ADN de un donante sorteado con `donor_rng`, en el orden de las hojas del holón (precisión 41). Así `drift` quita la selección también en `25b`.
 - `no_predation` (sólo `"25a"`): `ablate(config, ["R37"])`;
+- `stable` (sólo `"25d"`): la configuración con `world_shift_period = 0`;
+- `no_learning` (sólo `"25d"`): `ablate(config, ["R39", "R40"])`;
 - `null_content`: el control nulo de contenido, para E4.
 
 **Afirmaciones `PHASE25_CLAIMS`.** Son **pruebas genuinas**: ninguna regla persigue la métrica, y la comparación es contra la reproducción neutral o contra la ablación de un mecanismo ecológico. La reproducción neutral **no es deriva pura**: conserva sesgos residuales que se declaran en la precisión 44. Cada métrica es la media de la ventana final (el último 10 % de los ticks) de su campo de `GeneticTickMetrics` o `EcologyTickMetrics`.
@@ -917,11 +925,13 @@ Esta decisión es **pre-registro**. Se aprueba antes de implementar los bloques 
 | `C16` Actividad evolutiva por encima de la reproducción neutral | `25a` | `new_activity_per_birth` (último tick, precisión 43) | `full` frente a `drift` | `("R12",)` | `()` | relativo: $\max(0.001,\ 0.25 \cdot \text{mediana de drift})$ |
 | `C17` La depredación aumenta la complejidad genética | `25a` | `mean_expressible_nonattack_codons` (precisión 42) | `full` frente a `no_predation` | `("R37",)` | `()` | 1.0 |
 | `C18` La cooperación material evoluciona en los holones | `25b` | `share_rate` | `full` frente a `drift` | `("R12",)` | `()` | 0.01 |
+| `C19` La memoria y el aprendizaje evolucionan cuando el entorno cambia | `25d` | `mean_learning_codons` (D63.2) | `full` frente a `stable` | `()` | `()` | 1.0 |
 
 - **Clasificación.** Con canal vacío, ninguna es programada por construcción.
 - **Pares válidos (precisión 45).** Se excluye el par de una semilla si alguna de sus dos condiciones termina sin hojas activas. Si quedan menos de 20 pares válidos, la afirmación es `NOT_OBSERVED` con `evaluable = False`, y sigue contando en la corrección de Holm.
 - **Prueba.** Prueba de signo unilateral sobre las diferencias de los pares válidos, descartando empates.
-- **Corrección.** Holm–Bonferroni sobre `C13`–`C18` con $\alpha = 0.05$.
+- **C20, funcional y no genuina.** `C20` "La memoria y la plasticidad aceleran la recuperación tras un cambio del entorno" (`25d`, métrica `post_shift_accuracy`, `full` frente a `no_learning`, $R_C$ y canal `("R39", "R40")`, $\delta_{\min} = 0.02$). `post_shift_accuracy` es la suma de `correct_decisions` dividida por la suma de `decision_opportunities` (D63.4) en los 200 ticks que siguen a cada cambio del entorno, sobre todos los cambios de la corrida (0.0 sin oportunidades). Como su canal coincide con su $R_C$, es **programada por construcción**: verifica que la capacidad sirve, como C1 y C2 de la Fase I, y no entra en la corrección de Holm.
+- **Corrección.** Holm–Bonferroni sobre las afirmaciones genuinas `C13`–`C19` ($m = 7$) con $\alpha = 0.05$.
 - **Umbral de efecto.** `Phase25Claim` agrega `delta_relative: float = 0.0`. El umbral es $\max(\delta_{\min},\ \text{delta\_relative} \cdot \text{mediana de la condición de comparación})$, sobre los pares válidos. Sólo C16 usa `delta_relative = 0.25`, con `delta_min = 0.001`, porque la escala de su cociente se desconoce antes de correr.
 - **Estado.** `OBSERVED` si el p-valor ajustado es menor que $\alpha$ **y** la mediana de las diferencias pareadas es al menos el umbral de efecto. La mediana se toma sobre **todas** las diferencias de los pares válidos, incluidas las nulas; la prueba de signo, en cambio, descarta los empates; `NOT_OBSERVED` en otro caso. Se informan siempre el p-valor crudo, el ajustado, la mediana y la demografía.
 - **E4.** Se informa contra `null_content`, con la misma regla de pares válidos que las afirmaciones (precisión 45): un control nulo extinguido no cuenta como un 0.0 a favor de `full`. Es interpretable en un protocolo sólo si, con la configuración elegida por la compuerta, su condición `null_content` fue viable en al menos 9 de las 10 semillas de viabilidad; si no, se declara no interpretable sin mirar la métrica.
@@ -1016,6 +1026,78 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
 47. **Campos de la evaluación (precisión 45).** `Phase25ClaimEvaluation` agrega al final, en este orden, `excluded_seeds: tuple[int, ...]`, `excluded_pairs: int` (su longitud) y `evaluable: bool`.
 48. **P-valor de una afirmación no evaluable.** Es el de la prueba de signo sobre sus pares válidos (1.0 si no queda ninguna diferencia distinta de cero), y entra así en la corrección de Holm.
 49. **Nacimientos, muertes y longevidad acumulados.** `cumulative_births` y `cumulative_deaths` son las sumas, desde el tick 0, de `births` y `deaths` de `evolutionary_history`: incluyen los nacimientos individuales y holónicos, y las muertes por hambre y por depredación. Las perturbaciones no cuentan, y los protocolos de D56 no tienen ninguna. `GeneticTickMetrics` agrega `mean_age_at_death`: la media acumulada de `tick - birth_tick` de las muertes desde el tick 0 (0.0 sin muertes). `demography` incluye también `mean_age_at_death`, tomado del último registro de `genetic_history`.
+
+---
+
+## Ampliación del 2026-10-21 (D57–D63): la máquina mínima de recordar, aprender y señalar
+
+### Decisión 57: Alcance de la Ampliación
+1. **Motivo.** La política genética de D46 es **reactiva**: no guarda nada de un tick al siguiente, y la estructura del aprendizaje en vida sigue escrita a mano. El ADN biológico no aprende, pero construye la máquina que aprende. La ampliación agrega tres capacidades que la evolución puede usar para construir esa máquina: estado interno persistente ($R_{39}$), plasticidad en vida ($R_{40}$) y señales evolucionables ($R_{41}$). Las tres siguen el principio de D43: el ADN fundador no las usa, así que la aceptación de D46.5 se mantiene.
+2. **Lo que no entra.** Abrir el repertorio de sensores y conductas y una estructura de aprendizaje totalmente abierta (nivel 3) quedan en la Fase III (`docs/vision/ROADMAP.md`, 3.0 y 3.0.1).
+3. **Dependencias inertes.** $R_{39}$, $R_{40}$ y $R_{41}$ exigen que $R_{32}$ esté efectivamente activa (precisión 31). Sin ella son inertes y no lanzan error.
+4. **Generadores.** La ampliación no agrega generadores. El control nulo de las señales usa `null_rng` (D60.5) y los cambios de entorno usan el generador principal (D62).
+
+### Decisión 58: Estado Interno Persistente (R39)
+1. **Estado.** `MicroAgent` incorpora `internal_state: int` (8 bits, en $[0, 255]$), que vale 0 al nacer y no se hereda. Una endospora lo conserva.
+2. **Destinos.** `0x0D` (`SET_STATE`) y `0x0E` (`CLEAR_STATE`) eligen el bit `channel & 0x07`. Su `payload` se ignora.
+3. **Regla de escritura.** En la evaluación de conducta del tick (D60.1), para cada bit $k$: `set` vale si los codones activos de `SET_STATE` sobre $k$ con modo 0 o 2 superan en número a los de modo 1, y lo mismo `clear` con `CLEAR_STATE`, igual que la regla de canales de D33.2. Si valen los dos, prevalece `clear`. El estado nuevo se aplica al terminar la Fase 3 y lo lee la evaluación del tick siguiente: la decisión del tick usa siempre el estado anterior.
+4. **Promotores de estado.** `0x30`–`0x37` (`STATE_k`, $k = \text{prom} - 0x30$) están activos si el bit $k$ de `internal_state` vale 1.
+5. **Sensores de eventos del tick anterior.** `EventSignals` (frozen, en `domain/types.py`) tiene cuatro campos: `attacked` (fue objetivo de un ataque con éxito y `stolen > 0`), `ate` (consumió un recurso con valor experimentado positivo), `lost_energy` (su energía al final del tick fue menor que al principio) y `received_energy` (fue objetivo de un `SHARE` que lo alcanzó). El motor los calcula al final del tick y los guarda en `agent.last_events`. Los promotores `0x28`–`0x2B` (`EVENT_ATTACKED`, `EVENT_ATE`, `EVENT_LOST_ENERGY`, `EVENT_RECEIVED_ENERGY`) leen esos campos. Un recién nacido arranca con todos en `False`.
+6. **Dónde actúan.** Los promotores `0x28`–`0x2B` y `0x30`–`0x37` sólo actúan en la evaluación de conducta, como los sensoriales (D46.2): en la transcripción del fenotipo están inactivos.
+7. **Sin $R_{39}$** (`enable_internal_state=False`), los destinos `0x0D` y `0x0E` y los promotores `0x30`–`0x37` son inertes y `internal_state` queda en 0. Los sensores de eventos `0x28`–`0x2B` siguen disponibles con $R_{32}$, porque son percepción, no memoria.
+
+### Decisión 59: Plasticidad en Vida (R40)
+1. **Modo plástico.** El modo 3 del codón deja de estar reservado para la Fase IV y pasa a ser `PLASTIC`. La reserva de la Fase IV (`AST_PIPE`) se muda al destino `0x3F`, que sigue inerte.
+   - En la transcripción del fenotipo, el modo 3 sigue **inerte** (D33.4), así que los tests del bloque 2 sobre el modo 3 no cambian.
+   - En la evaluación de conducta, un codón activo de modo 3 sobre un destino de conducta (`0x40`–`0x47`) suma a $S_B$ un $\delta_{\text{ef}} = \delta + w_i$, con $w_i$ su peso aprendido. Sobre cualquier otro destino sigue inerte.
+2. **Pesos aprendidos.** `MicroAgent` incorpora `plastic_weights: dict[int, float]`, indexado por la posición del codón en `chromosome + plasmids`. Arranca vacío (todos en 0) al nacer, no se hereda y se vacía cuando cambia el ADN del agente (`set_dna`, por conjugación o purga), porque las posiciones cambian.
+3. **Rasgo de la tasa.** El destino `0x0F` expresa `plasticity_rate` $\eta$, con base `plasticity_rate_base` (0.0), escala 0.60 y cotas $[0, 1]$. `ExpressedPhenotype` agrega `plasticity_rate` (por defecto 0.0). Con base 0 nadie aprende al empezar: aprender tiene que evolucionar.
+4. **Regla de aprendizaje (mínima y declarada).** En la Fase 4, inmediatamente después de ejecutar la acción del agente:
+   - la **recompensa** $r$ es el cambio de la energía del agente causado por esa acción en la Fase 4 (consumir un recurso o un cadáver, ceder energía, robarla); vale 0 en `MOVE`, `IDLE` y `SPORULATE`, y no incluye lo que le hagan otros agentes ni los costos de la Fase 5;
+   - los **codones elegibles** son los de modo 3 activos en la evaluación del tick con destino igual a la conducta elegida;
+   - cada elegible se actualiza con $w_i \leftarrow \min(1, \max(-1, w_i + \eta \cdot r))$.
+   - Es una regla de refuerzo del tipo Rescorla–Wagner, sin predicción de valor ni exploración propia. Se declara como capacidad: **qué** se aprende (qué codones son plásticos) y **cuánto** ($\eta$) lo decide el ADN.
+5. **Caché.** El caché de impulsos de D46.8 guarda los impulsos sin los pesos y la lista de codones plásticos por conducta; los pesos se suman después. Un test exige igualdad con la evaluación directa.
+6. **Sin $R_{40}$** (`enable_plasticity=False`), el modo 3 es inerte también en la conducta y los pesos no se actualizan.
+
+### Decisión 60: Evaluación de Conducta Ampliada y Señales Evolucionables (R41)
+1. **Evaluación de conducta.** `evaluate_behavior(dna, context, signals, config, state=0, perceived=0, plastic_weights=None) -> BehaviorEvaluation`, pura en `dna.py`, sustituye a `evaluate_drives` como función principal; `evaluate_drives(...)` se conserva y devuelve `evaluate_behavior(...).drives`. `BehaviorEvaluation` (frozen) tiene:
+   - `drives: tuple[float, ...]`, uno por conducta de la tabla de D46.1 (`SIGNAL` no es una conducta, punto 2);
+   - `set_mask: int` y `clear_mask: int` (D58.3);
+   - `emitted: int`, la máscara de símbolos emitidos (punto 3);
+   - `plastic: tuple[tuple[int, ...], ...]`, los índices de codones plásticos activos por conducta (D59.4).
+   - `SensorySignals` agrega los cuatro eventos de D58.5; `state` es `internal_state` y `perceived` la máscara de símbolos percibidos (punto 4).
+2. **`SIGNAL` no es una conducta.** El destino `0x48` (`SIGNAL`) no compite en la decisión ni ocupa la acción del tick: emitir y actuar ocurren a la vez. Su `channel & 0x07` elige el símbolo.
+3. **Emisión.** El símbolo $k$ se emite si los codones activos de `SIGNAL` sobre $k$ con modo 0 o 2 superan en número a los de modo 1 (regla de D33.2). Cada símbolo emitido cuesta `signal_cost`, que se cobra en el metabolismo. Las endosporas no emiten.
+4. **Percepción.** Los símbolos que un agente emite en la Fase 3 del tick $t$ los perciben, en la Fase 1 del tick $t + 1$, los agentes que eran vecinos de comunicación del emisor en el tick $t$ (los de su observación) y siguen vivos y activos. La máscara percibida es el OR de las recibidas. Los promotores `0x38`–`0x3F` (`HEARD_k`) están activos si el bit $k$ de la máscara percibida vale 1, sólo en la evaluación de conducta. La percepción es sincrónica: nadie percibe una señal del mismo tick.
+5. **Control nulo.** Con `comm_content_null`, la máscara percibida no vacía de cada receptor se reemplaza, en orden de `agent_id`, por `int(null_rng.integers(1, 256))`. Así la señal conserva su presencia y pierde su contenido, como los mensajes de E4.
+6. **Lo que no son.** Las señales no son `Message` ni creencias: no pasan por `protocol.py` ni por `assimilate_testimony` y nunca se escriben en la memoria. Son un canal sensorial, como ver a un vecino. Se declara en `CLAUDE.md`.
+7. **Sin $R_{41}$** (`enable_signals=False`), el destino `0x48` y los promotores `0x38`–`0x3F` son inertes y no hay emisión ni costo.
+
+### Decisión 61: Rangos del Codón tras la Ampliación
+- **Promotores:** contexto `0x00`–`0x0A`, `0x10`–`0x12`, `0x18`, `0x19`; sensoriales `0x20`–`0x27`; eventos `0x28`–`0x2B`; estado `0x30`–`0x37`; señales percibidas `0x38`–`0x3F`; regulados `0x80`–`0xBF`. Reservados: `0x0B`–`0x0F`, `0x13`–`0x17`, `0x1A`–`0x1F`, `0x2C`–`0x2F`, `0x40`–`0x7F` y `0xC0`–`0xFF`.
+- **Destinos:** rasgos `0x00`–`0x08` y `0x0A`–`0x0C`, `0x0F` (tasa de plasticidad); `EMIT_TF` `0x09`; estado `0x0D`, `0x0E`; conductas `0x40`–`0x47`; `SIGNAL` `0x48`. Reservados: `0x10`–`0x3E`, `0x3F` (`AST_PIPE` de la Fase IV) y `0x49`–`0xFF`.
+- **Modos:** 0 aditivo, 1 represor, 2 multiplicativo, 3 plástico (D59.1).
+- **Valor canónico (precisión 42).** El campo `channel` sólo se enmascara (`codon & ~0x3F00`) en los codones donde no tiene efecto (destinos de rasgo y de conducta `0x40`–`0x47`). En `SET_STATE`, `CLEAR_STATE` y `SIGNAL` elige el bit o el símbolo, así que no se enmascara.
+- **Expresabilidad (precisión 42).** Los promotores de eventos, de estado y de señales percibidas son expresables sólo sobre destinos de conducta, de estado y de señal, y son **condicionales**. Los codones de estado (`0x0D`, `0x0E`) y de señal (`0x48`) con modo distinto de 3 son funcionales a los efectos de la precisión 42.
+
+### Decisión 62: Entorno Cambiante y Detección de Núcleos
+1. **Cambios del entorno.** `SimulationConfig` agrega `world_shift_period: int = 0` (0 = sin cambios) y `world_shift_fraction: float = 0.5`. Con `world_shift_period > 0`, al empezar cada tick múltiplo positivo de `world_shift_period`, el motor llama a `env.invert_world_rules(world_shift_fraction, self.rng)`. No es una regla de diseño del agente: es una manipulación experimental del entorno, como las perturbaciones de la Fase I.
+2. **ADN de 64 codones.** Los protocolos de D56 fijan `dna_max_length = 64`. El valor por defecto de la configuración no cambia (32), así que no cambia ningún historial existente.
+3. **Detección de núcleos.** Los runners y la compuerta de viabilidad usan por defecto `--jobs = len(os.sched_getaffinity(0))` si existe y `os.cpu_count()` si no (mínimo 1). La salida es idéntica para cualquier `--jobs`, así que no cambia ningún resultado. La aceleración por GPU queda en la Fase III (3.3).
+
+### Decisión 63: Configuración y Telemetría de la Ampliación
+1. **Campos nuevos** al final de `SimulationConfig`: `enable_internal_state: bool = False`, `enable_plasticity: bool = False`, `plasticity_rate_base: float = 0.0` (en $[0, 1]$), `enable_signals: bool = False`, `signal_cost: float = 0.002` (no negativo), `world_shift_period: int = 0` ($\ge 0$) y `world_shift_fraction: float = 0.5` (en $[0, 1]$).
+2. **`GeneticTickMetrics`** agrega al final, en este orden:
+   - `mean_internal_state_bits`: media de bits encendidos de `internal_state` en las hojas vivas;
+   - `mean_plasticity_rate`: media de `plasticity_rate` expresada;
+   - `mean_abs_plastic_weight`: media de $|w_i|$ sobre todos los pesos de las hojas vivas (0.0 sin pesos);
+   - `mean_learning_codons` (métrica de C19): media, sobre las hojas con ADN, de los valores canónicos expresables (precisión 42) que son de estado (`0x0D`, `0x0E`), que tienen promotor de estado (`0x30`–`0x37`) o que son plásticos (modo 3 sobre una conducta) en una hoja con `plasticity_rate > 0`;
+   - `signaling_rate`: fracción de las decisiones del tick (precisión 5) cuyo agente emitió al menos un símbolo;
+   - `symbol_diversity`: cantidad de símbolos distintos emitidos en el tick;
+   - `max_signal_information`: el máximo, sobre los pares (símbolo $k$, campo $j$ de `SensorySignals` del emisor), de la información mutua entre "emitió $k$" y "$j$ vale verdadero" en las decisiones del tick, en bits (0.0 sin decisiones). Es descriptiva.
+3. **`EcologyTickMetrics`** agrega `signals_emitted` (símbolos emitidos en el tick) y `plastic_updates` (actualizaciones de pesos con $r \ne 0$).
+4. **M2 por tick.** `EcologyTickMetrics` agrega `decision_opportunities` y `correct_decisions`, las oportunidades y los aciertos de M2 del tick, sin cambiar `TickMetrics`. C20 los usa (D56).
 
 ---
 

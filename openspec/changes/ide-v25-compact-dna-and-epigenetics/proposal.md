@@ -62,7 +62,7 @@ El pre-registro propuesto (design D42) declara sus cuatro afirmaciones como prog
 - `spatial-environments`: recursos agotables, heterogeneidad, cadáveres y agentes visibles ($R_{33}$–$R_{35}$).
 - `simulation-engine`: motor por sistemas y observadores, Fase 0 de expresión, percepción social, interacciones entre agentes, conjugación con `hgt_rng` y evaluación CRISPR.
 - `experimental-suite`: `GeneticTickMetrics` y `EcologyTickMetrics` con métricas de evolución abierta, compuerta de viabilidad y protocolos `25a`, `25b` y `25c`.
-- `emergence-attribution`: `PHASE25_DESIGN_RULES` ($R_{24}$–$R_{38}$), `PHASE25_CLAIMS` (C13–C18), corrección de Holm y tamaño de efecto mínimo.
+- `emergence-attribution`: `PHASE25_DESIGN_RULES` ($R_{24}$–$R_{41}$), `PHASE25_CLAIMS` (C13–C20), corrección de Holm y tamaño de efecto mínimo.
 
 ## Decisiones P4–P7 (resueltas el 2026-10-20; ver el registro al final de esta sección)
 
@@ -147,9 +147,9 @@ El responsable del proyecto decidió que cada entregable acerque el proyecto a s
 
 ### Decisión P8 (pendiente, tarea 0.5)
 Aprobar o corregir el borrador D56 antes del bloque 6:
-- el inventario $R_{24}$–$R_{38}$;
+- el inventario $R_{24}$–$R_{41}$;
 - los protocolos `25a`, `25b` y `25c` y sus condiciones;
-- las afirmaciones C13–C18, sus métricas y sus $\delta_{\min}$;
+- las afirmaciones C13–C19 (genuinas) y C20 (funcional), sus métricas y sus $\delta_{\min}$;
 - la prueba de signo con Holm, el perfil `phase25` de 5000 ticks y las semillas 42–71;
 - la compuerta de viabilidad de D55;
 - los valores por defecto de D52.
@@ -159,3 +159,18 @@ Aprobar o corregir el borrador D56 antes del bloque 6:
 - **Código modificado además del original:** `src/ide/agent/protocol.py`, `src/ide/domain/ports.py` y `src/ide/environments/grid2d.py`.
 - **Tests:** algunos tests de los bloques 1 a 5 cambian donde la reformulación lo declara (destinos `0x0A`–`0x0C`, conteo de `expressed_codons` y `lock_composite_threshold`). Ningún test de conducta de las Fases I y II cambia. La excepción es el test de firmas públicas canónicas de la Fase I, que se amplía con los parámetros opcionales `policy` y `social` (design, precisión 22).
 - **Alcance:** la fase pasa de 7 a 18 bloques pendientes. Es del tamaño de la Fase II completa.
+
+## Ampliación del 2026-10-21 (design D57–D63)
+
+### Por qué
+La revisión conceptual de la reformulación mostró que la política genética es **reactiva**: no guarda nada entre ticks, y la estructura del aprendizaje en vida sigue escrita a mano. El ADN biológico no aprende, pero construye la máquina que aprende. El responsable del proyecto también rectificó el objetivo de fondo (vida digital que evoluciona hacia la inteligencia; ver `CLAUDE.md` y `docs/DOCUMENTO_FUNDACIONAL.md` §0), y pidió que la Fase II-B dé el primer paso hacia esa máquina.
+
+### Qué cambia
+- **Estado interno persistente ($R_{39}$, D58):** 8 bits que el ADN escribe ante eventos y lee en ticks posteriores, con sensores de eventos del tick anterior.
+- **Plasticidad en vida ($R_{40}$, D59):** el modo 3 del codón pasa a ser plástico sobre las conductas, con una regla de refuerzo mínima y una tasa de aprendizaje heredable de base 0. Lo aprendido no se hereda.
+- **Señales evolucionables ($R_{41}$, D60):** símbolos sin significado de fábrica, emitidos sin ocupar la acción y percibidos por los vecinos en el tick siguiente.
+- **Rangos del codón (D61), ADN de 64 codones, entorno cambiante y detección de núcleos (D62), configuración y telemetría (D63).**
+- **Pre-registro (D56 reabierto):** protocolo `25d` con entorno cambiante, C19 genuina (¿evolucionan la memoria y el aprendizaje cuando el entorno cambia?) y C20 funcional (¿aceleran la recuperación?), declarada programada por construcción y fuera de Holm.
+
+### Lo que va a la Fase III
+Abrir el repertorio de sensores y conductas y una estructura de aprendizaje totalmente abierta (nivel 3), documentados en `docs/vision/ROADMAP.md` (3.0 y 3.0.1).
