@@ -241,15 +241,15 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 13.1 **[RED]** Tests para:
+- [x] 13.1 **[RED]** Tests para:
   - (a) `evaluate_behavior` y `BehaviorEvaluation` (D60.1), con `evaluate_drives` como envoltorio que devuelve los mismos impulsos;
   - (b) los destinos `SET_STATE` y `CLEAR_STATE`, la regla de mayoría por bit, `clear` prevaleciente y la aplicación al terminar la Fase 3 (D58.3);
   - (c) los promotores de estado `0x30`–`0x37` y de eventos `0x28`–`0x2B`, inactivos en la transcripción del fenotipo (D58.4–D58.6);
   - (d) `EventSignals` calculados por el motor al final del tick y guardados en `agent.last_events` (D58.5);
   - (e) `internal_state` en 0 al nacer, conservado en la endospora y no heredado;
   - (f) la inercia sin $R_{39}$ y la aceptación de D46.5 con las banderas de la ampliación activas y el ADN fundador.
-- [ ] 13.2 **[GREEN]** Implementar D58 y la parte de D60.1 que corresponde al estado.
-- [ ] 13.3 **[REFACTOR]** Verificación del bloque.
+- [x] 13.2 **[GREEN]** Implementar D58 y la parte de D60.1 que corresponde al estado.
+- [x] 13.3 **[REFACTOR]** Verificación del bloque. (1404 tests, cobertura 99 %; la decisión registra su evaluación y el estado se aplica una vez, también conservado en endospora; precisiones 87 y 88.)
 
 ## 14. Plasticidad en vida (R40) (`compact-dna`, `micro-agent`, `simulation-engine`)
 
@@ -285,15 +285,15 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 16.1 **[RED]** Tests para:
+- [x] 16.1 **[RED]** Tests para:
   - `compute_senescence_cost`;
   - la edad y la longevidad expresada (con y sin ADN);
   - el cobro también a las endosporas;
   - el registro de `last_stress_tick`;
   - las tres escalas de SOS decididas antes de partir la energía, por hoja en la reproducción holónica;
   - la escala 1.0 con la regla apagada, con Fase II bit a bit.
-- [ ] 16.2 **[GREEN]** Implementar D39 como sistemas del pipeline.
-- [ ] 16.3 **[REFACTOR]** Verificación del bloque.
+- [x] 16.2 **[GREEN]** Implementar D39 como sistemas del pipeline.
+- [x] 16.3 **[REFACTOR]** Verificación del bloque. (Integrado con el bloque 13: 1436 tests y un xfail estricto del costo de la endospora, que es del bloque 17; precisiones 89 a 93, con tolerancia 1e-9 en los umbrales de R30.)
 
 ## 17. Endospora como conducta (R28) (`evolutionary-dynamics`, `simulation-engine`)
 

@@ -12,7 +12,7 @@ from ide.agent.memory import BoundedMemory
 from ide.config import SimulationConfig
 from ide.domain.types import AgentGenome, CompactDNA, KnowledgeUnit
 
-# Tolerancia de los umbrales de energía de R30 (precisión S5): `1.5 * 2.2` vale
+# Tolerancia de los umbrales de energía de R30 (precisión 93): `1.5 * 2.2` vale
 # `3.3000000000000003`, y una energía de 3.3 debe alcanzar la alta fidelidad.
 ENERGY_THRESHOLD_TOLERANCE = 1e-9
 
@@ -70,7 +70,7 @@ def compute_sos_scale(
     Se decide con el estado del progenitor antes de partir la energía: `sos_hypermutation_factor`
     si registró estrés en los últimos `sos_window` ticks; si no, `sos_high_fidelity_factor` si
     `energy >= sos_high_fidelity_energy_ratio * reproduction_threshold` (con tolerancia
-    `ENERGY_THRESHOLD_TOLERANCE`, precisión S5); y si no, 1.0.
+    `ENERGY_THRESHOLD_TOLERANCE`, precisión 93); y si no, 1.0.
     """
     if not config.enable_sos_mutation:
         return 1.0
@@ -85,7 +85,7 @@ def compute_sos_scale(
 def is_energy_stressed(energy: float, config: SimulationConfig) -> bool:
     """Estrés de R30 (D39): `energy < stress_energy_ratio * reproduction_threshold`.
 
-    Con la misma tolerancia que la alta fidelidad (precisión S5): en el umbral no hay estrés.
+    Con la misma tolerancia que la alta fidelidad (precisión 93): en el umbral no hay estrés.
     """
     threshold = config.stress_energy_ratio * config.reproduction_threshold
     return energy < threshold - ENERGY_THRESHOLD_TOLERANCE

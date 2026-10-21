@@ -673,7 +673,7 @@ class DeathSystem(BaseSystem):
 
 
 class StressSystem(BaseSystem):
-    """(iv) Registro del estrés (D39, precisión 7 y S3): `last_stress_tick` de los sobrevivientes.
+    """(iv) Registro del estrés (D39, precisión 7 y 91): `last_stress_tick` de los sobrevivientes.
 
     Va después de la muerte y antes de la reproducción, y sólo está en la lista con $R_{30}$
     efectivamente activa, porque nadie más lo lee: en la Fase II no cuesta nada.

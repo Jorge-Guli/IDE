@@ -240,7 +240,7 @@ def test_senescencia_tambien_en_las_endosporas() -> None:
     """Sólo la parte de R29 (0.001) del escenario del spec "Endospora senescente".
 
     El costo reducido de la endospora (`spore_cost_fraction * metabolic_base_cost`, 0.0005) en
-    lugar del basal es del bloque 17 (D38, precisión S2): lo cubre el xfail de abajo.
+    lugar del basal es del bloque 17 (D38, precisión 90): lo cubre el xfail de abajo.
     """
     engine = SimulationEngine(senescent_config(enable_sporulation=True))
     engine.agents[2].set_endospore(True)
@@ -250,7 +250,7 @@ def test_senescencia_tambien_en_las_endosporas() -> None:
 
 
 @pytest.mark.xfail(
-    reason="bloque 17: el costo de la endospora reemplaza al basal (D38, precisión S2)",
+    reason="bloque 17: el costo de la endospora reemplaza al basal (D38, precisión 90)",
     strict=True,
 )
 def test_endospora_senescente_paga_su_costo_mas_la_senescencia() -> None:
@@ -336,7 +336,7 @@ def test_registro_del_ultimo_tick_de_estres() -> None:
 
 
 def test_umbral_de_estres_con_tolerancia() -> None:
-    """En el umbral exacto no hay estrés: `energy < umbral - 1e-9` (precisión S5)."""
+    """En el umbral exacto no hay estrés: `energy < umbral - 1e-9` (precisión 93)."""
     engine = SimulationEngine(stress_config())
     set_energy(engine, 0, 0.77)
     set_energy(engine, 1, 0.77 - 1e-6)
@@ -407,7 +407,7 @@ def test_las_tres_escalas() -> None:
     assert compute_sos_scale(2.5, 90, 140, config) == 4.0
     assert compute_sos_scale(2.5, 89, 140, config) == 1.0
     assert compute_sos_scale(1.5 * 2.2, None, 140, config) == 0.25
-    # 1.5 * 2.2 == 3.3000000000000003: el literal 3.3 alcanza la alta fidelidad (precisión S5).
+    # 1.5 * 2.2 == 3.3000000000000003: el literal 3.3 alcanza la alta fidelidad (precisión 93).
     assert compute_sos_scale(3.3, None, 140, config) == 0.25
     assert compute_sos_scale(3.3 - 1e-6, None, 140, config) == 1.0
     # El estrés reciente prevalece sobre la energía alta.

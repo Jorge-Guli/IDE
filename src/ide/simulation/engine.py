@@ -615,8 +615,8 @@ class SimulationEngine:
         """Registra `last_stress_tick = tick` en cada sobreviviente con energía bajo el umbral.
 
         El umbral es `stress_energy_ratio * reproduction_threshold`, con la tolerancia de
-        `is_energy_stressed` (D39, precisión S5). Lo llama `StressSystem`, después de la muerte y
-        sólo con $R_{30}$ efectivamente activa (precisión 7 y S3); no consume generadores.
+        `is_energy_stressed` (D39, precisión 93). Lo llama `StressSystem`, después de la muerte y
+        sólo con $R_{30}$ efectivamente activa (precisión 7 y 91); no consume generadores.
         """
         config = self.config
         for aid in sorted(self.agents):
