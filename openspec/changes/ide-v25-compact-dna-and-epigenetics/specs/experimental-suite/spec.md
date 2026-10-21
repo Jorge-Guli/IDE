@@ -3,11 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: Telemetría Genética GeneticTickMetrics
-`metrics.py` SHALL definir `GeneticTickMetrics` como `@dataclass(frozen=True)` con los 15 de D41 (`tick`, `mean_chromosome_length`, `mean_expressed_codons`, `mean_plasmids`, `endospores`, `senescent_agents`, `mean_age`, `max_age`, `explorers`, `librarians`, `nerves`, `locked_holons`, `hgt_transfers`, `crispr_rejections` y `crispr_purges`) más los 7 de D53.2, los 6 de las precisiones 42, 43 y 49 (D53.2) y, al final y en orden, los 7 de la ampliación (D63.2), 35 en total.
+`metrics.py` SHALL definir `GeneticTickMetrics` como `@dataclass(frozen=True)` con, en orden, los 15 campos de D41, los 7 de D53.2, los 6 de las precisiones 42, 43 y 49 (D53.2), los 7 de la ampliación (D63.2) y, al final, `birth_parent_ids` (precisión 68): 36 en total, enumerados en el escenario.
 
 #### Scenario: Campos de la telemetría genética
 - **WHEN** se inspeccionan los campos de `GeneticTickMetrics`
-- **THEN** son exactamente los 15 de D41 más `distinct_genotypes`, `mean_functional_codons`, `regulated_expression_fraction`, `policy_divergence`, `communicating_fraction`, `new_activity` y `cumulative_new_activity`, seguidos de `mean_expressible_codons`, `cumulative_births`, `new_activity_per_birth`, `mean_age_at_death`, `mean_conditional_codons` y `mean_expressible_nonattack_codons` y, como los siete últimos y en ese orden, `mean_internal_state_bits`, `mean_plasticity_rate`, `mean_abs_plastic_weight`, `mean_learning_codons`, `signaling_rate`, `symbol_diversity` y `max_signal_information`; asignar uno de ellos lanza `dataclasses.FrozenInstanceError`.
+- **THEN** son exactamente los 15 de D41 (`tick`, `mean_chromosome_length`, `mean_expressed_codons`, `mean_plasmids`, `endospores`, `senescent_agents`, `mean_age`, `max_age`, `explorers`, `librarians`, `nerves`, `locked_holons`, `hgt_transfers`, `crispr_rejections` y `crispr_purges`) más `distinct_genotypes`, `mean_functional_codons`, `regulated_expression_fraction`, `policy_divergence`, `communicating_fraction`, `new_activity` y `cumulative_new_activity`, seguidos de `mean_expressible_codons`, `cumulative_births`, `new_activity_per_birth`, `mean_age_at_death`, `mean_conditional_codons` y `mean_expressible_nonattack_codons` y, como los siete últimos y en ese orden, `mean_internal_state_bits`, `mean_plasticity_rate`, `mean_abs_plastic_weight`, `mean_learning_codons`, `signaling_rate`, `symbol_diversity` y `max_signal_information`, y por último `birth_parent_ids`; asignar uno de ellos lanza `dataclasses.FrozenInstanceError`.
 
 ### Requirement: Historial Genético Separado
 El motor SHALL registrar un `GeneticTickMetrics` en cada tick, con cualquier combinación de banderas, en `engine.genetic_history: list[GeneticTickMetrics]`, sin agregar campos a `TickMetrics` (14 campos) ni a `EvolutionaryTickMetrics`.
@@ -32,7 +32,18 @@ Con la población vacía, los promedios de `GeneticTickMetrics` SHALL valer `0.0
 
 #### Scenario: Población extinguida
 - **WHEN** se registra un tick en el que no queda ninguna hoja viva
-- **THEN** `mean_age == 0.0`, `max_age == 0`, `distinct_genotypes == 0`, `mean_functional_codons == 0.0`, `mean_expressible_codons == 0.0`, `mean_expressible_nonattack_codons == 0.0`, `mean_conditional_codons == 0.0`, `regulated_expression_fraction == 0.0`, `communicating_fraction == 0.0`, `mean_internal_state_bits == 0.0`, `mean_plasticity_rate == 0.0`, `mean_abs_plastic_weight == 0.0`, `mean_learning_codons == 0.0`, `signaling_rate == 0.0`, `symbol_diversity == 0` y `max_signal_information == 0.0`.
+- **THEN** `mean_age == 0.0`, `max_age == 0`, `distinct_genotypes == 0`, `mean_functional_codons == 0.0`, `mean_expressible_codons == 0.0`, `mean_expressible_nonattack_codons == 0.0`, `mean_conditional_codons == 0.0`, `regulated_expression_fraction == 0.0`, `communicating_fraction == 0.0`, `mean_internal_state_bits == 0.0`, `mean_plasticity_rate == 0.0`, `mean_abs_plastic_weight == 0.0`, `mean_learning_codons == 0.0`, `signaling_rate == 0.0`, `symbol_diversity == 0`, `max_signal_information == 0.0` y `birth_parent_ids == ()`.
+
+### Requirement: Progenitores de los Nacimientos del Tick
+`birth_parent_ids` SHALL ser la tupla ascendente, con repeticiones, del `agent_id` del progenitor de cada nacimiento del tick: el que aporta la energía (en la reproducción neutral, el que se reproduce y no el donante; en $R_{17}$, la hoja progenitora de cada hoja hija), o `()` sin nacimientos (design precisión 68).
+
+#### Scenario: Reproducción neutral
+- **WHEN** en un tick con `reproduction_mode == "neutral"` el agente 12 se reproduce dos veces con ADN de los donantes 4 y 30, y el agente 5 una vez
+- **THEN** `birth_parent_ids == (5, 12, 12)`.
+
+#### Scenario: Tick sin nacimientos
+- **WHEN** en un tick no nace ningún agente
+- **THEN** `birth_parent_ids == ()`.
 
 ### Requirement: Genotipos Distintos y Codones Funcionales
 `distinct_genotypes` SHALL contar los cromosomas distintos entre las hojas vivas, y `mean_functional_codons`, que es descriptiva y no mide ninguna afirmación (design precisión 42), SHALL ser la media de los codones con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`, `0x0F`, precisión 54) o de conducta (`0x40`–`0x47`) y modo distinto de 3, cualquiera sea su promotor.
@@ -198,7 +209,7 @@ Sobre las hojas vivas al final del tick, `mean_internal_state_bits` SHALL ser la
 - **THEN** `mean_abs_plastic_weight == 0.0`.
 
 ### Requirement: Codones de Memoria y Aprendizaje
-`mean_learning_codons`, métrica de C19, no limitada a los funcionales de la precisión 42, SHALL ser la media, sobre las hojas vivas con ADN, de los valores canónicos distintos (D61) de `chromosome + plasmids` con promotor expresable y destino `0x0D` o `0x0E` de modo distinto de 3, promotor `0x30`–`0x37` sobre un destino de conducta, estado o señal, o modo 3 sobre una conducta en una hoja con `plasticity_rate > 0` (D63.2, precisión 52).
+`mean_learning_codons`, métrica de C19, no limitada a los funcionales de la precisión 42, SHALL ser la media, sobre las hojas vivas con ADN, de los valores canónicos distintos (D61) de `chromosome + plasmids` con promotor expresable y destino `0x0D` o `0x0E` de modo distinto de 3, promotor `0x30`–`0x37` sobre un destino de conducta, estado o señal, o modo 3 sobre una conducta en una hoja con `plasticity_rate > 0`, expresada según su `last_context` (D63.2, precisiones 23 y 52).
 
 #### Scenario: Fundador sin codones de aprendizaje
 - **WHEN** todas las hojas portan el ADN fundador conductual, sin mutación
@@ -211,6 +222,13 @@ Sobre las hojas vivas al final del tick, `mean_internal_state_bits` SHALL ser la
 #### Scenario: Promotor de estado sobre un rasgo
 - **WHEN** la única hoja viva porta el ADN fundador conductual más `encode_codon(0x31, 0x00, 0, 0, 64)`
 - **THEN** `mean_learning_codons == 0.0`, porque el destino es de rasgo.
+
+### Requirement: Tasa de Plasticidad Según el Último Contexto
+En `mean_learning_codons`, la condición `plasticity_rate > 0` de los codones plásticos SHALL evaluarse con la `plasticity_rate` expresada según el `last_context` de cada hoja (design precisiones 23 y 52), no con `plasticity_rate_base`.
+
+#### Scenario: Tasa sólo en un contexto
+- **WHEN** sin holones la única hoja viva porta el ADN fundador conductual más `encode_codon(0x18, 0x0F, 0, 0, 64)` y `encode_codon(0x00, 0x43, 3, 0, 32)`, con `plasticity_rate_base = 0.0`, y su `last_context` tiene primero `energy_ratio` menor que `stress_energy_ratio` y después mayor
+- **THEN** `mean_learning_codons == 1.0` en el primer registro y `0.0` en el segundo.
 
 ### Requirement: Telemetría de las Señales
 Sobre las decisiones del tick (precisión 5), `signaling_rate` SHALL ser la fracción cuyo agente emitió al menos un símbolo (0.0 sin decisiones); `symbol_diversity`, la cantidad de símbolos distintos emitidos en el tick; y `max_signal_information`, descriptiva, el máximo sobre los pares (símbolo $k$, campo $j$ de las `SensorySignals` del emisor) de la información mutua, en bits, entre "emitió $k$" y "$j$ es verdadero", o 0.0 sin decisiones (design D63.2).
@@ -300,10 +318,14 @@ Antes de la compuerta de viabilidad SHALL medirse el costo de un tick con todas 
 - **THEN** su salida contiene, por protocolo, condición y semilla, sólo la población final y la generación máxima, y ningún valor de las métricas de `C13`–`C20`.
 
 ### Requirement: Criterio de Viabilidad
-Una corrida SHALL ser viable si termina con al menos una hoja viva que no está en endospora y `max_generation >= 20`. Una configuración SHALL ser viable si, para cada protocolo de design D56 y cada una de sus condiciones `full`, `drift`, `no_predation`, `stable` y `no_learning`, al menos 9 de las 10 semillas son viables; `null_content` SHALL correrse y registrarse sin decidir la viabilidad.
+Una corrida SHALL ser viable si termina con al menos una hoja viva que no está en endospora y `max_generation >= 20`. Una configuración SHALL ser viable si, para cada protocolo de design D56 y cada una de sus condiciones `full`, `drift`, `no_predation`, `no_predation_drift`, `stable`, `stable_drift` y `no_learning`, al menos 9 de las 10 semillas son viables; `null_content` SHALL correrse y registrarse sin decidir la viabilidad.
 
 #### Scenario: Una condición inviable descarta la configuración
 - **WHEN** con una configuración de la grilla todas las condiciones son viables en 10 semillas salvo `no_predation` de `25a`, viable en 8
+- **THEN** la configuración no es viable.
+
+#### Scenario: Condición neutral de la diferencia de diferencias inviable
+- **WHEN** todas las condiciones son viables en 10 semillas salvo `no_predation_drift` de `25a`, viable en 8
 - **THEN** la configuración no es viable.
 
 #### Scenario: Condición de aprendizaje inviable
@@ -319,7 +341,7 @@ Una corrida SHALL ser viable si termina con al menos una hoja viva que no está 
 - **THEN** la corrida no es viable.
 
 #### Scenario: El control nulo no decide
-- **WHEN** todas las condiciones `full`, `drift`, `no_predation`, `stable` y `no_learning` son viables en 9 de 10 semillas y `null_content` de `25a` sólo en 3
+- **WHEN** todas las condiciones `full`, `drift`, `no_predation`, `no_predation_drift`, `stable`, `stable_drift` y `no_learning` son viables en 9 de 10 semillas y `null_content` de `25a` sólo en 3
 - **THEN** la configuración es viable, y la viabilidad de `null_content` queda registrada para E4.
 
 ### Requirement: Grilla Ordenada de la Compuerta
@@ -355,19 +377,23 @@ El resumen de cada condición de `25a`, `25b`, `25c` y `25d` SHALL incluir `fina
 - **THEN** cada condición del reporte contiene esos cuatro campos y los registros del último tick de `GeneticTickMetrics` y de `EcologyTickMetrics`, con `final_active_agents <= final_agents`.
 
 ### Requirement: Condiciones de los Protocolos 25a a 25d
-Cada protocolo SHALL comparar `full` (su configuración), `drift` (`ablate(config, ["R12"])`, reproducción neutral) y `null_content` (el control nulo de contenido); `25a` SHALL agregar `no_predation` (`ablate(config, ["R37"])`), y `25d` SHALL agregar `stable` (su configuración con `world_shift_period = 0`) y `no_learning` (`ablate(config, ["R39", "R40"])`) (design D56).
+Cada protocolo SHALL comparar `full` (su configuración), `drift` (`ablate(config, ["R12"])`) y `null_content`; `25a` SHALL agregar `no_predation` (`ablate(config, ["R37"])`) y `no_predation_drift` (`ablate(config, ["R37", "R12"])`), y `25d` SHALL agregar `stable` (`dataclasses.replace(config, world_shift_period=0)`, sin `ablate`), `stable_drift` (`ablate(stable, ["R12"])`) y `no_learning` (`ablate(config, ["R39", "R40"])`) (design D56).
 
 #### Scenario: Condiciones de 25a
 - **WHEN** se generan las condiciones de `25a` sobre su configuración
-- **THEN** son `full`, `drift` con `reproduction_mode == "neutral"`, `no_predation` con `enable_predation == False` y `null_content`.
+- **THEN** son `full`, `drift` con `reproduction_mode == "neutral"`, `no_predation` con `enable_predation == False`, `no_predation_drift` con `enable_predation == False` y `reproduction_mode == "neutral"`, y `null_content`.
 
 #### Scenario: Condiciones de 25b y 25c
 - **WHEN** se generan las condiciones de `25b` y de `25c`
-- **THEN** cada una tiene exactamente `full`, `drift` y `null_content`, sin `no_predation`.
+- **THEN** cada una tiene exactamente `full`, `drift` y `null_content`, sin `no_predation` ni `no_predation_drift`.
 
 #### Scenario: Condiciones de 25d
 - **WHEN** se generan las condiciones de `25d` sobre su configuración
-- **THEN** son `full`, `drift`, `stable` con `world_shift_period == 0`, `no_learning` con `enable_internal_state == False` y `enable_plasticity == False`, y `null_content`, sin `no_predation`.
+- **THEN** son `full`, `drift`, `stable` con `world_shift_period == 0`, `stable_drift` con `world_shift_period == 0` y `reproduction_mode == "neutral"`, `no_learning` con `enable_internal_state == False` y `enable_plasticity == False`, y `null_content`, sin `no_predation`.
+
+#### Scenario: Identidad de las condiciones estables
+- **WHEN** se comparan `stable` y `stable_drift` de `25d` con `full` y `drift` de `25a`
+- **THEN** son iguales campo por campo, porque `world_shift_fraction == 0.5` es el valor por defecto, y con las mismas semillas producen los mismos historiales.
 
 ### Requirement: Procesos por Defecto con los Núcleos Detectados
 Todos los runners y CLI de calibración del proyecto (Fases I, II y II-B, incluidas `exp25_runner` y la compuerta de viabilidad) SHALL usar por defecto `--jobs = len(os.sched_getaffinity(0))` si esa función existe y `os.cpu_count()` si no, con mínimo 1; como la salida es idéntica para cualquier `--jobs`, ningún resultado cambia (design D62.3 y precisión 55).

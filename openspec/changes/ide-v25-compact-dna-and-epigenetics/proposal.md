@@ -148,7 +148,7 @@ El responsable del proyecto decidió que cada entregable acerque el proyecto a s
 ### Decisión P8 (pendiente, tarea 0.5)
 Aprobar o corregir el borrador D56 antes del bloque 6:
 - el inventario $R_{24}$–$R_{41}$;
-- los protocolos `25a`, `25b` y `25c` y sus condiciones;
+- los protocolos `25a`, `25b`, `25c` y `25d` y sus condiciones;
 - las afirmaciones C13–C19 (genuinas) y C20 (funcional), sus métricas y sus $\delta_{\min}$;
 - la prueba de signo con Holm, el perfil `phase25` de 5000 ticks y las semillas 42–71;
 - la compuerta de viabilidad de D55;
@@ -174,3 +174,20 @@ La revisión conceptual de la reformulación mostró que la política genética 
 
 ### Lo que va a la Fase III
 Abrir el repertorio de sensores y conductas y una estructura de aprendizaje totalmente abierta (nivel 3), documentados en `docs/vision/ROADMAP.md` (3.0 y 3.0.1).
+
+## Corrección del borrador D56 tras la revisión cruzada (2026-10-21)
+
+Una revisión cruzada independiente del borrador D56 encontró problemas antes de su aprobación. El responsable del proyecto delegó la decisión en el agente principal, que resolvió corregir el borrador así. La corrección se hizo **antes de mirar ningún resultado**: no hay ningún bloque nuevo implementado y ninguna afirmación se midió. El pre-registro sigue siendo un borrador que se aprueba en la tarea 0.5.
+
+- **A1. Diferencia de diferencias en C17 y C19.** La depredación y los cambios del entorno aumentan el recambio generacional (y activan la mutación SOS), y las métricas de conteo de codones crecen con las generaciones aunque no haya selección: comparar con `no_predation` o con `stable` era anticonservador. Ahora la diferencia por semilla es $[\text{full} - \text{drift}] - [\text{comp} - \text{comp\_drift}]$, con las condiciones nuevas `no_predation_drift` (`25a`) y `stable_drift` (`25d`), los campos `baseline_drift` y `comparison_drift` de `Phase25Claim`, pares válidos sobre las cuatro condiciones y la compuerta de viabilidad ampliada a esas condiciones. `stable` de `25d` es idéntica a `full` de `25a`, y `stable_drift` a `drift` de `25a`.
+- **A2. Sesgo anticonservador de C16.** La reproducción neutral con donante uniforme no es una sombra neutral de Bedau–Packard: en `full` la descendencia se concentra en los progenitores con más energía. La precisión 44 distingue los sesgos conservadores (C13, C14, C15 y C18) de éste, y se pre-registra la covariable `effective_parents` ($1 / \sum_i p_i^2$ en la ventana final), calculada en `demography` desde el campo nuevo `birth_parent_ids` de `GeneticTickMetrics`.
+- **B1. Excepciones de la ventana final:** C16 usa el último tick y C20 usa `post_shift_accuracy`.
+- **B2. Referencias desactualizadas:** inventario `R24`–`R41`, C13–C20 en riesgos, dieciocho reglas, `exp25_runner.py` con `25a`–`25d` y `dna.py` con `evaluate_behavior` y `expressible_codons`.
+- **B3.** La precisión 42 remite a D61 y a la precisión 54 para la lista completa de destinos funcionales.
+- **B4.** El escenario de `post_shift_accuracy` usa la ventana $[s, s + 200)$ y prueba su borde.
+- **B5.** El p-valor es 1.0 siempre que no haya diferencias distintas de cero, sea la afirmación evaluable o no (precisión 48).
+- **C1. Ventana final de 1000 ticks** (un ciclo estacional completo) en lugar del último 10 %, que caía entero en invierno.
+- **C2.** C18 pasa a llamarse "La cooperación material evoluciona en la ecología holónica", y `share_rate` cuenta todo `SHARE`, sea o no del mismo holón.
+- **Huecos del bloque 22:** `rule_effects` exploratorios por afirmación, con la regla de pares válidos y la métrica simple (precisión 66); `stable` con `dataclasses.replace`, sin `ablate`; tipo de `demography`; valores informados en la diferencia de diferencias (precisión 69).
+- **C4.** `mean_learning_codons` depende de la `plasticity_rate` expresada según `last_context`.
+- **Caché de corridas** por (protocolo, variante, semilla): una misma corrida sirve a todas las afirmaciones del protocolo (precisión 67).

@@ -62,6 +62,7 @@
   - las afirmaciones C13–C19 (genuinas) y C20 (funcional), sus métricas, sus comparaciones y sus $\delta_{\min}$;
   - la prueba, la corrección de Holm, el perfil `phase25` (5000 ticks) y las semillas 42–71;
   - la compuerta de viabilidad de D55, con su grilla y su criterio;
+  - las correcciones de la revisión cruzada del 2026-10-21 (diferencia de diferencias de C17 y C19, `effective_parents`, ventana final de 1000 ticks y precisiones 66–69);
   - los valores por defecto de D52.
   - Registrar las decisiones con fecha en `proposal.md` y commitear.
 
@@ -351,7 +352,8 @@
 - [ ] 21.1 **[RED]** Ampliar `tests/test_metrics.py` y `tests/test_simulation_engine.py` con tests para:
   - `GeneticTickMetrics` de D53.2, incluidas `mean_conditional_codons`, `mean_expressible_nonattack_codons`, `regulated_expression_fraction` y `mean_expressible_codons` con los valores canónicos expresables de la precisión 42, `policy_divergence` (sin extraer de `rng`), `communicating_fraction`, `distinct_genotypes`, `mean_functional_codons`, la actividad de Bedau–Packard por nacimientos portadores y sin los codones fundadores, `cumulative_births`, `new_activity_per_birth` y `mean_age_at_death` (precisiones 43 y 49);
   - `EcologyTickMetrics` de D53.3, con `signals_emitted`, `plastic_updates`, `decision_opportunities` y `correct_decisions` (D63.3, D63.4);
-  - los campos de la ampliación en `GeneticTickMetrics` (D63.2), incluidos `mean_learning_codons` y `max_signal_information`;
+  - los campos de la ampliación en `GeneticTickMetrics` (D63.2), incluidos `mean_learning_codons` (con la `plasticity_rate` expresada según `last_context`, precisión 52) y `max_signal_information`;
+  - `birth_parent_ids` como último campo de `GeneticTickMetrics` (precisión 68): el progenitor que aporta la energía, no el donante de la reproducción neutral, y la hoja progenitora en $R_{17}$;
   - el registro en cada tick con cualquier combinación de banderas y los valores con la población vacía;
   - que `TickMetrics` y `EvolutionaryTickMetrics` no cambian.
 - [ ] 21.2 **[GREEN]** Implementar los observadores y los tipos de métricas.
@@ -363,11 +365,13 @@
 
 - [ ] 22.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
   - `PHASE25_DESIGN_RULES` (`R24`–`R41`) con sus `purpose`, `PHASE25_ALL_RULES` y `ablate()` con las reglas nuevas;
-  - `PHASE25_PROTOCOL_CONFIGS` (`25a`, `25b`, `25c` y `25d`, con `dna_max_length = 64`), sus condiciones (incluidas `stable` y `no_learning`) y `PHASE25_CLAIMS` (C13–C19 genuinas y C20 funcional, con `post_shift_accuracy`) con métricas, comparaciones, $R_C$, canales y $\delta_{\min}$;
-  - la ventana final, los pares válidos con `excluded_seeds`, `excluded_pairs` y `evaluable` (precisiones 45 y 47), la prueba de signo pareada sobre los pares válidos, la corrección de Holm–Bonferroni sobre C13–C19 ($m = 7$) con las afirmaciones no evaluables (precisión 48), C20 fuera de Holm y clasificada programada por construcción y el estado `OBSERVED` sólo con significancia ajustada y mediana mayor o igual que el umbral de efecto, incluido el umbral relativo de C16 (`delta_relative`);
-  - `demography` con sus covariables (precisiones 45 y 49);
+  - `PHASE25_PROTOCOL_CONFIGS` (`25a`, `25b`, `25c` y `25d`, con `dna_max_length = 64`), sus condiciones (incluidas `no_predation_drift`, `stable` con `dataclasses.replace`, `stable_drift` y `no_learning`, y la identidad de `stable` y `stable_drift` con `full` y `drift` de `25a`) y `PHASE25_CLAIMS` (C13–C19 genuinas y C20 funcional, con `post_shift_accuracy`) con métricas, comparaciones, `baseline_drift`, `comparison_drift`, $R_C$, canales y $\delta_{\min}$;
+  - la diferencia de diferencias de C17 y C19, con `values` y `comparison_values` de la precisión 69 y los pares válidos sobre sus cuatro condiciones;
+  - la ventana final de 1000 ticks (precisión 4), los pares válidos con `excluded_seeds`, `excluded_pairs` y `evaluable` (precisiones 45 y 47), la prueba de signo pareada sobre los pares válidos, la corrección de Holm–Bonferroni sobre C13–C19 ($m = 7$) con las afirmaciones no evaluables (precisión 48), C20 fuera de Holm y clasificada programada por construcción y el estado `OBSERVED` sólo con significancia ajustada y mediana mayor o igual que el umbral de efecto, incluido el umbral relativo de C16 (`delta_relative`);
+  - `demography` (`dict[str, dict[int, dict[str, float]]]`) con sus covariables, incluido `effective_parents` calculado desde `birth_parent_ids` de la ventana final (precisiones 44, 45, 49 y 68), y el p-valor 1.0 sin diferencias distintas de cero (precisión 48);
   - la clasificación no programada de C13–C19, C20 programada por construcción, y E4 condicionado a la compuerta;
-  - los `rule_effects` exploratorios con las semillas 42–51;
+  - los `rule_effects` exploratorios con las semillas 42–51, por afirmación, con la regla de pares válidos de la precisión 45, la métrica simple también en C17 y C19 y `None` sin semillas válidas (precisión 66);
+  - el caché de corridas por (protocolo, variante, semilla) (precisión 67);
   - que los reportes de C1–C8 no cambian.
 - [ ] 22.2 **[GREEN]** Implementar en `attribution.py` el pre-registro aprobado en 0.5. Las constantes deben coincidir exactamente con design D56.
 - [ ] 22.3 **[REFACTOR]** Verificación del bloque.
@@ -379,7 +383,7 @@
 > Punto de control: compuerta de viabilidad. Mostrar, por configuración de la grilla, protocolo y condición, las semillas viables, y la configuración elegida o la ausencia de una. Si ninguna es viable, decide el responsable del proyecto.
 
 - [ ] 23.1 Medir el costo de un tick con todas las reglas de `25b` activas (D54.3). Si una corrida de `phase25` supera los 5 minutos, optimizar con historiales idénticos antes de seguir.
-- [ ] 23.2 **[RED]** Tests de `phase25_viability.py`: el `--jobs` por defecto con los núcleos detectados y la salida idéntica para cualquier `--jobs` (D62.3), el criterio por corrida y por configuración, el orden de la grilla, la detención en la primera viable y que no calcula ninguna métrica de afirmación.
+- [ ] 23.2 **[RED]** Tests de `phase25_viability.py`: el `--jobs` por defecto con los núcleos detectados y la salida idéntica para cualquier `--jobs` (D62.3), el criterio por corrida y por configuración (con `no_predation_drift` y `stable_drift`), el orden de la grilla, la detención en la primera viable y que no calcula ninguna métrica de afirmación.
 - [ ] 23.3 **[GREEN]** Crear `src/ide/experiments/phase25_viability.py` con su CLI (D55).
 - [ ] 23.4 Correr la compuerta con `PHASE25_VIABILITY_SEEDS` y registrar la salida en `registros/` y en `docs/RESULTADOS.md`. Fijar en `PHASE25_PROTOCOL_CONFIGS` la configuración elegida, en un commit propio.
 
@@ -395,7 +399,7 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 25.1 **[RED]** Crear `tests/test_exp25.py` con tests para la ejecución, la serialización JSON y la CLI de `25a`, `25b`, `25c` y `25d`, el `--jobs` por defecto con los núcleos detectados (D62.3), sus condiciones y el resumen por condición, con los historiales genético y ecológico.
+- [ ] 25.1 **[RED]** Crear `tests/test_exp25.py` con tests para la ejecución, la serialización JSON y la CLI de `25a`, `25b`, `25c` y `25d`, el `--jobs` por defecto con los núcleos detectados (D62.3), sus condiciones (incluidas `no_predation_drift` y `stable_drift`) y el resumen por condición, con los historiales genético y ecológico.
 - [ ] 25.2 **[GREEN]** Crear `src/ide/experiments/exp25_runner.py` con la infraestructura de `phase2_cli.py`.
 - [ ] 25.3 **[REFACTOR]** Verificación completa:
   - `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide` (cobertura $\ge 90\%$);
@@ -410,6 +414,6 @@
 >
 > Punto de control: resultados. Presentarlos tal cual, incluidos los negativos, antes de archivar.
 
-- [ ] 26.1 Correr los tres protocolos con sus condiciones y `PHASE25_SEEDS`, y los `rule_effects` exploratorios con las semillas 42–51. Registrar todos los resultados, incluidos los negativos y las métricas descriptivas de evolución abierta, en `docs/RESULTADOS.md`, sin tocar el pre-registro.
+- [ ] 26.1 Correr los cuatro protocolos con sus condiciones y `PHASE25_SEEDS`, y los `rule_effects` exploratorios con las semillas 42–51. Registrar todos los resultados, incluidos los negativos y las métricas descriptivas de evolución abierta, en `docs/RESULTADOS.md`, sin tocar el pre-registro.
 - [ ] 26.2 Actualizar `CLAUDE.md` (estado), `README.md` y los documentos de `docs/`, incluida la hoja de ruta de la Fase III con lo aprendido.
 - [ ] 26.3 Completar la Definition of Done de `design.md` con su evidencia y archivar el cambio.
