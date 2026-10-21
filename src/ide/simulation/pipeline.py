@@ -187,8 +187,8 @@ def telomere_senescence_active(config: SimulationConfig) -> bool:
 def sos_mutation_active(config: SimulationConfig) -> bool:
     """R30 efectivamente activa: `enable_sos_mutation` con evolución (D30.3, D39).
 
-    Es la única definición de la condición; el motor la guarda en `engine.sos_mutation_active` y
-    con ella decide la escala de mutación de cada nacimiento. Sin ella, la escala es 1.0.
+    Es la única definición de la condición: con ella, `build_systems` agrega `StressSystem`, el
+    único que registra `last_stress_tick`. Sin ella, `compute_sos_scale` devuelve 1.0.
     """
     return config.enable_evolution and config.enable_sos_mutation
 
@@ -647,9 +647,7 @@ class SenescenceSystem(BaseSystem):
 
 class DeathSystem(BaseSystem):
     """(iv) Muerte de quien quedó con energía <= 0 tras el metabolismo (R13) y, con R35, el
-    cadáver de cada muerto, depositado antes de quitarlo (D48.3, precisión 78). Después, el
-    registro del estrés de los sobrevivientes (D39), siempre, aunque $R_{30}$ esté apagada
-    (precisión 7).
+    cadáver de cada muerto, depositado antes de quitarlo (D48.3, precisión 78).
 
     Cuenta además, siempre que haya muertes, las del tick por depredación (objetivos de un ataque
     con éxito y `stolen > 0` en el tick, `frame.predated`) y por hambre (las demás),
@@ -660,7 +658,6 @@ class DeathSystem(BaseSystem):
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         dead = engine._remove_dead(frame.tick)
-        engine._record_stress(frame.tick)
         frame.deaths = len(dead)
         if not dead:
             return
@@ -673,6 +670,19 @@ class DeathSystem(BaseSystem):
             events["predation_deaths"] += by_predation
         if by_predation < len(dead):
             events["starvation_deaths"] += len(dead) - by_predation
+
+
+class StressSystem(BaseSystem):
+    """(iv) Registro del estrés (D39, precisión 7 y S3): `last_stress_tick` de los sobrevivientes.
+
+    Va después de la muerte y antes de la reproducción, y sólo está en la lista con $R_{30}$
+    efectivamente activa, porque nadie más lo lee: en la Fase II no cuesta nada.
+    """
+
+    name = "stress"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        engine._record_stress(frame.tick)
 
 
 class ReproductionSystem(BaseSystem):
@@ -793,7 +803,10 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
         systems.append(MetabolismSystem())
         if telomere_senescence_active(config):
             systems.append(SenescenceSystem())
-        systems += (DeathSystem(), ReproductionSystem())
+        systems.append(DeathSystem())
+        if sos_mutation_active(config):
+            systems.append(StressSystem())
+        systems.append(ReproductionSystem())
     if holonic:
         systems.append(DownwardCausationSystem())
     systems.append(EnvironmentDynamicsSystem())

@@ -51,6 +51,9 @@ MECHANISM_SYSTEMS: dict[str, tuple[str, ...]] = {
     "enable_stigmergy": ("stigmergy_assimilation",),
     "comm_enabled": ("social_exchange",),
     "enable_evolution": ("metabolism", "death", "reproduction"),
+    # Bloque 16: R29 y R30, sólo con su bandera (y la evolución).
+    "enable_telomere_senescence": ("senescence",),
+    "enable_sos_mutation": ("stress",),
 }
 
 # Orden de D53.1 reducido a la Fase II más la Fase 0 de la etapa A.
@@ -69,7 +72,9 @@ PHASE2_ORDER = (
     "memory_decay",  # Fase 5 (i)
     "holon_coordination",  # (ii)
     "metabolism",  # (iii)
+    "senescence",  # (iii) R29
     "death",  # (iv)
+    "stress",  # (iv) registro del estrés de R30
     "reproduction",  # (v)
     "downward_causation",  # (vii)
     "environment_dynamics",  # (viii)
@@ -83,6 +88,8 @@ def full_phase2_config() -> SimulationConfig:
         enable_stigmergy=True,
         enable_compact_dna=True,
         enable_holon_view=True,
+        enable_telomere_senescence=True,
+        enable_sos_mutation=True,
     )
 
 

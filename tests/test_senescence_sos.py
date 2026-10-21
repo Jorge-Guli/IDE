@@ -34,6 +34,7 @@ from ide.simulation.pipeline import (
     ExpressionSystem,
     MetabolismSystem,
     SenescenceSystem,
+    StressSystem,
     TickFrame,
     build_systems,
     sos_mutation_active,
@@ -236,11 +237,34 @@ def test_costo_basal_con_adn_y_senescencia() -> None:
 
 
 def test_senescencia_tambien_en_las_endosporas() -> None:
+    """Sólo la parte de R29 (0.001) del escenario del spec "Endospora senescente".
+
+    El costo reducido de la endospora (`spore_cost_fraction * metabolic_base_cost`, 0.0005) en
+    lugar del basal es del bloque 17 (D38, precisión S2): lo cubre el xfail de abajo.
+    """
     engine = SimulationEngine(senescent_config(enable_sporulation=True))
     engine.agents[2].set_endospore(True)
     before = energies(engine)
     SenescenceSystem().run(engine, TickFrame(15))
     assert before[2] - engine.agents[2].energy == pytest.approx(0.001, abs=1e-9)
+
+
+@pytest.mark.xfail(
+    reason="bloque 17: el costo de la endospora reemplaza al basal (D38, precisión S2)",
+    strict=True,
+)
+def test_endospora_senescente_paga_su_costo_mas_la_senescencia() -> None:
+    """Escenario completo del spec: 0.0005 + 0.001 = 0.0015 en el tick."""
+    config = senescent_config(
+        enable_sporulation=True, metabolic_base_cost=0.01, spore_cost_fraction=0.05
+    )
+    engine = SimulationEngine(config)
+    engine.agents[2].set_endospore(True)
+    before = engine.agents[2].energy
+    frame = TickFrame(15)
+    MetabolismSystem().run(engine, frame)
+    SenescenceSystem().run(engine, frame)
+    assert before - engine.agents[2].energy == pytest.approx(0.0015, abs=1e-9)
 
 
 def test_senescencia_no_consume_generadores() -> None:
@@ -270,30 +294,64 @@ def test_la_senescencia_puede_matar_en_el_mismo_tick() -> None:
 
 
 def stress_config(**overrides: Any) -> SimulationConfig:
-    return cfg(reproduction_threshold=2.2, stress_energy_ratio=0.35, **overrides)
+    defaults: dict[str, Any] = {
+        "reproduction_threshold": 2.2,
+        "stress_energy_ratio": 0.35,
+        "enable_sos_mutation": True,
+    }
+    return cfg(**{**defaults, **overrides})
+
+
+def test_sistema_de_estres_solo_con_sos_efectiva() -> None:
+    """El registro sólo existe con R30 efectivamente activa: nadie más lo lee (precisión 7)."""
+    on = stress_config()
+    order = names(on)
+    assert order.index("death") + 1 == order.index("stress")
+    assert order.index("stress") + 1 == order.index("reproduction")
+    off = replace(on, enable_sos_mutation=False)
+    assert names(off) == [n for n in order if n != "stress"]
+    assert "stress" not in names(PHASE2_PROTOCOL_CONFIGS["002a"])
+
+
+def test_record_stress_fija_last_stress_tick() -> None:
+    """Escenario "Setters del estado nuevo" del spec micro-agent, en su parte de R30."""
+    agent = MicroAgent(0, cfg())
+    assert agent.last_stress_tick is None
+    agent.record_stress(30)
+    assert agent.last_stress_tick == 30
 
 
 def test_registro_del_ultimo_tick_de_estres() -> None:
     engine = SimulationEngine(stress_config())
     set_energy(engine, 0, 0.70)
     set_energy(engine, 1, 0.80)
-    DeathSystem().run(engine, TickFrame(30))
+    StressSystem().run(engine, TickFrame(30))
     assert engine.agents[0].last_stress_tick == 30  # 0.70 < 0.77
     assert engine.agents[1].last_stress_tick is None
     # Un estrés posterior reemplaza al anterior; sin estrés se conserva.
     set_energy(engine, 1, 2.0)
-    DeathSystem().run(engine, TickFrame(31))
+    StressSystem().run(engine, TickFrame(31))
     assert engine.agents[0].last_stress_tick == 31
     assert engine.agents[1].last_stress_tick is None
 
 
-def test_registro_del_estres_siempre_aunque_sos_este_apagada() -> None:
+def test_umbral_de_estres_con_tolerancia() -> None:
+    """En el umbral exacto no hay estrés: `energy < umbral - 1e-9` (precisión S5)."""
+    engine = SimulationEngine(stress_config())
+    set_energy(engine, 0, 0.77)
+    set_energy(engine, 1, 0.77 - 1e-6)
+    StressSystem().run(engine, TickFrame(5))
+    assert engine.agents[0].last_stress_tick is None
+    assert engine.agents[1].last_stress_tick == 5
+
+
+def test_sin_sos_no_se_registra_el_estres() -> None:
     config = stress_config(enable_sos_mutation=False)
     assert not sos_mutation_active(config)
     engine = SimulationEngine(config)
     set_energy(engine, 3, 0.1)
-    DeathSystem().run(engine, TickFrame(9))
-    assert engine.agents[3].last_stress_tick == 9
+    engine.step()
+    assert all(a.last_stress_tick is None for a in engine.agents.values())
 
 
 def test_registro_del_estres_solo_de_sobrevivientes_y_sin_generadores() -> None:
@@ -306,6 +364,7 @@ def test_registro_del_estres_solo_de_sobrevivientes_y_sin_generadores() -> None:
     ]
     frame = TickFrame(4)
     DeathSystem().run(engine, frame)
+    StressSystem().run(engine, frame)
     assert 0 not in engine.agents and frame.deaths == 1
     assert engine.agents[1].last_stress_tick == 4
     assert states == [
@@ -348,6 +407,9 @@ def test_las_tres_escalas() -> None:
     assert compute_sos_scale(2.5, 90, 140, config) == 4.0
     assert compute_sos_scale(2.5, 89, 140, config) == 1.0
     assert compute_sos_scale(1.5 * 2.2, None, 140, config) == 0.25
+    # 1.5 * 2.2 == 3.3000000000000003: el literal 3.3 alcanza la alta fidelidad (precisión S5).
+    assert compute_sos_scale(3.3, None, 140, config) == 0.25
+    assert compute_sos_scale(3.3 - 1e-6, None, 140, config) == 1.0
     # El estrés reciente prevalece sobre la energía alta.
     assert compute_sos_scale(10.0, 139, 140, config) == 4.0
 

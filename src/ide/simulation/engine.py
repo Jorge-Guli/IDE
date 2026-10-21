@@ -13,6 +13,7 @@ from ide.agent.evolution import (
     compute_metabolic_cost,
     compute_senescence_cost,
     compute_sos_scale,
+    is_energy_stressed,
     transfer_cultural_heritage,
 )
 from ide.agent.holon import (
@@ -65,7 +66,6 @@ from ide.simulation.pipeline import (
     energy_transfer_active,
     genetic_policy_active,
     predation_active,
-    sos_mutation_active,
 )
 
 # Emisor sintético de los testimonios estigmérgicos (D27); los holones usan IDs <= -2 (D23).
@@ -221,8 +221,6 @@ class SimulationEngine:
         # `ATTACK`; sin ellas, la grilla los ejecuta como `IDLE`.
         self.energy_transfer_active = energy_transfer_active(config)
         self.predation_active = predation_active(config)
-        # R30 efectivamente activa (D39): la escala de mutación de cada nacimiento; sin ella, 1.0.
-        self.sos_mutation_active = sos_mutation_active(config)
         # `GeneticPolicy` no guarda estado: una sola instancia sirve a todos los fundadores.
         policy = GeneticPolicy() if self.genetic_policy_active else None
         self.agents: dict[int, MicroAgent] = {
@@ -616,13 +614,14 @@ class SimulationEngine:
     def _record_stress(self, tick: int) -> None:
         """Registra `last_stress_tick = tick` en cada sobreviviente con energía bajo el umbral.
 
-        El umbral es `stress_energy_ratio * reproduction_threshold` (D39). Corre siempre después
-        de la muerte, aunque $R_{30}$ esté apagada (precisión 7), y no consume generadores.
+        El umbral es `stress_energy_ratio * reproduction_threshold`, con la tolerancia de
+        `is_energy_stressed` (D39, precisión S5). Lo llama `StressSystem`, después de la muerte y
+        sólo con $R_{30}$ efectivamente activa (precisión 7 y S3); no consume generadores.
         """
-        threshold = self.config.stress_energy_ratio * self.config.reproduction_threshold
+        config = self.config
         for aid in sorted(self.agents):
             agent = self.agents[aid]
-            if agent.energy < threshold:
+            if is_energy_stressed(agent.energy, config):
                 agent.record_stress(tick)
 
     def _remove_dead(self, tick: int) -> list[int]:
@@ -696,11 +695,7 @@ class SimulationEngine:
         escala es 1.0 y la Fase II no cambia en un bit.
         """
         rng = self.evo_rng
-        scale = (
-            compute_sos_scale(parent.energy, parent.last_stress_tick, tick, self.config)
-            if self.sos_mutation_active
-            else 1.0
-        )
+        scale = compute_sos_scale(parent.energy, parent.last_stress_tick, tick, self.config)
         if donor is None:
             child = parent.create_offspring(self.next_agent_id, tick, rng, mutation_scale=scale)
         elif (parent.dna is None) != (donor.dna is None):

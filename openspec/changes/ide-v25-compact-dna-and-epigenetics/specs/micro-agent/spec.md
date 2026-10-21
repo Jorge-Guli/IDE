@@ -3,15 +3,15 @@
 ## ADDED Requirements
 
 ### Requirement: Estado Genético, Epigenético y de Vida del Agente
-`MicroAgent` SHALL incorporar `dna: CompactDNA | None` (`None` sin ADN), `phenotype: ExpressedPhenotype`, `base_config: SimulationConfig`, `epigenetic_role: EpigeneticRole` (`NONE` al nacer), `birth_tick: int` (0 en los fundadores), `is_endospore: bool` (`False`) y `last_stress_tick: int | None` (`None`), con los métodos `set_epigenetic_role(role)`, `set_dna(dna)` y `set_endospore(flag)`, sin cambiar las firmas de la Fase I.
+`MicroAgent` SHALL incorporar `dna: CompactDNA | None` (`None` sin ADN), `phenotype: ExpressedPhenotype`, `base_config: SimulationConfig`, `epigenetic_role: EpigeneticRole` (`NONE` al nacer), `birth_tick: int` (0 en los fundadores), `is_endospore: bool` (`False`) y `last_stress_tick: int | None` (`None`), con los métodos `set_epigenetic_role(role)`, `set_dna(dna)`, `set_endospore(flag)` y `record_stress(tick)`, sin cambiar las firmas de la Fase I.
 
 #### Scenario: Estado inicial de un fundador sin ADN
 - **WHEN** se construye un `MicroAgent` fundador con `enable_compact_dna=False`
 - **THEN** `dna is None`, `epigenetic_role is EpigeneticRole.NONE`, `birth_tick == 0`, `is_endospore == False`, `last_stress_tick is None` y `base_config` es la configuración del motor.
 
 #### Scenario: Setters del estado nuevo
-- **WHEN** se invocan `set_epigenetic_role(EpigeneticRole.NERVE)`, `set_endospore(True)` y `set_dna(dna2)`
-- **THEN** `epigenetic_role is EpigeneticRole.NERVE`, `is_endospore == True` y `dna == dna2`.
+- **WHEN** se invocan `set_epigenetic_role(EpigeneticRole.NERVE)`, `set_endospore(True)`, `set_dna(dna2)` y `record_stress(30)`
+- **THEN** `epigenetic_role is EpigeneticRole.NERVE`, `is_endospore == True`, `dna == dna2` y `last_stress_tick == 30`.
 
 ### Requirement: Configuración Base de la Población
 Un `MicroAgent` fundador SHALL recibir como `base_config` la configuración del motor y un descendiente SHALL recibir la `base_config` de su progenitor, nunca la configuración fenotípica, de modo que las bases de la expresión no se acumulen de un tick a otro.

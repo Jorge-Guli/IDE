@@ -39,14 +39,18 @@ El costo de senescencia de $R_{29}$ SHALL cobrarse también a los agentes en end
 - **THEN** paga `0.0005 + 0.001 = 0.0015` en el tick (con tolerancia `1e-9`).
 
 ### Requirement: Registro del Estrés Energético
-Siempre, después del cobro metabólico y de la muerte, cada sobreviviente con `energy < stress_energy_ratio * reproduction_threshold` SHALL registrar `last_stress_tick = tick`, sin consumir generadores.
+Con $R_{30}$ efectivamente activa, en cada tick, después de la muerte y antes de la reproducción, cada sobreviviente con `energy < stress_energy_ratio * reproduction_threshold` (tolerancia `1e-9`) SHALL registrar `last_stress_tick = tick`, sin consumir generadores; sin $R_{30}$ no se registra.
 
 #### Scenario: Registro del último tick de estrés
 - **WHEN** con `stress_energy_ratio = 0.35` y `reproduction_threshold = 2.2` un agente sobrevive al tick 30 con `energy = 0.70`, y otro con `energy = 0.80`
 - **THEN** el primero tiene `last_stress_tick == 30` (`0.70 < 0.77`) y el segundo conserva su valor anterior.
 
+#### Scenario: Sin registro con R30 apagada
+- **WHEN** con `enable_sos_mutation=False` un agente sobrevive a un tick con energía bajo el umbral de estrés
+- **THEN** su `last_stress_tick` sigue en `None`.
+
 ### Requirement: Escala de Mutación SOS (R30)
-Con `enable_evolution` y `enable_sos_mutation` activas, al reproducirse y con el estado del progenitor antes de partir la energía, la escala de mutación SHALL ser `sos_hypermutation_factor` si `last_stress_tick is not None` y `tick - last_stress_tick <= sos_window`; si no, `sos_high_fidelity_factor` si `energy >= sos_high_fidelity_energy_ratio * reproduction_threshold`; y si no, 1.0.
+Con `enable_evolution` y `enable_sos_mutation` activas, al reproducirse y con el estado del progenitor antes de partir la energía, la escala de mutación SHALL ser `sos_hypermutation_factor` si `last_stress_tick is not None` y `tick - last_stress_tick <= sos_window`; si no, `sos_high_fidelity_factor` si `energy >= sos_high_fidelity_energy_ratio * reproduction_threshold` (tolerancia `1e-9`); y si no, 1.0.
 
 #### Scenario: Las tres escalas
 - **WHEN** con `sos_window = 50`, `reproduction_threshold = 2.2` y `sos_high_fidelity_energy_ratio = 1.5` se reproducen en el tick 140 un agente con `last_stress_tick = 100` y `energy = 2.5`, otro con `last_stress_tick = 80` y `energy = 3.4`, y otro sin estrés y con `energy = 2.5`

@@ -824,7 +824,7 @@ El rol se reasigna sólo cuando cambia el conjunto de hojas de la raíz, y una h
 - **Senescencia ($R_{29}$).** Con evolución y $R_{29}$ activas, el cobro metabólico suma
   $$c_{\text{sen}}(i) = \texttt{senescence\_cost\_rate} \cdot \max(0, \text{age}_i - T_{\max, i})^2,$$
   también a las endosporas. Con ADN, $T_{\max, i}$ se expresa por el destino `0x07`; sin ADN, vale `telomere_base_lifespan`. Motivación: el "Tapón de Matusalén" confirmado en la tarea 0.1 ([RESULTADOS.md](RESULTADOS.md)).
-- **Registro del estrés.** Siempre que hay metabolismo (aunque $R_{30}$ esté apagada), cada sobreviviente con $E_i <$ `stress_energy_ratio` $\cdot E_{\text{reprod}}$ registra $t_{\text{estrés}, i} = t$.
+- **Registro del estrés.** Con $R_{30}$ efectivamente activa, después de la muerte y antes de la reproducción, cada sobreviviente con $E_i <$ `stress_energy_ratio` $\cdot E_{\text{reprod}}$ registra $t_{\text{estrés}, i} = t$.
 - **SOS ($R_{30}$).** Al reproducirse, con el estado del progenitor antes de partir la energía, la escala de mutación es
   $$s = \begin{cases} \texttt{sos\_hypermutation\_factor} & \text{si } t - t_{\text{estrés}} \le \texttt{sos\_window}, \\ \texttt{sos\_high\_fidelity\_factor} & \text{si no, y } E \ge \texttt{sos\_high\_fidelity\_energy\_ratio} \cdot E_{\text{reprod}}, \\ 1 & \text{en otro caso.} \end{cases}$$
   Con ADN escala las probabilidades de `mutate_dna`; sin ADN escala `mutation_rate` y `discrete_mutation_prob` de `mutate_genome` (recortando la segunda a 1). Con $R_{30}$ apagada, $s = 1$.
