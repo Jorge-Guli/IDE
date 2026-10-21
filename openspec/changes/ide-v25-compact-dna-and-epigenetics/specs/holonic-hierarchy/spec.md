@@ -13,14 +13,21 @@
 - **WHEN** se invoca `assign_epigenetic_roles` con `enable_epigenetic_roles=False` y un `local_reach` que viola el contrato de D25.1
 - **THEN** se lanza `ValueError`.
 
-### Requirement: Casta LIBRARIAN por Conocimiento Propio Único
+### Requirement: Señal Posicional sin Efecto en el ADN Fundador (R25)
+$R_{25}$ SHALL proveer sólo una señal de posición y de conocimiento dentro del holón, que entra en el contexto epigenético: el ADN fundador no tiene codones con promotores de rol (`0x10`–`0x12`), así que su fenotipo expresado SHALL ser el mismo con cualquier rol, y toda diferencia de expresión entre roles la construye la selección.
+
+#### Scenario: Rol sin efecto en el fundador
+- **WHEN** con $R_{25}$ activa se transcribe el ADN fundador con los roles `NONE`, `EXPLORER`, `LIBRARIAN` y `NERVE` y el mismo nivel y energía
+- **THEN** los cuatro fenotipos expresados son iguales.
+
+### Requirement: Señal LIBRARIAN por Conocimiento Propio Único
 Con la regla activa, sea $K(\ell)$ el conjunto de patrones de la memoria de $\ell$ con `confidence >= decision_conf_threshold` y `unique(ℓ)` $= |K(\ell) \setminus \bigcup_{\ell' \neq \ell} K(\ell')|$ sobre las hojas del holón; `assign_epigenetic_roles` SHALL asignar `LIBRARIAN` a la hoja que maximiza `(unique(ℓ), |K(ℓ)|, -agent_id)`, leyendo sólo memorias y sin conocer coordenadas.
 
 #### Scenario: Desempate por conocimiento total y por identificador
 - **WHEN** en un holón con hojas 1, 2 y 3 las hojas 2 y 3 tienen `unique == 2` y `|K| == 4`, y la hoja 1 tiene `unique == 1`
 - **THEN** la hoja 2 recibe `LIBRARIAN`.
 
-### Requirement: Castas EXPLORER y NERVE por Grado Interno
+### Requirement: Señales EXPLORER y NERVE por Grado Interno
 Con la regla activa y `deg(ℓ)` $= |\text{loc}(\ell) \setminus \{\ell\}|$, `assign_epigenetic_roles` SHALL asignar `EXPLORER` a la hoja restante que maximiza `(-deg(ℓ), -agent_id)`, luego `NERVE`, si quedan hojas, a la que maximiza `(deg(ℓ), -agent_id)` entre las restantes, y `NONE` a las demás.
 
 #### Scenario: Holón de cuatro hojas
@@ -56,19 +63,34 @@ En la reproducción holónica ($R_{17}$), cada hoja hija SHALL recibir el rol de
 - **WHEN** con $R_{25}$ y $R_{17}$ activas se reproduce un holón cuyas hojas son `LIBRARIAN`, `EXPLORER` y `NERVE`
 - **THEN** las hojas de la réplica nacen con esos mismos roles, en correspondencia con sus progenitoras, y la Fase 5 no los recalcula mientras la réplica conserve sus hojas.
 
-### Requirement: Sello del Trinquete Simbiótico (R31)
-`CompositeAgent` SHALL incorporar `is_locked: bool = False` y, con `enable_holonic_hierarchy` y `enable_symbiotic_ratchet` activas, un holón raíz SHALL quedar soldado al reproducirse por $R_{17}$ (el progenitor y su réplica) o, en el paso de coordinación de la Fase 5 y antes de evaluar `SPLIT`, si `cooperative_completions >= lock_composite_threshold`.
+### Requirement: Sello por Compromiso Simbiótico (R31)
+`CompositeAgent` SHALL incorporar `is_locked: bool = False`. Con `enable_holonic_hierarchy`, `enable_compact_dna` y `enable_symbiotic_ratchet` activas, en el paso de coordinación de la Fase 5, antes de cobrar el costo de coordinación y de evaluar `SPLIT`, un holón raíz no soldado SHALL quedar soldado si la media del `symbiotic_commitment` expresado de sus hojas es $\ge 0.5$. El sello es permanente.
 
-#### Scenario: Sello por compuestos resueltos
-- **WHEN** con `lock_composite_threshold = 3` un holón raíz llega a `cooperative_completions == 3`
-- **THEN** en el paso de coordinación de la Fase 5 de ese tick queda con `is_locked == True`, antes de evaluar `SPLIT`.
+#### Scenario: Sello por compromiso medio
+- **WHEN** un holón raíz no soldado tiene 2 hojas que expresan `symbiotic_commitment` 0.25 y 0.75
+- **THEN** en el paso de coordinación de la Fase 5 de ese tick queda con `is_locked == True`, antes de cobrar su costo de coordinación y de evaluar `SPLIT`.
 
-#### Scenario: Sello por reproducción
-- **WHEN** con $R_{31}$ activa un holón raíz se reproduce por $R_{17}$
-- **THEN** el progenitor y su réplica quedan con `is_locked == True`.
+#### Scenario: Compromiso insuficiente
+- **WHEN** un holón raíz no soldado tiene 2 hojas que expresan `symbiotic_commitment` 0.25 y 0.5
+- **THEN** sigue con `is_locked == False`.
+
+#### Scenario: Sin ADN no hay sello
+- **WHEN** con `enable_compact_dna=False`, `enable_symbiotic_ratchet=True` y `symbiotic_commitment_base = 0.8` se forma un holón raíz
+- **THEN** el sello no se evalúa y el holón sigue con `is_locked == False` (design, precisión 32).
+
+#### Scenario: Sello permanente
+- **WHEN** un holón raíz soldado pasa a tener hojas cuyo compromiso medio es 0.0
+- **THEN** conserva `is_locked == True`.
+
+### Requirement: Sin Sello por Reproducción ni por Compuestos
+El sello de $R_{31}$ SHALL depender sólo del compromiso simbiótico expresado: un holón SHALL NOT soldarse por reproducirse por $R_{17}$ ni por su cantidad de `cooperative_completions`, y la configuración no tiene `lock_composite_threshold`.
+
+#### Scenario: Fundadores sin compromiso
+- **WHEN** con `symbiotic_commitment_base = 0.0` y el ADN fundador un holón raíz se reproduce por $R_{17}$ y acumula 5 `cooperative_completions`
+- **THEN** ni el progenitor ni su réplica quedan soldados.
 
 ### Requirement: Efectos de un Holón Soldado
-Con `enable_symbiotic_ratchet=True`, para un holón con `is_locked == True`, `should_split_holon` SHALL devolver `False`, por paciencia y por energía, y su costo de coordinación SHALL multiplicarse por `lock_coord_discount`. La estabilidad que produzca $R_{31}$ es por decreto, no un hallazgo.
+Con `enable_symbiotic_ratchet=True`, para un holón con `is_locked == True`, `should_split_holon` SHALL devolver `False`, por paciencia y por energía, y su costo de coordinación SHALL multiplicarse por `lock_coord_discount`. La regla da esos efectos; si un holón se suelda lo decide el compromiso que expresan sus hojas.
 
 #### Scenario: Holón soldado deficitario
 - **WHEN** con `lock_coord_discount = 0.5` un holón soldado de 3 hojas y nivel 1 acumula `holon_split_patience` ticks sin superávit y su energía cae bajo $|U| \cdot E_{\text{min\_holon}}$

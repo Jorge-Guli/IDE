@@ -1,9 +1,21 @@
 # Documento Fundacional: Inteligencia Distribuida Emergente (IDE)
-**Versión:** 2.0  
-**Fecha:** 2026-10-17  
+**Versión:** 2.1  
+**Fecha:** 2026-10-21 (objetivo de fondo rectificado; versión 2.0 del 2026-10-17)  
 **Estado:** Base Teórica y Hoja de Ruta Evolutiva Multinivel (Fase I verificada / Fase II implementada, corrida y archivada / Fase II-B especificada, con pre-registro aprobado)  
 
 ---
+
+## 0. Objetivo de Fondo (rectificado el 2026-10-21)
+
+> **Simular vida digital compleja: una población de organismos computacionales que, como la vida biológica, evoluciona, se complejiza y desarrolla capacidades cognitivas cada vez mayores —hasta, eventualmente, inteligencia— sin que ninguna de esas capacidades esté programada de antemano.**
+
+- **La analogía biológica que guía el diseño.** En la biología hay dos relojes. La **evolución** cambia el ADN entre generaciones, por mutación, recombinación y selección; el ADN no aprende. El **aprendizaje** ocurre dentro de una vida, en estructuras que el ADN construye (neuronas, sinapsis, sistema inmune). La inteligencia aparece cuando la evolución construye máquinas de percibir, recordar, aprender y comunicarse cada vez mejores. El proyecto busca que eso ocurra en un sustrato digital: que la evolución construya esa maquinaria, en lugar de que la escribamos nosotros.
+- **Cada entregable acerca el proyecto a ese objetivo.** Una fase no es sólo un experimento para publicar: si repetiría un experimento anterior a mayor costo, se corrigen primero sus cuestiones de base. Los resultados negativos se siguen reportando tal cual, porque también orientan el camino.
+- **Peldaños.** La inteligencia distribuida de la Fase I (capacidades colectivas con memoria individual insuficiente) es el primer peldaño, no el fin. Le siguen la evolución y los holones (Fase II), la conducta, la memoria, el aprendizaje y las señales construidos por la evolución en una ecología con interacciones (Fase II-B), y una estructura de aprendizaje totalmente abierta (Fase III).
+- **Alcance declarado.** El proyecto no simula el origen químico de la vida (abiogénesis): parte de organismos mínimos y estudia lo que la evolución construye a partir de ellos.
+- **Método.** La regla central de atribución (§9) no cambia: toda capacidad que se afirme como emergente debe distinguirse de una capacidad programada. Por eso las reglas de diseño dan **capacidades**, y el ADN decide si las usa.
+
+Las secciones siguientes conservan la premisa y las preguntas de la versión 2.0, que siguen vigentes como preguntas de los primeros peldaños.
 
 ## 1. Premisa y Cambio de Paradigma
 
@@ -36,7 +48,9 @@ Ciclo Generacional (g -> g+1):     Reproducción + Mutación + Herencia Cultural
 ## 2. Preguntas de Investigación
 
 ### Pregunta Central
-> **¿Puede una población evolutiva de agentes computacionales con capacidades individuales insuficientes desarrollar, heredar a través de las generaciones y escalar recursivamente —mediante agrupaciones multinivel sin tope fijo— capacidades cognitivas colectivas que ningún individuo ni nivel inferior puede sostener por sí solo?**
+> **Pregunta de fondo (2026-10-21): ¿puede la evolución, actuando sobre un ADN digital en una ecología con interacciones, construir organismos que perciban, recuerden, aprendan y se comuniquen cada vez mejor, sin que esas capacidades estén programadas?**
+>
+> **Pregunta de los primeros peldaños (versión 2.0): ¿Puede una población evolutiva de agentes computacionales con capacidades individuales insuficientes desarrollar, heredar a través de las generaciones y escalar recursivamente —mediante agrupaciones multinivel sin tope fijo— capacidades cognitivas colectivas que ningún individuo ni nivel inferior puede sostener por sí solo?**
 
 ### Preguntas Derivadas
 1. **Propagación Horizontal:** ¿Puede un descubrimiento local propagarse eficientemente entre pares sin saturar los canales de comunicación?

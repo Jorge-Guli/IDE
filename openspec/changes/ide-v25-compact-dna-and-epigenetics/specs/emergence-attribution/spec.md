@@ -2,87 +2,326 @@
 
 ## ADDED Requirements
 
-### Requirement: Inventario de Reglas de la Fase II-B (R24 a R31)
-Según el pre-registro aprobado en la tarea 0.2 (design D42), `attribution.py` SHALL definir `PHASE25_DESIGN_RULES` con `R24`..`R31`, cada una con su `name`, su `purpose` no vacío y su ablación de una bandera (`enable_compact_dna`, `enable_epigenetic_roles`, `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sporulation`, `enable_telomere_senescence`, `enable_sos_mutation` y `enable_symbiotic_ratchet` en `False`), sin modificar `DESIGN_RULES`, `PHASE2_DESIGN_RULES` ni `ALL_DESIGN_RULES`.
+### Requirement: Inventario de Reglas de la Fase II-B (R24 a R41)
+Según el pre-registro aprobado en la tarea 0.5 (design D56, reabierto con D57–D63), `attribution.py` SHALL definir `PHASE25_DESIGN_RULES` con `R24`..`R41` en orden, cada una con el `name`, el `purpose` no vacío y la ablación de una bandera en `False` de la tabla de D56, sin modificar `DESIGN_RULES`, `PHASE2_DESIGN_RULES` ni `ALL_DESIGN_RULES`.
 
 #### Scenario: Inventario y ablaciones
 - **WHEN** se inspecciona `PHASE25_DESIGN_RULES`
-- **THEN** contiene `R24`..`R31` en orden, la ablación de `R24` es `(("enable_compact_dna", False),)`, la de `R31` es `(("enable_symbiotic_ratchet", False),)`, y `ALL_DESIGN_RULES` sigue con `R1`..`R23`.
+- **THEN** contiene `R24`..`R41` en orden; las ablaciones de `R24`, `R28`, `R32`, `R37` y `R38` son `(("enable_compact_dna", False),)`, `(("enable_sporulation", False),)`, `(("enable_genetic_policy", False),)`, `(("enable_predation", False),)` y `(("enable_recombination", False),)`; y `ALL_DESIGN_RULES` sigue con `R1`..`R23`.
+
+#### Scenario: Ablaciones de las reglas ecológicas
+- **WHEN** se inspeccionan las ablaciones de `R33`, `R34`, `R35` y `R36`
+- **THEN** son `(("enable_resource_depletion", False),)`, `(("enable_heterogeneity", False),)`, `(("enable_carcasses", False),)` y `(("enable_energy_transfer", False),)`.
+
+#### Scenario: Ablaciones de la ampliación
+- **WHEN** se inspeccionan las ablaciones de `R39`, `R40` y `R41`
+- **THEN** son `(("enable_internal_state", False),)`, `(("enable_plasticity", False),)` y `(("enable_signals", False),)`, y sus `name` son "Estado interno persistente", "Plasticidad en vida" y "Señales evolucionables".
 
 ### Requirement: Sesgos Declarados en el Propósito de las Reglas
-Según el pre-registro aprobado en la tarea 0.2 (design D42), el `purpose` de `R24` SHALL declarar que abarata la complejidad latente, el de `R25` que la especialización que produzca es programada, el de `R28` que rescata poblaciones y el de `R31` que su estabilidad es por decreto.
+Según el pre-registro aprobado en la tarea 0.5 (design D56), el `purpose` de `R24` SHALL declarar que abarata la complejidad latente y el de `R29` que fuerza el recambio; los de `R25`, `R28`, `R36`, `R37`, `R38`, `R39`, `R40` y `R41` SHALL declarar que su uso (y, en `R40`, qué y cuánto se aprende; en `R41`, su significado) lo decide el ADN o lo construye la evolución, y ninguno SHALL declarar especialización programada, rescate de poblaciones ni estabilidad por decreto.
 
-#### Scenario: Sesgos visibles en el inventario
-- **WHEN** se leen los `purpose` de `R24`, `R25`, `R28` y `R31`
-- **THEN** cada uno contiene su sesgo declarado: complejidad latente, especialización programada, rescate de poblaciones y estabilidad por decreto.
+#### Scenario: Sesgos vigentes
+- **WHEN** se leen los `purpose` de `R24` y `R29`
+- **THEN** contienen sus sesgos declarados: complejidad latente y recambio forzado.
+
+#### Scenario: Sesgos retirados por la reformulación
+- **WHEN** se leen los `purpose` de `R25`, `R28` y `R31`
+- **THEN** ninguno menciona especialización programada, rescate de poblaciones ni estabilidad por decreto, y los de `R25` y `R28` dicen que su uso lo decide el ADN.
+
+#### Scenario: Capacidades de la ampliación
+- **WHEN** se leen los `purpose` de `R39`, `R40` y `R41`
+- **THEN** el de `R39` dice que su uso lo decide el ADN, el de `R40` que qué y cuánto se aprende lo decide el ADN, y el de `R41` que su uso y su significado los construye la evolución.
 
 ### Requirement: Índice Conjunto de Reglas y Ablación
-`attribution.py` SHALL definir `PHASE25_ALL_RULES = ALL_DESIGN_RULES + PHASE25_DESIGN_RULES`, y `ablate(config, rule_ids)` SHALL buscar las reglas en un índice que incluye las dos tuplas, sin modificar `ALL_DESIGN_RULES`.
+`attribution.py` SHALL definir `PHASE25_ALL_RULES = ALL_DESIGN_RULES + PHASE25_DESIGN_RULES`, y `ablate(config, rule_ids)` SHALL buscar las reglas en las dos tuplas, sin modificar `ALL_DESIGN_RULES`.
 
 #### Scenario: Ablación de reglas de las tres fases
-- **WHEN** se invoca `ablate(config, ["R12", "R24", "R29"])` sobre una configuración con `enable_compact_dna=True` y `enable_telomere_senescence=True`
-- **THEN** la configuración resultante tiene `reproduction_mode == "neutral"`, `enable_compact_dna == False` y `enable_telomere_senescence == False`, y `len(PHASE25_ALL_RULES) == len(ALL_DESIGN_RULES) + 8`.
+- **WHEN** se invoca `ablate(config, ["R12", "R24", "R37", "R39", "R40"])` sobre una configuración con `enable_compact_dna=True`, `enable_predation=True`, `enable_internal_state=True` y `enable_plasticity=True`
+- **THEN** la configuración resultante tiene `reproduction_mode == "neutral"` y `enable_compact_dna`, `enable_predation`, `enable_internal_state` y `enable_plasticity` en `False`, y `len(PHASE25_ALL_RULES) == len(ALL_DESIGN_RULES) + 18`.
 
-### Requirement: Configuraciones de los Protocolos de la Fase II-B
-Según el pre-registro aprobado en la tarea 0.2 (design D42), `PHASE25_PROTOCOL_CONFIGS` SHALL definir, sobre `PHASE2_PROTOCOL_CONFIGS`: `"002c"` como `"002a"` con `enable_compact_dna`, `enable_plasmid_hgt`, `enable_crispr_immunity` y `enable_sos_mutation`; `"002d"` como `"002c"` con `enable_telomere_senescence=True` y `resources_per_pattern=40`; y `"002e"` como `"002c"` con `enable_sporulation=True` y `resources_per_pattern=10`.
+### Requirement: Configuración del Protocolo 25a
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_PROTOCOL_CONFIGS["25a"]` SHALL ser `PHASE2_PROTOCOL_CONFIGS["002a"]` con `enable_` `compact_dna`, `genetic_policy`, `plasmid_hgt`, `crispr_immunity`, `sporulation`, `telomere_senescence`, `sos_mutation`, `resource_depletion`, `heterogeneity`, `carcasses`, `energy_transfer`, `predation`, `recombination`, `internal_state`, `plasticity` y `signals` en `True`, `season_length = 500` y `dna_max_length = 64` (D62.2).
 
-#### Scenario: Configuraciones de 002c a 002e
-- **WHEN** se inspeccionan `PHASE25_PROTOCOL_CONFIGS["002c"]`, `["002d"]` y `["002e"]`
-- **THEN** `002c` tiene `resources_per_pattern == 20` y las cuatro banderas en `True`; `002d` difiere de `002c` sólo en `enable_telomere_senescence=True` y `resources_per_pattern == 40`; y `002e` sólo en `enable_sporulation=True` y `resources_per_pattern == 10`.
+#### Scenario: Configuración de 25a
+- **WHEN** se compara `PHASE25_PROTOCOL_CONFIGS["25a"]` con `PHASE2_PROTOCOL_CONFIGS["002a"]`
+- **THEN** difieren sólo en esas 16 banderas, todas en `True`, en `season_length == 500`, en `dna_max_length == 64` y en `(resources_per_pattern, resource_regen_delay)`, fijados por la compuerta de viabilidad.
 
-### Requirement: Configuración del Protocolo 003c
-Según el pre-registro aprobado en la tarea 0.2 (design D42), `PHASE25_PROTOCOL_CONFIGS["003c"]` SHALL ser `PHASE2_PROTOCOL_CONFIGS["003a"]` con `enable_compact_dna`, `enable_epigenetic_roles`, `enable_symbiotic_ratchet`, `enable_plasmid_hgt`, `enable_crispr_immunity` y `enable_sos_mutation` en `True`.
+### Requirement: Configuraciones de los Protocolos 25b, 25c y 25d
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_PROTOCOL_CONFIGS["25b"]` SHALL ser `PHASE2_PROTOCOL_CONFIGS["003a"]` con las banderas, la `season_length` y la `dna_max_length` de `"25a"` más `enable_epigenetic_roles` y `enable_symbiotic_ratchet` en `True`; `["25c"]` SHALL ser `"25a"` con `comm_propensity_base = 0.0`; y `["25d"]` SHALL ser `"25a"` con `world_shift_period = 1000` y `world_shift_fraction = 0.5` (D62.1).
 
-#### Scenario: Configuración de 003c
-- **WHEN** se inspecciona `PHASE25_PROTOCOL_CONFIGS["003c"]`
-- **THEN** difiere de `PHASE2_PROTOCOL_CONFIGS["003a"]` sólo en esas seis banderas, todas en `True`.
+#### Scenario: Configuración de 25b
+- **WHEN** se compara `PHASE25_PROTOCOL_CONFIGS["25b"]` con `PHASE2_PROTOCOL_CONFIGS["003a"]`
+- **THEN** difieren sólo en las 16 banderas de `25a`, `enable_epigenetic_roles`, `enable_symbiotic_ratchet`, `season_length == 500`, `dna_max_length == 64` y los dos valores de la compuerta.
 
-### Requirement: Afirmaciones Pre-Registradas C9 a C12
-Según el pre-registro aprobado en la tarea 0.2 (design D42), `PHASE25_CLAIMS` SHALL contener `C9` (`002c`, `evolved_accuracy`), `C10` (`002d`, `evolved_accuracy`), `C11` (`002e`, `final_active_population`) y `C12` (`003c`, `holonic_composite_completions`), todas con métrica creciente y con $R_C$ y canal iguales a `("R24",)`, `("R29",)`, `("R28",)` y `("R25",)`, respectivamente.
+#### Scenario: Configuración de 25c
+- **WHEN** se compara `PHASE25_PROTOCOL_CONFIGS["25c"]` con `["25a"]`
+- **THEN** difieren sólo en `comm_propensity_base == 0.0`.
 
-#### Scenario: Registro de afirmaciones
+#### Scenario: Configuración de 25d
+- **WHEN** se compara `PHASE25_PROTOCOL_CONFIGS["25d"]` con `["25a"]`
+- **THEN** difieren sólo en `world_shift_period == 1000`, y `25d` tiene `world_shift_fraction == 0.5`.
+
+#### Scenario: ADN de 64 codones en todos los protocolos
+- **WHEN** se inspecciona `dna_max_length` en los cuatro protocolos de `PHASE25_PROTOCOL_CONFIGS` y en `SimulationConfig()`
+- **THEN** vale 64 en los cuatro protocolos y 32 en la configuración por defecto.
+
+### Requirement: Abundancia Fijada por la Compuerta de Viabilidad
+`resources_per_pattern` y `resource_regen_delay` de los cuatro protocolos de `PHASE25_PROTOCOL_CONFIGS` SHALL ser los de la configuración elegida por la compuerta de viabilidad (design D55), fijados en un commit propio antes de la prueba de humo; ningún otro campo SHALL ajustarse con la compuerta.
+
+#### Scenario: Valores comunes a los protocolos
+- **WHEN** la compuerta elige `(30, 10)`
+- **THEN** `25a`, `25b`, `25c` y `25d` tienen `resources_per_pattern == 30` y `resource_regen_delay == 10`, y el resto de sus campos es el del pre-registro.
+
+### Requirement: Tipo Phase25Claim
+`attribution.py` SHALL definir `Phase25Claim` como `@dataclass(frozen=True)` con `claim_id`, `statement`, `protocol`, `metric`, `comparison` (`"drift"`, `"no_predation"`, `"stable"` o `"no_learning"`), `rule_ids`, `channel`, `delta_min` y `delta_relative: float = 0.0`, en ese orden, y `PHASE25_CLAIMS` SHALL ser una tupla de `Phase25Claim` (design D56).
+
+#### Scenario: Campos de la afirmación
+- **WHEN** se inspeccionan los campos de `Phase25Claim`
+- **THEN** son exactamente esos nueve, `delta_relative` vale 0.0 por defecto, y asignar uno lanza `dataclasses.FrozenInstanceError`.
+
+### Requirement: Tipos de Evaluación y Reporte de la Fase II-B
+`Phase25ClaimEvaluation` SHALL ser `frozen` con `claim_id`, `status`, `p_value`, `p_adjusted`, `median_difference`, `values`, `comparison_values`, `demography`, `e4_p_value`, `e4_interpretable` y, al final y en este orden, `excluded_seeds: tuple[int, ...]`, `excluded_pairs: int` y `evaluable: bool` (design precisiones 45 y 47); `Phase25Report` SHALL ser `frozen` con `profile = "phase25"`, `rules = PHASE25_ALL_RULES`, `evaluations` y `rule_effects`.
+
+#### Scenario: Campos de la evaluación y del reporte
+- **WHEN** se inspeccionan los campos de `Phase25ClaimEvaluation` y de `Phase25Report`
+- **THEN** son exactamente los enumerados, en ese orden, y los dos tipos son inmutables.
+
+### Requirement: Ejecución de la Atribución de la Fase II-B
+`run_phase25_attribution(seeds=PHASE25_SEEDS, claims=PHASE25_CLAIMS, jobs=1, configs=None, rule_effect_seeds=PHASE25_RULE_EFFECT_SEEDS)` SHALL devolver un `Phase25Report` con `PROFILES["phase25"]`, una evaluación por afirmación y, con `configs`, SHALL usar `configs[claim.protocol]` como condición `full`.
+
+#### Scenario: Atribución con un perfil corto de prueba
+- **WHEN** se invoca `run_phase25_attribution` con un perfil corto de prueba, dos semillas y `rule_effect_seeds` de una semilla
+- **THEN** devuelve un `Phase25Report` con `profile == "phase25"`, `rules == PHASE25_ALL_RULES` y una evaluación por afirmación de `PHASE25_CLAIMS`.
+
+### Requirement: Control Nulo de Contenido de la Fase II-B
+La condición `null_content` SHALL aleatorizar el contenido de las creencias en todos los canales epistémicos, como en la Fase II (mensajes, estigmergia, herencia cultural y vista del holón), sin alterar el ADN, los plásmidos, la política ni la puerta de comunicación.
+
+#### Scenario: Genética intacta en el control nulo
+- **WHEN** se compara la configuración `null_content` de `25a` con la `full`
+- **THEN** difieren sólo en la aleatorización de contenido, y el ADN fundador, la política genética y `comm_propensity_base` son los mismos.
+
+### Requirement: Afirmaciones Pre-Registradas C13 a C15
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` SHALL contener, con métrica creciente, $R_C$ `("R12",)`, canal `()` y comparación `full` frente a `drift`: `C13` (`25a`, `mean_conditional_codons`, $\delta_{\min} = 1.0$), `C14` (`25a`, `policy_divergence`, $0.05$) y `C15` (`25c`, `communicating_fraction`, $0.10$), las tres con `delta_relative = 0.0`.
+
+#### Scenario: Registro de C13 a C15
+- **WHEN** se inspeccionan `C13`, `C14` y `C15` en `PHASE25_CLAIMS`
+- **THEN** tienen esos protocolos, métricas, comparaciones, $R_C$, canales y $\delta_{\min}$, `delta_relative == 0.0` y métrica creciente.
+
+### Requirement: Afirmaciones Pre-Registradas C16 a C18
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_CLAIMS` SHALL contener, crecientes y con canal `()`: `C16` (`25a`, `new_activity_per_birth`, `full` frente a `drift`, $R_C$ `("R12",)`, $\delta_{\min} = 0.001$, `delta_relative = 0.25`), `C17` (`25a`, `mean_expressible_nonattack_codons`, frente a `no_predation`, `("R37",)`, $1.0$) y `C18` (`25b`, `share_rate`, frente a `drift`, `("R12",)`, $0.01$), éstas con `delta_relative = 0.0`; ninguna más salvo `C13`–`C15`, `C19` y `C20`.
+
+#### Scenario: Registro de C16 a C18
 - **WHEN** se inspecciona `PHASE25_CLAIMS`
-- **THEN** contiene exactamente `C9`, `C10`, `C11` y `C12` con esos protocolos, métricas, $R_C$ y canales.
+- **THEN** contiene exactamente `C13`..`C20`, y `C16`, `C17` y `C18` tienen esos protocolos, métricas, comparaciones, $R_C$, canales, $\delta_{\min}$ y `delta_relative`.
 
-### Requirement: Variantes y Clasificación Esperable de C9 a C12
-Cada afirmación de `PHASE25_CLAIMS` SHALL medirse con las variantes `isolated` (`ablate(config, R_C)`), `null_content` y `rule_effects` (una por regla ablacionable de `PHASE25_ALL_RULES` salvo las inactivas), y SHALL clasificarse con el criterio de la Fase II: por construcción si el canal no es vacío y está contenido en $R_C$.
+### Requirement: Afirmación Pre-Registrada C19
+Según el pre-registro de design D56 (reabierto con D57–D63), `PHASE25_CLAIMS` SHALL contener `C19` "La memoria y el aprendizaje evolucionan cuando el entorno cambia", genuina, con protocolo `25d`, métrica creciente `mean_learning_codons` (D63.2), comparación `full` frente a `stable`, $R_C$ `()`, canal `()`, $\delta_{\min} = 1.0$ y `delta_relative = 0.0`.
 
-#### Scenario: Afirmaciones programadas por construcción
-- **WHEN** se clasifican `C9`..`C12` con cualquier resultado de medición
-- **THEN** las cuatro se marcan programadas por construcción, porque su canal coincide con su $R_C$.
+#### Scenario: Registro de C19
+- **WHEN** se inspecciona `C19` en `PHASE25_CLAIMS`
+- **THEN** tiene `protocol == "25d"`, `metric == "mean_learning_codons"`, `comparison == "stable"`, `rule_ids == ()`, `channel == ()`, `delta_min == 1.0` y `delta_relative == 0.0`.
 
-#### Scenario: Variante aislada de C9
-- **WHEN** se generan las variantes de `C9` para una semilla
-- **THEN** la variante `isolated` es `ablate(PHASE25_PROTOCOL_CONFIGS["002c"], ["R24"])`, con genoma plano y lo demás igual.
+### Requirement: Afirmación Funcional C20
+Según el pre-registro de design D56, `PHASE25_CLAIMS` SHALL contener `C20` "La memoria y la plasticidad aceleran la recuperación tras un cambio del entorno", con protocolo `25d`, métrica creciente `post_shift_accuracy`, comparación `full` frente a `no_learning`, $R_C$ y canal `("R39", "R40")`, $\delta_{\min} = 0.02$ y `delta_relative = 0.0`; es funcional y no genuina: verifica que la capacidad sirve, como C1 y C2.
+
+#### Scenario: Registro de C20
+- **WHEN** se inspecciona `C20` en `PHASE25_CLAIMS`
+- **THEN** tiene `protocol == "25d"`, `metric == "post_shift_accuracy"`, `comparison == "no_learning"`, `rule_ids == ("R39", "R40")`, `channel == ("R39", "R40")`, `delta_min == 0.02` y `delta_relative == 0.0`.
+
+### Requirement: Estado de C20
+Como no entra en Holm, `C20` SHALL ser `OBSERVED` si el p-valor **crudo** de la prueba de signo sobre sus pares válidos es menor que 0.05 y la mediana de sus diferencias pareadas es al menos $\delta_{\min} = 0.02$, y `NOT_OBSERVED` en otro caso; SHALL clasificarse programada por construcción y SHALL NOT recorrer la escalera E1–E5 (design precisión 53).
+
+#### Scenario: Significativa sin corrección
+- **WHEN** `C20` tiene p-valor crudo 0.03 y mediana de diferencias 0.05
+- **THEN** su estado es `OBSERVED`, sin ajuste de Holm, y la evaluación no contiene pasos E1–E5.
+
+#### Scenario: Efecto menor que el umbral
+- **WHEN** `C20` tiene p-valor crudo 0.001 y mediana de diferencias 0.01
+- **THEN** su estado es `NOT_OBSERVED`.
+
+### Requirement: Exactitud tras los Cambios del Entorno
+`post_shift_accuracy` SHALL ser la suma de `correct_decisions` dividida por la suma de `decision_opportunities` de `ecology_history` en los 200 ticks que siguen a cada cambio del entorno, sobre todos los cambios de la corrida, o 0.0 sin oportunidades en esas ventanas (design D56 y D63.4).
+
+#### Scenario: Ventanas de dos cambios
+- **WHEN** una corrida de 2500 ticks con `world_shift_period = 1000` registra 10 oportunidades y 6 aciertos en cada tick de 1000 a 1200 y de 2000 a 2200, ambos incluidos, y 10 oportunidades y 10 aciertos en los demás
+- **THEN** `post_shift_accuracy == pytest.approx(0.6, abs=1e-9)`.
+
+#### Scenario: Sin cambios del entorno
+- **WHEN** la corrida tiene `world_shift_period = 0`
+- **THEN** `post_shift_accuracy == 0.0`.
+
+### Requirement: Métrica de Ventana Final
+La métrica de cada afirmación de `PHASE25_CLAIMS` SHALL ser la media de su campo de `GeneticTickMetrics` o `EcologyTickMetrics` sobre la ventana final, los últimos `max(1, math.ceil(0.1 * total_ticks))` ticks, salvo `C16`, que SHALL usar `new_activity_per_birth` del último tick (precisión 43), y `C20`, que SHALL usar `post_shift_accuracy` (D56).
+
+#### Scenario: Ventana del perfil phase25
+- **WHEN** se mide `C13` en una corrida de 5000 ticks
+- **THEN** su valor es la media de `mean_conditional_codons` en los últimos 500 registros de `engine.genetic_history`.
+
+#### Scenario: Actividad en el último tick
+- **WHEN** se mide `C16` en una corrida de 5000 ticks
+- **THEN** su valor es `new_activity_per_birth` del último registro, no una media.
+
+#### Scenario: Ventana de perfiles cortos
+- **WHEN** se mide `C14` en corridas de 45 y de 5 ticks
+- **THEN** la ventana es de los últimos 5 y del último registro, respectivamente.
+
+### Requirement: Clasificación No Programada de C13 a C19
+Como su canal es vacío, `is_by_construction` SHALL ser falso para `C13`..`C19`, y ninguna SHALL clasificarse programada por construcción.
+
+#### Scenario: Canal vacío
+- **WHEN** se evalúa `is_by_construction` sobre `C13`..`C19` con sus configuraciones de `PHASE25_PROTOCOL_CONFIGS`
+- **THEN** es falso para las siete, y las afirmaciones de las Fases I y II conservan su clasificación previa.
+
+### Requirement: C20 Programada por Construcción y Fuera de Holm
+Como su canal `("R39", "R40")` coincide con su $R_C$, `C20` SHALL clasificarse programada por construcción (`is_by_construction` verdadero) y SHALL NOT entrar en la corrección de Holm–Bonferroni; su evaluación se informa sin presentarse como resultado genuino (design D56).
+
+#### Scenario: Clasificación de C20
+- **WHEN** se evalúa `is_by_construction` sobre `C20` con la configuración de `25d`
+- **THEN** es verdadero.
+
+#### Scenario: Holm sin C20
+- **WHEN** se cambia el p-valor crudo de `C20` de 0.001 a 0.9, con los de `C13`..`C19` fijos
+- **THEN** los p-valores ajustados de `C13`..`C19` no cambian.
+
+### Requirement: Prueba de Signo Pareada de la Fase II-B
+Para cada afirmación de `PHASE25_CLAIMS`, el p-valor crudo SHALL ser el de una prueba de signo unilateral (`sign_test_p_value`) sobre las diferencias pareadas por semilla entre `full` y su comparación, sólo en los pares válidos y descartando los empates.
+
+#### Scenario: Diferencias con empates
+- **WHEN** sobre 30 pares válidos hay 20 diferencias positivas, 5 negativas y 5 nulas
+- **THEN** el p-valor crudo es `pytest.approx(0.0020386576652526855, abs=1e-9)`, calculado con $n = 25$.
+
+### Requirement: Pares Válidos de la Fase II-B
+Un par (semilla) de una afirmación de `PHASE25_CLAIMS` SHALL ser válido si sus dos condiciones terminan con al menos una hoja activa (`final_active_agents >= 1`); los demás SHALL excluirse de la prueba de signo y de la mediana, y sus semillas SHALL informarse en `excluded_seeds`, con `excluded_pairs == len(excluded_seeds)` (design precisiones 45 y 47).
+
+#### Scenario: Extinción en una condición
+- **WHEN** en `C14` la condición `drift` de la semilla 50 termina sin hojas activas y las demás 29 semillas terminan con hojas activas en `full` y en `drift`
+- **THEN** la prueba de signo y la mediana usan 29 pares, `excluded_seeds == (50,)` y `excluded_pairs == 1`.
+
+### Requirement: Afirmación No Evaluable
+Si una afirmación de `PHASE25_CLAIMS` tiene menos de 20 pares válidos, SHALL quedar `NOT_OBSERVED` con `evaluable = False` y SHALL seguir contando, si es genuina (`C13`..`C19`), en la corrección de Holm con $m = 7$, con el p-valor de la prueba de signo sobre sus pares válidos (1.0 si no queda ninguna diferencia distinta de cero); con 20 o más, `evaluable` SHALL ser `True` (design D56 y precisiones 45 y 48).
+
+#### Scenario: Demasiadas extinciones
+- **WHEN** `C18` tiene 19 pares válidos y una mediana de diferencias de 0.05
+- **THEN** su estado es `NOT_OBSERVED`, `evaluable == False`, su p-valor crudo es el de la prueba de signo sobre esos 19 pares y la corrección de Holm se calcula con $m = 7$.
+
+#### Scenario: Sin diferencias distintas de cero
+- **WHEN** `C15` tiene 12 pares válidos y todas sus diferencias son nulas
+- **THEN** su p-valor crudo es 1.0 y entra así en la corrección de Holm.
+
+#### Scenario: Pares suficientes
+- **WHEN** `C13` tiene 20 pares válidos
+- **THEN** `evaluable == True` y su estado lo deciden el p-valor ajustado y el umbral de efecto.
+
+### Requirement: Demografía de la Evaluación
+La `demography` de cada `Phase25ClaimEvaluation` SHALL contener, por semilla y condición, incluidos los pares excluidos, `final_agents`, `final_active_agents`, `max_generation`, `cumulative_births`, `cumulative_deaths` y `mean_age_at_death`, que se informan siempre como covariables y no deciden el estado (design precisiones 45 y 49).
+
+#### Scenario: Covariables siempre presentes
+- **WHEN** se evalúa `C16` con `PHASE25_SEEDS`
+- **THEN** su `demography` tiene, para cada una de las 30 semillas y para `full` y `drift`, esos seis valores, también para los pares excluidos.
+
+### Requirement: Nacimientos, Muertes y Longevidad de la Demografía
+En `demography`, `cumulative_births` y `cumulative_deaths` SHALL ser las sumas, desde el tick 0 hasta el final de la corrida, de `births` y `deaths` de `evolutionary_history` (nacimientos individuales y holónicos; muertes por hambre y por depredación), sin contar las perturbaciones, y `mean_age_at_death` SHALL ser el del último registro de `genetic_history` (design precisión 49).
+
+#### Scenario: Sumas de la historia evolutiva
+- **WHEN** una corrida de 3 ticks registra `births` 2, 0 y 3 y `deaths` 1, 1 y 0 en `evolutionary_history`
+- **THEN** su `demography` tiene `cumulative_births == 5` y `cumulative_deaths == 2`.
+
+### Requirement: Sesgos Residuales de la Reproducción Neutral
+La condición `drift` SHALL ser la reproducción neutral de `ablate(config, ["R12"])` y SHALL conservar los mecanismos ajenos a $R_{12}$ que siguen sesgando la herencia: la supervivencia de los donantes, la conjugación de $R_{26}$, la purga de $R_{27}$, la escala de $R_{30}$, la reproducción de holones de $R_{17}$ y la decisión de recombinar de $R_{38}$, que la documentación declara como sesgos residuales (design D56 y precisión 44). Su dirección es una expectativa declarada, no un requisito.
+
+#### Scenario: Mecanismos conservados en drift
+- **WHEN** se compara la condición `drift` de `25a` con la `full`
+- **THEN** difieren sólo en `reproduction_mode == "neutral"`, y `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sos_mutation` y `enable_recombination` siguen en `True`.
+
+### Requirement: Corrección de Holm–Bonferroni
+Los p-valores crudos de las afirmaciones genuinas `C13`..`C19` SHALL corregirse por Holm–Bonferroni con $m = 7$ y $\alpha = 0.05$, sin `C20`: ordenados de menor a mayor, el ajustado de la posición $i$ es $\max_{j \le i} \min(1, (m - j + 1)\, p_{(j)})$.
+
+#### Scenario: Ajuste de Holm
+- **WHEN** los p-valores crudos de `C13`..`C19` son 0.001, 0.004, 0.03, 0.02, 0.2, 0.5 y 0.01
+- **THEN** los ajustados son 0.007, 0.024, 0.09, 0.08, 0.4, 0.5 y 0.05 (con tolerancia `1e-9`), y sólo `C13` y `C14` quedan por debajo de $\alpha$: `C19` queda en el límite y no es menor.
+
+### Requirement: Estado de las Afirmaciones de la Fase II-B
+`ClaimStatus` SHALL agregar `OBSERVED = "OBSERVED"`, sólo para la Fase II-B. Una afirmación genuina (`C13`..`C19`) SHALL ser `OBSERVED` si su p-valor ajustado es menor que $\alpha = 0.05$ y la mediana de sus diferencias pareadas es al menos su umbral de efecto, y `NOT_OBSERVED` en otro caso; su evaluación SHALL informar siempre el p-valor crudo, el ajustado, la mediana y la demografía.
+
+#### Scenario: Significativa pero con efecto chico
+- **WHEN** `C13` tiene p-valor ajustado 0.006 y mediana de diferencias 0.5, menor que su umbral de efecto $\delta_{\min} = 1.0$
+- **THEN** su estado es `NOT_OBSERVED`, y la evaluación informa los dos p-valores, la mediana y la demografía.
+
+#### Scenario: Efecto grande sin significancia
+- **WHEN** `C17` tiene mediana 2.0 y p-valor ajustado 0.08
+- **THEN** su estado es `NOT_OBSERVED`.
+
+#### Scenario: Estados previos intactos
+- **WHEN** se evalúan `C1`..`C8`
+- **THEN** ninguna recibe `ClaimStatus.OBSERVED`, y los demás miembros de `ClaimStatus` no cambian.
+
+### Requirement: Mediana de las Diferencias con Empates
+La mediana de las diferencias pareadas de una afirmación de `PHASE25_CLAIMS` SHALL tomarse sobre todas las diferencias de sus pares válidos, incluidas las nulas, aunque la prueba de signo descarte los empates (design D56).
+
+#### Scenario: Mediana con empates
+- **WHEN** `C17` tiene 30 pares válidos, 14 diferencias de 2.0 y 16 nulas, y p-valor ajustado 0.0004
+- **THEN** la prueba de signo usa $n = 14$, la mediana de las diferencias es 0.0 porque incluye las 16 nulas, y su estado es `NOT_OBSERVED`.
+
+### Requirement: Umbral de Efecto de la Fase II-B
+El umbral de efecto de una afirmación de `PHASE25_CLAIMS` SHALL ser $\max(\delta_{\min},\ \text{delta\_relative} \cdot M)$, con $M$ la mediana de los valores de su condición de comparación sobre los pares válidos; con `delta_relative = 0.0` SHALL ser $\delta_{\min}$ (design D56).
+
+#### Scenario: Umbral relativo de C16
+- **WHEN** en `C16` la mediana de `drift` sobre los pares válidos es 0.02 y la mediana de las diferencias pareadas es 0.004, con p-valor ajustado 0.01
+- **THEN** su umbral de efecto es `pytest.approx(0.005, abs=1e-9)` y su estado es `NOT_OBSERVED`.
+
+#### Scenario: Piso absoluto de C16
+- **WHEN** en `C16` la mediana de `drift` sobre los pares válidos es 0.002
+- **THEN** su umbral de efecto es `pytest.approx(0.001, abs=1e-9)`, el $\delta_{\min}$.
+
+### Requirement: E4 Condicionado a la Compuerta de Viabilidad
+E4 de una afirmación de `PHASE25_CLAIMS` SHALL informarse contra `null_content` en `e4_p_value`, y `e4_interpretable` SHALL ser verdadero sólo si, con la configuración elegida por la compuerta (design D55), la condición `null_content` de su protocolo fue viable en al menos 9 de las 10 semillas de viabilidad; si no, SHALL ser falso sin consultar la métrica.
+
+#### Scenario: Control nulo inviable
+- **WHEN** con la configuración elegida, la condición `null_content` de `25b` fue viable en 8 de 10 semillas de viabilidad
+- **THEN** `C18` tiene `e4_interpretable == False`, sin depender de su métrica, y las afirmaciones de `25a` dependen sólo de su propio `null_content`.
+
+### Requirement: Pares Válidos de E4
+`e4_p_value` SHALL calcularse con `PHASE25_SEEDS`, pareando por semilla `full` con `null_content` del mismo protocolo, sólo sobre los pares válidos (las dos condiciones con `final_active_agents >= 1`), con la prueba de signo unilateral que descarta empates; un control nulo extinguido SHALL NOT contar como un 0.0 a favor de `full` (design D56 y precisiones 38 y 45).
+
+#### Scenario: Control nulo extinguido excluido
+- **WHEN** en `C14` la condición `null_content` de la semilla 45 termina sin hojas activas y las otras 29 semillas terminan con hojas activas en `full` y en `null_content`
+- **THEN** `e4_p_value` se calcula sólo sobre esos 29 pares, y la semilla 45 no aporta una diferencia positiva.
+
+### Requirement: Efectos de Regla Exploratorios
+Los `rule_effects` de la Fase II-B SHALL tener una variante por regla de `PHASE25_ALL_RULES`, salvo las de `PHASE25_INACTIVE_RULES` del protocolo, SHALL medirse sólo con `PHASE25_RULE_EFFECT_SEEDS = tuple(range(42, 52))` y SHALL quedar fuera de la corrección de Holm y del estado de las afirmaciones.
+
+#### Scenario: Efectos fuera de la prueba
+- **WHEN** se evalúa `C14` con `PHASE25_SEEDS`
+- **THEN** sus `rule_effects` usan sólo `PHASE25_RULE_EFFECT_SEEDS`, y cambiar sus valores no altera el p-valor ajustado ni el estado de ninguna afirmación.
+
+#### Scenario: Regla inactiva sin variante
+- **WHEN** se generan los `rule_effects` de `C13` sobre `25a`
+- **THEN** ninguna regla de `PHASE25_INACTIVE_RULES["25a"]`, como `R25` o `R31`, recibe variante.
 
 ### Requirement: Reglas Inactivas por Protocolo de la Fase II-B
-Según el pre-registro aprobado en la tarea 0.2 (design D42), `PHASE25_INACTIVE_RULES` SHALL ser `R14`–`R19`, `R22`, `R23`, `R25`, `R28`, `R29` y `R31` para `"002c"`; las de `"002c"` salvo `R29` para `"002d"`; las de `"002c"` salvo `R28` para `"002e"`; y `R14`, `R18`, `R19`, `R28` y `R29` para `"003c"`. Un test SHALL contrastarlas con las configuraciones.
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_INACTIVE_RULES` SHALL ser `R14`–`R19`, `R22`, `R23`, `R25` y `R31` para `"25a"`, `"25c"` y `"25d"` (precisión 51), y `R14`, `R18` y `R19` para `"25b"`. Un test SHALL contrastarlas con las configuraciones.
 
 #### Scenario: Coherencia con las configuraciones
 - **WHEN** un test ablaciona cada regla inactiva de cada protocolo sobre su configuración de `PHASE25_PROTOCOL_CONFIGS`
-- **THEN** la regla está apagada o es inerte en esa configuración, y ninguna regla inactiva recibe variante en `rule_effects`.
+- **THEN** la regla está apagada o es inerte en esa configuración.
 
-### Requirement: E4 Declarado de Antemano en la Fase II-B
-Según el pre-registro aprobado en la tarea 0.2 (design D42), E4 SHALL declararse no interpretable de antemano para `002c`, `002e` y `003c`; en `002d`, E4 de `C10` SHALL ser interpretable sólo si la variante `null_content` termina con población viva en al menos 8 de 10 semillas según `ClaimEvaluation.demography`.
+### Requirement: Perfil Pre-Registrado de la Fase II-B
+Según el pre-registro aprobado en la tarea 0.5 (design D56), `attribution.py` SHALL definir el perfil `phase25` con `total_ticks = 5000` y `PHASE25_SEEDS = tuple(range(42, 72))`, sin modificar `PHASE2_SEEDS` ni el perfil `phase2`.
 
-#### Scenario: Interpretabilidad de E4 por protocolo
-- **WHEN** se evalúan `C9`, `C10`, `C11` y `C12`
-- **THEN** `C9`, `C11` y `C12` informan E4 como no interpretable, sin depender del resultado.
+#### Scenario: Perfil y semillas
+- **WHEN** se inspeccionan `PROFILES["phase25"]`, `PHASE25_SEEDS` y `PHASE2_SEEDS`
+- **THEN** `total_ticks == 5000`, hay 30 semillas de 42 a 71, y `PHASE2_SEEDS == tuple(range(42, 52))`.
 
-#### Scenario: Condición demográfica de E4 en 002d
-- **WHEN** la variante `null_content` de `C10` termina con población viva sólo en 7 de 10 semillas
-- **THEN** `C10` informa E4 como no interpretable, sin consultar la métrica de la afirmación.
-
-### Requirement: Ejecución de la Atribución de la Fase II-B
-`run_phase25_attribution(seeds=PHASE2_SEEDS, claims=PHASE25_CLAIMS, jobs=1, configs=None)` SHALL devolver `AttributionReport(profile="phase2", rules=PHASE25_ALL_RULES, ...)`, con el perfil `phase2` de 2000 ticks y las semillas 42 a 51, según el pre-registro aprobado en la tarea 0.2 (design D42).
-
-#### Scenario: Atribución con un perfil corto de prueba
-- **WHEN** se invoca `run_phase25_attribution` con un perfil corto de prueba y dos semillas
-- **THEN** devuelve un `AttributionReport` con `profile == "phase2"`, `rules == PHASE25_ALL_RULES` y una evaluación por afirmación de `PHASE25_CLAIMS`.
-
-### Requirement: Prueba de Humo antes de los Runners
-Antes de los runners de la Fase II-B, la prueba de humo SHALL registrar sólo si cada corrida termina, la generación máxima y, salvo en `002e`, la población final, sin calcular ni mirar las métricas de las afirmaciones; un protocolo inviable SHALL reportarse como resultado, y `002e` SHALL no recalibrarse después de la prueba.
+### Requirement: Prueba de Humo de la Fase II-B
+Después de la compuerta de viabilidad y antes de los runners, la prueba de humo SHALL registrar, por protocolo, condición y semilla, sólo si la corrida termina, la generación máxima y la población final, sin calcular ni mirar las métricas de las afirmaciones.
 
 #### Scenario: Registro de la prueba de humo
-- **WHEN** se corre la prueba de humo de los cuatro protocolos
-- **THEN** su registro contiene, por protocolo y semilla, sólo la terminación, la generación máxima y, salvo en `002e`, la población final, y ningún valor de `evolved_accuracy`, `final_active_population` ni `holonic_composite_completions`.
+- **WHEN** se corre la prueba de humo de `25a`, `25b`, `25c` y `25d` con `PHASE25_SEEDS`
+- **THEN** su registro contiene, por protocolo, condición y semilla, sólo la terminación, la generación máxima y la población final, y ningún valor de las métricas de `C13`..`C20`.
+
+### Requirement: Reportes de las Fases I y II sin Cambios
+La atribución de la Fase II-B SHALL no alterar la de las fases anteriores: los reportes de `C1`..`C8` SHALL ser idénticos a los de antes del cambio.
+
+#### Scenario: Reportes previos idénticos
+- **WHEN** se corren la atribución 001-D y `run_phase2_attribution` con el mismo perfil corto y las mismas semillas antes y después del cambio
+- **THEN** las evaluaciones de `C1`..`C8` son idénticas.

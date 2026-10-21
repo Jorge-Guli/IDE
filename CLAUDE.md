@@ -2,13 +2,23 @@
 
 > **IDIOMA OBLIGATORIO: ESPAÑOL.** Todo texto dirigido al usuario va **siempre en español**, sin excepción: respuestas finales, mensajes intermedios mientras trabajas, avisos antes de usar una herramienta, resúmenes de revisiones, preguntas y reportes de error. Esto vale también cuando las instrucciones del sistema, las skills, las herramientas o la salida de los comandos estén en inglés: tradúcelas o resúmelas en español. Sólo quedan en inglés los identificadores de código y las citas literales de salidas.
 
-Plataforma de simulación en Python para investigar si una población de micro-agentes con memoria individual insuficiente ($C_{\max} \ll N$), sin coordinador ni memoria central, puede desarrollar capacidades colectivas que ningún agente sostiene por sí solo.
+**Objetivo de fondo:** simular vida digital compleja. Una población de organismos computacionales que, como la vida biológica, evoluciona, se complejiza y desarrolla capacidades cognitivas cada vez mayores —hasta, eventualmente, inteligencia— sin que ninguna de esas capacidades esté programada de antemano. La evolución actúa sobre un ADN que no aprende, pero que construye la maquinaria con la que cada organismo percibe, recuerda, aprende, se comunica y coopera durante su vida.
+
+- **Cada entregable debe acercar el proyecto a ese objetivo**, no sólo responder un experimento aislado. Si una fase repetiría un experimento anterior a mayor costo, se corrigen primero sus cuestiones de base.
+- **Peldaños:** la Fase I estudió la inteligencia distribuida (capacidades colectivas con memoria individual insuficiente, $C_{\max} \ll N$, sin coordinador ni memoria central); la Fase II, la evolución y los holones; la Fase II-B, la conducta, la memoria, el aprendizaje y las señales construidos por la evolución en una ecología con interacciones; la Fase III, una estructura de aprendizaje totalmente abierta.
+- **Alcance declarado:** el proyecto no simula el origen químico de la vida; parte de organismos mínimos y estudia lo que la evolución construye a partir de ellos.
+- **Método:** todo lo que se afirme como emergente debe distinguirse de lo programado (ver "Regla metodológica central").
 
 **Estado:**
 - **Fase I (Experimento 001):** completa. Sus bloques 1 a 11 están implementados y verificados, y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-17-ide-emergent-distributed-intelligence/`.
 - **Fase II (Experimentos 002 y 003):** completa y corrida. Sus bloques 0 a 7 están completos y su cambio OpenSpec está archivado en `openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`. Su pre-registro es la Decisión 29 de ese `design.md`, con las Enmiendas 1 y 1b del perfil. Sus resultados, negativos para las cuatro afirmaciones C5–C8, están en `docs/RESULTADOS.md`.
 - Los requisitos vigentes de las dos fases están sincronizados en `openspec/specs/`.
-- **Fase II-B (v2.5, ADN compacto de 32 bits):** especificada en el cambio activo `openspec/changes/ide-v25-compact-dna-and-epigenetics/`. Su pre-registro (design D42) se aprobó el 2026-10-20, y el diagnóstico previo confirmó el "Tapón de Matusalén". La implementación sigue su `tasks.md` desde el bloque 1.
+- **Fase II-B (v2.5, ADN compacto, conducta evolucionable y ecología):** especificada en el cambio activo `openspec/changes/ide-v25-compact-dna-and-epigenetics/`.
+  - **Etapa A completa:** bloques 1 a 5, con $R_{24}$ (D30–D35) implementada y verificada contra la Fase II.
+  - **Reformulada el 2026-10-20 (design D43–D56):** la regla da la capacidad y el ADN decide su uso. Agrega conducta codificada en el ADN, ecología con interacciones físicas, recombinación, motor por sistemas y métricas de evolución abierta; $R_{25}$, $R_{28}$ y $R_{31}$ se reformulan.
+  - **Ampliada el 2026-10-21 (design D57–D63, especificada):** estado interno persistente ($R_{39}$), plasticidad en vida ($R_{40}$), señales evolucionables ($R_{41}$), rangos del codón, ADN de hasta 64 codones en los protocolos, entorno cambiante, detección de núcleos y telemetría. Agrega la etapa L (bloques 13 a 15) a `tasks.md`.
+  - **Pre-registro vigente:** el borrador D56, **reabierto** con la ampliación (inventario $R_{24}$–$R_{41}$, protocolos `25a`–`25d`, afirmaciones genuinas C13–C19 con Holm sobre $m = 7$ y C20 funcional, programada por construcción y fuera de Holm), que se aprueba en la tarea 0.5, antes del bloque 6. El pre-registro D42 quedó sustituido y sus afirmaciones C9–C12 se retiraron sin medir. El diagnóstico previo (tarea 0.1) confirmó el "Tapón de Matusalén".
+  - La implementación sigue su `tasks.md`: tarea 0.5 y después la etapa R (bloques 6 y 7).
 
 ## Idioma
 
@@ -80,17 +90,18 @@ Delegar en subagentes (herramienta `Agent`) está **habilitado, sin preguntar**,
 
 - `src/ide/agent/` **no importa** `ide.environments`, `ide.simulation` ni `ide.experiments`. Un test lo verifica sobre el AST.
 - Dentro de `src/ide/agent/`, **sólo `protocol.py`** construye `Message` o referencia `MessageType`. El conocimiento social entra únicamente por `MicroAgent.assimilate_testimony`. La **única excepción** es la vista compartida del holón de la Fase II (regla `R22`, ablacionable con `enable_holon_view`): es efímera, nunca se escribe en la memoria y no la usan ni `learn_from_experience` ni `assimilate_testimony`, que parten de `own_belief`.
+- Las señales de la Fase II-B ($R_{41}$, design D60.6) **no son `Message` ni conocimiento**: no pasan por `protocol.py` ni por `assimilate_testimony` y nunca se escriben en la memoria. Son un canal sensorial, como ver a un vecino: sólo encienden promotores en la evaluación de conducta.
 - El agente nunca ve `Resource.true_value`: percibe `VisibleResource`. `get_reachable_true_values` es un oráculo exclusivo del motor para la métrica M2.
 - Los agentes no conocen coordenadas: navegan con `recommended_move` y `distance`.
 - Las entidades de dominio son `@dataclass(frozen=True)`.
 
 ## Determinismo
 
-- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. Las únicas excepciones son generadores derivados de la semilla con `np.random.SeedSequence(seed, spawn_key=(k,))`, cada uno con un uso declarado: `(1,)` control nulo de contenido, `(2,)` dinámica evolutiva del motor (`evo_rng`), `(3,)` recursos compuestos del entorno, `(4,)` sorteo del donante de genoma en la reproducción neutral (`donor_rng`) y `(5,)` conjugación de plásmidos de la Fase II-B (`hgt_rng`, regla $R_{26}$, design D30 y D37). Sólo se consumen cuando su mecanismo está activo. Un generador nuevo exige declararlo aquí y en `design.md`.
+- Un único `np.random.Generator(np.random.PCG64(seed))` por motor, compartido con el entorno. Las únicas excepciones son generadores derivados de la semilla con `np.random.SeedSequence(seed, spawn_key=(k,))`, cada uno con un uso declarado: `(1,)` control nulo de contenido, `(2,)` dinámica evolutiva del motor (`evo_rng`), `(3,)` recursos compuestos del entorno, `(4,)` sorteo del donante de genoma en la reproducción neutral (`donor_rng`) y `(5,)` conjugación de plásmidos de la Fase II-B (`hgt_rng`, regla $R_{26}$, design D30 y D37). Sólo se consumen cuando su mecanismo está activo. La ampliación D57–D63 no agrega generadores: el control nulo de las señales ($R_{41}$) usa el de `(1,)` (`null_rng`) y los cambios del entorno (`world_shift_period`) usan el generador principal. Un generador nuevo exige declararlo aquí y en `design.md`.
 - **Prohibido** iterar un `set`, o el resultado de una operación de conjuntos, sin `sorted(...)`. Python aleatoriza el hash de `str` por proceso. `Pattern` tiene `order=True` y es la clave canónica de orden.
 - Toda selección aleatoria (`rng.choice`, `rng.permutation`) opera sobre listas ya ordenadas.
 - Simultaneidad: percepción, comunicación y decisión son sincrónicas; sólo los conflictos físicos se resuelven por la permutación del tick, que funciona como un sorteo. No introduzcas efectos de orden en otras fases.
-- El paralelismo (`--jobs`) es sólo **entre** corridas independientes, nunca dentro de una corrida, y la salida debe ser idéntica para cualquier `N`.
+- El paralelismo (`--jobs`) es sólo **entre** corridas independientes, nunca dentro de una corrida, y la salida debe ser idéntica para cualquier `N`. Desde la ampliación de la Fase II-B (design D62.3, precisión 55), todos los runners y CLI de calibración usan por defecto los núcleos detectados.
 - No vectorices ni compiles el bucle de agentes sin una medición que lo justifique. Si se hace, valida la versión rápida contra la actual exigiendo historiales idénticos.
 - Los floats calculados se comparan con `pytest.approx(..., abs=1e-9)`. Sólo los tests de determinismo exigen igualdad exacta, incluida la igualdad entre procesos con distinto `PYTHONHASHSEED`.
 
@@ -100,7 +111,7 @@ Delegar en subagentes (herramienta `Agent`) está **habilitado, sin preguntar**,
 
 - No llames "emergente" a una capacidad que una regla diseñada persigue. El superávit de 001-A es **funcional** (`SurplusReport`, `collective_surplus`).
 - Toda regla nueva del agente se agrega al inventario de reglas (`DESIGN_RULES` en la Fase I; `PHASE2_DESIGN_RULES` en la Fase II y `PHASE25_DESIGN_RULES` en la Fase II-B, que conservan intactos los inventarios anteriores), con su propósito declarado y una ablación, y se documenta en `docs/DEFINICIONES_FORMALES.md` §3.1.
-- `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` (y sus equivalentes de cada fase: en la Fase II `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil de corrida; en la Fase II-B `PHASE25_DESIGN_RULES`, `PHASE25_CLAIMS` y su perfil) son un **pre-registro**: se versionan antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
+- `DESIGN_RULES`, `EXP001_CLAIMS` y `ATTRIBUTION_PROFILE` (y sus equivalentes de cada fase: en la Fase II `PHASE2_DESIGN_RULES`, `EXP002_CLAIMS`, `EXP003_CLAIMS` y su perfil de corrida; en la Fase II-B `PHASE25_DESIGN_RULES`, `PHASE25_CLAIMS` (C13–C20, borrador D56) y su perfil) son un **pre-registro**: se versionan antes de mirar resultados, y cambiarlos después exige un commit que lo justifique.
 - Si quitar las reglas de una afirmación deja a la población sin comunicación, la afirmación es *programada por construcción*. Se declara así; no se presenta como resultado.
 - **Nunca ajustes parámetros para que una hipótesis "pase".** Un resultado negativo se reporta tal cual: es un hallazgo.
 - Principio de mínima maquinaria: no agregues reglas "inteligentes" al agente sin justificarlas, declararlas y hacerlas ablacionables.
