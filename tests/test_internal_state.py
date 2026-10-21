@@ -293,30 +293,51 @@ def set_state(agent: MicroAgent, value: int) -> None:
 def test_escribir_y_borrar_el_mismo_bit() -> None:
     agent = agent_with(encode_codon(0x00, SET_STATE, 0, 1), encode_codon(0x00, CLEAR_STATE, 0, 1))
     set_state(agent, 0b10000000)
-    evaluation = agent.evaluate_behavior(signals())
+    evaluation = agent.evaluate_for_decision(signals(), 3)
     assert evaluation.set_mask == 0b10 and evaluation.clear_mask == 0b10
-    agent.commit_internal_state()
+    agent.apply_internal_state(3)
     assert agent.internal_state == 0b10000000
 
 
 def test_estado_siguiente_conserva_los_bits_sin_cambios() -> None:
     agent = agent_with(encode_codon(0x00, SET_STATE, 0, 0), encode_codon(0x00, CLEAR_STATE, 0, 3))
     set_state(agent, 0b10001000)
-    agent.evaluate_behavior(signals())
+    agent.evaluate_for_decision(signals(), 3)
     assert agent.internal_state == 0b10001000  # la evaluación no aplica el estado
-    agent.commit_internal_state()
+    agent.apply_internal_state(3)
     assert agent.internal_state == 0b10000001
 
 
-def test_aplicar_sin_evaluacion_no_cambia_el_estado() -> None:
+def test_aplicar_sin_evaluacion_del_tick_no_cambia_el_estado() -> None:
     agent = agent_with(encode_codon(0x00, SET_STATE, 0, 0))
-    agent.commit_internal_state()
+    agent.apply_internal_state(0)
     assert agent.internal_state == 0
-    agent.evaluate_behavior(signals())
-    agent.commit_internal_state()
+    agent.evaluate_behavior(signals())  # consulta pura: no registra ninguna decisión
+    agent.apply_internal_state(0)
+    assert agent.internal_state == 0 and agent.decision_evaluation(0) is None
+    agent.evaluate_for_decision(signals(), 4)
+    agent.apply_internal_state(5)  # la decisión registrada es de otro tick
+    assert agent.internal_state == 0
+    agent.apply_internal_state(4)
+    agent.apply_internal_state(4)  # aplicarlo dos veces da lo mismo que una
     assert agent.internal_state == 1
-    set_state(agent, 0)
-    agent.commit_internal_state()  # la evaluación ya se aplicó: no se aplica dos veces
+
+
+def test_la_consulta_no_tiene_efectos_laterales() -> None:
+    agent = agent_with(encode_codon(0x00, SET_STATE, 0, 2))
+    recorded = agent.evaluate_for_decision(signals(), 7)
+    queried = agent.evaluate_behavior(signals(attacked=True))
+    assert queried.set_mask == recorded.set_mask == 0b100
+    assert agent.decision_evaluation(7) is recorded
+    assert agent.internal_state == 0
+
+
+def test_set_dna_descarta_la_decision_registrada() -> None:
+    agent = agent_with(encode_codon(0x00, SET_STATE, 0, 2))
+    agent.evaluate_for_decision(signals(), 7)
+    agent.set_dna(CompactDNA(chromosome=FOUNDER_TRAITS))
+    assert agent.decision_evaluation(7) is None
+    agent.apply_internal_state(7)
     assert agent.internal_state == 0
 
 
@@ -332,8 +353,8 @@ def test_estado_siguiente_por_propiedades(start: int, specs: list[tuple[int, int
         *(encode_codon(0x00, target, mode, channel) for target, mode, channel in specs)
     )
     set_state(agent, start)
-    evaluation = agent.evaluate_behavior(signals())
-    agent.commit_internal_state()
+    evaluation = agent.evaluate_for_decision(signals(), 1)
+    agent.apply_internal_state(1)
     expected = (start | evaluation.set_mask) & ~evaluation.clear_mask & 0xFF
     assert agent.internal_state == expected
     assert 0 <= agent.internal_state <= 0xFF
@@ -444,8 +465,9 @@ def test_la_politica_decide_con_el_estado_anterior() -> None:
     agent = agent_with(encode_codon(0x30, WANDER, 0, 0, 64), encode_codon(0x00, SET_STATE, 0, 0))
     g = np.random.Generator(np.random.PCG64(3))
     assert agent.decide_action(observation(), 0, g) == IDLE
-    assert agent.last_evaluation is not None and agent.last_evaluation.set_mask == 1
-    agent.commit_internal_state()
+    decision = agent.decision_evaluation(0)
+    assert decision is not None and decision.set_mask == 1
+    agent.apply_internal_state(0)
     assert agent.decide_action(observation(), 1, g).action_type is ActionType.MOVE
 
 
@@ -484,7 +506,8 @@ def test_cache_de_la_evaluacion_igual_a_la_directa(steps: list[tuple[Any, ...]])
         )
         assert agent.evaluate_behavior(sig) == expected
         assert agent.evaluate_behavior(sig) == expected  # segunda lectura, desde el caché
-        assert agent.last_evaluation == expected
+        assert agent.evaluate_for_decision(sig, 0) == expected
+        assert agent.decision_evaluation(0) == expected
 
 
 # --- (e) ciclo de vida de internal_state y last_events (D58.1, D58.5) --------------------------
@@ -494,7 +517,7 @@ def test_estado_y_eventos_del_fundador() -> None:
     agent = MicroAgent(1, R39, policy=GeneticPolicy())
     assert agent.internal_state == 0
     assert agent.last_events == EventSignals()
-    assert agent.last_evaluation is None
+    assert agent.decision_evaluation(0) is None
 
 
 def test_estado_no_heredado() -> None:
@@ -505,7 +528,7 @@ def test_estado_no_heredado() -> None:
     child = parent.create_offspring(9, 4, np.random.Generator(np.random.PCG64(0)))
     assert child.internal_state == 0
     assert child.last_events == EventSignals()
-    assert child.last_evaluation is None
+    assert child.decision_evaluation(4) is None
     assert parent.internal_state == 0b101
     assert parent.last_events == EventSignals(ate=True)
 
@@ -647,7 +670,7 @@ class Recorder:
 
     def on_decisions(self, engine: SimulationEngine, frame: TickFrame) -> None:
         agent = engine.agents[self.aid]
-        self.at_decision.append((agent.last_evaluation, agent.internal_state))
+        self.at_decision.append((agent.decision_evaluation(frame.tick), agent.internal_state))
 
     def on_tick_end(self, engine: SimulationEngine, frame: TickFrame) -> None:
         self.at_end.append(engine.agents[self.aid].internal_state)
@@ -679,12 +702,28 @@ def test_el_agente_que_no_decide_conserva_su_estado(monkeypatch: pytest.MonkeyPa
     engine = SimulationEngine(small())
     agent = engine.agents[2]
     agent.set_dna(CompactDNA(chromosome=(*FOUNDER_TRAITS, encode_codon(0x00, SET_STATE, 0, 4))))
-    agent.evaluate_behavior(signals())  # evaluación de un tick anterior ya aplicada
-    agent.commit_internal_state()
+    engine.step()  # decide y escribe el bit 4 en el tick 0
+    assert agent.internal_state == 0b10000
     set_state(agent, 0b1)
     monkeypatch.setattr(agent, "decide_action", lambda *_args: IDLE)
-    engine.step()
+    engine.step()  # en el tick 1 no decide: la evaluación registrada es la del tick 0
     assert agent.internal_state == 0b1
+
+
+def test_la_endospora_conserva_su_estado() -> None:
+    """Hasta el bloque 17 la endospora decide (precisión 82), pero su estado no cambia (D58.1)."""
+    engine = SimulationEngine(small())
+    clearing = CompactDNA(chromosome=(*FOUNDER_TRAITS, encode_codon(0x00, CLEAR_STATE, 0, 0)))
+    for aid in (2, 3):
+        engine.agents[aid].set_dna(clearing)
+        set_state(engine.agents[aid], 0b1)
+    spore, active = engine.agents[2], engine.agents[3]
+    spore.set_endospore(True)
+    engine.step()
+    decision = spore.decision_evaluation(0)
+    assert decision is not None and decision.clear_mask == 0b1  # su ADN borraría el bit 0
+    assert spore.is_endospore and spore.internal_state == 0b1
+    assert active.internal_state == 0
 
 
 def test_sin_r39_el_estado_queda_en_cero() -> None:
@@ -703,10 +742,9 @@ def test_sin_r39_el_estado_queda_en_cero() -> None:
         )
     engine.run(5)
     assert all(agent.internal_state == 0 for agent in engine.agents.values())
-    assert all(
-        agent.last_evaluation is None or agent.last_evaluation.set_mask == 0
-        for agent in engine.agents.values()
-    )
+    for agent in engine.agents.values():
+        decision = agent.decision_evaluation(4)
+        assert decision is not None and decision.set_mask == 0
 
 
 def interacting(
@@ -784,6 +822,27 @@ def test_cesion_sin_efecto_no_es_un_evento(monkeypatch: pytest.MonkeyPatch) -> N
     engine.step()
     assert engine.agents[6].last_events == EventSignals()
     assert engine.agents[1].last_events == EventSignals()
+
+
+def test_cesion_sin_ganancia_no_es_un_evento(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = crowded_engine(small(share_efficiency=0.0))
+    set_energy(engine, 1, 2.0)
+    set_energy(engine, 6, 0.5)
+    act(monkeypatch, engine, {1: AgentAction(ActionType.SHARE, 6)})
+    spy_events: list[dict[str, int]] = []
+
+    class Spy:
+        def on_decisions(self, engine: SimulationEngine, frame: TickFrame) -> None:
+            pass
+
+        def on_tick_end(self, engine: SimulationEngine, frame: TickFrame) -> None:
+            spy_events.append(dict(frame.events))
+
+    engine.observers.append(Spy())
+    engine.step()
+    assert spy_events == [{"shares": 1}]  # la cesión transfirió, pero nadie ganó energía
+    assert engine.agents[6].last_events == EventSignals()
+    assert engine.agents[1].last_events == EventSignals(lost_energy=True)
 
 
 def test_compuesto_resuelto_con_exito_cuenta_como_comida(
@@ -868,7 +927,13 @@ def test_sin_r32_no_hay_eventos(monkeypatch: pytest.MonkeyPatch) -> None:
 # --- (f) inercia y aceptación de D46.5 con la ampliación (D57.1, D58.7) ------------------------
 
 
-def acceptance_history(protocol: str, genetic: bool, amplification: bool, ticks: int = 120) -> Any:
+def acceptance_history(
+    protocol: str,
+    genetic: bool,
+    amplification: bool,
+    ticks: int = 120,
+    extra: dict[str, Any] | None = None,
+) -> Any:
     config = replace(
         PHASE2_PROTOCOL_CONFIGS[protocol],
         enable_compact_dna=True,
@@ -879,6 +944,7 @@ def acceptance_history(protocol: str, genetic: bool, amplification: bool, ticks:
         enable_internal_state=amplification,
         enable_plasticity=amplification,
         enable_signals=amplification,
+        **(extra or {}),
     )
     engine = SimulationEngine(config)
     engine.run(ticks)
@@ -906,6 +972,14 @@ def test_aceptacion_del_fundador_con_la_ampliacion(protocol: str) -> None:
     assert len(amplified[0]) == 120
     assert amplified[7] > PHASE2_PROTOCOL_CONFIGS[protocol].num_agents  # hubo nacimientos
     assert amplified == handwritten
+
+
+@pytest.mark.parametrize("protocol", ["002a", "003a"])
+def test_aceptacion_del_fundador_con_interacciones_y_ampliacion(protocol: str) -> None:
+    """Con R36, R37 y la ampliación activas, el fundador no cede ni ataca: sigue igual (D46.5)."""
+    interactions = {"enable_energy_transfer": True, "enable_predation": True}
+    amplified = acceptance_history(protocol, True, True, extra=interactions)
+    assert amplified == acceptance_history(protocol, False, False)
 
 
 def test_ampliacion_sin_consumo_con_el_adn_fundador() -> None:
@@ -939,12 +1013,26 @@ def test_historiales_iguales_con_distinto_pythonhashseed() -> None:
             encode_codon(0x29, 0x0E, 0, 0),
             encode_codon(0x28, 0x0D, 0, 3),
             encode_codon(0x30, 0x46, 0, 0, 90),
-            encode_codon(0x33, 0x45, 0, 0, 120),
-            encode_codon(0x2B, 0x44, 0, 0, 100),
+            encode_codon(0x00, 0x45, 0, 0, 120),
+            encode_codon(0x00, 0x44, 0, 0, 110),
+            encode_codon(0x2B, 0x0D, 0, 5),
+            encode_codon(0x35, 0x46, 0, 0, 125),
         )
         for aid in sorted(engine.agents):
             agent = engine.agents[aid]
             agent.set_dna(CompactDNA(chromosome=agent.dna.chromosome + extra))
+        class Interactions:
+            predated = received = 0
+
+            def on_decisions(self, engine, frame):
+                pass
+
+            def on_tick_end(self, engine, frame):
+                self.predated += len(frame.predated)
+                self.received += len(frame.received)
+
+        spy = Interactions()
+        engine.observers.append(spy)
         engine.run(60)
         print([astuple(m) for m in engine.history])
         print([astuple(m) for m in engine.evolutionary_history])
@@ -953,6 +1041,7 @@ def test_historiales_iguales_con_distinto_pythonhashseed() -> None:
         print(engine.rng.bit_generator.state, engine.evo_rng.bit_generator.state)
         print(sum(1 for a in engine.agents.values() if a.internal_state))
         print(sum(1 for a in engine.agents.values() if a.last_events != type(a.last_events)()))
+        print(spy.predated, spy.received)
         """
     )
     outputs = []
@@ -972,8 +1061,11 @@ def test_historiales_iguales_con_distinto_pythonhashseed() -> None:
         outputs.append(done.stdout)
     assert outputs[0] == outputs[1]
     # La corrida usa el estado y los eventos de verdad: no es una igualdad trivial.
-    with_state, with_events = (int(line) for line in outputs[0].splitlines()[-2:])
+    lines = outputs[0].splitlines()
+    with_state, with_events = int(lines[-3]), int(lines[-2])
+    predated, received = (int(n) for n in lines[-1].split())
     assert with_state > 0 and with_events > 0
+    assert predated > 0 and received > 0  # hubo robos con botín y cesiones con ganancia
 
 
 def test_behavior_targets_en_el_orden_de_behavior() -> None:

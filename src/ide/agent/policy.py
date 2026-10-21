@@ -168,7 +168,8 @@ def sensory_signals(
 class GeneticPolicy:
     """Política codificada en el ADN del agente (R32, design D46.4).
 
-    Calcula las señales y la evaluación de conducta (`agent.evaluate_behavior`, D60.1, con el
+    Calcula las señales y la evaluación de conducta (`agent.evaluate_for_decision`, D60.1, que
+    la registra para el motor; con el
     caché del agente, D46.8, sobre su `last_context`, precisión 23, y su estado interno, D58.3),
     recorre las conductas con $d_B > 0$ en orden de $(-d_B, \text{posición})$ y
     devuelve la acción de la primera factible, o `IDLE` si ninguna lo es. La factibilidad se
@@ -193,7 +194,7 @@ class GeneticPolicy:
         social = _NO_SOCIAL if social is None else social
         survey = _survey(agent, obs)
         signals = _signals(survey, obs, social, agent.last_events)
-        drives = agent.evaluate_behavior(signals).drives
+        drives = agent.evaluate_for_decision(signals, tick).drives
         for _, slot in sorted((-drive, slot) for slot, drive in enumerate(drives) if drive > 0):
             action = _feasible_action(_BEHAVIORS[slot], agent, obs, social, survey, rng)
             if action is not None:

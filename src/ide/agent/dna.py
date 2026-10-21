@@ -15,7 +15,7 @@ from typing import NamedTuple
 
 import numpy as np
 
-from ide.config import FOUNDER_DNA_LENGTH, SimulationConfig
+from ide.config import FOUNDER_DNA_LENGTH, SimulationConfig, genetic_policy_active
 from ide.domain.extensions import integer_trait_bounds
 from ide.domain.types import (
     AgentGenome,
@@ -233,13 +233,10 @@ def _trait_bases(config: SimulationConfig) -> tuple[float, ...]:
 def internal_state_active(config: SimulationConfig) -> bool:
     """$R_{39}$ efectivamente activa: `enable_internal_state` con $R_{32}$ efectiva (D57.3).
 
-    $R_{32}$ efectiva es `enable_compact_dna` y `enable_genetic_policy` (precisión 31), la misma
-    condición que `genetic_policy_active` de `pipeline.py`, que este módulo no puede importar.
-    Sin ella, los destinos `0x0D`/`0x0E` y los promotores `0x30`-`0x37` son inertes (D58.7).
+    $R_{32}$ efectiva es `genetic_policy_active` de `ide.config` (precisión 31). Sin ella, los
+    destinos `0x0D`/`0x0E` y los promotores `0x30`-`0x37` son inertes (D58.7).
     """
-    return (
-        config.enable_compact_dna and config.enable_genetic_policy and config.enable_internal_state
-    )
+    return genetic_policy_active(config) and config.enable_internal_state
 
 
 def _bits(mask: int) -> tuple[bool, ...]:
@@ -247,18 +244,16 @@ def _bits(mask: int) -> tuple[bool, ...]:
     return tuple(bool(mask >> k & 1) for k in range(_STATE_BITS))
 
 
-def _behavior_promoters(
-    signals: SensorySignals, config: SimulationConfig, state: int
-) -> tuple[bool, ...]:
+def _behavior_promoters(signals: SensorySignals, state: int | None) -> tuple[bool, ...]:
     """Valores de los promotores `0x20`-`0x3F` en la evaluación de conducta, en orden.
 
     - `0x20`-`0x27`: los ocho campos sensoriales de `SensorySignals` (D46.2);
     - `0x28`-`0x2B`: los cuatro eventos del tick anterior (D58.5), también sin $R_{39}$ (D58.7);
     - `0x2C`-`0x2F`: reservados, siempre inactivos (D61);
-    - `0x30`-`0x37`: los bits de `state`, sólo con $R_{39}$ efectivamente activa (D58.4);
+    - `0x30`-`0x37`: los bits de `state`; `state=None` (sin $R_{39}$) los deja inactivos (D58.4);
     - `0x38`-`0x3F`: las señales percibidas ($R_{41}$), inactivas hasta el bloque 15.
     """
-    state_bits = _bits(state) if internal_state_active(config) else (False,) * _STATE_BITS
+    state_bits = (False,) * _STATE_BITS if state is None else _bits(state)
     return (
         signals.known_good,
         signals.unknown,
@@ -441,14 +436,16 @@ def evaluate_behavior(
     esos bloques los implementen.
     """
     del perceived, plastic_weights  # R41 y R40: bloques 15 y 14
+    stateful = internal_state_active(config)
     codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
-    active = _active_codons(codons, context, config, _behavior_promoters(signals, config, state))
+    promoters = _behavior_promoters(signals, state if stateful else None)
+    active = _active_codons(codons, context, config, promoters)
     acc = _accumulate(codons, active, _BEHAVIOR_SLOT)
     drives = tuple(
         acc.multiplier[b] * acc.repressor[b] * acc.additive[b] if acc.hits[b] else 0.0
         for b in range(_BEHAVIOR_COUNT)
     )
-    if internal_state_active(config):
+    if stateful:
         set_mask = _majority_mask(codons, active, _TARGET_SET_STATE)
         clear_mask = _majority_mask(codons, active, _TARGET_CLEAR_STATE)
     else:

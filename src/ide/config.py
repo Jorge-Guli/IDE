@@ -453,3 +453,14 @@ class SimulationConfig:
     def to_dict(self) -> dict[str, Any]:
         """Diccionario con todos los campos, serializable a JSON."""
         return asdict(self)
+
+
+def genetic_policy_active(config: SimulationConfig) -> bool:
+    """R32 efectivamente activa: con `enable_compact_dna` y `enable_genetic_policy` (prec. 31).
+
+    Es la única definición de la condición: la usan `dna.py` (R39, D57.3) y `pipeline.py`, y el
+    motor la guarda en `engine.genetic_policy_active`. Sin ADN, `enable_genetic_policy` es
+    inerte: no hay percepción social, la puerta de comunicación no actúa y la política es la
+    escrita a mano.
+    """
+    return config.enable_compact_dna and config.enable_genetic_policy

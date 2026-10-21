@@ -18,7 +18,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from ide.agent.dna import BEHAVIOR_TARGETS, encode_codon, evaluate_drives
+from ide.agent.dna import BEHAVIOR_TARGETS, encode_codon, evaluate_behavior, evaluate_drives
 from ide.agent.micro_agent import MicroAgent
 from ide.agent.policy import GeneticPolicy, HandwrittenPolicy, sensory_signals
 from ide.config import SimulationConfig
@@ -661,8 +661,10 @@ def test_cache_de_impulsos_igual_a_la_evaluacion_directa() -> None:
             agent.express(context, tick)
             for s in signals:
                 expected = evaluate_drives(dna, context, s, agent.base_config)
-                assert agent.behavior_drives(s) == expected
-                assert agent.behavior_drives(s) == expected  # segunda lectura, desde el caché
+                assert agent.evaluate_behavior(s).drives == expected
+                assert (
+                    agent.evaluate_behavior(s).drives == expected
+                )  # segunda lectura, desde el caché
 
 
 @given(
@@ -676,10 +678,10 @@ def test_cache_de_impulsos_por_propiedades(
 ) -> None:
     agent = genetic_agent({})
     agent.set_dna(_CONTEXT_DNA)
-    agent.behavior_drives(signals)  # puebla el caché con el contexto previo
+    agent.evaluate_behavior(signals)  # puebla el caché con el contexto previo
     context = EpigeneticContext(level, role, ratio)
     agent.express(context, 1)
-    assert agent.behavior_drives(signals) == evaluate_drives(
+    assert agent.evaluate_behavior(signals).drives == evaluate_drives(
         _CONTEXT_DNA, context, signals, agent.base_config
     )
 
@@ -835,30 +837,30 @@ def test_cache_de_impulsos_acotado_y_con_aciertos(monkeypatch: pytest.MonkeyPatc
 
     calls: list[SensorySignals] = []
 
-    def counting(dna: CompactDNA, context: Any, signals: SensorySignals, config: Any) -> Any:
+    def counting(dna: CompactDNA, context: Any, signals: SensorySignals, *args: Any) -> Any:
         calls.append(signals)
-        return evaluate_drives(dna, context, signals, config)
+        return evaluate_behavior(dna, context, signals, *args)
 
-    monkeypatch.setattr(micro_agent, "evaluate_drives", counting)
-    monkeypatch.setattr(micro_agent, "DRIVES_CACHE_LIMIT", 5)
+    monkeypatch.setattr(micro_agent, "evaluate_behavior", counting)
+    monkeypatch.setattr(micro_agent, "EVALUATION_CACHE_LIMIT", 5)
     agent = genetic_agent({})
     agent.set_dna(_CONTEXT_DNA)
     few = all_signals()[:4]
     for _ in range(3):  # cuatro claves bajo el tope: sólo la primera vuelta evalúa
         for s in few:
-            assert agent.behavior_drives(s) == evaluate_drives(
+            assert agent.evaluate_behavior(s).drives == evaluate_drives(
                 _CONTEXT_DNA, agent.last_context, s, agent.base_config
             )
     assert calls == few
     many = all_signals()[:40]
     for s in many:  # más claves que el tope: el caché nunca lo supera y los valores no cambian
-        assert agent.behavior_drives(s) == evaluate_drives(
+        assert agent.evaluate_behavior(s).drives == evaluate_drives(
             _CONTEXT_DNA, agent.last_context, s, agent.base_config
         )
-        assert len(agent._drives_cache) <= 5  # pyright: ignore[reportPrivateUsage]
+        assert len(agent._evaluation_cache) <= 5  # pyright: ignore[reportPrivateUsage]
 
 
 def test_tope_declarado_del_cache() -> None:
-    from ide.agent.micro_agent import DRIVES_CACHE_LIMIT
+    from ide.agent.micro_agent import EVALUATION_CACHE_LIMIT
 
-    assert DRIVES_CACHE_LIMIT == 512
+    assert EVALUATION_CACHE_LIMIT == 512

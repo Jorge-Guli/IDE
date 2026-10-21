@@ -25,7 +25,7 @@ import numpy as np
 
 from ide.agent.dna import internal_state_active
 from ide.agent.holon import CompositeAgent
-from ide.config import SimulationConfig
+from ide.config import SimulationConfig, genetic_policy_active
 from ide.domain.ports import EcologicalEnvironmentPort
 from ide.domain.types import (
     CARCASS_PATTERN,
@@ -77,7 +77,7 @@ class TickFrame:
     Después, los insumos de `EventSignals` ($R_{32}$, D58.5, precisión 87), que lee
     `EventsSystem` al final del tick: `start_energy`, la instantánea de energías al empezar el
     tick que toma la percepción social (D47.3); `ate`, quienes consumieron un recurso con valor
-    experimentado positivo; y `received`, los objetivos de un `SHARE` que transfirió energía.
+    experimentado positivo; y `received`, los que ganaron energía como objetivo de un `SHARE`.
     Los llenan sólo con la política genética efectivamente activa.
     """
 
@@ -152,16 +152,6 @@ def carcasses_active(config: SimulationConfig) -> bool:
     Es la única definición de la condición; el motor la guarda en `engine.carcasses_active`.
     """
     return config.enable_evolution and config.enable_carcasses
-
-
-def genetic_policy_active(config: SimulationConfig) -> bool:
-    """R32 efectivamente activa: con `enable_compact_dna` y `enable_genetic_policy` (prec. 31).
-
-    Es la única definición de la condición; el motor la guarda en `engine.genetic_policy_active`.
-    Sin ADN, `enable_genetic_policy` es inerte: no hay percepción social, la puerta de
-    comunicación no actúa y la política es la escrita a mano.
-    """
-    return config.enable_compact_dna and config.enable_genetic_policy
 
 
 def energy_transfer_active(config: SimulationConfig) -> bool:
@@ -428,20 +418,23 @@ class DecisionSystem(BaseSystem):
 class InternalStateSystem(BaseSystem):
     """Aplicación del estado interno al terminar la Fase 3 ($R_{39}$, D58.3).
 
-    A cada agente que decidió le aplica el estado siguiente de su evaluación de conducta del tick,
-    `(internal_state | set_mask) & ~clear_mask`, después de la decisión y de `on_decisions`: la
-    decisión del tick usó el estado anterior, y la evaluación del tick siguiente lee el nuevo. Un
-    agente que no decidió con la política genética conserva su estado
-    (`MicroAgent.commit_internal_state`). Sólo está en la lista con $R_{39}$ efectivamente
-    activa; no consume generadores ni depende del orden.
+    A cada agente que decidió le aplica el estado siguiente de la evaluación registrada de su
+    decisión del tick (`MicroAgent.apply_internal_state`), `(internal_state | set_mask) &
+    ~clear_mask`, después de la decisión y de `on_decisions`: la decisión del tick usó el estado
+    anterior, y la evaluación del tick siguiente lee el nuevo. Un agente que no decidió con la
+    política genética conserva su estado, y una endospora también: el estado se conserva en
+    endospora (D58.1). Sólo está en la lista con $R_{39}$ efectivamente activa; no consume
+    generadores ni depende del orden.
     """
 
     name = "internal_state"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        agents = engine.agents
+        agents, tick = engine.agents, frame.tick
         for aid in sorted(frame.actions):
-            agents[aid].commit_internal_state()
+            agent = agents[aid]
+            if not agent.is_endospore:
+                agent.apply_internal_state(tick)
 
 
 # --- Fase 4 --------------------------------------------------------------------------------------
@@ -486,10 +479,12 @@ def _execute_share(
     config = engine.config
     amount = config.share_fraction * donor.energy
     donor.apply_energy_delta(-amount)
-    receiver.apply_energy_delta(config.share_efficiency * amount)
+    received = config.share_efficiency * amount
+    receiver.apply_energy_delta(received)
     if amount > 0:
         frame.events["shares"] += 1
-        frame.received.add(receiver.agent_id)  # evento `received_energy` (D58.5)
+    if received > 0:
+        frame.received.add(receiver.agent_id)  # evento `received_energy` (D58.5, precisión 87)
 
 
 def _execute_attack(
@@ -681,7 +676,7 @@ class EventsSystem(BaseSystem):
     - `attacked`: objetivo de un ataque con éxito y `stolen > 0` (`frame.predated`);
     - `ate`: consumió un recurso con valor experimentado positivo (`frame.ate`);
     - `lost_energy`: su energía al final del tick es menor que al empezar (`frame.start_energy`);
-    - `received_energy`: objetivo de un `SHARE` que transfirió energía (`frame.received`).
+    - `received_energy`: objetivo de un `SHARE` del que ganó energía (`frame.received`).
     Un agente nacido en el tick no está en la instantánea y recibe `EventSignals()`, como al
     nacer. Sólo está en la lista con la política genética efectivamente activa, también sin
     $R_{39}$: los eventos son percepción, no memoria (D58.7). No consume generadores.
