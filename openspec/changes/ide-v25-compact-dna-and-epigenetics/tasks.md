@@ -30,9 +30,9 @@
 >
 > **Compatibilidad.** Ningún bloque puede cambiar los hashes dorados de la Fase I ni los historiales de la Fase II con las banderas por defecto. Los tests de los bloques 1 a 5 sólo cambian donde la reformulación lo dice explícitamente (D46.7, D50.3 y D52.4), más el test de firmas canónicas de la Fase I (precisión 22).
 >
-> **Pre-registro.** Es design D56 (borrador). Se aprueba en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
+> **Pre-registro.** Es design D56, **aprobado** el 2026-10-21 en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
-> **Etapa actual:** la etapa A está completa. Sigue la tarea 0.5 y, después, la etapa R.
+> **Etapa actual:** la etapa A está completa y el pre-registro D56 aprobado. Sigue la etapa R.
 
 ## 0. Decisiones y pre-registro
 
@@ -54,9 +54,9 @@
   - `docs/vision/ROADMAP.md` y `docs/vision/ARQUITECTURA_ADN_HOLONICO.md`, si cambió algo respecto del borrador.
   - Commitear el pre-registro aprobado.
 
-- [x] 0.4 **Reformular la Fase II-B** (2026-10-20, decisión del responsable del proyecto): design D43–D56, specs delta, `proposal.md`, este `tasks.md` y los documentos raíz, con `openspec validate --all --strict` y revisión cruzada independiente. Sustituye el pre-registro D42 por el borrador D56; C9–C12 se retiran sin medir.
+- [x] 0.4 **Reformular la Fase II-B** (2026-10-20, decisión del responsable del proyecto): design D43–D56, specs delta, `proposal.md`, este `tasks.md` y los documentos raíz, con `openspec validate --all --strict` y revisión cruzada independiente. Sustituye el pre-registro D42 por D56 (entonces borrador); C9–C12 se retiran sin medir.
 - [x] 0.6 **Ampliar la Fase II-B** (2026-10-21, decisión del responsable del proyecto): design D57–D63 (estado interno, plasticidad, señales, ADN de 64 codones, entorno cambiante y detección de núcleos), D56 reabierto con C19 y C20, specs, este `tasks.md` y documentos raíz.
-- [ ] 0.5 **Aprobar el pre-registro D56 con el responsable del proyecto**, antes del bloque 6:
+- [x] 0.5 **Aprobar el pre-registro D56 con el responsable del proyecto**, antes del bloque 6 (aprobado el 2026-10-21 por delegación del responsable del proyecto, tras dos revisiones cruzadas: commits aa25808 y el siguiente):
   - el inventario $R_{24}$–$R_{41}$ con sus propósitos y ablaciones;
   - los protocolos `25a`, `25b`, `25c` y `25d`, y sus condiciones;
   - las afirmaciones C13–C19 (genuinas) y C20 (funcional), sus métricas, sus comparaciones y sus $\delta_{\min}$;

@@ -138,15 +138,15 @@ El responsable del proyecto decidió que cada entregable acerque el proyecto a s
 - **ADN mejorado:** recombinación ($R_{38}$, D51) y tres rasgos nuevos (compromiso simbiótico, propensión a recombinar y propensión a comunicar).
 - **Reglas reformuladas (D50):** $R_{25}$ pasa a ser una señal posicional; $R_{28}$, una conducta disponible; $R_{31}$, un sello que depende del compromiso expresado.
 - **Medición (D53–D56):** métricas de evolución abierta (actividad de Bedau–Packard, divergencia de la conducta, regulación expresada), compuerta de viabilidad antes de cualquier afirmación, 30 semillas, corrección de Holm y tamaño de efecto mínimo.
-- **Pre-registro:** D42 queda sustituido por el borrador D56. C9–C12 se retiran sin medir. Las afirmaciones nuevas, C13–C18, son pruebas genuinas contra la reproducción neutral o contra la ablación de un mecanismo ecológico.
+- **Pre-registro:** D42 queda sustituido por D56 (entonces borrador). C9–C12 se retiran sin medir. Las afirmaciones nuevas, C13–C18, son pruebas genuinas contra la reproducción neutral o contra la ablación de un mecanismo ecológico.
 
 ### Qué no cambia
 - D30–D35 (etapa A, implementada), $R_{26}$, $R_{27}$, $R_{29}$ y $R_{30}$.
 - La compatibilidad bit a bit con las Fases I y II con las banderas por defecto.
 - Las invariantes de arquitectura y determinismo de `CLAUDE.md`. La reformulación no agrega generadores.
 
-### Decisión P8 (pendiente, tarea 0.5)
-Aprobar o corregir el borrador D56 antes del bloque 6:
+### Decisión P8 (resuelta el 2026-10-21, tarea 0.5)
+Aprobar o corregir el pre-registro D56 antes del bloque 6 (resuelta: aprobado con correcciones; ver "Aprobación del pre-registro D56" al final):
 - el inventario $R_{24}$–$R_{41}$;
 - los protocolos `25a`, `25b`, `25c` y `25d` y sus condiciones;
 - las afirmaciones C13–C19 (genuinas) y C20 (funcional), sus métricas y sus $\delta_{\min}$;
@@ -191,3 +191,17 @@ Una revisión cruzada independiente del borrador D56 encontró problemas antes d
 - **Huecos del bloque 22:** `rule_effects` exploratorios por afirmación, con la regla de pares válidos y la métrica simple (precisión 66); `stable` con `dataclasses.replace`, sin `ablate`; tipo de `demography`; valores informados en la diferencia de diferencias (precisión 69).
 - **C4.** `mean_learning_codons` depende de la `plasticity_rate` expresada según `last_context`.
 - **Caché de corridas** por (protocolo, variante, semilla): una misma corrida sirve a todas las afirmaciones del protocolo (precisión 67).
+
+## Aprobación del pre-registro D56 (tarea 0.5, 2026-10-21)
+
+- **Quién decidió:** el agente principal, por delegación expresa del responsable del proyecto ("lo que consideres más correcto").
+- **Cuándo:** el 2026-10-21, antes de implementar ningún bloque nuevo (la etapa R no empezó) y sin mirar ningún resultado.
+- **Qué se aprobó:** el pre-registro D56 con las correcciones de las dos revisiones cruzadas independientes (commits `aa25808` y `2fa8d88`):
+  - el inventario $R_{24}$–$R_{41}$ con sus propósitos y ablaciones;
+  - los protocolos `25a`, `25b`, `25c` y `25d` y sus condiciones, incluidas `no_predation_drift` y `stable_drift`;
+  - las afirmaciones genuinas C13–C19 (C17 y C19 por diferencia de diferencias contra su reproducción neutral) y la funcional C20, con sus métricas, comparaciones, $R_C$, canales y $\delta_{\min}$;
+  - la prueba de signo sobre los pares válidos, la corrección de Holm ($m = 7$), el umbral de efecto, la ventana final de 1000 ticks, la covariable `effective_parents` de C16, el perfil `phase25` (5000 ticks) y las semillas 42–71;
+  - la compuerta de viabilidad de D55, con su grilla y su criterio;
+  - los valores por defecto de D52 y D63.
+- **Riesgo aceptado y declarado:** con el mínimo de la compuerta, C17 y C19 quedan cerca de los 20 pares válidos (D55.3); si quedan no evaluables, se informa como resultado.
+- A partir de aquí, cambiar D56 exige un commit que lo justifique.

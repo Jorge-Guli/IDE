@@ -1,6 +1,6 @@
 # Design: Fase II-B (v2.5) — ADN Compacto de 32 bits, Conducta Evolucionable y Ecología
 
-> **Reformulación del 2026-10-20 (D43–D56).** Con la etapa A completa (bloques 1 a 5, D30–D35 implementadas), el responsable del proyecto decidió que la Fase II-B corrija las cuestiones de base que hacían de la Fase II un experimento sin salida, en lugar de agregar mecanismos sobre la misma arquitectura. Las decisiones D43–D56, al final de la sección de decisiones, **prevalecen** sobre D30–D42 donde las contradicen, y cada decisión afectada lo indica en su encabezado. El pre-registro D42 queda **sustituido** por el borrador D56, que se aprueba en la tarea 0.5 antes de seguir con el bloque 6. Ninguna afirmación de D42 se midió.
+> **Reformulación del 2026-10-20 (D43–D56).** Con la etapa A completa (bloques 1 a 5, D30–D35 implementadas), el responsable del proyecto decidió que la Fase II-B corrija las cuestiones de base que hacían de la Fase II un experimento sin salida, en lugar de agregar mecanismos sobre la misma arquitectura. Las decisiones D43–D56, al final de la sección de decisiones, **prevalecen** sobre D30–D42 donde las contradicen, y cada decisión afectada lo indica en su encabezado. El pre-registro D42 queda **sustituido** por D56, aprobado el 2026-10-21 en la tarea 0.5, antes de seguir con el bloque 6. Ninguna afirmación de D42 se midió.
 
 ## Context
 
@@ -463,7 +463,7 @@ Los pasos 3 a 5 consumen siempre su extracción `u`. La extracción del índice 
 - `003c`: `roles` (base), `no_roles` (sin $R_{25}$) y `unlocked` (sin $R_{31}$).
 
 ### Decisión 42: Pre-Registro de la Fase II-B (APROBADO el 2026-10-20, decisión P4; SUSTITUIDO por D56)
-> **Sustituido por el borrador D56 (reformulación del 2026-10-20), antes de medir ninguna afirmación.** Las afirmaciones C9–C12 se **retiran sin medir**: eran programadas por construcción y no acercaban el proyecto a su objetivo. El diagnóstico de la tarea 0.1 se conserva como antecedente de $R_{29}$. El texto de abajo se conserva como registro.
+> **Sustituido por D56 (reformulación del 2026-10-20), antes de medir ninguna afirmación.** Las afirmaciones C9–C12 se **retiran sin medir**: eran programadas por construcción y no acercaban el proyecto a su objetivo. El diagnóstico de la tarea 0.1 se conserva como antecedente de $R_{29}$. El texto de abajo se conserva como registro.
 
 Esta decisión es **pre-registro**. El responsable del proyecto la aprobó el 2026-10-20 (tarea 0.2), sin cambios respecto del borrador y con las decisiones del 2026-10-20 ya incorporadas. Se aprobó **antes** de implementar y de mirar cualquier resultado: el único dato previo es el diagnóstico demográfico de la tarea 0.1, que no mide ninguna afirmación. Cambiarla exige un commit que lo justifique.
 
@@ -575,7 +575,7 @@ Cierran huecos de D34–D41 sin cambiar su intención. Las precisiones 9 (mapeo 
    - D38 ($R_{28}$): la entrada en endospora pasa a ser una conducta (D50.2);
    - D40 ($R_{31}$): el sello depende de un rasgo expresado (D50.3);
    - D41: sustituida por D44, D53 y D56;
-   - D42: sustituida por el borrador D56. C9–C12 se retiran sin medir.
+   - D42: sustituida por D56. C9–C12 se retiran sin medir.
 4. **Lo que se agrega:** el motor por sistemas (D44), el puerto de política (D45), la conducta en el ADN ($R_{32}$, D46), la percepción social y las acciones nuevas (D47), la ecología ($R_{33}$–$R_{35}$, D48), las interacciones ($R_{36}$, $R_{37}$, D49), la recombinación ($R_{38}$, D51), la configuración (D52), la telemetría de evolución abierta (D53), el rendimiento (D54), la compuerta de viabilidad (D55) y el pre-registro (D56).
 5. **Compatibilidad.** Con todas las banderas nuevas en su valor por defecto, las Fases I y II y la etapa A de la Fase II-B se comportan bit a bit como antes: los hashes dorados de la Fase I, las huellas de la Fase II y los tests de los bloques 1 a 5 no cambian, salvo los que la propia reformulación modifica de forma explícita (D46.7, D50.3 y D52.4). Ningún test de conducta de las Fases I y II cambia. La precisión 41 cambia además un camino ya implementado en la etapa A (ADN, reproducción neutral y $R_{17}$ a la vez), que ningún test existente ejerce. La única excepción es el test de firmas públicas canónicas de la Fase I (`test_firmas_publicas_canonicas`), que se amplía con los parámetros opcionales `policy=None` y `social=None` (precisión 22); es un cambio aditivo de firma, sin cambio de conducta.
 6. **Generadores.** La reformulación no agrega generadores. Las extracciones nuevas usan el generador principal (la conducta en la Fase 3 y la ubicación de recursos en el entorno) o `evo_rng` (la recombinación al nacer), siempre detrás de su bandera.
@@ -871,8 +871,8 @@ Con `enable_compact_dna`, `enable_evolution` y `enable_recombination` activas, e
 5. **Sin viables.** Si ninguna lo es, se reporta como resultado y decide el responsable del proyecto. No se prueba nada fuera de la grilla sin una enmienda.
 6. **Registro.** La salida completa va a `registros/` y a `docs/RESULTADOS.md` antes de la prueba de humo.
 
-### Decisión 56: Pre-Registro de la Fase II-B Reformulada (BORRADOR, se aprueba en la tarea 0.5)
-Esta decisión es **pre-registro**. Se aprueba antes de implementar los bloques nuevos y antes de mirar cualquier resultado. Cambiarla después exige un commit que lo justifique.
+### Decisión 56: Pre-Registro de la Fase II-B Reformulada (APROBADO el 2026-10-21, tarea 0.5)
+Esta decisión es **pre-registro**. El agente principal la aprobó el 2026-10-21 (tarea 0.5), por delegación del responsable del proyecto, con las correcciones de dos revisiones cruzadas independientes, antes de implementar los bloques nuevos y sin mirar ningún resultado. Cambiarla después exige un commit que lo justifique.
 
 **Inventario `PHASE25_DESIGN_RULES`** (`R24`–`R41`; `ALL_DESIGN_RULES` no cambia):
 
@@ -954,7 +954,7 @@ Esta decisión es **pre-registro**. Se aprueba antes de implementar los bloques 
 
 
 ### Precisiones de la reformulación (2026-10-20, surgidas de la redacción de los specs)
-Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador que se aprueba en la tarea 0.5.
+Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del pre-registro D56 (aprobado el 2026-10-21).
 1. **Estado `OBSERVED`.** `ClaimStatus` agrega el miembro `OBSERVED = "OBSERVED"`, que sólo usan las afirmaciones de D56. Los estados de las Fases I y II no cambian.
 2. **Reglas inactivas (`PHASE25_INACTIVE_RULES`).** `"25a"` y `"25c"`: `R14`–`R19`, `R22`, `R23`, `R25` y `R31` (sin herencia cultural, holones ni estigmergia, como `002a`). `"25b"`: `R14`, `R18` y `R19`, como `003a`. Un test las contrasta con las configuraciones.
 3. **Tipos y función de la atribución.**
@@ -1134,7 +1134,7 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
 65. **Máscara percibida.** El atributo del agente es `perceived_symbols: int`, que vale 0 al nacer y se recalcula en cada Fase 1.
 
 ### Precisiones de la revisión cruzada del pre-registro (2026-10-21)
-Cierran los huecos que encontró la revisión cruzada independiente del borrador D56 antes de su aprobación, sin mirar ningún resultado. Forman parte del borrador que se aprueba en la tarea 0.5.
+Cierran los huecos que encontraron las revisiones cruzadas independientes de D56 antes de su aprobación, sin mirar ningún resultado. Forman parte del pre-registro D56 (aprobado el 2026-10-21).
 66. **Efectos de regla de la Fase II-B (D56).** Son exploratorios y por afirmación. Para cada afirmación y cada regla activa del protocolo, la variante es `ablate(full, [regla])`, y el efecto es la mediana, sobre las semillas de `PHASE25_RULE_EFFECT_SEEDS` válidas (con `full` y la variante con al menos una hoja activa, regla de pares válidos de la precisión 45, no la de "medido" de la Fase II), de `full(s) − variante(s)` en la métrica simple de la afirmación (con su ventana, precisión 4). En C17 y C19 el efecto de regla compara también la variante con `full` en la métrica simple, sin diferencia de diferencias. Sin semillas válidas, el efecto es `None`, nunca 0.0. `Phase25Report.rule_effects` es `dict[str, dict[str, float | None]]`: afirmación → regla → efecto.
 67. **Caché de corridas (D56).** Cada corrida se identifica por (protocolo, variante, semilla), donde la variante es una condición de D56 o el identificador de la regla ablacionada de un efecto de regla, y se ejecuta una sola vez por atribución: la misma corrida sirve a todas las afirmaciones del protocolo, a E4 y a los `rule_effects`. Como la salida es determinista, reutilizar entre claves distintas corridas de configuración idéntica (por ejemplo, `stable` de `25d` y `full` de `25a`) está permitido y no cambia ningún valor, pero no se exige.
 68. **Fuentes genéticas de los nacimientos (C16, precisión 44; corregida en la segunda ronda de la revisión cruzada).** `GeneticTickMetrics` agrega, como último campo y después de `max_signal_information`, `birth_source_ids: tuple[int, ...]`: por cada nacimiento del tick, la fuente genética: el `agent_id` cuyo ADN hereda el hijo antes de mutar (con selección, el progenitor; en la reproducción neutral, el donante sorteado con `donor_rng`; en $R_{17}$, la hoja de la que proviene el ADN, que es el donante si la reproducción es neutral, precisión 41; con $R_{38}$, el que inicia el cruce, es decir, el que se reproduce o, en neutral, el donante), en orden ascendente; `()` sin nacimientos. La pareja de la recombinación no se cuenta: es una limitación declarada, porque su segmento del cromosoma también es herencia. Dentro de un tick nadie se reproduce dos veces (D26), así que con selección no hay repeticiones; en la reproducción neutral un mismo donante puede sortearse varias veces y repetirse. Las repeticiones aparecen sobre todo al concatenar los ticks de la ventana. `effective_parents` no es un campo del tick: se calcula en `demography` concatenando `birth_source_ids` de la ventana final, como $1 / \sum_i p_i^2$ (0.0 sin nacimientos).
