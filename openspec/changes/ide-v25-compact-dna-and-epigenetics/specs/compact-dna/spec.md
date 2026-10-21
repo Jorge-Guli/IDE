@@ -36,7 +36,7 @@ La transcripción SHALL considerar activo el promotor `0x00` (`ALWAYS_BASAL`) si
 - **THEN** sólo los codones con promotor `0x00` y `0x03` modulan el rasgo; los de `0x01` (exige nivel 0) y `0x04` (exige nivel 3) quedan inactivos.
 
 ### Requirement: Promotores de Rol y de Energía
-La transcripción SHALL considerar activos los promotores `0x10`, `0x11` y `0x12` si y sólo si `context.role` es `EXPLORER`, `LIBRARIAN` o `NERVE`, respectivamente; el `0x18` si y sólo si `context.energy_ratio < config.stress_energy_ratio`; y el `0x19` si y sólo si `context.energy_ratio >= config.surplus_energy_ratio`.
+La transcripción SHALL considerar activos los promotores `0x10`, `0x11` y `0x12` si y sólo si `context.role` es `EXPLORER`, `LIBRARIAN` o `NERVE`, respectivamente; el `0x18` si y sólo si `context.energy_ratio < config.stress_energy_ratio` (con tolerancia `1e-9` en energía, como el estrés de $R_{30}$); y el `0x19` si y sólo si `context.energy_ratio >= config.surplus_energy_ratio`.
 
 #### Scenario: Umbrales de energía con desigualdades exactas
 - **WHEN** con `stress_energy_ratio = 0.35` y `surplus_energy_ratio = 0.85` se transcribe un ADN con un codón aditivo de promotor `0x18` y otro de promotor `0x19`, primero con `energy_ratio = 0.35` y después con `energy_ratio = 0.85`

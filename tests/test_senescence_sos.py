@@ -251,6 +251,7 @@ def test_senescencia_tambien_en_las_endosporas() -> None:
 
 @pytest.mark.xfail(
     reason="bloque 17: el costo de la endospora reemplaza al basal (D38, precisión 90)",
+    raises=AssertionError,
     strict=True,
 )
 def test_endospora_senescente_paga_su_costo_mas_la_senescencia() -> None:

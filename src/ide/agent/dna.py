@@ -17,7 +17,12 @@ from typing import NamedTuple
 
 import numpy as np
 
-from ide.config import FOUNDER_DNA_LENGTH, SimulationConfig, genetic_policy_active
+from ide.config import (
+    FOUNDER_DNA_LENGTH,
+    SimulationConfig,
+    genetic_policy_active,
+    is_stress_energy_ratio,
+)
 from ide.domain.extensions import integer_trait_bounds
 from ide.domain.types import (
     AgentGenome,
@@ -195,7 +200,7 @@ def _promoter_active(promoter: int, context: EpigeneticContext, config: Simulati
     if role is not None:
         return context.role is role
     if promoter == _PROM_STRESS:
-        return context.energy_ratio < config.stress_energy_ratio
+        return is_stress_energy_ratio(context.energy_ratio, config)  # precisión 93
     if promoter == _PROM_SURPLUS:
         return context.energy_ratio >= config.surplus_energy_ratio
     return False

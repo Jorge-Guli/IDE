@@ -56,8 +56,9 @@ MECHANISM_SYSTEMS: dict[str, tuple[str, ...]] = {
     "enable_sos_mutation": ("stress",),
 }
 
-# Orden de D53.1 reducido a la Fase II más la Fase 0 de la etapa A.
-PHASE2_ORDER = (
+# Orden de D53.1 reducido a los sistemas de la Fase II más los de la Fase II-B que se agregan
+# sobre ella: la expresión de la Fase 0 (etapa A), la senescencia (R29) y el estrés (R30).
+CORE_ORDER = (
     "expression",  # Fase 0
     "schedule",  # Fase 1: permutación del tick
     "local_reach",
@@ -81,8 +82,11 @@ PHASE2_ORDER = (
 )
 
 
-def full_phase2_config() -> SimulationConfig:
-    """Todas las banderas de las Fases II y II-B (etapa A) que tienen sistema propio."""
+def full_core_config() -> SimulationConfig:
+    """Banderas de la Fase II más las de la Fase II-B que agregan sistemas a su orden.
+
+    Incluye ADN compacto, estigmergia, vista del holón, senescencia (R29) y SOS (R30).
+    """
     return replace(
         PHASE2_PROTOCOL_CONFIGS["003a"],
         enable_stigmergy=True,
@@ -178,7 +182,7 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
 
 
 def test_build_systems_devuelve_sistemas_con_nombre_unico() -> None:
-    for config in (SimulationConfig(), full_phase2_config()):
+    for config in (SimulationConfig(), full_core_config()):
         systems = build_systems(config)
         assert isinstance(systems, tuple)
         assert all(isinstance(s, EngineSystem) for s in systems)
@@ -188,9 +192,9 @@ def test_build_systems_devuelve_sistemas_con_nombre_unico() -> None:
 
 
 def test_build_systems_sigue_el_orden_de_d53() -> None:
-    order = names(full_phase2_config())
-    known = [name for name in order if name in PHASE2_ORDER]
-    assert known == list(PHASE2_ORDER)
+    order = names(full_core_config())
+    known = [name for name in order if name in CORE_ORDER]
+    assert known == list(CORE_ORDER)
 
 
 def test_orden_de_la_fase_i_con_las_banderas_por_defecto() -> None:
@@ -209,7 +213,7 @@ def test_orden_de_la_fase_i_con_las_banderas_por_defecto() -> None:
 
 @pytest.mark.parametrize("flag", sorted(MECHANISM_SYSTEMS))
 def test_mecanismo_apagado_fuera_de_la_lista(flag: str) -> None:
-    full = full_phase2_config()
+    full = full_core_config()
     overrides = {flag: False}
     if flag == "enable_evolution":
         overrides["enable_compact_dna"] = False  # el ADN exige evolución (D34)
@@ -223,7 +227,7 @@ def test_mecanismo_apagado_fuera_de_la_lista(flag: str) -> None:
 
 
 def test_vista_del_holon_solo_con_la_jerarquia_y_su_bandera() -> None:
-    full = full_phase2_config()
+    full = full_core_config()
     for config in (
         replace(full, enable_holon_view=False),
         replace(full, enable_holonic_hierarchy=False),
@@ -243,7 +247,7 @@ def test_adn_agrega_la_fase_0_al_principio() -> None:
 def test_step_ejecuta_los_sistemas_de_build_systems_en_orden(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    config = full_phase2_config()
+    config = full_core_config()
     engine = SimulationEngine(config)
     assert [s.name for s in engine.systems] == names(config)
     calls: list[str] = []
@@ -309,7 +313,7 @@ def test_step_devuelve_la_metrica_del_tick_sin_depender_de_la_lista_publica() ->
 
 
 def test_solo_el_sistema_de_decision_tiene_la_marca() -> None:
-    for config in (SimulationConfig(), full_phase2_config()):
+    for config in (SimulationConfig(), full_core_config()):
         marked = [s for s in build_systems(config) if s.notifies_decisions]
         assert len(marked) == 1 and isinstance(marked[0], DecisionSystem)
 

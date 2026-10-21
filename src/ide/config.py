@@ -9,6 +9,10 @@ FOUNDER_DNA_LENGTH = 9
 # Longitud del ADN fundador con la política genética (D46.5): los 9 codones de rasgo más los cuatro
 # codones conductuales neutros. `ide.agent.dna.founder_dna_length` debe coincidir con este valor.
 FOUNDER_DNA_LENGTH_GENETIC = FOUNDER_DNA_LENGTH + 4
+# Tolerancia de los umbrales de energía (precisión 93): `1.5 * 2.2` vale `3.3000000000000003`, y
+# una energía de 3.3 debe alcanzar la alta fidelidad de R30. Vive aquí para que el estrés tenga
+# una sola definición, compartida por `ide.agent.dna`, `ide.agent.micro_agent` y la evolución.
+ENERGY_THRESHOLD_TOLERANCE = 1e-9
 
 _TAU_POLICIES = ("validation", "evidence_age")
 _UPDATE_SCHEMES = ("synchronous", "asynchronous")
@@ -464,3 +468,21 @@ def genetic_policy_active(config: SimulationConfig) -> bool:
     escrita a mano.
     """
     return config.enable_compact_dna and config.enable_genetic_policy
+
+
+def stress_energy_limit(config: SimulationConfig) -> float:
+    """Límite de energía del estrés (D39, precisión 93): hay estrés si `energy` es menor.
+
+    Vale `stress_energy_ratio * reproduction_threshold - ENERGY_THRESHOLD_TOLERANCE`. Es la única
+    definición del umbral: la usan el promotor `0x18`, la banda de expresión del agente y el
+    registro del estrés de R30, de modo que en el umbral exacto no hay estrés en ninguno.
+    """
+    return config.stress_energy_ratio * config.reproduction_threshold - ENERGY_THRESHOLD_TOLERANCE
+
+
+def is_stress_energy_ratio(energy_ratio: float, config: SimulationConfig) -> bool:
+    """Estrés expresado como `E / reproduction_threshold` (promotor `0x18`, precisión 93).
+
+    Compara `energy_ratio * reproduction_threshold` con `stress_energy_limit`; NaN no es estrés.
+    """
+    return energy_ratio * config.reproduction_threshold < stress_energy_limit(config)

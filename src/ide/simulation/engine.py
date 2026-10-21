@@ -14,7 +14,6 @@ from ide.agent.evolution import (
     compute_metabolic_cost,
     compute_senescence_cost,
     compute_sos_scale,
-    is_energy_stressed,
     transfer_cultural_heritage,
 )
 from ide.agent.holon import (
@@ -30,7 +29,7 @@ from ide.agent.holon import (
 )
 from ide.agent.micro_agent import MicroAgent
 from ide.agent.policy import GeneticPolicy
-from ide.config import SimulationConfig, genetic_policy_active
+from ide.config import SimulationConfig, genetic_policy_active, stress_energy_limit
 from ide.domain.extensions import CompositeRule, TrustStrategyPort
 from ide.domain.ports import (
     EcologicalEnvironmentPort,
@@ -616,14 +615,15 @@ class SimulationEngine:
     def _record_stress(self, tick: int) -> None:
         """Registra `last_stress_tick = tick` en cada sobreviviente con energía bajo el umbral.
 
-        El umbral es `stress_energy_ratio * reproduction_threshold`, con la tolerancia de
-        `is_energy_stressed` (D39, precisión 93). Lo llama `StressSystem`, después de la muerte y
-        sólo con $R_{30}$ efectivamente activa (precisión 7 y 91); no consume generadores.
+        Hay estrés si `energy < stress_energy_limit(config)`, el umbral con tolerancia compartido
+        con el promotor `0x18` (D39, precisión 93), que se calcula una vez por tick. Lo llama
+        `StressSystem`, después de la muerte y sólo con $R_{30}$ efectivamente activa (precisión
+        7 y 91); no consume generadores.
         """
-        config = self.config
+        limit = stress_energy_limit(self.config)
         for aid in sorted(self.agents):
             agent = self.agents[aid]
-            if is_energy_stressed(agent.energy, config):
+            if agent.energy < limit:
                 agent.record_stress(tick)
 
     def _remove_dead(self, tick: int) -> list[int]:

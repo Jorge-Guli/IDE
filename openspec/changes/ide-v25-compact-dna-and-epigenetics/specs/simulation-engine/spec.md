@@ -321,7 +321,7 @@ Comer un cadáver SHALL seguir en la Fase 4 el camino de cualquier recurso eleme
 - **THEN** gana 0.3 de energía (con tolerancia `1e-9`), aprende `CARCASS_PATTERN` por experiencia directa y figura en `direct_discoverers[CARCASS_PATTERN]`.
 
 ### Requirement: Orden de la Fase 5 con la Fase II-B
-La Fase 5 SHALL ejecutar en orden: (i) `decay_memory`; (ii) sello de $R_{31}$, costo de coordinación, `SPLIT` y `BOND`; (iii) metabolismo con ADN, senescencia, endospora, costo de los ataques y de las señales ($R_{41}$); (iv) muerte, cadáveres ($R_{35}$) y registro del estrés; (v) reproducción con SOS, recombinación, ADN e impronta; (vi) conjugación y ensayo CRISPR; (vii) $R_{18}$ y roles; (viii) `env.step_dynamics`; y después `on_tick_end` de los observadores.
+La Fase 5 SHALL ejecutar en orden: (i) `decay_memory`; (ii) sello de $R_{31}$, costo de coordinación, `SPLIT` y `BOND`; (iii) metabolismo con ADN, senescencia, endospora, costo de los ataques y de las señales ($R_{41}$); (iv) muerte, cadáveres ($R_{35}$) y, sólo con $R_{30}$, registro del estrés en paso propio; (v) reproducción con SOS, recombinación, ADN e impronta; (vi) conjugación y ensayo CRISPR; (vii) $R_{18}$ y roles; (viii) `env.step_dynamics`; y después `on_tick_end` de los observadores.
 
 #### Scenario: Reducción al orden de la Fase II
 - **WHEN** se ejecuta un tick con todas las banderas de la Fase II-B apagadas

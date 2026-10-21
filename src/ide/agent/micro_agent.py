@@ -22,7 +22,7 @@ from ide.agent.evolution import genome_from_config
 from ide.agent.memory import BoundedMemory
 from ide.agent.policy import HandwrittenPolicy, PolicyPort
 from ide.agent.protocol import BeliefExchangeProtocol
-from ide.config import SimulationConfig
+from ide.config import SimulationConfig, is_stress_energy_ratio
 from ide.domain.extensions import (
     AgentCapabilities,
     TrustStrategyPort,
@@ -459,7 +459,7 @@ class MicroAgent:
         """Clave del caché: el fenotipo sólo depende del nivel acotado, el rol y la banda."""
         base = self._base_config
         ratio = context.energy_ratio
-        if ratio < base.stress_energy_ratio:
+        if is_stress_energy_ratio(ratio, base):  # la misma definición que `0x18` (precisión 93)
             band = _BAND_STRESS
         elif ratio >= base.surplus_energy_ratio:
             band = _BAND_SURPLUS

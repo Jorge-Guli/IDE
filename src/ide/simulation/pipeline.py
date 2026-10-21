@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
 import numpy as np
 
 from ide.agent.dna import internal_state_active
+from ide.agent.evolution import sos_mutation_active
 from ide.agent.holon import CompositeAgent
 from ide.config import SimulationConfig, genetic_policy_active
 from ide.domain.ports import EcologicalEnvironmentPort
@@ -182,15 +183,6 @@ def telomere_senescence_active(config: SimulationConfig) -> bool:
     Sin evolución la bandera es inerte: no hay metabolismo al que sumar la senescencia.
     """
     return config.enable_evolution and config.enable_telomere_senescence
-
-
-def sos_mutation_active(config: SimulationConfig) -> bool:
-    """R30 efectivamente activa: `enable_sos_mutation` con evolución (D30.3, D39).
-
-    Es la única definición de la condición: con ella, `build_systems` agrega `StressSystem`, el
-    único que registra `last_stress_tick`. Sin ella, `compute_sos_scale` devuelve 1.0.
-    """
-    return config.enable_evolution and config.enable_sos_mutation
 
 
 def validate_systems(systems: tuple[EngineSystem, ...]) -> tuple[EngineSystem, ...]:

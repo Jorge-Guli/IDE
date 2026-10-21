@@ -9,12 +9,8 @@ No importa `micro_agent.py`: opera sobre `BoundedMemory`, `AgentGenome` y `Simul
 from dataclasses import replace
 
 from ide.agent.memory import BoundedMemory
-from ide.config import SimulationConfig
+from ide.config import ENERGY_THRESHOLD_TOLERANCE, SimulationConfig
 from ide.domain.types import AgentGenome, CompactDNA, KnowledgeUnit
-
-# Tolerancia de los umbrales de energía de R30 (precisión 93): `1.5 * 2.2` vale
-# `3.3000000000000003`, y una energía de 3.3 debe alcanzar la alta fidelidad.
-ENERGY_THRESHOLD_TOLERANCE = 1e-9
 
 
 def genome_from_config(config: SimulationConfig) -> AgentGenome:
@@ -62,17 +58,27 @@ def compute_senescence_cost(age: int, lifespan: int, config: SimulationConfig) -
     return config.senescence_cost_rate * (age - lifespan) ** 2
 
 
+def sos_mutation_active(config: SimulationConfig) -> bool:
+    """R30 efectivamente activa: `enable_sos_mutation` con evolución (D30.3, D39).
+
+    Es la única definición de la condición: con ella `compute_sos_scale` deja de devolver 1.0 y
+    `build_systems` agrega `StressSystem`, el único que registra `last_stress_tick`. Sin
+    evolución la bandera es inerte.
+    """
+    return config.enable_evolution and config.enable_sos_mutation
+
+
 def compute_sos_scale(
     energy: float, last_stress_tick: int | None, tick: int, config: SimulationConfig
 ) -> float:
-    """Escala de mutación SOS del progenitor (R30, design D39); 1.0 con la regla apagada.
+    """Escala de mutación SOS del progenitor (R30, design D39); 1.0 sin `sos_mutation_active`.
 
     Se decide con el estado del progenitor antes de partir la energía: `sos_hypermutation_factor`
     si registró estrés en los últimos `sos_window` ticks; si no, `sos_high_fidelity_factor` si
     `energy >= sos_high_fidelity_energy_ratio * reproduction_threshold` (con tolerancia
     `ENERGY_THRESHOLD_TOLERANCE`, precisión 93); y si no, 1.0.
     """
-    if not config.enable_sos_mutation:
+    if not sos_mutation_active(config):
         return 1.0
     if last_stress_tick is not None and tick - last_stress_tick <= config.sos_window:
         return config.sos_hypermutation_factor
@@ -80,15 +86,6 @@ def compute_sos_scale(
     if energy >= high_fidelity - ENERGY_THRESHOLD_TOLERANCE:
         return config.sos_high_fidelity_factor
     return 1.0
-
-
-def is_energy_stressed(energy: float, config: SimulationConfig) -> bool:
-    """Estrés de R30 (D39): `energy < stress_energy_ratio * reproduction_threshold`.
-
-    Con la misma tolerancia que la alta fidelidad (precisión 93): en el umbral no hay estrés.
-    """
-    threshold = config.stress_energy_ratio * config.reproduction_threshold
-    return energy < threshold - ENERGY_THRESHOLD_TOLERANCE
 
 
 def transfer_cultural_heritage(

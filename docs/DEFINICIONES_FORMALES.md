@@ -719,7 +719,7 @@ Sea un contexto epigenético $\chi = (L, \text{rol}, e)$, con $L$ el nivel del h
 | `0x01` | `SOLITARY_L0` | $L = 0$ |
 | `0x02`–`0x0A` | `IN_HOLON_Lk`, $k = \text{prom} - 1$ | $L \ge k$ |
 | `0x10`, `0x11`, `0x12` | `ROLE_EXPLORER`, `ROLE_LIBRARIAN`, `ROLE_NERVE` | el rol coincide |
-| `0x18` | `STRESS_LOW_ENERGY` | $e <$ `stress_energy_ratio` |
+| `0x18` | `STRESS_LOW_ENERGY` | $e \cdot E_{\text{reprod}} <$ `stress_energy_ratio` $\cdot E_{\text{reprod}} - 10^{-9}$ |
 | `0x19` | `SURPLUS_HIGH_ENERGY` | $e \ge$ `surplus_energy_ratio` |
 | `0x20`–`0x27` | promotores sensoriales (§9.10) | la señal correspondiente de $\sigma$ es verdadera, **sólo** en la evaluación de conducta; en la transcripción del fenotipo están inactivos |
 | `0x28`–`0x2B` | eventos del tick anterior (§9.15): `EVENT_ATTACKED`, `EVENT_ATE`, `EVENT_LOST_ENERGY`, `EVENT_RECEIVED_ENERGY` | el campo correspondiente de `last_events` es verdadero, sólo en la evaluación de conducta |
@@ -824,9 +824,9 @@ El rol se reasigna sólo cuando cambia el conjunto de hojas de la raíz, y una h
 - **Senescencia ($R_{29}$).** Con evolución y $R_{29}$ activas, el cobro metabólico suma
   $$c_{\text{sen}}(i) = \texttt{senescence\_cost\_rate} \cdot \max(0, \text{age}_i - T_{\max, i})^2,$$
   también a las endosporas. Con ADN, $T_{\max, i}$ se expresa por el destino `0x07`; sin ADN, vale `telomere_base_lifespan`. Motivación: el "Tapón de Matusalén" confirmado en la tarea 0.1 ([RESULTADOS.md](RESULTADOS.md)).
-- **Registro del estrés.** Con $R_{30}$ efectivamente activa, después de la muerte y antes de la reproducción, cada sobreviviente con $E_i <$ `stress_energy_ratio` $\cdot E_{\text{reprod}}$ registra $t_{\text{estrés}, i} = t$.
+- **Registro del estrés.** Con $R_{30}$ efectivamente activa, después de la muerte y antes de la reproducción, cada sobreviviente con $E_i <$ `stress_energy_ratio` $\cdot E_{\text{reprod}} - \varepsilon$ registra $t_{\text{estrés}, i} = t$, con $\varepsilon = 10^{-9}$ (precisión 93). Es la misma definición de estrés que la del promotor `0x18`.
 - **SOS ($R_{30}$).** Al reproducirse, con el estado del progenitor antes de partir la energía, la escala de mutación es
-  $$s = \begin{cases} \texttt{sos\_hypermutation\_factor} & \text{si } t - t_{\text{estrés}} \le \texttt{sos\_window}, \\ \texttt{sos\_high\_fidelity\_factor} & \text{si no, y } E \ge \texttt{sos\_high\_fidelity\_energy\_ratio} \cdot E_{\text{reprod}}, \\ 1 & \text{en otro caso.} \end{cases}$$
+  $$s = \begin{cases} \texttt{sos\_hypermutation\_factor} & \text{si } t - t_{\text{estrés}} \le \texttt{sos\_window}, \\ \texttt{sos\_high\_fidelity\_factor} & \text{si no, y } E \ge \texttt{sos\_high\_fidelity\_energy\_ratio} \cdot E_{\text{reprod}} - \varepsilon, \\ 1 & \text{en otro caso.} \end{cases}$$
   Con ADN escala las probabilidades de `mutate_dna`; sin ADN escala `mutation_rate` y `discrete_mutation_prob` de `mutate_genome` (recortando la segunda a 1). Con $R_{30}$ apagada, $s = 1$.
 
 ### 9.9. Compromiso Simbiótico ($R_{31}$)
