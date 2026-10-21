@@ -198,15 +198,15 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 10.1 **[RED]** Tests para:
+- [x] 10.1 **[RED]** Tests para:
   - (a) `GeneticPolicy.decide`: factibilidad de cada conducta, orden por $(-d_B, \text{posición})$, `IDLE` sin factibles y extracciones de `rng` sólo donde D46.1 las declara;
   - (b) `SensorySignals` construido desde la observación, las creencias y `social`;
   - (c) la percepción social del motor sobre la instantánea de energías, sin endosporas, con `flee_move` y `crowded` (D47.3), y `None` sin la política genética;
   - (d) la puerta de comunicación de `protocol.py` (D46.6);
   - (e) el caché de impulsos igual a la evaluación directa (D46.8);
   - (f) **aceptación de D46.5:** con el ADN fundador, sin mutación y con `dna_codon_cost = 0.0`, `002a` y `003a` con `enable_genetic_policy=True` dan historiales idénticos a los de `False`.
-- [ ] 10.2 **[GREEN]** Implementar `GeneticPolicy`, la percepción social en el sistema de la Fase 1 y la puerta de comunicación.
-- [ ] 10.3 **[REFACTOR]** Benchmark con la política genética y verificación del bloque.
+- [x] 10.2 **[GREEN]** Implementar `GeneticPolicy`, la percepción social en el sistema de la Fase 1 y la puerta de comunicación.
+- [x] 10.3 **[REFACTOR]** Benchmark con la política genética y verificación del bloque. (1262 tests, cobertura 99 %; aceptación de D46.5 en `002a` y `003a`; `002a` con ADN, 300 ticks: 108 ticks/s con la política genética frente a 156 sin ella, a optimizar en 23.1 si hace falta; la endospora decide y se percibe hasta el bloque 17, precisión 82.)
 
 ## 11. Ecología del entorno: R33, R34 y R35 (`spatial-environments`, `simulation-engine`)
 

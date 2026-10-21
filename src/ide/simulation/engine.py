@@ -212,11 +212,10 @@ class SimulationEngine:
         # R32 efectivamente activa (precisión 31): los fundadores deciden con `GeneticPolicy`
         # (D45.4) y la Fase 1 construye su percepción social (D47.3); si no, `HandwrittenPolicy`.
         self.genetic_policy_active = genetic_policy_active(config)
-        genetic = self.genetic_policy_active
+        # `GeneticPolicy` no guarda estado: una sola instancia sirve a todos los fundadores.
+        policy = GeneticPolicy() if self.genetic_policy_active else None
         self.agents: dict[int, MicroAgent] = {
-            aid: MicroAgent(
-                aid, config, trust_strategy, policy=GeneticPolicy() if genetic else None
-            )
+            aid: MicroAgent(aid, config, trust_strategy, policy=policy)
             for aid in self.env.get_active_agent_ids()
         }
         self.direct_discoverers: dict[Pattern, set[int]] = defaultdict(set)

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
+from itertools import pairwise
 from typing import Any
 
 
@@ -258,6 +259,27 @@ class SocialPerception:
     flee_move: Any = None  # huida del más cercano con más energía que la propia
     crowded: bool = False  # agentes activos visibles >= crowding_threshold
     carcass_visible: bool = False  # algún recurso visible es un cadáver (R35)
+
+    def __post_init__(self) -> None:
+        """Exige la coherencia que fijan D47.1 y D47.3 entre los campos sobre los adyacentes.
+
+        `adjacent` es estrictamente ascendente; `weakest_adjacent` es uno de ellos, y es `None`
+        si y sólo si `adjacent` está vacío; `weaker_adjacent` exige un `weakest_adjacent`.
+
+        Raises:
+            ValueError: si la percepción es incoherente.
+        """
+        adjacent = self.adjacent
+        if any(a >= b for a, b in pairwise(adjacent)):
+            raise ValueError(f"adjacent debe ser estrictamente ascendente: {adjacent}")
+        weakest = self.weakest_adjacent
+        if (weakest is None) != (not adjacent) or (weakest is not None and weakest not in adjacent):
+            raise ValueError(
+                f"weakest_adjacent debe estar en adjacent, o ser None sin adyacentes: "
+                f"{weakest} con {adjacent}"
+            )
+        if self.weaker_adjacent and weakest is None:
+            raise ValueError("weaker_adjacent exige un weakest_adjacent")
 
 
 @dataclass(frozen=True)

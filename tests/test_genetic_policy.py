@@ -703,7 +703,7 @@ def founder_scenarios(draw: st.DrawFn) -> tuple[Any, ...]:
         st.builds(
             SocialPerception,
             adjacent=st.just((2, 5)),
-            weakest_adjacent=st.sampled_from([None, 2]),
+            weakest_adjacent=st.sampled_from([2, 5]),
             weaker_adjacent=st.booleans(),
             flee_move=st.sampled_from([None, (1, 0)]),
             crowded=st.booleans(),
@@ -769,3 +769,96 @@ def test_aceptacion_del_fundador_genetico(protocol: str) -> None:
     assert len(with_policy[0]) == 120
     assert with_policy[6] > PHASE2_PROTOCOL_CONFIGS[protocol].num_agents  # hubo nacimientos
     assert with_policy == without
+
+
+# --- Correcciones de la revisión del bloque 10 -------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"adjacent": (3,)},  # adyacentes sin el más débil
+        {"adjacent": (3,), "weakest_adjacent": 4},  # el más débil no es adyacente
+        {"weakest_adjacent": 3},  # el más débil sin adyacentes
+        {"weaker_adjacent": True},  # más débil que uno mismo sin objetivo
+        {"adjacent": (5, 3), "weakest_adjacent": 3},  # no ascendentes
+        {"adjacent": (3, 3), "weakest_adjacent": 3},  # repetidos
+    ],
+)
+def test_percepcion_social_incoherente_rechazada(fields: dict[str, Any]) -> None:
+    with pytest.raises(ValueError):
+        SocialPerception(**fields)
+
+
+def test_percepcion_social_coherente_aceptada() -> None:
+    social = SocialPerception(adjacent=(2, 5), weakest_adjacent=5, weaker_adjacent=True)
+    assert social.weakest_adjacent == 5
+
+
+def test_la_puerta_la_declara_la_politica() -> None:
+    assert GeneticPolicy.gates_communication is True
+    assert HandwrittenPolicy.gates_communication is False
+
+    class Gated:  # una política propia que declara la puerta, sin ser `GeneticPolicy`
+        gates_communication = True
+
+        def decide(self, *_args: Any) -> AgentAction:
+            return IDLE
+
+    class Open:
+        gates_communication = False
+
+        def decide(self, *_args: Any) -> AgentAction:
+            return IDLE
+
+    config = replace(GCFG, comm_propensity_base=0.0)
+    assert MicroAgent(1, config, policy=Gated()).communicates is False
+    assert MicroAgent(1, config, policy=Open()).communicates is True
+
+
+def test_una_sola_instancia_de_la_politica_genetica() -> None:
+    engine = genetic_engine()
+    policies = {id(agent.policy) for agent in engine.agents.values()}
+    assert len(policies) == 1
+
+
+def test_la_endospora_recibe_su_percepcion_social(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Que la endospora no decida ni se perciba queda para el bloque 17 (precisión 82).
+    engine = genetic_engine()
+    engine.agents[5].set_endospore(True)
+    social = social_frame(engine, {}, monkeypatch).social
+    assert set(social) == set(engine.agents)
+
+
+def test_cache_de_impulsos_acotado_y_con_aciertos(monkeypatch: pytest.MonkeyPatch) -> None:
+    import ide.agent.micro_agent as micro_agent
+
+    calls: list[SensorySignals] = []
+
+    def counting(dna: CompactDNA, context: Any, signals: SensorySignals, config: Any) -> Any:
+        calls.append(signals)
+        return evaluate_drives(dna, context, signals, config)
+
+    monkeypatch.setattr(micro_agent, "evaluate_drives", counting)
+    monkeypatch.setattr(micro_agent, "DRIVES_CACHE_LIMIT", 5)
+    agent = genetic_agent({})
+    agent.set_dna(_CONTEXT_DNA)
+    few = all_signals()[:4]
+    for _ in range(3):  # cuatro claves bajo el tope: sólo la primera vuelta evalúa
+        for s in few:
+            assert agent.behavior_drives(s) == evaluate_drives(
+                _CONTEXT_DNA, agent.last_context, s, agent.base_config
+            )
+    assert calls == few
+    many = all_signals()[:40]
+    for s in many:  # más claves que el tope: el caché nunca lo supera y los valores no cambian
+        assert agent.behavior_drives(s) == evaluate_drives(
+            _CONTEXT_DNA, agent.last_context, s, agent.base_config
+        )
+        assert len(agent._drives_cache) <= 5  # pyright: ignore[reportPrivateUsage]
+
+
+def test_tope_declarado_del_cache() -> None:
+    from ide.agent.micro_agent import DRIVES_CACHE_LIMIT
+
+    assert DRIVES_CACHE_LIMIT == 512

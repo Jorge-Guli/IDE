@@ -18,7 +18,7 @@ from ide.agent.epistemology import (
 )
 from ide.agent.evolution import genome_from_config
 from ide.agent.memory import BoundedMemory
-from ide.agent.policy import GeneticPolicy, HandwrittenPolicy, PolicyPort
+from ide.agent.policy import HandwrittenPolicy, PolicyPort
 from ide.agent.protocol import BeliefExchangeProtocol
 from ide.config import SimulationConfig
 from ide.domain.extensions import (
@@ -46,6 +46,13 @@ from ide.domain.types import (
 _ExpressionKey = tuple[int, EpigeneticRole, int]
 # Clave del caché de impulsos (D46.8): la del caché de expresión más las señales del tick.
 _DrivesKey = tuple[_ExpressionKey, SensorySignals]
+# Tope del caché de impulsos, por agente: al alcanzarlo se vacía. Las claves posibles son muchas
+# (10 niveles, 4 roles, 3 bandas y 2^12 señales), así que sin tope el caché crecería sin medida
+# en una vida larga. Medido en el bloque 10 (002a y 003a con ADN, política genética, mutación
+# 0.2, R36 y R37, 500 ticks), un agente usa a lo sumo 117 claves (media de 21 a 32), así que 512
+# casi nunca se alcanza y acota la memoria a unos cientos de tuplas por agente. Vaciarlo no
+# cambia ningún resultado: sólo obliga a recalcular.
+DRIVES_CACHE_LIMIT = 512
 _BAND_STRESS, _BAND_NORMAL, _BAND_SURPLUS = 0, 1, 2
 # Los promotores de nivel distinguen hasta `IN_HOLON_L9` (0x0A, design D32).
 _MAX_DISTINCT_LEVEL = 9
@@ -296,11 +303,12 @@ class MicroAgent:
 
     @property
     def communicates(self) -> bool:
-        """Puerta de comunicación (D46.6): con `GeneticPolicy`, `comm_propensity >= 0.5`.
+        """Puerta de comunicación (D46.6): `comm_propensity >= 0.5` si la política la declara.
 
-        Con cualquier otra política vale siempre `True`. La lee `protocol.py`.
+        La declara una política con `gates_communication = True` (`GeneticPolicy`); con
+        `False` (`HandwrittenPolicy`) vale siempre `True`. La lee `protocol.py`.
         """
-        if isinstance(self._policy, GeneticPolicy):
+        if self._policy.gates_communication:
             return self._phenotype.comm_propensity >= 0.5
         return True
 
@@ -409,7 +417,8 @@ class MicroAgent:
 
         La clave es la del caché de expresión (D34.2) más `signals`: los promotores de contexto
         sólo distinguen el nivel acotado, el rol y la banda de energía. `set_dna` invalida el
-        caché, así que nunca sirve los impulsos de otro ADN.
+        caché, así que nunca sirve los impulsos de otro ADN, y se vacía al superar
+        `DRIVES_CACHE_LIMIT` entradas.
         """
         dna = self._dna
         if dna is None:
@@ -419,6 +428,8 @@ class MicroAgent:
         drives = self._drives_cache.get(key)
         if drives is None:
             drives = evaluate_drives(dna, context, signals, self._base_config)
+            if len(self._drives_cache) >= DRIVES_CACHE_LIMIT:
+                self._drives_cache.clear()
             self._drives_cache[key] = drives
         return drives
 

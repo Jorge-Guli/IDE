@@ -75,6 +75,7 @@ def legacy_decide(agent: MicroAgent, obs: Observation, rng: np.random.Generator)
 @dataclass
 class RecordingPolicy:
     calls: list[tuple[object, ...]] = field(default_factory=list)
+    gates_communication: bool = False
 
     def decide(
         self,
@@ -89,6 +90,8 @@ class RecordingPolicy:
 
 
 class IdlePolicy:
+    gates_communication = False
+
     def decide(
         self,
         agent: MicroAgent,
@@ -179,7 +182,9 @@ def test_handwritten_igual_a_la_fase_i(
     a = MicroAgent(1, replace(CFG, enable_navigation=navigate))
     for i, value, conf in beliefs:
         a.assimilate_testimony(KnowledgeUnit(pat(i), value, conf, 1, 0, True), 2, 0)
-    social = SocialPerception(adjacent=(2,), crowded=True) if with_social else None
+    social = (
+        SocialPerception(adjacent=(2,), weakest_adjacent=2, crowded=True) if with_social else None
+    )
     g1, g2, g3 = rng(seed), rng(seed), rng(seed)
     expected = legacy_decide(a, o, g1)
     assert HandwrittenPolicy().decide(a, o, social, 0, g2) == expected

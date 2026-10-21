@@ -295,11 +295,15 @@ El superávit de conocimiento del holón (D24.2) SHALL contar sólo los patrones
 - **THEN** el holón no tiene superávit de conocimiento.
 
 ### Requirement: Entorno Ecológico Exigido
-El motor SHALL lanzar `TypeError` si el entorno no cumple `EcologicalEnvironmentPort` y están activas `enable_resource_depletion` o `enable_heterogeneity`, con o sin evolución, o `enable_carcasses` con `enable_evolution`. Sin evolución, $R_{35}$ es inerte y no lo exige (design precisión 79).
+El motor SHALL lanzar `TypeError` si el entorno no cumple `EcologicalEnvironmentPort` y están activas `enable_resource_depletion` o `enable_heterogeneity`, con o sin evolución, `enable_carcasses` con `enable_evolution`, o `enable_genetic_policy` con `enable_compact_dna`. Sin evolución $R_{35}$, y sin ADN $R_{32}$, son inertes y no lo exigen (design precisiones 79 y 82).
 
 #### Scenario: Entorno evolutivo con R33
 - **WHEN** se construye el motor con `enable_resource_depletion=True`, `enable_evolution=False` y un entorno que cumple `EvolutionaryEnvironmentPort` pero no `EcologicalEnvironmentPort`
 - **THEN** la construcción lanza `TypeError`, y con sólo `enable_carcasses=True` y sin evolución no lo lanza.
+
+#### Scenario: Entorno evolutivo con la política genética
+- **WHEN** se construye el motor con `enable_compact_dna=True`, `enable_genetic_policy=True` y un entorno que cumple `EvolutionaryEnvironmentPort` pero no `EcologicalEnvironmentPort`
+- **THEN** la construcción lanza `TypeError`, y con `enable_compact_dna=False` no lo lanza.
 
 ### Requirement: Consumo de Cadáveres como Recurso Elemental
 Comer un cadáver SHALL seguir en la Fase 4 el camino de cualquier recurso elemental: aprendizaje directo, suma a `direct_discoverers`, ganancia `energy_gain_scale * carcass_value` y, con $R_{19}$, depósito de estigmergia.

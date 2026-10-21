@@ -247,7 +247,9 @@ class PerceptionSystem(BaseSystem):
 class SocialPerceptionSystem(BaseSystem):
     """Percepción social (R32, D47.3): una `SocialPerception` por agente en `frame.social`.
 
-    Sólo está en la lista con la política genética efectivamente activa. Usa
+    Sólo está en la lista con la política genética efectivamente activa. Construye la
+    percepción de todos los agentes, también la de las endosporas: que una endospora no decida ni
+    se perciba queda para el bloque 17 (precisión 82). Usa
     `get_visible_agents` y la instantánea de energías al empezar el sistema, antes de cualquier
     acción del tick (percepción sincrónica):
     - "activo" excluye a las endosporas;
@@ -265,7 +267,8 @@ class SocialPerceptionSystem(BaseSystem):
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         env = cast(EcologicalEnvironmentPort, engine.env)
         agents, social, observations = engine.agents, frame.social, frame.observations
-        energy = {aid: agents[aid].energy for aid in sorted(agents)}
+        # Instantánea de energías: sólo se consulta, nunca se recorre para dar un orden.
+        energy = {aid: agent.energy for aid, agent in agents.items()}
         crowding = engine.config.crowding_threshold
         for aid in frame.order:
             own = energy[aid]
@@ -356,7 +359,8 @@ class DecisionSystem(BaseSystem):
         for aid in frame.order:
             observation = frame.observations[aid]
             agent, perception = agents[aid], social.get(aid)
-            # Sin percepción social se conserva la llamada de la Fase I (`social` es `None`).
+            # Sin percepción social se conserva la llamada de la Fase I (`social` es `None`):
+            # hay tests de la Fase II que parchean `decide_action` con sólo tres parámetros.
             if perception is None:
                 action = agent.decide_action(observation, tick, rng)
             else:

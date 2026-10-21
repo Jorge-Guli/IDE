@@ -29,7 +29,12 @@ class PolicyPort(Protocol):
     """Componente intercambiable que decide la acción de un agente (design D45.1).
 
     `social` es la `SocialPerception` del tick o `None` (design D47.1).
+
+    `gates_communication` declara la puerta de comunicación de D46.6: si vale `True`, el agente
+    comunica sólo con `comm_propensity >= 0.5`; si vale `False`, comunica siempre.
     """
+
+    gates_communication: bool
 
     def decide(
         self,
@@ -46,8 +51,11 @@ class HandwrittenPolicy:
 
     Consume el recurso alcanzable de mayor $\\hat{v} \\cdot c$, explora con probabilidad
     $\\epsilon$, navega hacia un objetivo conocido o camina al azar; desempates por menor
-    `resource_id`. Ignora `social`.
+    `resource_id`. Ignora `social`. Comparte con `GeneticPolicy` la clasificación de los recursos
+    visibles (`_survey`), que no consume generadores: las extracciones de `rng` no cambian.
     """
+
+    gates_communication = False
 
     def decide(
         self,
@@ -58,25 +66,8 @@ class HandwrittenPolicy:
         rng: np.random.Generator,
     ) -> AgentAction:
         config = agent.config
-        navigate = config.enable_navigation
-        beneficial: list[tuple[float, int]] = []  # (-v̂·c, resource_id): `min` elige el mejor
-        unknown: list[VisibleResource] = []
-        goals: list[VisibleResource] = []
-        for res in obs.visible_resources:
-            if not (res.is_reachable_now or navigate):
-                continue
-            belief = agent.get_effective_belief(res.pattern)
-            if not is_known(belief, config):
-                if res.is_reachable_now:
-                    unknown.append(res)
-            elif belief.predicted_value > 0:
-                if res.is_reachable_now:
-                    beneficial.append(
-                        (-belief.predicted_value * belief.confidence, res.resource_id)
-                    )
-                else:
-                    goals.append(res)
-
+        # Sin navegación no consulta las creencias de los recursos lejanos, como en la Fase I.
+        beneficial, unknown, goals, _, _ = _survey(agent, obs, config.enable_navigation)
         if beneficial:
             return AgentAction(ActionType.INTERACT, min(beneficial)[1])
         if unknown and rng.random() < config.epsilon_explore:
@@ -112,13 +103,20 @@ class _Survey(NamedTuple):
     any_unknown: bool  # algún recurso visible es desconocido
 
 
-def _survey(agent: "MicroAgent", obs: Observation) -> _Survey:
+def _survey(agent: "MicroAgent", obs: Observation, far: bool = True) -> _Survey:
+    """Clasifica los recursos visibles; con `far=False` ignora los no alcanzables.
+
+    `HandwrittenPolicy` pasa `far = enable_navigation` y no consulta las creencias de lo que no
+    usará; `GeneticPolicy` los mira todos, porque las señales hablan de todo lo visible.
+    """
     config = agent.config
     beneficial: list[tuple[float, int]] = []
     unknown: list[VisibleResource] = []
     goals: list[VisibleResource] = []
     known_good = any_unknown = False
     for res in obs.visible_resources:
+        if not (far or res.is_reachable_now):
+            continue
         belief = agent.get_effective_belief(res.pattern)
         if not is_known(belief, config):
             any_unknown = True
@@ -173,8 +171,11 @@ class GeneticPolicy:
     devuelve la acción de la primera factible, o `IDLE` si ninguna lo es. La factibilidad se
     evalúa en ese orden y se detiene en la primera factible, así que `rng` sólo se consume en
     `EXPLORE` (si hay un recurso alcanzable desconocido) y en `WANDER`, como en
-    `HandwrittenPolicy` (precisión 25). No guarda estado.
+    `HandwrittenPolicy` (precisión 25). No guarda estado, así que una sola instancia sirve a
+    toda la población. Declara la puerta de comunicación de D46.6.
     """
+
+    gates_communication = True
 
     def decide(
         self,
@@ -204,7 +205,11 @@ def _feasible_action(
     survey: _Survey,
     rng: np.random.Generator,
 ) -> AgentAction | None:
-    """Acción de `behavior` si es factible (D46.1, precisiones 11, 24 y 30); si no, `None`."""
+    """Acción de `behavior` si es factible (D46.1, precisiones 11, 24 y 30); si no, `None`.
+
+    `SHARE` y `ATTACK` exigen además un objetivo (`social.weakest_adjacent is not None`): con
+    una percepción incoherente no devuelven una acción sin destinatario.
+    """
     config = agent.config
     match behavior:
         case Behavior.CONSUME:
@@ -224,11 +229,13 @@ def _feasible_action(
             if moves:
                 return AgentAction(ActionType.MOVE, moves[int(rng.integers(len(moves)))])
         case Behavior.SHARE:
-            if config.enable_energy_transfer and social.adjacent and agent.energy > 0:
-                return AgentAction(ActionType.SHARE, social.weakest_adjacent)
+            target = social.weakest_adjacent
+            if config.enable_energy_transfer and target is not None and agent.energy > 0:
+                return AgentAction(ActionType.SHARE, target)
         case Behavior.ATTACK:
-            if config.enable_predation and social.weaker_adjacent:
-                return AgentAction(ActionType.ATTACK, social.weakest_adjacent)
+            target = social.weakest_adjacent
+            if config.enable_predation and social.weaker_adjacent and target is not None:
+                return AgentAction(ActionType.ATTACK, target)
         case Behavior.FLEE:
             if social.flee_move is not None:
                 return AgentAction(ActionType.MOVE, social.flee_move)
