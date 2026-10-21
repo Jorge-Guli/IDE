@@ -24,6 +24,8 @@ from hypothesis import strategies as st
 
 from ide.agent.dna import (
     BEHAVIOR_TARGETS,
+    BEHAVIORS,
+    BehaviorTerms,
     behavior_terms,
     encode_codon,
     evaluate_behavior,
@@ -159,6 +161,18 @@ def test_plasticity_active_exige_la_evolucion() -> None:
     config = config_with()
     object.__setattr__(config, "enable_evolution", False)  # salta la validación a propósito
     assert not plasticity_active(config)
+
+
+def test_terminos_inconsistentes_se_rechazan() -> None:
+    plain = behavior_terms(dna_of(encode_codon(0x00, WANDER, 0, 0, 64)), CTX0, signals(), R40)
+    learning = behavior_terms(dna_of(plastic(WANDER, 32)), CTX0, signals(), R40)
+    eight = (0.0,) * 8
+    with pytest.raises(ValueError, match="BehaviorTerms"):
+        BehaviorTerms(plain.base, eight, eight, eight)  # tuplas sin codones plásticos
+    with pytest.raises(ValueError, match="BehaviorTerms"):
+        BehaviorTerms(learning.base)  # codones plásticos sin tuplas
+    with pytest.raises(ValueError, match="BehaviorTerms"):
+        BehaviorTerms(learning.base, eight, eight, (1.0,))
 
 
 def test_terminos_sin_codones_plasticos_no_guardan_la_acumulacion() -> None:
@@ -342,13 +356,15 @@ def agent_with(*codons: int, config: SimulationConfig = R40) -> MicroAgent:
 
 def set_weights(agent: MicroAgent, weights: dict[int, float]) -> None:
     """Fija los pesos en el orden por posición que mantiene el agente."""
-    agent._plastic_weights = dict(sorted(weights.items()))  # pyright: ignore[reportPrivateUsage]
+    held = agent._plastic_weights  # pyright: ignore[reportPrivateUsage]
+    held.clear()
+    held.update(sorted(weights.items()))
 
 
 def decided(agent: MicroAgent, behavior: Behavior, tick: int = 0) -> None:
     """Registra la decisión del tick y la conducta elegida, como la política genética."""
     agent.evaluate_for_decision(signals(), tick)
-    agent.record_behavior(list(Behavior).index(behavior), tick)
+    agent.record_behavior(BEHAVIORS.index(behavior), tick)
 
 
 def learner(rate: float = 0.5, config: SimulationConfig | None = None) -> MicroAgent:
@@ -370,8 +386,17 @@ def test_refuerzo_acotado() -> None:
     agent = learner()
     set_weights(agent, {11: 0.9, 9: 0.2})
     decided(agent, Behavior.CONSUME)
-    agent.reinforce(0, 0.4)
+    assert agent.reinforce(0, 0.4) == 2
     assert agent.plastic_weights == {9: 0.2, 11: 1.0, 12: pytest.approx(0.2, abs=1e-9)}
+
+
+def test_los_pesos_saturados_no_cuentan() -> None:
+    """`plastic_updates` cuenta sólo los pesos cuyo valor cambió (precisión 96)."""
+    agent = learner()
+    set_weights(agent, {11: 1.0, 12: 0.5})
+    decided(agent, Behavior.CONSUME)
+    assert agent.reinforce(0, 0.4) == 1  # el 11 ya está en la cota superior
+    assert agent.plastic_weights == {11: 1.0, 12: pytest.approx(0.7, abs=1e-9)}
 
 
 def test_refuerzo_negativo_acotado_abajo() -> None:
@@ -498,13 +523,17 @@ def test_pesos_conservados_en_endospora() -> None:
     assert agent.plastic_weights == {11: 0.3}
 
 
-def test_la_vista_de_los_pesos_es_de_solo_lectura() -> None:
+def test_la_vista_de_los_pesos_es_viva_y_de_solo_lectura() -> None:
     agent = learner()
-    set_weights(agent, {9: 0.2, 12: 0.1})
     view = agent.plastic_weights
+    decided(agent, Behavior.CONSUME)
+    agent.reinforce(0, 0.4)
+    assert view == {11: pytest.approx(0.2, abs=1e-9), 12: pytest.approx(0.2, abs=1e-9)}
+    snapshot = dict(view)
     with pytest.raises(TypeError):
         view[9] = 1.0  # type: ignore[index]
-    assert agent.plastic_weights == {9: 0.2, 12: 0.1}
+    agent.set_dna(CompactDNA(chromosome=FOUNDER_TRAITS))
+    assert view == {} and len(snapshot) == 2  # la vista sigue viva; la instantánea no cambia
 
 
 def test_los_pesos_nuevos_se_insertan_en_orden_de_posicion() -> None:

@@ -8,6 +8,7 @@ from types import MappingProxyType
 import numpy as np
 
 from ide.agent.dna import (
+    BEHAVIORS,
     BehaviorTerms,
     apply_plastic_weights,
     behavior_terms,
@@ -363,13 +364,15 @@ class MicroAgent:
         decision = self._decision
         if decision is None or decision[0] != tick or decision[2] is None:
             return None
-        return tuple(Behavior)[decision[2]]
+        return BEHAVIORS[decision[2]]
 
     @property
     def plastic_weights(self) -> Mapping[int, float]:
-        """Vista de sólo lectura de los pesos aprendidos ($R_{40}$, D59.2), por posición ascendente.
+        """Vista viva de sólo lectura de los pesos aprendidos ($R_{40}$, D59.2).
 
-        No copia: refleja los pesos vigentes hasta el próximo `set_dna`, que los reemplaza.
+        No copia: el agente conserva siempre el mismo diccionario, en orden ascendente de
+        posición, y la vista refleja cada cambio, también el vaciado de `set_dna`. Quien quiera
+        una instantánea hace `dict(agent.plastic_weights)`.
         """
         return MappingProxyType(self._plastic_weights)
 
@@ -429,7 +432,7 @@ class MicroAgent:
         self._expression_cache.clear()
         self._evaluation_cache.clear()
         self._decision = None  # la decisión registrada era la de otro ADN
-        self._plastic_weights = {}  # las posiciones de los codones cambian (D59.2)
+        self._plastic_weights.clear()  # las posiciones cambian (D59.2); la vista sigue viva
 
     def set_endospore(self, flag: bool) -> None:
         """Entrada en endospora o germinación (R28, design D38).
@@ -544,12 +547,12 @@ class MicroAgent:
         la conducta elegida (`decision_behavior(tick)`); cada uno se actualiza con
         $w_i \\leftarrow \\min(1, \\max(-1, w_i + \\eta \\cdot r))$, con
         $\\eta$ = `phenotype.plasticity_rate`. Con $\\eta \\cdot r = 0$ ningún peso cambia ni se
-        agregan pesos en 0; los pesos nuevos se insertan manteniendo el orden por posición. No
-        consume generadores.
+        agregan pesos en 0. Si se agrega una posición nueva, el diccionario se reordena en el
+        lugar por posición. No consume generadores.
 
         Returns:
-            Las actualizaciones que mueven un peso ($\\eta \\cdot r \\ne 0$): una por codón
-            elegible, para `plastic_updates` (D63.3, precisiones 62 y 96); 0 sin decisión o
+            Los pesos cuyo valor cambió, para `plastic_updates` (D63.3, precisiones 62 y 96): no
+            cuentan los ya saturados en $\\pm 1$ que la cota deja igual; 0 sin decisión o
             conducta registradas o con $\\eta \\cdot r = 0$.
         """
         decision = self._decision
@@ -560,14 +563,21 @@ class MicroAgent:
         if step == 0.0:
             return 0
         weights = self._plastic_weights
-        unsorted = False
+        changed = 0
+        inserted = False
         for index in eligible:
-            if index not in weights and weights and index < next(reversed(weights)):
-                unsorted = True
-            weights[index] = min(1.0, max(-1.0, weights.get(index, 0.0) + step))
-        if unsorted:
-            self._plastic_weights = dict(sorted(weights.items()))
-        return len(eligible)
+            old = weights.get(index)
+            new = min(1.0, max(-1.0, (0.0 if old is None else old) + step))
+            if new != (0.0 if old is None else old):
+                changed += 1
+            if old is None:
+                inserted = True
+            weights[index] = new
+        if inserted:  # orden ascendente de posición, en el mismo diccionario (vista viva)
+            items = sorted(weights.items())
+            weights.clear()
+            weights.update(items)
+        return changed
 
     def apply_internal_state(self, tick: int) -> None:
         """Aplica `(internal_state | set_mask) & ~clear_mask` de la decisión de `tick` (D58.3).

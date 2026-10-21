@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, NamedTuple, Protocol
 
 import numpy as np
 
+from ide.agent.dna import BEHAVIORS
 from ide.agent.epistemology import is_known
 from ide.domain.types import (
     ActionType,
@@ -87,7 +88,6 @@ class HandwrittenPolicy:
 
 # --- Política genética (R32, D46) ----------------------------------------------------------------
 
-_BEHAVIORS = tuple(Behavior)  # orden de la tabla de D46.1: orden de desempate
 _NO_SOCIAL = SocialPerception()  # sin percepción social, las señales sociales son falsas (prec. 24)
 _IDLE = AgentAction(ActionType.IDLE)
 
@@ -196,7 +196,7 @@ class GeneticPolicy:
         signals = _signals(survey, obs, social, agent.last_events)
         drives = agent.evaluate_for_decision(signals, tick).drives
         for _, slot in sorted((-drive, slot) for slot, drive in enumerate(drives) if drive > 0):
-            action = _feasible_action(_BEHAVIORS[slot], agent, obs, social, survey, rng)
+            action = _feasible_action(BEHAVIORS[slot], agent, obs, social, survey, rng)
             if action is not None:
                 agent.record_behavior(slot, tick)  # conducta elegida, para R40 (D59.4)
                 return action

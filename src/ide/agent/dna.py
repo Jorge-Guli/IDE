@@ -37,6 +37,7 @@ from ide.domain.types import (
 )
 
 __all__ = [
+    "BEHAVIORS",
     "BEHAVIOR_TARGETS",
     "FOUNDER_DNA_LENGTH",
     "BehaviorTerms",
@@ -75,7 +76,10 @@ _TRAIT_SLOT = {target: slot for slot, target in enumerate(_TRAIT_TARGETS)}
 _TRAIT_COUNT = len(_TRAIT_TARGETS)
 _INTEGER_SLOTS = range(4, 8)  # memory_capacity, perception_radius, comm_radius, lifespan
 
-# Conductas (D46.1): un destino por `Behavior`, en el orden del enumerado.
+# Conductas (D46.1): el orden de la tabla, que es el de desempate y el de las posiciones de
+# `drives` y `plastic`; única fuente de ese orden para la política y el agente.
+BEHAVIORS: tuple[Behavior, ...] = tuple(Behavior)
+# Un destino por `Behavior`, en el orden del enumerado.
 BEHAVIOR_TARGETS = (0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47)
 assert len(BEHAVIOR_TARGETS) == len(Behavior), "BEHAVIOR_TARGETS debe tener un destino por Behavior"
 _BEHAVIOR_SLOT = {target: slot for slot, target in enumerate(BEHAVIOR_TARGETS)}
@@ -467,6 +471,15 @@ class BehaviorTerms:
     repressor: tuple[float, ...] = ()  # rho_B
     multiplier: tuple[float, ...] = ()  # mu_B
 
+    def __post_init__(self) -> None:
+        """Las tuplas son vacías si y sólo si `base.plastic` no tiene codones plásticos."""
+        plastic = any(self.base.plastic)
+        sizes = {len(self.additive), len(self.repressor), len(self.multiplier)}
+        if sizes != ({_BEHAVIOR_COUNT} if plastic else {0}):
+            raise ValueError(
+                "BehaviorTerms exige S, rho y mu por conducta si y sólo si hay codones plásticos"
+            )
+
 
 def behavior_terms(
     dna: CompactDNA,
@@ -520,7 +533,7 @@ def apply_plastic_weights(
     idéntica: sumar 0.0 a $S_B$ no la cambia. Las demás conductas conservan su impulso.
     """
     base = terms.base
-    if not plastic_weights or base.plastic is _NO_PLASTIC:
+    if not plastic_weights or not terms.additive:  # sin pesos o sin codones plásticos
         return base
     drives = list(base.drives)
     for b, indices in enumerate(base.plastic):
