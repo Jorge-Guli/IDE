@@ -1110,6 +1110,15 @@ Cierran huecos de D53–D56 sin cambiar su intención. Forman parte del borrador
 54. **Destino `0x0F` en los conteos.** `plasticity_rate` es un rasgo: el destino `0x0F` cuenta en `expressed_codons` (D46.7) y es funcional a los efectos de la precisión 42 y de `mean_functional_codons`, junto con `0x00`–`0x08` y `0x0A`–`0x0C`.
 55. **Alcance de `--jobs` (D62.3).** El valor por defecto con los núcleos detectados rige para todos los runners y CLI de calibración del proyecto, también los de las Fases I y II. Como la salida es idéntica para cualquier `--jobs`, ningún resultado registrado cambia.
 56. **Momento del cambio del entorno (D62.1).** Ocurre al empezar el tick, antes de la Fase 0, en los ticks $t > 0$ con $t \bmod$ `world_shift_period` $= 0$.
+57. **Caché con pesos (D59.5).** El caché guarda, por conducta, $S_B$ sin los pesos, $\mu_B$, $\rho_B$ y los índices de sus codones plásticos; el impulso es $d_B = \mu_B \cdot \rho_B \cdot (S_B + \sum_i w_i)$. Su clave incluye la clave de contexto de D34.2, `signals`, `internal_state` y la máscara percibida.
+58. **Campos de eventos en `SensorySignals`.** Son `attacked`, `ate`, `lost_energy` y `received_energy`, al final y en ese orden, con los nombres de `EventSignals`.
+59. **Expresabilidad ampliada (precisión 42).** Los promotores sensoriales, de eventos, de estado y de señales percibidas son expresables sobre destinos de conducta, de estado y de señal, y los `EMIT_TF` con esos promotores cuentan como emisores para los canales `0x80`–`0xBF` de codones con esos destinos.
+60. **Límite declarado de `expressible_codons`.** La función recibe `holonic` y `roles`, pero no las banderas de $R_{39}$–$R_{41}$: con esas reglas apagadas, sobreestima lo expresable. No afecta a C13, C17 ni C19, cuyas comparaciones mantienen esas reglas encendidas en las dos condiciones.
+61. **Orden en `EcologyTickMetrics`.** Los campos nuevos van al final en este orden: `signals_emitted`, `plastic_updates`, `decision_opportunities` y `correct_decisions`.
+62. **`plastic_updates`.** Cuenta pesos actualizados con $r \ne 0$ (uno por codón elegible), no agentes.
+63. **Ventana de `post_shift_accuracy`.** Para un cambio en el tick $s$, es $[s, s + 200)$: incluye el tick del cambio.
+64. **Momento de los eventos y percepción tras germinar.** `EventSignals` se calcula en la Fase 5, después de la muerte y antes de los observadores de `on_tick_end`. La percepción de señales de la Fase 1 ocurre después de la germinación: un agente que germina en $t + 1$ percibe las señales de $t$ si era vecino de comunicación del emisor en $t$.
+65. **Máscara percibida.** El atributo del agente es `perceived_symbols: int`, que vale 0 al nacer y se recalcula en cada Fase 1.
 
 ---
 

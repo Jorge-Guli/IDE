@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Proveer el genotipo compacto de las hojas ($L = 0$) de la Fase II-B: codones de 32 bits con promotor, destino, modo, canal y carga; un ADN fundador neutro; la transcripción pura en dos pasadas con una red regulatoria de un solo nivel, que produce el fenotipo expresado según el contexto epigenético ($R_{24}$); los operadores de mutación del ADN; las operaciones sobre plásmidos y memoria CRISPR ($R_{26}$, $R_{27}$); la conducta codificada en el ADN ($R_{32}$): destinos de conducta, promotores sensoriales, la evaluación pura de impulsos y el fundador conductual neutro; y la recombinación pura de cromosomas ($R_{38}$). Todo vive en `src/ide/agent/dna.py`, según design D32, D33, D35, D37, D46 y D51.
+Proveer el genotipo compacto de las hojas ($L = 0$) de la Fase II-B: codones de 32 bits con promotor, destino, modo, canal y carga; un ADN fundador neutro; la transcripción pura en dos pasadas con una red regulatoria de un solo nivel, que produce el fenotipo expresado según el contexto epigenético ($R_{24}$); los operadores de mutación del ADN; las operaciones sobre plásmidos y memoria CRISPR ($R_{26}$, $R_{27}$); la conducta codificada en el ADN ($R_{32}$): destinos de conducta, promotores sensoriales, la evaluación pura de la conducta y de los impulsos y el fundador conductual neutro; la recombinación pura de cromosomas ($R_{38}$); y la máquina mínima de la ampliación: estado interno ($R_{39}$), modo plástico y tasa de plasticidad ($R_{40}$) y señales ($R_{41}$). Todo vive en `src/ide/agent/dna.py`, según design D32, D33, D35, D37, D46, D51 y D57–D61.
 
 ## ADDED Requirements
 
@@ -47,14 +47,14 @@ La transcripción SHALL considerar activos los promotores `0x10`, `0x11` y `0x12
 - **THEN** el codón está activo sólo en el primer contexto.
 
 ### Requirement: Promotores Reservados Inertes
-Los promotores `0x0B`–`0x0F`, `0x13`–`0x17`, `0x1A`–`0x1F`, `0x28`–`0x7F` y `0xC0`–`0xFF` SHALL quedar reservados y nunca activarse en ningún contexto, ni en la transcripción del fenotipo ni en `evaluate_drives`; los promotores sensoriales `0x20`–`0x27` SHALL quedar inactivos en la transcripción del fenotipo, porque sólo actúan en la evaluación de impulsos (design D46.2).
+Los promotores `0x0B`–`0x0F`, `0x13`–`0x17`, `0x1A`–`0x1F`, `0x2C`–`0x2F`, `0x40`–`0x7F` y `0xC0`–`0xFF` SHALL quedar reservados y nunca activarse, ni en la transcripción del fenotipo ni en `evaluate_behavior`; los sensoriales `0x20`–`0x27`, los de eventos `0x28`–`0x2B`, los de estado `0x30`–`0x37` y los de señales percibidas `0x38`–`0x3F` SHALL quedar inactivos en la transcripción del fenotipo, porque sólo actúan en la evaluación de conducta (design D46.2, D58.6 y D61).
 
-#### Scenario: Codones con promotor reservado o sensorial en el fenotipo
-- **WHEN** se agregan al ADN fundador codones aditivos con `payload = 64` sobre el destino `0x00` y promotores `0x0B`, `0x13`, `0x1A`, `0x20` (sensorial), `0x27` (sensorial), `0x28`, `0x7F` y `0xC0`, y se transcriben en contextos con todos los niveles, roles y energías
+#### Scenario: Codones con promotor reservado o de conducta en el fenotipo
+- **WHEN** se agregan al ADN fundador codones aditivos con `payload = 64` sobre el destino `0x00` y promotores `0x0B`, `0x13`, `0x1A`, `0x2C`, `0x40`, `0x7F` y `0xC0` (reservados) y `0x20`, `0x27`, `0x28`, `0x2B`, `0x30`, `0x37`, `0x38` y `0x3F` (de conducta), y se transcriben en contextos con todos los niveles, roles y energías
 - **THEN** el `alpha_learning` expresado es siempre igual a la base.
 
-#### Scenario: Promotores reservados en la evaluación de impulsos
-- **WHEN** se evalúa con `evaluate_drives` un ADN con codones `encode_codon(p, 0x43, 0, 0, 64)` para `p` en `0x0B`, `0x1A`, `0x28`, `0x7F` y `0xC0`, con todos los campos de `SensorySignals` en `True`
+#### Scenario: Promotores reservados en la evaluación de conducta
+- **WHEN** con $R_{32}$, $R_{39}$ y $R_{41}$ efectivamente activas se evalúa con `evaluate_behavior` un ADN con codones `encode_codon(p, 0x43, 0, 0, 64)` para `p` en `0x0B`, `0x1A`, `0x2C`, `0x2F`, `0x40`, `0x7F` y `0xC0`, con todos los campos de `SensorySignals` en `True`, `state=0xFF` y `perceived=0xFF`
 - **THEN** el impulso de `WANDER` vale `0.0`.
 
 ### Requirement: Destinos de Rasgo con Base, Escala y Cotas
@@ -75,8 +75,15 @@ Los destinos `0x0A`, `0x0B` y `0x0C` SHALL modular, como rasgos reales con escal
 - **WHEN** con `recombination_base = 0.0` se transcribe el ADN fundador más `encode_codon(0x00, 0x0B, 0, 0, 108)` ($\delta = 0.84375$)
 - **THEN** `recombination_propensity == 0.50625` (con tolerancia `1e-9`), que es $\ge 0.5$, mientras que con $k = 0.50$ el máximo de un codón sería $0.5 \cdot 0.9921875 < 0.5$.
 
+### Requirement: Destino de Rasgo de la Tasa de Plasticidad
+El destino `0x0F` SHALL modular, como rasgo real con base `plasticity_rate_base`, escala $k = 0.60$ y cotas $[0, 1]$, la tasa de plasticidad $\eta$ (`plasticity_rate`, $R_{40}$), con la misma fórmula, el mismo recorrido y las mismas pasadas que los demás destinos de rasgo; con base 0, nadie aprende al empezar (design D59.3 y D61).
+
+#### Scenario: Codón sobre la tasa de plasticidad
+- **WHEN** con `plasticity_rate_base = 0.0` se transcribe el ADN fundador más `encode_codon(0x00, 0x0F, 0, 0, 64)`, y después más `encode_codon(0x00, 0x0F, 0, 0, -64)`
+- **THEN** `plasticity_rate == 0.30` en el primer caso y `0.0` en el segundo, por la cota inferior (con tolerancia `1e-9`).
+
 ### Requirement: Cotas de los Rasgos Expresados
-La transcripción SHALL acotar $\alpha$ a $[0.01, 1]$; $\gamma$, $\epsilon$, $\omega_{\text{bond}}$ y los rasgos de `0x0A`–`0x0C` a $[0, 1]$; $C_{\max}$ a $[1, C^{\text{tope}}]$; los radios a $[1, r^{\text{tope}}]$; $T_{\max}$ a [`telomere_min_lifespan`, `telomere_max_lifespan`]; y $E_{\text{espora}}$ a [0, `reproduction_threshold`], con $C^{\text{tope}}$ y $r^{\text{tope}}$ iguales a las cotas de `mutate_genome` en la Fase II.
+La transcripción SHALL acotar $\alpha$ a $[0.01, 1]$; $\gamma$, $\epsilon$, $\omega_{\text{bond}}$ y los rasgos de `0x0A`–`0x0C` y `0x0F` a $[0, 1]$; $C_{\max}$ a $[1, C^{\text{tope}}]$; los radios a $[1, r^{\text{tope}}]$; $T_{\max}$ a [`telomere_min_lifespan`, `telomere_max_lifespan`]; y $E_{\text{espora}}$ a [0, `reproduction_threshold`], con $C^{\text{tope}}$ y $r^{\text{tope}}$ iguales a las cotas de `mutate_genome` en la Fase II.
 
 #### Scenario: Saturación de la propensión a comunicar
 - **WHEN** con `comm_propensity_base = 1.0` se transcribe el ADN fundador más `encode_codon(0x00, 0x0C, 0, 0, 127)`
@@ -91,11 +98,15 @@ La transcripción SHALL acotar $\alpha$ a $[0.01, 1]$; $\gamma$, $\epsilon$, $\o
 - **THEN** $x = 3 + 3 \cdot 2 = 9$ y la capacidad expresada vale `6`.
 
 ### Requirement: Destinos Reservados Inertes
-El destino `0x09` (`EMIT_TF`) SHALL usarse sólo para emitir el canal `channel`, sin modular rasgos ni impulsos, y los destinos `0x0D`–`0x3F` y `0x48`–`0xFF` (operadores lógicos y órganos de la Fase IV) SHALL quedar reservados e inertes, en la transcripción del fenotipo y en `evaluate_drives`; `0x0A`–`0x0C` son destinos de rasgo y `0x40`–`0x47`, de conducta (design D46).
+`0x09` (`EMIT_TF`) SHALL sólo emitir el canal `channel`, sin modular rasgos, impulsos, estado ni señales, y los destinos `0x10`–`0x3E`, `0x3F` (`AST_PIPE` de la Fase IV) y `0x49`–`0xFF` SHALL quedar reservados e inertes, en el fenotipo y en `evaluate_behavior`. Son de rasgo `0x00`–`0x08`, `0x0A`–`0x0C` y `0x0F`; de estado, `0x0D` y `0x0E`; de conducta, `0x40`–`0x47`; y de señal, `0x48` (design D46, D59.1 y D61).
 
 #### Scenario: Codones con destino reservado
-- **WHEN** con `enable_genetic_policy=False` se agregan al ADN fundador codones `ALWAYS_BASAL` aditivos con `payload = 127` y destinos `0x0D`, `0x3F`, `0x48`, `0x80` y `0xFF`
-- **THEN** el fenotipo expresado es igual al del ADN fundador, incluido `expressed_codons == 9`, y `evaluate_drives` devuelve los ocho impulsos en `0.0`.
+- **WHEN** con $R_{32}$, $R_{39}$, $R_{40}$ y $R_{41}$ efectivamente activas se agregan al ADN fundador sin política genética codones `ALWAYS_BASAL` con `payload = 127`, en los modos 0 y 3, con destinos `0x10`, `0x3E`, `0x3F`, `0x49`, `0x80` y `0xFF`
+- **THEN** el fenotipo expresado es igual al del ADN fundador, incluido `expressed_codons == 9`, y `evaluate_behavior` devuelve los ocho impulsos en `0.0`, `set_mask == clear_mask == emitted == 0` y ningún índice plástico.
+
+#### Scenario: Destinos de estado y de señal inertes en el fenotipo
+- **WHEN** se agregan al ADN fundador sin política genética `encode_codon(0x00, 0x0D, 0, 1, 127)`, `encode_codon(0x00, 0x0E, 0, 2, 127)` y `encode_codon(0x00, 0x48, 0, 3, 127)`
+- **THEN** el fenotipo expresado es igual al del ADN fundador, incluido `expressed_codons == 9`.
 
 ### Requirement: ADN Fundador Neutro
 `founder_dna(config) -> CompactDNA` SHALL devolver un cromosoma con los 9 codones `tuple(encode_codon(0x00, t) for t in range(0x00, 0x09))`, sin plásmidos ni firmas, y con `enable_genetic_policy=True` SHALL agregarle al final, en este orden, `encode_codon(0x00, 0x40, 0, 0, 127)`, `encode_codon(0x00, 0x41, 0, 0, 96)`, `encode_codon(0x00, 0x42, 0, 0, 64)` y `encode_codon(0x00, 0x43, 0, 0, 32)` (design D32 y D46.5).
@@ -116,11 +127,11 @@ El destino `0x09` (`EMIT_TF`) SHALL usarse sólo para emitir el canal `channel`,
 - **THEN** devuelve `9` y `13`, respectivamente, y `FOUNDER_DNA_LENGTH == 9` en ambos casos.
 
 ### Requirement: Neutralidad Fenotípica del ADN Fundador
-Para todo contexto y toda configuración válida con `enable_compact_dna=True`, con o sin política genética, `transcribe_phenotype(founder_dna(c), ctx, c)` SHALL expresar exactamente las bases: `genome == genome_from_config(c)`, `lifespan == c.telomere_base_lifespan`, `spore_threshold == c.spore_energy_threshold` y los rasgos de `0x0A`–`0x0C` iguales a sus bases.
+Para todo contexto y toda configuración válida con `enable_compact_dna=True`, con o sin política genética, `transcribe_phenotype(founder_dna(c), ctx, c)` SHALL expresar exactamente las bases: `genome == genome_from_config(c)`, `lifespan == c.telomere_base_lifespan`, `spore_threshold == c.spore_energy_threshold` y los rasgos de `0x0A`–`0x0C` y `0x0F` iguales a sus bases.
 
 #### Scenario: Neutralidad del fundador en cualquier contexto
 - **WHEN** se transcribe `founder_dna(config)` con una configuración válida con `enable_compact_dna=True`, con `enable_genetic_policy` en `False` y en `True`, y con los contextos `EpigeneticContext()`, `EpigeneticContext(3, EpigeneticRole.NERVE, 0.1)` y `EpigeneticContext(0, EpigeneticRole.EXPLORER, 2.0)`
-- **THEN** en todos los casos `genome == genome_from_config(config)`, `lifespan == config.telomere_base_lifespan`, `spore_threshold == config.spore_energy_threshold`, `symbiotic_commitment == config.symbiotic_commitment_base`, `recombination_propensity == config.recombination_base`, `comm_propensity == config.comm_propensity_base` y `expressed_codons == 9`.
+- **THEN** en todos los casos `genome == genome_from_config(config)`, `lifespan == config.telomere_base_lifespan`, `spore_threshold == config.spore_energy_threshold`, `symbiotic_commitment == config.symbiotic_commitment_base`, `recombination_propensity == config.recombination_base`, `comm_propensity == config.comm_propensity_base`, `plasticity_rate == config.plasticity_rate_base` y `expressed_codons == 9`.
 
 ### Requirement: Impulsos del Fundador Conductual
 Con `enable_genetic_policy=True`, `evaluate_drives(founder_dna(c), ctx, signals, c)` SHALL devolver `(0.9921875, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0, 0.0)` para todo contexto y todas las señales, de modo que el orden de prueba de la política genética del fundador sea `CONSUME`, `EXPLORE`, `NAVIGATE` y `WANDER`, el de `HandwrittenPolicy` (design D46.5).
@@ -155,7 +166,7 @@ En la pasada 2, la transcripción SHALL activar los codones con promotor en `0x8
 - **THEN** el canal 4 queda apagado y el codón de promotor `0x84` no modula el rasgo.
 
 ### Requirement: Fórmula de Expresión de un Rasgo
-Para cada destino de rasgo $T$ en `0x00`–`0x08` y `0x0A`–`0x0C`, con $A_T$ sus codones activos de ambas pasadas, la transcripción SHALL calcular $x_T = b_T \cdot \mu + k_T \cdot \rho \cdot S$, con $S$ la suma de $\delta$ de modo 0, $\rho = \prod (1 - |\delta|)$ de modo 1 y $\mu = \prod (1 + \delta)$ de modo 2, ignorar el modo 3, acumular en el orden de recorrido y usar $x_T = b_T$ si $A_T$ está vacío.
+Para cada destino de rasgo $T$ en `0x00`–`0x08`, `0x0A`–`0x0C` y `0x0F`, con $A_T$ sus codones activos de ambas pasadas, la transcripción SHALL calcular $x_T = b_T \cdot \mu + k_T \cdot \rho \cdot S$, con $S$ la suma de $\delta$ de modo 0, $\rho = \prod (1 - |\delta|)$ de modo 1 y $\mu = \prod (1 + \delta)$ de modo 2, ignorar el modo 3, acumular en el orden de recorrido y usar $x_T = b_T$ si $A_T$ está vacío.
 
 #### Scenario: Combinación de los tres modos
 - **WHEN** con `alpha_learning = 0.40` y el ADN fundador se agregan, sobre el destino `0x00` con promotor `0x00`, un codón aditivo con `payload = 64`, uno represor con `payload = -64`, uno multiplicativo con `payload = 64` y uno de modo 3 con `payload = 127`
@@ -169,25 +180,29 @@ La transcripción SHALL expresar cada rasgo entero ($C_{\max}$, $r_{\text{perc}}
 - **THEN** $x = 3 + 3 \cdot 0.5 = 4.5$ y la capacidad expresada vale `5` (`round(4.5)` daría `4`).
 
 ### Requirement: Salida del Fenotipo Expresado
-`transcribe_phenotype` SHALL devolver un `ExpressedPhenotype` cuyo `genome` es el `AgentGenome` de `0x00`–`0x06`; `lifespan`, el valor de `0x07`; `spore_threshold`, el de `0x08`; `symbiotic_commitment`, `recombination_propensity` y `comm_propensity`, los de `0x0A`, `0x0B` y `0x0C`; y cuyo `expressed_codons` cuenta los codones activos con destino en `0x00`–`0x08` o `0x0A`–`0x0C` y modo distinto de 3 (design D33 y D46.7).
+`transcribe_phenotype` SHALL devolver un `ExpressedPhenotype` con `genome` de `0x00`–`0x06`, `lifespan` de `0x07`, `spore_threshold` de `0x08`, `symbiotic_commitment`, `recombination_propensity` y `comm_propensity` de `0x0A`–`0x0C`, y `plasticity_rate` de `0x0F`; `expressed_codons` cuenta los codones activos con destino en `0x00`–`0x08`, `0x0A`–`0x0C` o `0x0F` y modo distinto de 3 (design D33, D46.7, D59.3 y precisión 54).
 
 #### Scenario: Conteo de codones expresados
 - **WHEN** se transcribe con `EpigeneticContext()` el ADN fundador sin política genética más un codón `EMIT_TF`, un codón de modo 3 sobre el destino `0x00`, un codón aditivo de promotor `0x01` sobre el destino `0x07`, un codón `ALWAYS_BASAL` aditivo sobre el destino `0x0C` y otro sobre el destino de conducta `0x40`
 - **THEN** `expressed_codons == 11`: cuentan los 9 fundadores, el de promotor `0x01` y el de `0x0C`, no el `EMIT_TF`, ni el de modo 3, ni el de conducta.
+
+#### Scenario: Tasa de plasticidad en el conteo
+- **WHEN** se transcribe con `EpigeneticContext()` el ADN fundador sin política genética más `encode_codon(0x00, 0x0F, 0, 0, 64)`
+- **THEN** `expressed_codons == 10`.
 
 #### Scenario: Codones de conducta del fundador fuera del conteo
 - **WHEN** se transcribe `founder_dna(config)` con `enable_genetic_policy=True`
 - **THEN** `expressed_codons == 9`, aunque el cromosoma tenga 13 codones activos.
 
 ### Requirement: Fenotipo de un Agente sin ADN
-`phenotype_from_genome(genome, config) -> ExpressedPhenotype` SHALL devolver un fenotipo con `genome`, `lifespan = config.telomere_base_lifespan`, `spore_threshold = config.spore_energy_threshold`, `expressed_codons = 0` y los rasgos `symbiotic_commitment`, `recombination_propensity` y `comm_propensity` iguales a `symbiotic_commitment_base`, `recombination_base` y `comm_propensity_base`: el fenotipo de un agente sin ADN (design D33.7 y D46.7).
+`phenotype_from_genome(genome, config) -> ExpressedPhenotype` SHALL devolver un fenotipo con `genome`, `lifespan = config.telomere_base_lifespan`, `spore_threshold = config.spore_energy_threshold`, `expressed_codons = 0` y `symbiotic_commitment`, `recombination_propensity`, `comm_propensity` y `plasticity_rate` iguales a `symbiotic_commitment_base`, `recombination_base`, `comm_propensity_base` y `plasticity_rate_base` (design D33.7, D46.7 y D59.3).
 
 #### Scenario: Fenotipo del genoma plano
-- **WHEN** se invoca `phenotype_from_genome(genome_from_config(config), config)` con `telomere_base_lifespan = 600`, `spore_energy_threshold = 0.30`, `symbiotic_commitment_base = 0.2`, `recombination_base = 0.4` y `comm_propensity_base = 0.6`
-- **THEN** devuelve `genome == genome_from_config(config)`, `lifespan == 600`, `spore_threshold == 0.30`, `expressed_codons == 0`, `symbiotic_commitment == 0.2`, `recombination_propensity == 0.4` y `comm_propensity == 0.6`.
+- **WHEN** se invoca `phenotype_from_genome(genome_from_config(config), config)` con `telomere_base_lifespan = 600`, `spore_energy_threshold = 0.30`, `symbiotic_commitment_base = 0.2`, `recombination_base = 0.4`, `comm_propensity_base = 0.6` y `plasticity_rate_base = 0.1`
+- **THEN** devuelve `genome == genome_from_config(config)`, `lifespan == 600`, `spore_threshold == 0.30`, `expressed_codons == 0`, `symbiotic_commitment == 0.2`, `recombination_propensity == 0.4`, `comm_propensity == 0.6` y `plasticity_rate == 0.1`.
 
 ### Requirement: Destinos de Conducta
-Los destinos `0x40`–`0x47` SHALL corresponder, en ese orden, a las conductas `CONSUME`, `EXPLORE`, `NAVIGATE`, `WANDER`, `SHARE`, `ATTACK`, `FLEE` y `SPORULATE` de `Behavior`, según la tupla `BEHAVIOR_TARGETS` de `dna.py`; SHALL modular sólo los impulsos de `evaluate_drives`, y en el fenotipo SHALL quedar inertes y fuera de `expressed_codons` (design D46.1, D46.3 y precisión 26).
+Los destinos `0x40`–`0x47` SHALL corresponder, en ese orden, a las conductas `CONSUME`, `EXPLORE`, `NAVIGATE`, `WANDER`, `SHARE`, `ATTACK`, `FLEE` y `SPORULATE` de `Behavior`, según la tupla `BEHAVIOR_TARGETS` de `dna.py`; SHALL modular sólo los impulsos de `evaluate_behavior`, y en el fenotipo SHALL quedar inertes y fuera de `expressed_codons` (design D46.1, D46.3 y precisión 26).
 
 #### Scenario: Correspondencia entre conductas y destinos
 - **WHEN** se inspecciona `BEHAVIOR_TARGETS`
@@ -198,7 +213,7 @@ Los destinos `0x40`–`0x47` SHALL corresponder, en ese orden, a las conductas `
 - **THEN** el fenotipo expresado es igual al del ADN fundador, con `expressed_codons == 9`, y `evaluate_drives` devuelve `0.9921875` en la posición 6 (`FLEE`) y `0.0` en las demás (con tolerancia `1e-9`).
 
 ### Requirement: Promotores Sensoriales
-En la pasada 1 de `evaluate_drives`, los promotores `0x20`–`0x27` SHALL estar activos si y sólo si es verdadero, respectivamente, el campo `known_good`, `unknown`, `no_resource`, `neighbor_adjacent`, `weaker_adjacent`, `stronger_near`, `crowded` o `carcass` de `SensorySignals`; los demás promotores SHALL activarse como en la transcripción del fenotipo (design D46.2).
+En la pasada 1 de `evaluate_behavior`, los promotores `0x20`–`0x27` SHALL estar activos si y sólo si es verdadero, respectivamente, el campo `known_good`, `unknown`, `no_resource`, `neighbor_adjacent`, `weaker_adjacent`, `stronger_near`, `crowded` o `carcass` de `SensorySignals`; los demás promotores SHALL activarse como en la transcripción del fenotipo (design D46.2).
 
 #### Scenario: Impulso condicionado a la ausencia de recursos
 - **WHEN** se evalúa un ADN cuyo único codón de conducta es `encode_codon(0x22, 0x43, 0, 0, 64)`, primero con `no_resource=True` y después con `no_resource=False`, con las demás señales en `False`
@@ -209,10 +224,10 @@ En la pasada 1 de `evaluate_drives`, los promotores `0x20`–`0x27` SHALL estar 
 - **THEN** el impulso de `CONSUME` vale `0.5` en el primer caso y `0.0` en el segundo, para los ocho promotores.
 
 ### Requirement: Evaluación Pura de Impulsos
-`evaluate_drives(dna, context, signals, config) -> tuple[float, ...]` SHALL ser pura y devolver 8 impulsos en el orden de `Behavior`: repite las dos pasadas de la transcripción sobre `chromosome + plasmids`, con los promotores sensoriales activos en la pasada 1, y para cada destino de conducta $B$ calcula $d_B = \mu_B \cdot \rho_B \cdot S_B$ sobre sus codones activos de modo distinto de 3, sin cotas, en el orden de recorrido, con $d_B = 0$ si no tiene ninguno.
+Los impulsos de `evaluate_behavior` SHALL ser 8, en el orden de `Behavior`: repite las dos pasadas de la transcripción sobre `chromosome + plasmids`, con los promotores de conducta activos en la pasada 1, y para cada destino $B$ calcula $d_B = \mu_B \cdot \rho_B \cdot S_B$ sobre sus codones activos de modo distinto de 3 (y los de modo 3 según "Modo Plástico sobre las Conductas"), sin cotas, en el orden de recorrido, con $d_B = 0$ si no tiene ninguno.
 
 #### Scenario: Combinación de los tres modos en un impulso
-- **WHEN** se evalúa un ADN con codones `ALWAYS_BASAL` sobre el destino `0x44`: aditivos con `payload` 64 y 32, uno represor con `payload = -64`, uno multiplicativo con `payload = 64` y uno de modo 3 con `payload = 127`
+- **WHEN** con `enable_plasticity=False` se evalúa un ADN con codones `ALWAYS_BASAL` sobre el destino `0x44`: aditivos con `payload` 64 y 32, uno represor con `payload = -64`, uno multiplicativo con `payload = 64` y uno de modo 3 con `payload = 127`
 - **THEN** $S = 0.75$, $\rho = 0.5$, $\mu = 1.5$ y el impulso de `SHARE` vale `1.5 * 0.5 * 0.75 = 0.5625` (con tolerancia `1e-9`).
 
 #### Scenario: Impulso negativo sin cotas
@@ -226,6 +241,89 @@ En la pasada 1 de `evaluate_drives`, los promotores `0x20`–`0x27` SHALL estar 
 #### Scenario: Determinismo de la evaluación
 - **WHEN** se evalúa dos veces el mismo ADN con el mismo contexto, las mismas señales y la misma configuración, también en procesos con distinto `PYTHONHASHSEED`
 - **THEN** las dos tuplas son idénticas bit a bit.
+
+### Requirement: Evaluación Pura de la Conducta
+`evaluate_behavior(dna, context, signals, config, state=0, perceived=0, plastic_weights=None) -> BehaviorEvaluation` SHALL ser pura, sin generador, y devolver los impulsos (`drives`), `set_mask` y `clear_mask` (D58.3), la máscara `emitted` de símbolos emitidos (D60.3) y `plastic`, los índices en `chromosome + plasmids` de los codones de modo 3 activos sobre cada conducta, en el orden de `Behavior` (design D60.1).
+
+#### Scenario: Fundador sin estado, plasticidad ni señales
+- **WHEN** con $R_{32}$, $R_{39}$, $R_{40}$ y $R_{41}$ efectivamente activas se evalúa `founder_dna(config)` con todas las `SensorySignals` en `True`, `state=0xFF`, `perceived=0xFF` y `plastic_weights={0: 1.0}`
+- **THEN** `drives == (0.9921875, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0, 0.0)` (con tolerancia `1e-9`), `set_mask == clear_mask == emitted == 0` y las 8 tuplas de `plastic` están vacías.
+
+#### Scenario: Determinismo de la evaluación de conducta
+- **WHEN** se evalúa dos veces el mismo ADN con los mismos argumentos, también en procesos con distinto `PYTHONHASHSEED`
+- **THEN** los dos `BehaviorEvaluation` son iguales campo a campo y bit a bit.
+
+### Requirement: Envoltorio evaluate_drives
+`evaluate_drives(dna, context, signals, config) -> tuple[float, ...]` SHALL conservarse y devolver exactamente `evaluate_behavior(dna, context, signals, config).drives`, con `state=0`, `perceived=0` y sin pesos (design D60.1).
+
+#### Scenario: Igualdad con la evaluación de conducta
+- **WHEN** Hypothesis (perfil `ci`, `derandomize=True`) genera ADN, contextos, señales y configuraciones
+- **THEN** `evaluate_drives(dna, ctx, signals, config) == evaluate_behavior(dna, ctx, signals, config).drives` en todos los casos.
+
+### Requirement: Promotores de Eventos del Tick Anterior
+En la pasada 1 de `evaluate_behavior`, como los sensoriales, los promotores `0x28`–`0x2B` (`EVENT_ATTACKED`, `EVENT_ATE`, `EVENT_LOST_ENERGY` y `EVENT_RECEIVED_ENERGY`) SHALL estar activos si y sólo si es verdadero, respectivamente, el campo `attacked`, `ate`, `lost_energy` o `received_energy` de `SensorySignals`; no dependen de $R_{39}$, porque son percepción y no memoria (design D58.5 y D58.7).
+
+#### Scenario: Evento de ataque sin estado interno
+- **WHEN** con `enable_internal_state=False` se evalúa un ADN cuyo único codón de conducta es `encode_codon(0x28, 0x46, 0, 0, 64)`, con `attacked=True` y después con `attacked=False`
+- **THEN** el impulso de `FLEE` vale `0.5` en el primer caso y `0.0` en el segundo.
+
+### Requirement: Promotores de Estado Interno
+Con $R_{39}$ efectivamente activa (`enable_internal_state` y $R_{32}$ efectivamente activa), en la pasada 1 de `evaluate_behavior` el promotor `0x30 + k` (`STATE_k`, $k \in [0, 7]$) SHALL estar activo si y sólo si el bit $k$ de `state` vale 1; sin $R_{39}$ SHALL estar inactivo para cualquier `state` (design D57.3, D58.4 y D58.7).
+
+#### Scenario: Promotor de estado según el bit
+- **WHEN** con $R_{39}$ efectivamente activa se evalúa un ADN cuyo único codón de conducta es `encode_codon(0x33, 0x43, 0, 0, 64)`, con `state=0b00001000` y con `state=0b11110111`
+- **THEN** el impulso de `WANDER` vale `0.5` en el primer caso y `0.0` en el segundo.
+
+#### Scenario: Estado inerte sin R39
+- **WHEN** se repite la evaluación con `enable_internal_state=False` y `state=0xFF`
+- **THEN** el impulso de `WANDER` vale `0.0`.
+
+### Requirement: Promotores de Señales Percibidas
+Con $R_{41}$ efectivamente activa (`enable_signals` y $R_{32}$ efectivamente activa), en la pasada 1 de `evaluate_behavior` el promotor `0x38 + k` (`HEARD_k`, $k \in [0, 7]$) SHALL estar activo si y sólo si el bit $k$ de `perceived` vale 1; sin $R_{41}$ SHALL estar inactivo para cualquier `perceived` (design D57.3, D60.4 y D60.7).
+
+#### Scenario: Símbolo percibido
+- **WHEN** con $R_{41}$ efectivamente activa se evalúa un ADN cuyo único codón de conducta es `encode_codon(0x3A, 0x40, 0, 0, 64)`, con `perceived=0b100` y con `perceived=0b011`, y después con `enable_signals=False` y `perceived=0xFF`
+- **THEN** el impulso de `CONSUME` vale `0.5`, `0.0` y `0.0`, respectivamente.
+
+### Requirement: Destinos de Estado y Regla de Mayoría
+Con $R_{39}$ efectivamente activa, los destinos `0x0D` (`SET_STATE`) y `0x0E` (`CLEAR_STATE`) SHALL elegir el bit $k$ = `channel & 0x07`, ignorando `payload`: el bit $k$ de `set_mask` vale 1 si sus codones activos de `SET_STATE` de modo 0 o 2 superan en número a los de modo 1, e igual `clear_mask` con `CLEAR_STATE`; el modo 3 es inerte, y sin $R_{39}$ las dos máscaras valen 0 (design D58.2, D58.3 y D58.7).
+
+#### Scenario: Mayoría por bit
+- **WHEN** con $R_{39}$ efectivamente activa un ADN tiene `encode_codon(0x00, 0x0D, 0, 2)`, `encode_codon(0x00, 0x0D, 2, 10)`, `encode_codon(0x00, 0x0D, 1, 10)`, `encode_codon(0x00, 0x0D, 0, 5)`, `encode_codon(0x00, 0x0D, 1, 5)` y `encode_codon(0x00, 0x0D, 3, 4)`
+- **THEN** `set_mask == 0b100`: el bit 2 (canales 2 y 10) tiene 2 activadores contra 1 represor, el bit 5 empata y el modo 3 sobre el bit 4 no cuenta.
+
+#### Scenario: Máscaras nulas sin R39
+- **WHEN** el mismo ADN se evalúa con `enable_internal_state=False`
+- **THEN** `set_mask == 0` y `clear_mask == 0`.
+
+### Requirement: Prevalencia del Borrado de Estado
+Si para un bit valen a la vez `set` y `clear`, SHALL prevalecer `clear`: el estado siguiente SHALL ser `(state | set_mask) & ~clear_mask` restringido a 8 bits, y los bits sin `set` ni `clear` SHALL conservarse (design D58.3).
+
+#### Scenario: Escribir y borrar el mismo bit
+- **WHEN** con $R_{39}$ efectivamente activa un ADN tiene `encode_codon(0x00, 0x0D, 0, 1)` y `encode_codon(0x00, 0x0E, 0, 1)` y el estado anterior es `0b10000000`
+- **THEN** `set_mask == 0b10`, `clear_mask == 0b10` y el estado siguiente es `0b10000000`.
+
+### Requirement: Destino SIGNAL y Regla de Emisión
+Con $R_{41}$ efectivamente activa, el destino `0x48` (`SIGNAL`) SHALL elegir el símbolo $k$ = `channel & 0x07`, y el bit $k$ de `emitted` SHALL valer 1 si sus codones activos de modo 0 o 2 superan en número a los de modo 1 (regla de D33.2); `SIGNAL` no es una conducta: no tiene impulso ni compite en la decisión, y sin $R_{41}$ `emitted` SHALL valer 0 (design D60.2, D60.3 y D60.7).
+
+#### Scenario: Emisión condicionada por un sensor
+- **WHEN** con $R_{41}$ efectivamente activa un ADN tiene `encode_codon(0x22, 0x48, 0, 3)` y se evalúa con `no_resource=True` y con `no_resource=False`
+- **THEN** `emitted` vale `0b1000` y `0`, respectivamente, y `drives` tiene 8 entradas en los dos casos.
+
+#### Scenario: Sin emisión con R41 apagada
+- **WHEN** el mismo ADN se evalúa con `enable_signals=False` y `no_resource=True`
+- **THEN** `emitted == 0`.
+
+### Requirement: Modo Plástico sobre las Conductas
+Con $R_{40}$ efectivamente activa (`enable_plasticity` y $R_{32}$ efectivamente activa), un codón activo de modo 3 en la posición $i$ de `chromosome + plasmids` sobre un destino `0x40`–`0x47` SHALL sumar a $S_B$ un $\delta_{\text{ef}} = \delta + w_i$, con $w_i$ = `plastic_weights.get(i, 0.0)` (0.0 con `None`); sobre otro destino, o sin $R_{40}$, el modo 3 SHALL ser inerte. En el fenotipo sigue inerte (design D59.1 y D59.6).
+
+#### Scenario: Codón plástico con peso aprendido
+- **WHEN** con $R_{40}$ efectivamente activa un ADN tiene en la posición 0 `encode_codon(0x00, 0x43, 3, 0, 32)` ($\delta = 0.25$) y se evalúa con `plastic_weights=None` y con `plastic_weights={0: 0.5}`
+- **THEN** el impulso de `WANDER` vale `0.25` y `0.75`, respectivamente, y `plastic[3] == (0,)` (con tolerancia `1e-9`).
+
+#### Scenario: Modo 3 inerte sin R40
+- **WHEN** el mismo ADN se evalúa con `enable_plasticity=False` y `plastic_weights={0: 0.5}`
+- **THEN** el impulso de `WANDER` vale `0.0`.
 
 ### Requirement: Puerta de R13 en la Mutación del ADN
 `mutate_dna(dna, config, rng, scale=1.0) -> CompactDNA` SHALL devolver `dna` sin consumir `rng` si `config.mutation_rate == 0.0` y `config.discrete_mutation_prob == 0.0`, de modo que la ablación pre-registrada de $R_{13}$ congela también el ADN.
@@ -333,25 +431,29 @@ Sólo con `enable_plasmid_hgt=True`, después de la deleción, `mutate_dna` SHAL
 - **THEN** el recombinado `(1, 8, 9)` tiene menos de 5 codones y el resultado tiene `chromosome == (1, 2, 3, 4, 5, 6)`.
 
 ### Requirement: Codones Funcionales Expresables
-`expressible_codons(dna, holonic, roles) -> tuple[tuple[int, bool], ...]` SHALL ser pura, sin contexto, señales ni generador, y devolver en orden ascendente y sin repetidos los valores canónicos de los codones de `chromosome + plasmids` con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`) o de conducta (`0x40`–`0x47`), modo distinto de 3 y promotor expresable, cada uno con si su promotor es condicional (design precisión 42).
+`expressible_codons(dna, holonic, roles) -> tuple[tuple[int, bool], ...]` SHALL ser pura, sin contexto, señales ni generador, y devolver en orden ascendente y sin repetidos los valores canónicos de los codones de `chromosome + plasmids` con destino de rasgo (`0x00`–`0x08`, `0x0A`–`0x0C`, `0x0F`), de estado (`0x0D`, `0x0E`), de conducta (`0x40`–`0x47`) o de señal (`0x48`), modo distinto de 3 y promotor expresable, cada uno con si su promotor es condicional (design precisión 42 y D61).
 
 #### Scenario: ADN fundador
 - **WHEN** se invoca `expressible_codons(founder_dna(config), False, False)` con `enable_genetic_policy=False`
 - **THEN** devuelve `tuple((encode_codon(0x00, t), False) for t in range(0x00, 0x09))`.
 
 #### Scenario: Duplicados, inertes y firmas fuera
-- **WHEN** al ADN fundador se le agregan en el cromosoma una copia de `encode_codon(0x00, 0x00)`, un `EMIT_TF`, un codón de modo 3 sobre `0x01` y uno aditivo sobre `0x0D`, la misma copia en `plasmids` y una firma en `crispr_memory`
+- **WHEN** al ADN fundador se le agregan en el cromosoma una copia de `encode_codon(0x00, 0x00)`, un `EMIT_TF`, un codón de modo 3 sobre `0x01`, uno de modo 3 sobre `0x0D`, uno aditivo sobre el reservado `0x10`, la misma copia en `plasmids` y una firma en `crispr_memory`
 - **THEN** el resultado tiene los mismos 9 elementos que el del fundador.
 
 ### Requirement: Valor Canónico de los Codones Funcionales
-Como el campo `channel` sólo tiene efecto en los `EMIT_TF`, `expressible_codons` SHALL comparar los codones funcionales por su valor canónico `codon & ~0x3F00` y devolver ese valor; dos codones que difieren sólo en `channel` SHALL contar una vez (design precisión 42).
+`expressible_codons` SHALL comparar y devolver los codones funcionales por su valor canónico: `codon & ~0x3F00` en los destinos de rasgo y de conducta (`0x40`–`0x47`), donde `channel` no tiene efecto, y el codón sin enmascarar en `SET_STATE` (`0x0D`), `CLEAR_STATE` (`0x0E`) y `SIGNAL` (`0x48`), donde `channel` elige el bit o el símbolo; dos codones de rasgo o de conducta que difieren sólo en `channel` SHALL contar una vez (design precisión 42 y D61).
 
 #### Scenario: Sinónimos por el campo channel
 - **WHEN** sin política genética se agregan al cromosoma fundador `encode_codon(0x18, 0x01, 0, 3, 10)` y `encode_codon(0x18, 0x01, 0, 9, 10)`, que difieren sólo en `channel`, y `encode_codon(0x00, 0x02, 0, 7)`
 - **THEN** `expressible_codons(dna, False, False)` tiene 10 elementos: los 9 del fundador, entre ellos `(encode_codon(0x00, 0x02), False)`, y `(encode_codon(0x18, 0x01, 0, 0, 10), True)` una sola vez.
 
+#### Scenario: Canal significativo en estado y señal
+- **WHEN** sin política genética se agregan al cromosoma fundador `encode_codon(0x00, 0x0D, 0, 1)`, `encode_codon(0x00, 0x0D, 0, 2)` y `encode_codon(0x00, 0x48, 0, 5)`
+- **THEN** `expressible_codons(dna, False, False)` tiene 12 elementos, entre ellos esos tres codones sin enmascarar, cada uno con `False`.
+
 ### Requirement: Promotores Expresables en el Protocolo
-Para `expressible_codons`, un promotor SHALL ser expresable si es `0x00`, `0x01`, `0x18` o `0x19`; `0x02`–`0x0A` sólo con `holonic`; `0x10`–`0x12` sólo con `holonic` y `roles`; `0x20`–`0x27` sólo sobre destinos de conducta; y `0x80`–`0xBF` si hay en `chromosome + plasmids`, nunca en `crispr_memory`, un emisor activador de su canal con promotor expresable menor que `0x80`, donde los sensoriales cuentan sólo para codones de conducta. Los reservados SHALL NOT serlo (design precisión 42).
+Para `expressible_codons`, un promotor SHALL ser expresable si es `0x00`, `0x01`, `0x18` o `0x19`; `0x02`–`0x0A` sólo con `holonic`; `0x10`–`0x12` sólo con `holonic` y `roles`; `0x20`–`0x27` sólo sobre conductas; `0x28`–`0x3F` según D61; y `0x80`–`0xBF` si hay en `chromosome + plasmids`, no en `crispr_memory`, un emisor activador de su canal con promotor expresable menor que `0x80` (los sensoriales, sólo para conductas). Los reservados SHALL NOT serlo (precisión 42).
 
 #### Scenario: Promotores según el protocolo
 - **WHEN** un ADN tiene codones aditivos de promotor `0x02` sobre `0x00`, `0x20` sobre `0x01`, `0x20` sobre `0x40` y `0x0B` sobre `0x41`, y se invoca `expressible_codons` con `holonic=False` y con `holonic=True`
@@ -373,8 +475,15 @@ Para `expressible_codons`, un promotor SHALL ser expresable si es `0x00`, `0x01`
 - **WHEN** un ADN tiene un codón aditivo de promotor `0x85` sobre `0x02`, y su única emisión del canal 5 es un `EMIT_TF` de modo 1 con promotor `0x00`
 - **THEN** ese codón no es expresable.
 
+### Requirement: Promotores Expresables de la Ampliación
+Para `expressible_codons`, los promotores de eventos (`0x28`–`0x2B`), de estado (`0x30`–`0x37`) y de señales percibidas (`0x38`–`0x3F`) SHALL ser expresables sólo sobre destinos de conducta, de estado o de señal, y SHALL ser condicionales (design D61).
+
+#### Scenario: Promotores de eventos, estado y señales
+- **WHEN** un ADN tiene codones aditivos de promotor `0x28` sobre `0x0D`, `0x33` sobre `0x40`, `0x3C` sobre `0x48`, `0x33` sobre `0x00` y `0x2C` sobre `0x40`, y se invoca `expressible_codons` con `holonic=False`
+- **THEN** son expresables y condicionales sólo los tres primeros: el de destino de rasgo `0x00` y el de promotor reservado `0x2C` no lo son.
+
 ### Requirement: Promotores Condicionales y Aproximación de los Canales Regulados
-Un promotor expresable SHALL ser condicional salvo que sea constitutivo: `0x00`, `0x01` con `holonic=False` y `0x80`–`0xBF` cuando algún emisor activador de su canal tiene promotor constitutivo. Esta última es una aproximación declarada: SHALL NOT considerar los represores del canal, que en la transcripción pueden apagarlo (design precisión 42).
+Un promotor expresable, incluidos los de eventos, estado y señales (D61), SHALL ser condicional salvo que sea constitutivo: `0x00`, `0x01` con `holonic=False` y `0x80`–`0xBF` cuando algún emisor activador de su canal tiene promotor constitutivo. Esta última es una aproximación declarada: SHALL NOT considerar los represores del canal, que en la transcripción pueden apagarlo (design precisión 42).
 
 #### Scenario: Canal con activador constitutivo y represor
 - **WHEN** un ADN tiene un codón aditivo de promotor `0x85` sobre `0x02`, un `EMIT_TF` de modo 0 y promotor `0x00` sobre el canal 5 y dos `EMIT_TF` de modo 1 y promotor `0x00` sobre el mismo canal

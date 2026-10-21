@@ -153,6 +153,93 @@ Las reglas $R_{32}$–$R_{38}$ SHALL NOT agregar generadores: la conducta de la 
 - **WHEN** se construye el motor con todas las banderas de design D52 activas
 - **THEN** sus generadores son `rng`, `null_rng`, `evo_rng`, `donor_rng` y `hgt_rng`, con las `spawn_key` declaradas en `CLAUDE.md`, y ninguno más.
 
+### Requirement: Eventos del Tick Calculados por el Motor
+Con $R_{32}$ efectivamente activa, el motor SHALL calcular al final de cada tick un `EventSignals` por agente vivo y guardarlo en `agent.last_events`: `attacked` si fue objetivo de un ataque con éxito con `stolen > 0`, `ate` si consumió un recurso con valor experimentado positivo, `lost_energy` si su energía al final del tick es menor que al principio y `received_energy` si fue objetivo de un `SHARE` que lo alcanzó (design D58.5).
+
+#### Scenario: Eventos de un tick
+- **WHEN** en un tick el agente 4 es robado con `stolen = 0.3`, consume un recurso de valor `+1.0` y termina con menos energía que al empezar, y el agente 6 recibe un `SHARE` efectivo
+- **THEN** al final del tick `agents[4].last_events == EventSignals(attacked=True, ate=True, lost_energy=True)` y `agents[6].last_events.received_energy is True`.
+
+#### Scenario: Ataque sin botín
+- **WHEN** el agente 6, con energía 0.0, es objetivo de un ataque con éxito con `stolen = 0`
+- **THEN** su `last_events.attacked` es `False`.
+
+### Requirement: Aplicación del Estado Interno al Terminar la Fase 3
+Con $R_{39}$ efectivamente activa, al terminar la Fase 3 el motor SHALL aplicar a cada agente que decidió el estado `(internal_state | set_mask) & ~clear_mask` de su evaluación del tick, de modo que la decisión del tick use siempre el estado anterior y la evaluación del tick siguiente lea el nuevo; un agente que no decidió conserva su estado (design D58.3).
+
+#### Scenario: Estado escrito en un tick y leído en el siguiente
+- **WHEN** con $R_{39}$ efectivamente activa un agente con `internal_state == 0`, cuyos únicos codones de conducta y de estado son `encode_codon(0x00, 0x0D, 0, 0)` y `encode_codon(0x30, 0x43, 0, 0, 64)`, decide en los ticks 1 y 2
+- **THEN** en el tick 1 el impulso de `WANDER` vale `0.0` y `internal_state` pasa a 1 al terminar la Fase 3, y en el tick 2 el impulso de `WANDER` vale `0.5`.
+
+### Requirement: Actualización Plástica en la Fase 4
+Con $R_{40}$ efectivamente activa, en la Fase 4, inmediatamente después de ejecutar la acción de cada agente en el orden de la permutación, el motor SHALL aplicar la regla de D59.4 con la recompensa $r$: el cambio de energía del agente causado por esa acción (consumir un recurso o un cadáver, ceder o robar energía), 0 en `MOVE`, `IDLE` y `SPORULATE`, sin lo que le hagan otros agentes ni los costos de la Fase 5 (design D59.4).
+
+#### Scenario: Recompensa de un robo
+- **WHEN** con `predation_efficiency = 0.6` un agente con un codón plástico activo sobre `ATTACK`, `plasticity_rate = 0.5` y peso 0 roba `stolen = 0.5`, y después, en la misma Fase 4, otro agente lo ataca
+- **THEN** su recompensa es `0.3` y el peso queda en `0.15` (con tolerancia `1e-9`), sin contar el robo sufrido.
+
+#### Scenario: Recompensa de una cesión
+- **WHEN** con `share_fraction = 0.25` un agente con energía 2.0, un codón plástico activo sobre `SHARE`, `plasticity_rate = 1.0` y peso 0 ejecuta `SHARE`
+- **THEN** su recompensa es `-0.5` y el peso queda en `-0.5` (con tolerancia `1e-9`).
+
+#### Scenario: Movimiento sin recompensa
+- **WHEN** un agente con un codón plástico activo sobre `WANDER` ejecuta `MOVE`
+- **THEN** su recompensa es 0 y su peso no cambia.
+
+### Requirement: Emisión de Señales en la Fase 3
+Con $R_{41}$ efectivamente activa, cada agente que decide en la Fase 3 SHALL emitir los símbolos de `emitted` de su evaluación de conducta, a la vez que actúa y sin ocupar su acción; una endospora no decide y SHALL NOT emitir. Cada símbolo emitido SHALL costar `signal_cost`, que se cobra en el metabolismo de la Fase 5; sin $R_{41}$ no hay emisión ni costo (design D60.2, D60.3 y D60.7).
+
+#### Scenario: Costo de dos símbolos
+- **WHEN** con `signal_cost = 0.002` un agente emite los símbolos 1 y 4 en el tick y ejecuta `MOVE`
+- **THEN** su acción es `MOVE` y su metabolismo de la Fase 5 cobra `0.004` más que el de un agente igual que no emite (con tolerancia `1e-9`).
+
+### Requirement: Percepción de Señales en el Tick Siguiente
+Los símbolos emitidos en la Fase 3 del tick $t$ SHALL percibirlos, en la Fase 1 del tick $t + 1$, los agentes que eran vecinos de comunicación del emisor en el tick $t$ (los `neighbor_ids` de su observación) y siguen vivos y sin ser endospora; la máscara percibida de cada uno SHALL ser el OR de las recibidas, y nadie SHALL percibir una señal del mismo tick (design D60.4).
+
+#### Scenario: Recepción en el tick siguiente
+- **WHEN** el agente 2 emite el símbolo 3 en el tick 10, los `neighbor_ids` de su observación del tick 10 son `(5, 7)`, el agente 7 muere en la Fase 5 del tick 10 y el agente 9 se acerca al 2 en la Fase 4 del tick 10
+- **THEN** en el tick 10 nadie percibe el símbolo y en la Fase 1 del tick 11 la máscara percibida del agente 5 incluye `0b1000`, y la de los agentes 7 y 9 no.
+
+#### Scenario: OR de varios emisores
+- **WHEN** el agente 5 es vecino de comunicación de los emisores 2 (símbolo 0) y 3 (símbolos 0 y 6) en el tick 10
+- **THEN** su máscara percibida en el tick 11 es `0b1000001`.
+
+### Requirement: Control Nulo de las Señales con null_rng
+Con $R_{41}$ efectivamente activa y `comm_content_null=True`, la máscara percibida no vacía de cada receptor SHALL reemplazarse, en orden de `agent_id`, por `int(null_rng.integers(1, 256))`: la señal conserva su presencia y pierde su contenido; las máscaras vacías SHALL quedar en 0 sin consumir `null_rng` (design D60.5).
+
+#### Scenario: Secuencia del control nulo
+- **WHEN** con `comm_content_null=True` los agentes 8 y 3 perciben máscaras no vacías y el agente 5 una vacía, y un generador gemelo sembrado con `spawn_key=(1,)` y en el mismo estado extrae dos veces `integers(1, 256)`
+- **THEN** la máscara del agente 3 es el primer valor del gemelo, la del agente 8 el segundo y la del agente 5 vale 0.
+
+### Requirement: Señales fuera del Protocolo y de la Memoria
+Las señales SHALL ser un canal sensorial: SHALL NOT construirse como `Message`, pasar por `protocol.py` ni por `assimilate_testimony`, ni escribirse en la memoria del agente (design D60.6).
+
+#### Scenario: Memoria intacta con señales
+- **WHEN** un agente percibe una máscara de símbolos no vacía en la Fase 1
+- **THEN** su memoria epistémica no cambia por la percepción, ningún `Message` transporta la señal, y el test AST de `protocol.py` y de los accesos a `.memory` sigue pasando sin cambios en sus listas.
+
+### Requirement: Cambios del Entorno al Empezar el Tick
+Con `world_shift_period > 0`, al empezar cada tick $t > 0$ con $t \bmod$ `world_shift_period` $= 0$, antes de la Fase 0 (precisión 56), el motor SHALL invocar `env.invert_world_rules(world_shift_fraction, self.rng)`; con `world_shift_period = 0` SHALL NOT invocarlo ni consumir `self.rng`. Es una manipulación experimental del entorno, no una regla del agente (design D62.1).
+
+#### Scenario: Cambios en los ticks múltiplos
+- **WHEN** con `world_shift_period = 1000` se ejecutan los ticks 0 a 3000
+- **THEN** `invert_world_rules` se invoca exactamente al empezar los ticks 1000, 2000 y 3000, con `self.rng` y `world_shift_fraction`, y no en el tick 0.
+
+#### Scenario: Sin cambios por defecto
+- **WHEN** se ejecutan 100 ticks con `world_shift_period = 0`
+- **THEN** no se invoca `invert_world_rules` en ningún tick.
+
+### Requirement: Sin Generadores Nuevos en la Ampliación
+Las reglas $R_{39}$–$R_{41}$ y los cambios del entorno SHALL NOT agregar generadores: el control nulo de las señales usa `null_rng` y los cambios del entorno usan `self.rng`, cada uno sólo con su mecanismo activo; el estado interno, la plasticidad y la emisión no consumen ningún generador (design D57.4).
+
+#### Scenario: Generadores con la ampliación activa
+- **WHEN** se construye el motor con todas las banderas de design D52 y D63.1 activas y `world_shift_period > 0`
+- **THEN** sus generadores son `rng`, `null_rng`, `evo_rng`, `donor_rng` y `hgt_rng`, y ninguno más.
+
+#### Scenario: Ampliación sin consumo con el ADN fundador
+- **WHEN** se corren con la misma semilla `002a` con la política genética y el ADN fundador, con `enable_internal_state`, `enable_plasticity` y `enable_signals` en `True` y en `False`, sin mutación y con `dna_codon_cost = 0.0`
+- **THEN** `history`, `evolutionary_history` y el estado final de todos los generadores son idénticos, porque el fundador no usa estado, plasticidad ni señales (design D57.1).
+
 ### Requirement: Nacimiento con ADN Mutado por evo_rng
 Con `enable_compact_dna=True`, la mutación del ADN del hijo SHALL usar `evo_rng`, el hijo SHALL expresarse en el acto y `spawn_agent_near` SHALL recibir los radios de ese fenotipo de nacimiento; desde el tick siguiente la Fase 0 lo expresa con su contexto real. La secuencia de `evo_rng` difiere de la Fase II, porque el operador es otro.
 
@@ -201,7 +288,7 @@ Comer un cadáver SHALL seguir en la Fase 4 el camino de cualquier recurso eleme
 - **THEN** gana 0.3 de energía (con tolerancia `1e-9`), aprende `CARCASS_PATTERN` por experiencia directa y figura en `direct_discoverers[CARCASS_PATTERN]`.
 
 ### Requirement: Orden de la Fase 5 con la Fase II-B
-La Fase 5 SHALL ejecutar en orden: (i) `decay_memory`; (ii) sello de $R_{31}$, costo de coordinación, `SPLIT` y `BOND`; (iii) metabolismo con ADN, senescencia, endospora y costo de los ataques; (iv) muerte, cadáveres ($R_{35}$) y registro del estrés; (v) reproducción con SOS, recombinación, ADN e impronta; (vi) conjugación y ensayo CRISPR; (vii) $R_{18}$ y roles; (viii) `env.step_dynamics`; y después `on_tick_end` de los observadores.
+La Fase 5 SHALL ejecutar en orden: (i) `decay_memory`; (ii) sello de $R_{31}$, costo de coordinación, `SPLIT` y `BOND`; (iii) metabolismo con ADN, senescencia, endospora, costo de los ataques y de las señales ($R_{41}$); (iv) muerte, cadáveres ($R_{35}$) y registro del estrés; (v) reproducción con SOS, recombinación, ADN e impronta; (vi) conjugación y ensayo CRISPR; (vii) $R_{18}$ y roles; (viii) `env.step_dynamics`; y después `on_tick_end` de los observadores.
 
 #### Scenario: Reducción al orden de la Fase II
 - **WHEN** se ejecuta un tick con todas las banderas de la Fase II-B apagadas
@@ -271,7 +358,7 @@ La conjugación SHALL transportar sólo codones y SHALL NOT pasar por `assimilat
 - **THEN** su memoria epistémica no cambia por la transferencia y el codón recibido es el del donante.
 
 ### Requirement: Compatibilidad Bit a Bit con las Banderas por Defecto
-Con todas las banderas de la Fase II-B (design D31 y D52) en `False`, el motor, el agente, la memoria, la grilla, `TickMetrics`, `EvolutionaryTickMetrics` y todos los generadores SHALL comportarse exactamente como en la Fase II: ninguna rama nueva consume un generador ni cambia un valor o un orden de iteración.
+Con todas las banderas de la Fase II-B (design D31, D52 y D63.1) en `False` y `world_shift_period = 0`, el motor, el agente, la memoria, la grilla, `TickMetrics`, `EvolutionaryTickMetrics` y todos los generadores SHALL comportarse exactamente como en la Fase II: ninguna rama nueva consume un generador ni cambia un valor o un orden de iteración.
 
 #### Scenario: Hashes dorados y protocolos de la Fase II
 - **WHEN** se ejecutan `tests/test_performance_equivalence.py` y los protocolos `002a` y `003a` con las banderas por defecto
@@ -287,7 +374,7 @@ Con `enable_compact_dna=True` y las reglas de la Fase II-B activas, los historia
 ## MODIFIED Requirements
 
 ### Requirement: Orden de Fases del Tick
-`step()` SHALL ejecutar el tick `next_tick` en este orden y luego incrementarlo: (0) con `enable_compact_dna=True`, expresión del fenotipo; (1) percepción, germinación, percepción social, emisión, estigmergia y vista del holón; (2) intercambio social en dos pasadas y vista del holón; (3) decisión con la política de cada agente, contexto de los compuestos y `on_decisions`; (4) ejecución en el orden de la permutación y aprendizaje directo; (5) los pasos de "Orden de la Fase 5 con la Fase II-B".
+`step()` SHALL ejecutar `next_tick` así y luego incrementarlo: cambio del entorno (D62.1); (0) con `enable_compact_dna`, expresión; (1) percepción, germinación, percepción social y de señales, emisión, estigmergia y vista del holón; (2) intercambio social y vista del holón; (3) decisión, emisión de señales, contexto de compuestos, `on_decisions` y estado interno; (4) ejecución en el orden de la permutación, aprendizaje directo y plástico; (5) "Orden de la Fase 5 con la Fase II-B" y eventos del tick.
 
 #### Scenario: Decisiones sobre la misma instantánea
 - **WHEN** dos agentes de la misma celda observan el mismo recurso benéfico

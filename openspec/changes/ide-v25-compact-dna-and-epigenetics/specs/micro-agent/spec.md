@@ -131,18 +131,22 @@ El hijo SHALL heredar `plasmids` y `crispr_memory` dentro del ADN mutado, y SHAL
 - **THEN** al nacer `last_context == EpigeneticContext(0, EpigeneticRole.NONE, 0.25)` y, tras `express`, `last_context == EpigeneticContext(2, EpigeneticRole.NERVE, 0.9)`.
 
 ### Requirement: Señales Sensoriales Construidas por la Política Genética
-`GeneticPolicy` SHALL usar `SocialPerception()` cuando `social` es `None` (precisión 24) y construir `SensorySignals` con `known_good` (algún recurso visible conocido y benéfico según `get_effective_belief`), `unknown` (algún recurso visible desconocido), `no_resource` (sin recursos visibles), `neighbor_adjacent` (`social.adjacent` no vacío), `weaker_adjacent`, `stronger_near` (`social.flee_move is not None`), `crowded` y `carcass` (`social.carcass_visible`) (D46.2, D47.4).
+`GeneticPolicy` SHALL usar `SocialPerception()` si `social` es `None` (precisión 24) y construir `SensorySignals` con `known_good` (recurso visible conocido y benéfico según `get_effective_belief`), `unknown`, `no_resource`, `neighbor_adjacent` (`social.adjacent` no vacío), `weaker_adjacent`, `stronger_near` (`social.flee_move is not None`), `crowded`, `carcass` (`social.carcass_visible`) y los cuatro campos de `agent.last_events` (D46.2, D47.4, D58.5).
 
 #### Scenario: Señales desde la observación, las creencias y lo social
 - **WHEN** la observación tiene un recurso visible a distancia 2 cuyo patrón el agente cree con $\hat{v} = +1.0$ y `c = 0.80`, ningún recurso desconocido, y `social = SocialPerception(adjacent=(4,), weakest_adjacent=4, weaker_adjacent=True, crowded=True)`
 - **THEN** las señales tienen `known_good`, `neighbor_adjacent`, `weaker_adjacent` y `crowded` en `True`, y `unknown`, `no_resource`, `stronger_near` y `carcass` en `False`.
+
+#### Scenario: Eventos del tick anterior en las señales
+- **WHEN** el agente tiene `last_events == EventSignals(attacked=True, lost_energy=True)` al decidir
+- **THEN** las señales tienen `attacked` y `lost_energy` en `True`, y `ate` y `received_energy` en `False`.
 
 #### Scenario: Sin percepción social
 - **WHEN** `GeneticPolicy.decide` recibe `social=None` y los únicos impulsos positivos son los de `SHARE`, `ATTACK` y `FLEE`, con `enable_energy_transfer=True` y `enable_predation=True`
 - **THEN** las señales sociales son `False`, ninguna de esas conductas es factible y `decide` devuelve `AgentAction(ActionType.IDLE)`.
 
 ### Requirement: Orden de Prueba de la Política Genética
-`GeneticPolicy.decide` SHALL calcular las señales y los impulsos con `evaluate_drives(agent.dna, agent.last_context, signals, agent.base_config)`, recorrer las conductas con $d_B > 0$ en orden de $(-d_B, \text{posición en Behavior})$, evaluar su factibilidad de forma perezosa en ese orden, deteniéndose en la primera factible, y devolver su acción, o `IDLE` si ninguna lo es (D46.4, precisiones 23 y 25).
+`GeneticPolicy.decide` SHALL calcular las señales y los impulsos con `evaluate_behavior(agent.dna, agent.last_context, signals, agent.base_config, agent.internal_state, máscara percibida, agent.plastic_weights).drives`, recorrer las conductas con $d_B > 0$ en orden de $(-d_B, \text{posición en Behavior})$, evaluar su factibilidad de forma perezosa en ese orden, deteniéndose en la primera factible, y devolver su acción, o `IDLE` si ninguna lo es (D46.4, precisiones 23 y 25).
 
 #### Scenario: Caminar antes que consumir
 - **WHEN** el ADN del agente sólo tiene impulsos `WANDER = 0.5` y `CONSUME = 0.25`, hay un recurso alcanzable conocido y benéfico y hay movimientos disponibles
@@ -194,11 +198,47 @@ Con el ADN fundador de `enable_genetic_policy=True`, `GeneticPolicy.decide` SHAL
 - **THEN** las acciones son idénticas y los generadores terminan en el mismo estado en todos los casos.
 
 ### Requirement: Caché de Impulsos Equivalente a la Evaluación Directa
-`MicroAgent` MAY memoizar los impulsos por la clave de contexto del caché de expresión y las `SensorySignals`; el caché SHALL invalidarse cuando cambia el ADN y SHALL dar siempre los mismos impulsos que `evaluate_drives` (design D46.8).
+`MicroAgent` MAY memoizar la evaluación de conducta por la clave de contexto del caché de expresión y las `SensorySignals`, guardando los impulsos sin los pesos aprendidos y la lista de codones plásticos por conducta, y sumando los pesos después; el caché SHALL invalidarse cuando cambia el ADN y SHALL dar siempre la misma evaluación que `evaluate_behavior` con el estado, la máscara percibida y los pesos vigentes (design D46.8 y D59.5).
 
 #### Scenario: Caché frente a evaluación directa
-- **WHEN** un agente con la política genética decide en una secuencia de contextos y señales variadas, con un `set_dna` intermedio
-- **THEN** en cada decisión los impulsos usados son iguales a `evaluate_drives(agent.dna, context, signals, agent.base_config)`.
+- **WHEN** un agente con la política genética y $R_{39}$, $R_{40}$ y $R_{41}$ efectivamente activas decide en una secuencia de contextos, señales, estados internos, máscaras percibidas y pesos aprendidos variados, con un `set_dna` intermedio
+- **THEN** en cada decisión la evaluación usada es igual a `evaluate_behavior(agent.dna, context, signals, agent.base_config, agent.internal_state, máscara percibida, agent.plastic_weights)`.
+
+### Requirement: Estado Interno del Agente (R39)
+`MicroAgent` SHALL incorporar `internal_state: int`, de 8 bits en $[0, 255]$, que vale 0 al nacer, no se hereda, se conserva en endospora y sólo cambia con $R_{39}$ efectivamente activa; sin $R_{39}$ SHALL quedar en 0 (design D58.1 y D58.7).
+
+#### Scenario: Estado no heredado
+- **WHEN** un progenitor con `internal_state == 0b101` invoca `create_offspring`
+- **THEN** el hijo tiene `internal_state == 0` y el progenitor conserva `0b101`.
+
+#### Scenario: Estado conservado en endospora
+- **WHEN** un agente con `internal_state == 0b11` entra en endospora y germina después
+- **THEN** su `internal_state` sigue valiendo `0b11`.
+
+### Requirement: Eventos del Tick Anterior en el Agente
+`MicroAgent` SHALL exponer `last_events: EventSignals`, que el motor escribe al final de cada tick y la política genética lee en el tick siguiente; un recién nacido SHALL arrancar con `EventSignals()`, todos los campos en `False` (design D58.5).
+
+#### Scenario: Eventos de un recién nacido
+- **WHEN** nace un hijo de un progenitor con `last_events == EventSignals(ate=True)`
+- **THEN** el hijo tiene `last_events == EventSignals()`.
+
+### Requirement: Pesos Plásticos del Agente (R40)
+`MicroAgent` SHALL incorporar `plastic_weights: dict[int, float]`, indexado por la posición del codón en `chromosome + plasmids`, que arranca vacío al nacer (todos los pesos en 0), no se hereda y se vacía en `set_dna`, porque las posiciones cambian (design D59.2).
+
+#### Scenario: Pesos vacíos al nacer y tras cambiar el ADN
+- **WHEN** un agente con `plastic_weights == {3: 0.4}` invoca `create_offspring` y después `set_dna(dna2)`
+- **THEN** el hijo tiene `plastic_weights == {}` y el progenitor, tras `set_dna`, también `{}`.
+
+### Requirement: Regla de Aprendizaje del Agente (R40)
+Con $R_{40}$ efectivamente activa, tras ejecutar su acción en la Fase 4, cada codón elegible $i$ (de modo 3, activo en la evaluación del tick y con destino igual a la conducta elegida) SHALL actualizarse con $w_i \leftarrow \min(1, \max(-1, w_i + \eta \cdot r))$, con $\eta$ = `phenotype.plasticity_rate` y $r$ la recompensa de la acción (D59.4); sin $R_{40}$ los pesos SHALL NOT cambiar (design D59.4 y D59.6).
+
+#### Scenario: Refuerzo acotado
+- **WHEN** con `plasticity_rate = 0.5` un agente con `plastic_weights == {2: 0.9}`, cuyo codón 2 es plástico y activo sobre `CONSUME`, elige `CONSUME` y su acción le da $r = 0.4$
+- **THEN** `plastic_weights[2] == 1.0` por la cota superior, y los codones plásticos de otras conductas no cambian.
+
+#### Scenario: Sin aprendizaje con tasa nula o sin R40
+- **WHEN** el mismo agente tiene `plasticity_rate = 0.0`, o $R_{40}$ apagada
+- **THEN** `plastic_weights` no cambia.
 
 ### Requirement: Puerta de Comunicación
 `MicroAgent.communicates` SHALL valer `phenotype.comm_propensity >= 0.5` con `GeneticPolicy` y `True` con `HandwrittenPolicy`; con `communicates == False`, `BeliefExchangeProtocol` SHALL no emitir ni responder consultas, pero SHALL asimilar los testimonios recibidos. La puerta vive en `protocol.py` y no consume generadores (design D46.6).

@@ -35,11 +35,11 @@
 - **THEN** `holon_level == 0`, `role is EpigeneticRole.NONE` y `energy_ratio == 1.0`, y el objeto no tiene atributos `z_layer` ni de endospora.
 
 ### Requirement: Tipo Inmutable ExpressedPhenotype
-`ExpressedPhenotype` SHALL ser un `@dataclass(frozen=True)` con `genome: AgentGenome`, `lifespan: int`, `spore_threshold: float`, `expressed_codons: int` y, en este orden y con valores por defecto iguales a los de sus bases en `SimulationConfig`, `symbiotic_commitment: float = 0.0`, `recombination_propensity: float = 0.0` y `comm_propensity: float = 1.0` (design D31 y D46.7).
+`ExpressedPhenotype` SHALL ser un `@dataclass(frozen=True)` con `genome: AgentGenome`, `lifespan: int`, `spore_threshold: float`, `expressed_codons: int` y, en este orden y con valores por defecto iguales a los de sus bases en `SimulationConfig`, `symbiotic_commitment: float = 0.0`, `recombination_propensity: float = 0.0`, `comm_propensity: float = 1.0` y `plasticity_rate: float = 0.0` (design D31, D46.7 y D59.3).
 
 #### Scenario: Fenotipo expresado inmutable
 - **WHEN** se construye `ExpressedPhenotype(AgentGenome(), 600, 0.30, 9)` y se intenta asignar `lifespan`
-- **THEN** los campos conservan los valores dados, `symbiotic_commitment == 0.0`, `recombination_propensity == 0.0`, `comm_propensity == 1.0` y la asignación lanza `dataclasses.FrozenInstanceError`.
+- **THEN** los campos conservan los valores dados, `symbiotic_commitment == 0.0`, `recombination_propensity == 0.0`, `comm_propensity == 1.0`, `plasticity_rate == 0.0` y la asignación lanza `dataclasses.FrozenInstanceError`.
 
 ### Requirement: Banderas de la Fase II-B Apagadas por Defecto
 `SimulationConfig` SHALL incorporar al final, con valor por defecto `False`, las banderas `enable_compact_dna`, `enable_epigenetic_roles`, `enable_plasmid_hgt`, `enable_crispr_immunity`, `enable_sporulation`, `enable_telomere_senescence`, `enable_sos_mutation`, `enable_symbiotic_ratchet` (D31) y `enable_genetic_policy`, `enable_resource_depletion`, `enable_heterogeneity`, `enable_carcasses`, `enable_energy_transfer`, `enable_predation` y `enable_recombination` (D52.1).
@@ -100,6 +100,24 @@
 #### Scenario: Valores enteros inválidos
 - **WHEN** se construye `SimulationConfig(resource_regen_delay=0)`, `SimulationConfig(winter_regen_factor=0.5)`, `SimulationConfig(season_length=-1)` o `SimulationConfig(grid_width=8, num_regions=9)`
 - **THEN** cada construcción lanza `ValueError` cuyo mensaje nombra el campo.
+
+### Requirement: Campos de la Ampliación en SimulationConfig
+`SimulationConfig` SHALL incorporar al final, en este orden, `enable_internal_state: bool = False`, `enable_plasticity: bool = False`, `plasticity_rate_base: float = 0.0`, `enable_signals: bool = False`, `signal_cost: float = 0.002`, `world_shift_period: int = 0` (0 = sin cambios del entorno) y `world_shift_fraction: float = 0.5`, sin cambiar el valor por defecto `dna_max_length = 32` (design D62.1, D62.2 y D63.1).
+
+#### Scenario: Valores por defecto de la ampliación
+- **WHEN** se construye `SimulationConfig()`
+- **THEN** `enable_internal_state`, `enable_plasticity` y `enable_signals` valen `False`, `plasticity_rate_base == 0.0`, `signal_cost == 0.002`, `world_shift_period == 0`, `world_shift_fraction == 0.5` y `dna_max_length == 32`, y esos siete campos son los últimos de `dataclasses.fields(SimulationConfig)`, en ese orden.
+
+### Requirement: Validación Siempre Activa de la Ampliación
+`SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo, aunque las banderas estén apagadas, si `plasticity_rate_base` o `world_shift_fraction` están fuera de $[0, 1]$, o si `signal_cost` o `world_shift_period` son negativos (design D63.1).
+
+#### Scenario: Valores inválidos de la ampliación
+- **WHEN** se construye `SimulationConfig(plasticity_rate_base=1.1)`, `SimulationConfig(world_shift_fraction=-0.1)`, `SimulationConfig(signal_cost=-0.001)` o `SimulationConfig(world_shift_period=-1)`
+- **THEN** cada construcción lanza `ValueError` cuyo mensaje nombra el campo.
+
+#### Scenario: Valores límite válidos
+- **WHEN** se construye `SimulationConfig(plasticity_rate_base=1.0, world_shift_fraction=0.0, signal_cost=0.0, world_shift_period=0)`
+- **THEN** la construcción es válida.
 
 ### Requirement: Validación Siempre Activa de Probabilidades y Costos
 `SimulationConfig.__post_init__` SHALL lanzar `ValueError`, aunque las banderas estén apagadas, si `dna_point_mutation_rate`, `dna_duplication_rate`, `dna_deletion_rate`, `dna_excision_rate`, `hgt_rate`, `spore_cost_fraction`, `sos_high_fidelity_factor` o `lock_coord_discount` están fuera de $[0, 1]$, o si `dna_codon_cost`, `crispr_toxicity_threshold`, `senescence_cost_rate` o `spore_energy_threshold` son negativos.
@@ -165,6 +183,13 @@ Con `enable_compact_dna=True`, `SimulationConfig.__post_init__` SHALL lanzar un 
 - **WHEN** se construye `SimulationConfig(enable_genetic_policy=True, enable_recombination=True, enable_carcasses=True)`, `SimulationConfig(enable_evolution=True, enable_compact_dna=True, enable_energy_transfer=True, enable_predation=True, enable_sporulation=True)` o `SimulationConfig(enable_heterogeneity=True, season_length=500)`
 - **THEN** ninguna construcción lanza error.
 
+### Requirement: Dependencias Inertes de la Ampliación
+`SimulationConfig` SHALL NOT lanzar `ValueError` cuando `enable_internal_state`, `enable_plasticity` o `enable_signals` están activas sin que $R_{32}$ esté efectivamente activa (`enable_compact_dna` y `enable_genetic_policy`): en ese caso $R_{39}$, $R_{40}$ y $R_{41}$ quedan inertes (design D57.3 y precisión 31).
+
+#### Scenario: Banderas de la ampliación sin la política genética
+- **WHEN** se construye `SimulationConfig(enable_internal_state=True, enable_plasticity=True, enable_signals=True)` o `SimulationConfig(enable_evolution=True, enable_compact_dna=True, enable_internal_state=True, enable_signals=True)`
+- **THEN** ninguna construcción lanza error.
+
 ### Requirement: Enumeración Behavior
 `src/ide/domain/types.py` SHALL definir `Behavior(Enum)` con exactamente los miembros `CONSUME`, `EXPLORE`, `NAVIGATE`, `WANDER`, `SHARE`, `ATTACK`, `FLEE` y `SPORULATE`, en ese orden, que es el de desempate de la política genética, cada uno con su nombre en texto como valor (design D46.1, D47.1 y precisión 26).
 
@@ -187,11 +212,25 @@ Con `enable_compact_dna=True`, `SimulationConfig.__post_init__` SHALL lanzar un 
 - **THEN** `adjacent == ()`, `weakest_adjacent is None`, `weaker_adjacent is False`, `flee_move is None`, `crowded is False` y `carcass_visible is False`, y asignar un campo lanza `dataclasses.FrozenInstanceError`.
 
 ### Requirement: Tipo Inmutable SensorySignals
-`SensorySignals` SHALL ser un `@dataclass(frozen=True)` hashable con los campos booleanos, en este orden, `known_good`, `unknown`, `no_resource`, `neighbor_adjacent`, `weaker_adjacent`, `stronger_near`, `crowded` y `carcass`, que leen los promotores sensoriales `0x20`–`0x27` (design D46.2 y D47.1).
+`SensorySignals` SHALL ser un `@dataclass(frozen=True)` hashable con los campos booleanos, en este orden, `known_good`, `unknown`, `no_resource`, `neighbor_adjacent`, `weaker_adjacent`, `stronger_near`, `crowded` y `carcass`, que leen los promotores `0x20`–`0x27`, seguidos de los cuatro eventos del tick anterior de `EventSignals`, `attacked`, `ate`, `lost_energy` y `received_energy`, que leen los promotores `0x28`–`0x2B` (design D46.2, D47.1 y D60.1).
 
 #### Scenario: Campos y orden de las señales
 - **WHEN** se inspeccionan los campos de `SensorySignals` con `dataclasses.fields` y se usa una instancia como clave de `dict`
-- **THEN** los nombres, en orden, son `known_good`, `unknown`, `no_resource`, `neighbor_adjacent`, `weaker_adjacent`, `stronger_near`, `crowded` y `carcass`, y el uso como clave no lanza `TypeError`.
+- **THEN** los nombres, en orden, son `known_good`, `unknown`, `no_resource`, `neighbor_adjacent`, `weaker_adjacent`, `stronger_near`, `crowded`, `carcass`, `attacked`, `ate`, `lost_energy` y `received_energy`, y el uso como clave no lanza `TypeError`.
+
+### Requirement: Tipo Inmutable EventSignals
+`src/ide/domain/types.py` SHALL definir `EventSignals` como `@dataclass(frozen=True)` con cuatro campos booleanos, en este orden y en `False` por defecto: `attacked` (fue objetivo de un ataque con éxito y `stolen > 0`), `ate` (consumió un recurso con valor experimentado positivo), `lost_energy` (su energía al final del tick fue menor que al principio) y `received_energy` (fue objetivo de un `SHARE` que lo alcanzó) (design D58.5).
+
+#### Scenario: Eventos por defecto
+- **WHEN** se construye `EventSignals()` y se intenta asignar `ate`
+- **THEN** los cuatro campos valen `False`, sus nombres en orden son `attacked`, `ate`, `lost_energy` y `received_energy`, y la asignación lanza `dataclasses.FrozenInstanceError`.
+
+### Requirement: Tipo Inmutable BehaviorEvaluation
+`BehaviorEvaluation` SHALL ser un `@dataclass(frozen=True)` con, en este orden, `drives: tuple[float, ...]` (uno por `Behavior`), `set_mask: int`, `clear_mask: int`, `emitted: int` (máscara de símbolos emitidos) y `plastic: tuple[tuple[int, ...], ...]` (índices de los codones plásticos activos por conducta, en el orden de `Behavior`); `SIGNAL` no es una conducta y no tiene impulso (design D60.1 y D60.2).
+
+#### Scenario: Campos de la evaluación de conducta
+- **WHEN** se inspeccionan los campos de `BehaviorEvaluation` y se intenta asignar `emitted` a una instancia
+- **THEN** los nombres, en orden, son `drives`, `set_mask`, `clear_mask`, `emitted` y `plastic`, y la asignación lanza `dataclasses.FrozenInstanceError`.
 
 ### Requirement: Acciones de Interacción entre Agentes
 `ActionType` SHALL agregar los miembros `SHARE`, `ATTACK` y `SPORULATE`, con su nombre en texto como valor, sin cambiar `MOVE`, `INTERACT` ni `IDLE`, y `AgentAction.target` SHALL ser el `agent_id` del objetivo en `SHARE` y `ATTACK`, y `None` en `SPORULATE` (design D47.1 y precisión 26).
