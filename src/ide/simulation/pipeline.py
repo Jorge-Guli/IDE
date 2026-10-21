@@ -175,6 +175,24 @@ def predation_active(config: SimulationConfig) -> bool:
     return config.enable_evolution and genetic_policy_active(config) and config.enable_predation
 
 
+def telomere_senescence_active(config: SimulationConfig) -> bool:
+    """R29 efectivamente activa: `enable_telomere_senescence` con evolución (D30.3, D39).
+
+    Es la única definición de la condición: con ella, `build_systems` agrega `SenescenceSystem`.
+    Sin evolución la bandera es inerte: no hay metabolismo al que sumar la senescencia.
+    """
+    return config.enable_evolution and config.enable_telomere_senescence
+
+
+def sos_mutation_active(config: SimulationConfig) -> bool:
+    """R30 efectivamente activa: `enable_sos_mutation` con evolución (D30.3, D39).
+
+    Es la única definición de la condición; el motor la guarda en `engine.sos_mutation_active` y
+    con ella decide la escala de mutación de cada nacimiento. Sin ella, la escala es 1.0.
+    """
+    return config.enable_evolution and config.enable_sos_mutation
+
+
 def validate_systems(systems: tuple[EngineSystem, ...]) -> tuple[EngineSystem, ...]:
     """Devuelve `systems` si exactamente uno tiene la marca `notifies_decisions`.
 
@@ -613,9 +631,25 @@ class MetabolismSystem(BaseSystem):
         engine._metabolize(frame.moved, sent, frame.attacks)
 
 
+class SenescenceSystem(BaseSystem):
+    """(iii) Senescencia telomérica (R29, D39): `compute_senescence_cost` a cada agente vivo.
+
+    Completa el cobro metabólico del paso (iii), antes de la muerte, con la edad
+    `tick - birth_tick` y la longevidad expresada (`phenotype.lifespan`), también a las
+    endosporas. Sólo está en la lista con $R_{29}$ efectivamente activa.
+    """
+
+    name = "senescence"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        engine._charge_senescence(frame.tick)
+
+
 class DeathSystem(BaseSystem):
     """(iv) Muerte de quien quedó con energía <= 0 tras el metabolismo (R13) y, con R35, el
-    cadáver de cada muerto, depositado antes de quitarlo (D48.3, precisión 78).
+    cadáver de cada muerto, depositado antes de quitarlo (D48.3, precisión 78). Después, el
+    registro del estrés de los sobrevivientes (D39), siempre, aunque $R_{30}$ esté apagada
+    (precisión 7).
 
     Cuenta además, siempre que haya muertes, las del tick por depredación (objetivos de un ataque
     con éxito y `stolen > 0` en el tick, `frame.predated`) y por hambre (las demás),
@@ -626,6 +660,7 @@ class DeathSystem(BaseSystem):
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         dead = engine._remove_dead(frame.tick)
+        engine._record_stress(frame.tick)
         frame.deaths = len(dead)
         if not dead:
             return
@@ -755,7 +790,10 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
     if holonic:
         systems.append(HolonCoordinationSystem())
     if evolution:
-        systems += (MetabolismSystem(), DeathSystem(), ReproductionSystem())
+        systems.append(MetabolismSystem())
+        if telomere_senescence_active(config):
+            systems.append(SenescenceSystem())
+        systems += (DeathSystem(), ReproductionSystem())
     if holonic:
         systems.append(DownwardCausationSystem())
     systems.append(EnvironmentDynamicsSystem())

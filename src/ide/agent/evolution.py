@@ -1,6 +1,7 @@
 """Genoma fundador, costo metabólico y herencia cultural vertical (Exp 002 v2, design D21 y D22).
 
-En la Fase II-B suma el costo del ADN compacto (R24, design D34.5).
+En la Fase II-B suma el costo del ADN compacto (R24, design D34.5), la senescencia telomérica
+(R29) y la escala de mutación SOS (R30) (design D39).
 
 No importa `micro_agent.py`: opera sobre `BoundedMemory`, `AgentGenome` y `SimulationConfig`.
 """
@@ -43,6 +44,36 @@ def compute_dna_cost(dna: CompactDNA | None, config: SimulationConfig) -> float:
         return 0.0
     codons = len(dna.chromosome) + len(dna.plasmids) + len(dna.crispr_memory)
     return config.dna_codon_cost * codons
+
+
+def compute_senescence_cost(age: int, lifespan: int, config: SimulationConfig) -> float:
+    """Costo de senescencia telomérica por tick (R29, design D39).
+
+    Devuelve `senescence_cost_rate * (age - lifespan) ** 2` si `enable_telomere_senescence` y
+    `age > lifespan`, y `0.0` en otro caso. `age` es `tick - birth_tick` y `lifespan` la
+    longevidad expresada (`phenotype.lifespan`).
+    """
+    if not config.enable_telomere_senescence or age <= lifespan:
+        return 0.0
+    return config.senescence_cost_rate * (age - lifespan) ** 2
+
+
+def compute_sos_scale(
+    energy: float, last_stress_tick: int | None, tick: int, config: SimulationConfig
+) -> float:
+    """Escala de mutación SOS del progenitor (R30, design D39); 1.0 con la regla apagada.
+
+    Se decide con el estado del progenitor antes de partir la energía: `sos_hypermutation_factor`
+    si registró estrés en los últimos `sos_window` ticks; si no, `sos_high_fidelity_factor` si
+    `energy >= sos_high_fidelity_energy_ratio * reproduction_threshold`; y si no, 1.0.
+    """
+    if not config.enable_sos_mutation:
+        return 1.0
+    if last_stress_tick is not None and tick - last_stress_tick <= config.sos_window:
+        return config.sos_hypermutation_factor
+    if energy >= config.sos_high_fidelity_energy_ratio * config.reproduction_threshold:
+        return config.sos_high_fidelity_factor
+    return 1.0
 
 
 def transfer_cultural_heritage(

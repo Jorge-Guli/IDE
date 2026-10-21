@@ -412,6 +412,10 @@ class MicroAgent:
         """Eventos del tick, que el motor escribe al final de cada tick (D58.5)."""
         self._last_events = events
 
+    def record_stress(self, tick: int) -> None:
+        """Registra `last_stress_tick = tick`: el motor lo llama tras la muerte (D39)."""
+        self._last_stress_tick = tick
+
     def open_plasmid_trial(self, codon: int, tick: int) -> None:
         """Abre un ensayo CRISPR con la energía actual; no reabre uno abierto (precisión 4)."""
         if codon not in self._plasmid_trials:

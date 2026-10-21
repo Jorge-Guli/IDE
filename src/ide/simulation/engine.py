@@ -11,6 +11,8 @@ from ide.agent.epistemology import is_known
 from ide.agent.evolution import (
     compute_dna_cost,
     compute_metabolic_cost,
+    compute_senescence_cost,
+    compute_sos_scale,
     transfer_cultural_heritage,
 )
 from ide.agent.holon import (
@@ -63,6 +65,7 @@ from ide.simulation.pipeline import (
     energy_transfer_active,
     genetic_policy_active,
     predation_active,
+    sos_mutation_active,
 )
 
 # Emisor sintético de los testimonios estigmérgicos (D27); los holones usan IDs <= -2 (D23).
@@ -218,6 +221,8 @@ class SimulationEngine:
         # `ATTACK`; sin ellas, la grilla los ejecuta como `IDLE`.
         self.energy_transfer_active = energy_transfer_active(config)
         self.predation_active = predation_active(config)
+        # R30 efectivamente activa (D39): la escala de mutación de cada nacimiento; sin ella, 1.0.
+        self.sos_mutation_active = sos_mutation_active(config)
         # `GeneticPolicy` no guarda estado: una sola instancia sirve a todos los fundadores.
         policy = GeneticPolicy() if self.genetic_policy_active else None
         self.agents: dict[int, MicroAgent] = {
@@ -592,6 +597,34 @@ class SimulationEngine:
                 cost += config.attack_cost * attacks[aid]
             agent.apply_energy_delta(-cost)
 
+    def _charge_senescence(self, tick: int) -> None:
+        """Cobra la senescencia (R29, D39) a cada agente, endosporas incluidas, por `agent_id`.
+
+        La edad es `tick - birth_tick` y la longevidad, la expresada en la Fase 0 del tick (con
+        ADN, por el destino `0x07`; sin ADN, `telomere_base_lifespan`). Quien no superó su
+        longevidad no paga nada: su energía no cambia en un bit.
+        """
+        config = self.config
+        for aid in sorted(self.agents):
+            agent = self.agents[aid]
+            cost = compute_senescence_cost(
+                tick - agent.birth_tick, agent.phenotype.lifespan, config
+            )
+            if cost:
+                agent.apply_energy_delta(-cost)
+
+    def _record_stress(self, tick: int) -> None:
+        """Registra `last_stress_tick = tick` en cada sobreviviente con energía bajo el umbral.
+
+        El umbral es `stress_energy_ratio * reproduction_threshold` (D39). Corre siempre después
+        de la muerte, aunque $R_{30}$ esté apagada (precisión 7), y no consume generadores.
+        """
+        threshold = self.config.stress_energy_ratio * self.config.reproduction_threshold
+        for aid in sorted(self.agents):
+            agent = self.agents[aid]
+            if agent.energy < threshold:
+                agent.record_stress(tick)
+
     def _remove_dead(self, tick: int) -> list[int]:
         """Elimina, por `agent_id`, a quien quedó con E <= 0 tras el metabolismo (R13).
 
@@ -658,10 +691,18 @@ class SimulationEngine:
         `donor` es el donante de la reproducción neutral: aporta su genoma o, si el progenitor
         tiene ADN, su ADN (design D34.7). El hijo nace expresado en su contexto de nacimiento
         (`create_offspring`) y `spawn_agent_near` recibe los radios de ese fenotipo (D34.6).
+        Con $R_{30}$ (D39), la escala de mutación se decide con el estado del progenitor antes
+        de partir la energía; en la reproducción holónica, con el de cada hoja. Sin la regla, la
+        escala es 1.0 y la Fase II no cambia en un bit.
         """
         rng = self.evo_rng
+        scale = (
+            compute_sos_scale(parent.energy, parent.last_stress_tick, tick, self.config)
+            if self.sos_mutation_active
+            else 1.0
+        )
         if donor is None:
-            child = parent.create_offspring(self.next_agent_id, tick, rng)
+            child = parent.create_offspring(self.next_agent_id, tick, rng, mutation_scale=scale)
         elif (parent.dna is None) != (donor.dna is None):
             # Una población mixta no la produce el motor: heredar en silencio el ADN propio o el
             # genoma expresado del donante falsearía la deriva neutral.
@@ -670,9 +711,13 @@ class SimulationEngine:
                 f"y el donante {donor.agent_id} deben tener ADN los dos o ninguno"
             )
         elif parent.dna is None:  # la misma fuente de verdad que valida `create_offspring`
-            child = parent.create_offspring(self.next_agent_id, tick, rng, donor.genome)
+            child = parent.create_offspring(
+                self.next_agent_id, tick, rng, donor.genome, mutation_scale=scale
+            )
         else:
-            child = parent.create_offspring(self.next_agent_id, tick, rng, dna_source=donor.dna)
+            child = parent.create_offspring(
+                self.next_agent_id, tick, rng, dna_source=donor.dna, mutation_scale=scale
+            )
         self.next_agent_id += 1
         genome = child.genome
         self._evo.spawn_agent_near(
