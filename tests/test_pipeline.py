@@ -503,7 +503,7 @@ MEMORY_ACCESS = {
     "engine.py:SimulationEngine._has_knowledge_surplus",
     "engine.py:SimulationEngine._give_birth",
     "engine.py:SimulationEngine.inject_false_belief",
-    "pipeline.py:ExecutionSystem.run",
+    "pipeline.py:_execute_action",
 }
 
 

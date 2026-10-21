@@ -196,10 +196,9 @@ class GeneticPolicy:
         signals = _signals(survey, obs, social, agent.last_events)
         drives = agent.evaluate_for_decision(signals, tick).drives
         for _, slot in sorted((-drive, slot) for slot, drive in enumerate(drives) if drive > 0):
-            behavior = _BEHAVIORS[slot]
-            action = _feasible_action(behavior, agent, obs, social, survey, rng)
+            action = _feasible_action(_BEHAVIORS[slot], agent, obs, social, survey, rng)
             if action is not None:
-                agent.record_behavior(behavior, tick)  # conducta elegida, para R40 (D59.4)
+                agent.record_behavior(slot, tick)  # conducta elegida, para R40 (D59.4)
                 return action
         return _IDLE
 

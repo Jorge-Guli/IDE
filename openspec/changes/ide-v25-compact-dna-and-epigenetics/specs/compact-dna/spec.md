@@ -315,7 +315,7 @@ Con $R_{41}$ efectivamente activa, el destino `0x48` (`SIGNAL`) SHALL elegir el 
 - **THEN** `emitted == 0`.
 
 ### Requirement: Modo Plástico sobre las Conductas
-Con $R_{40}$ efectivamente activa (`enable_plasticity` y $R_{32}$ efectivamente activa), un codón activo de modo 3 en la posición $i$ de `chromosome + plasmids` sobre un destino `0x40`–`0x47` SHALL sumar a $S_B$ un $\delta_{\text{ef}} = \delta + w_i$, con $w_i$ = `plastic_weights.get(i, 0.0)` (0.0 con `None`); sobre otro destino, o sin $R_{40}$, el modo 3 SHALL ser inerte. En el fenotipo sigue inerte (design D59.1 y D59.6).
+Con $R_{40}$ efectivamente activa (`enable_evolution`, $R_{32}$ efectivamente activa y `enable_plasticity`), un codón activo de modo 3 en la posición $i$ de `chromosome + plasmids` sobre un destino `0x40`–`0x47` SHALL sumar a $S_B$ un $\delta_{\text{ef}} = \delta + w_i$, con $w_i$ = `plastic_weights.get(i, 0.0)` (0.0 con `None`); sobre otro destino, o sin $R_{40}$, el modo 3 SHALL ser inerte. En el fenotipo sigue inerte (design D59.1 y D59.6).
 
 #### Scenario: Codón plástico con peso aprendido
 - **WHEN** con $R_{40}$ efectivamente activa un ADN tiene en la posición 0 `encode_codon(0x00, 0x43, 3, 0, 32)` ($\delta = 0.25$) y se evalúa con `plastic_weights=None` y con `plastic_weights={0: 0.5}`

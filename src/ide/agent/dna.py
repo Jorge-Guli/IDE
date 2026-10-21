@@ -12,7 +12,8 @@ biblioteca estándar (los codones son `int` de Python, no `numpy.uint32`, D32). 
 """
 
 import math
-from dataclasses import dataclass, replace
+from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import NamedTuple
 
 import numpy as np
@@ -254,11 +255,14 @@ def internal_state_active(config: SimulationConfig) -> bool:
 
 
 def plasticity_active(config: SimulationConfig) -> bool:
-    """$R_{40}$ efectivamente activa: `enable_plasticity` con $R_{32}$ efectiva (D57.3, D59.6).
+    """$R_{40}$ efectivamente activa: `enable_evolution`, $R_{32}$ efectiva y `enable_plasticity`.
 
-    Sin ella, el modo 3 es inerte también en la conducta y los pesos no se actualizan.
+    Es la única definición (D57.3, D59.6, precisión 95). Exige la evolución explícitamente, como
+    $R_{36}$ y $R_{37}$ (precisión 83): sin ella la energía no cambia en la Fase 4 y la regla
+    sería inerte en silencio (hoy la validación del ADN ya la exige). Sin la condición, el modo 3
+    es inerte también en la conducta y los pesos no se actualizan.
     """
-    return genetic_policy_active(config) and config.enable_plasticity
+    return config.enable_evolution and genetic_policy_active(config) and config.enable_plasticity
 
 
 def _bits(mask: int) -> tuple[bool, ...]:
@@ -454,13 +458,14 @@ class BehaviorTerms:
     Es lo que guarda el caché único de la evaluación del agente (precisión 88): por conducta,
     $S_B$ sin los pesos (con la carga de sus codones plásticos), $\\mu_B$ y $\\rho_B$, y los
     índices de sus codones plásticos activos (`base.plastic`). `base` es la evaluación con todos
-    los pesos en 0. `apply_plastic_weights` suma los pesos vigentes.
+    los pesos en 0. `apply_plastic_weights` suma los pesos vigentes. Sin codones plásticos
+    activos, los pesos no tienen efecto y las tres tuplas quedan vacías.
     """
 
     base: BehaviorEvaluation
-    additive: tuple[float, ...]  # S_B sin los pesos
-    repressor: tuple[float, ...]  # rho_B
-    multiplier: tuple[float, ...]  # mu_B
+    additive: tuple[float, ...] = ()  # S_B sin los pesos
+    repressor: tuple[float, ...] = ()  # rho_B
+    multiplier: tuple[float, ...] = ()  # mu_B
 
 
 def behavior_terms(
@@ -493,7 +498,9 @@ def behavior_terms(
         clear_mask = _majority_mask(codons, active, _TARGET_CLEAR_STATE)
     else:
         set_mask = clear_mask = 0
-    plastic = tuple(tuple(indices) for indices in acc.plastic) if any(acc.plastic) else _NO_PLASTIC
+    if not any(acc.plastic):
+        return BehaviorTerms(BehaviorEvaluation(drives, set_mask, clear_mask, 0, _NO_PLASTIC))
+    plastic = tuple(tuple(indices) for indices in acc.plastic)
     return BehaviorTerms(
         BehaviorEvaluation(drives, set_mask, clear_mask, 0, plastic),
         tuple(acc.additive),
@@ -503,7 +510,7 @@ def behavior_terms(
 
 
 def apply_plastic_weights(
-    terms: BehaviorTerms, plastic_weights: dict[int, float] | None
+    terms: BehaviorTerms, plastic_weights: Mapping[int, float] | None
 ) -> BehaviorEvaluation:
     """Suma los pesos aprendidos a `terms` (D59.1, precisión 57).
 
@@ -523,7 +530,9 @@ def apply_plastic_weights(
         for index in indices:
             total += plastic_weights.get(index, 0.0)
         drives[b] = terms.multiplier[b] * terms.repressor[b] * total
-    return replace(base, drives=tuple(drives))
+    return BehaviorEvaluation(
+        tuple(drives), base.set_mask, base.clear_mask, base.emitted, base.plastic
+    )
 
 
 def evaluate_behavior(
@@ -533,7 +542,7 @@ def evaluate_behavior(
     config: SimulationConfig,
     state: int = 0,
     perceived: int = 0,
-    plastic_weights: dict[int, float] | None = None,
+    plastic_weights: Mapping[int, float] | None = None,
 ) -> BehaviorEvaluation:
     """Evaluación pura de la conducta del tick (D60.1), sin generador.
 

@@ -24,6 +24,7 @@ from hypothesis import strategies as st
 
 from ide.agent.dna import (
     BEHAVIOR_TARGETS,
+    behavior_terms,
     encode_codon,
     evaluate_behavior,
     founder_dna,
@@ -151,6 +152,20 @@ def test_plasticity_active_es_r32_mas_la_bandera() -> None:
     assert not plasticity_active(NO_R40)
     assert not plasticity_active(NO_R32)
     assert not plasticity_active(SimulationConfig(enable_plasticity=True))
+
+
+def test_plasticity_active_exige_la_evolucion() -> None:
+    """La validación del ADN ya exige la evolución; la condición la exige igual (precisión 95)."""
+    config = config_with()
+    object.__setattr__(config, "enable_evolution", False)  # salta la validación a propósito
+    assert not plasticity_active(config)
+
+
+def test_terminos_sin_codones_plasticos_no_guardan_la_acumulacion() -> None:
+    plain = behavior_terms(dna_of(encode_codon(0x00, WANDER, 0, 0, 64)), CTX0, signals(), R40)
+    assert plain.additive == plain.repressor == plain.multiplier == ()
+    learning = behavior_terms(dna_of(plastic(WANDER, 32)), CTX0, signals(), R40)
+    assert len(learning.additive) == len(learning.repressor) == len(learning.multiplier) == 8
 
 
 def test_combinacion_de_los_cuatro_modos_en_un_impulso() -> None:
@@ -326,13 +341,14 @@ def agent_with(*codons: int, config: SimulationConfig = R40) -> MicroAgent:
 
 
 def set_weights(agent: MicroAgent, weights: dict[int, float]) -> None:
-    agent._plastic_weights = dict(weights)  # pyright: ignore[reportPrivateUsage]
+    """Fija los pesos en el orden por posición que mantiene el agente."""
+    agent._plastic_weights = dict(sorted(weights.items()))  # pyright: ignore[reportPrivateUsage]
 
 
 def decided(agent: MicroAgent, behavior: Behavior, tick: int = 0) -> None:
     """Registra la decisión del tick y la conducta elegida, como la política genética."""
     agent.evaluate_for_decision(signals(), tick)
-    agent.record_behavior(behavior, tick)
+    agent.record_behavior(list(Behavior).index(behavior), tick)
 
 
 def learner(rate: float = 0.5, config: SimulationConfig | None = None) -> MicroAgent:
@@ -482,13 +498,40 @@ def test_pesos_conservados_en_endospora() -> None:
     assert agent.plastic_weights == {11: 0.3}
 
 
-def test_la_vista_de_los_pesos_es_una_copia_ordenada() -> None:
+def test_la_vista_de_los_pesos_es_de_solo_lectura() -> None:
     agent = learner()
-    set_weights(agent, {12: 0.1, 9: 0.2})
+    set_weights(agent, {9: 0.2, 12: 0.1})
     view = agent.plastic_weights
-    assert list(view) == [9, 12]
-    view[9] = 1.0
+    with pytest.raises(TypeError):
+        view[9] = 1.0  # type: ignore[index]
     assert agent.plastic_weights == {9: 0.2, 12: 0.1}
+
+
+def test_los_pesos_nuevos_se_insertan_en_orden_de_posicion() -> None:
+    agent = learner()
+    set_weights(agent, {9: 0.2})
+    decided(agent, Behavior.FLEE)
+    assert agent.reinforce(0, 0.4) == 1  # sólo actualiza el 9
+    agent2 = learner()
+    set_weights(agent2, {13: 0.1})  # una posición mayor que las elegibles 11 y 12
+    decided(agent2, Behavior.CONSUME)
+    assert agent2.reinforce(0, 0.4) == 2
+    assert list(agent2.plastic_weights) == [11, 12, 13]
+
+
+def test_reinforce_devuelve_las_actualizaciones() -> None:
+    agent = learner()
+    decided(agent, Behavior.CONSUME)
+    assert agent.reinforce(0, 0.0) == 0  # r = 0: no cuenta
+    assert agent.reinforce(1, 0.4) == 0  # sin decisión en el tick 1
+    assert agent.reinforce(0, 0.4) == 2  # dos codones elegibles
+    idle = learner()
+    idle.evaluate_for_decision(signals(), 0)
+    assert idle.reinforce(0, 0.4) == 0  # decidió IDLE: sin conducta elegida
+    still = learner(rate=0.0)
+    decided(still, Behavior.CONSUME)
+    assert still.reinforce(0, 0.4) == 0  # eta = 0: no mueve ningún peso y no cuenta
+    assert still.plastic_weights == {}
 
 
 def test_set_dna_descarta_la_conducta_elegida() -> None:
@@ -714,8 +757,55 @@ def test_recompensa_de_un_consumo(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(grid, "execute_action", execute)
     actions = {aid: IDLE for aid in engine.agents}
     actions[3] = AgentAction(ActionType.INTERACT, 0)
-    ExecutionSystem().run(engine, TickFrame(0, order=sorted(engine.agents), actions=actions))
+    frame = TickFrame(0, order=sorted(engine.agents), actions=actions)
+    ExecutionSystem().run(engine, frame)
     assert agent.plastic_weights == {9: pytest.approx(0.2, abs=1e-9)}
+    assert frame.events["plastic_updates"] == 1
+
+
+def test_movimiento_no_cuenta_actualizaciones(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Escenario de `plastic_updates`: el consumo con r != 0 cuenta y el `MOVE` no."""
+    engine = SimulationEngine(small(energy_gain_scale=0.1))
+    eater, walker = engine.agents[3], engine.agents[4]
+    eater.set_dna(CompactDNA(chromosome=(*FOUNDER_TRAITS, plastic(CONSUME, 64))))
+    walker.set_dna(CompactDNA(chromosome=(*FOUNDER_TRAITS, plastic(WANDER, 64))))
+    for agent, behavior in ((eater, Behavior.CONSUME), (walker, Behavior.WANDER)):
+        agent.express(CTX0, 0)
+        decided(agent, behavior)
+    grid = grid_of(engine)
+    pattern = Pattern((("id", "p_0"),))
+    original = grid.execute_action
+
+    def execute(agent_id: int, action: AgentAction, tick: int) -> ActionResult:
+        if action.action_type is ActionType.INTERACT and agent_id == 3:
+            return ActionResult(ActionType.INTERACT, pattern, 1.0)
+        return original(agent_id, action, tick)
+
+    monkeypatch.setattr(grid, "execute_action", execute)
+    actions = {aid: IDLE for aid in engine.agents}
+    actions[3] = AgentAction(ActionType.INTERACT, 0)
+    actions[4] = AgentAction(ActionType.MOVE, grid.get_observation(4, 0).available_moves[0])
+    frame = TickFrame(0, order=sorted(engine.agents), actions=actions)
+    ExecutionSystem().run(engine, frame)
+    assert frame.events["plastic_updates"] == 1
+
+
+def test_sin_r40_no_hay_evento_de_actualizaciones(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = scene(
+        monkeypatch, small(enable_plasticity=False), 5, plastic(SHARE, 64), {5: 2.0, 4: 1.0}
+    )
+    spy: list[dict[str, int]] = []
+
+    class Spy:
+        def on_decisions(self, engine: SimulationEngine, frame: TickFrame) -> None:
+            pass
+
+        def on_tick_end(self, engine: SimulationEngine, frame: TickFrame) -> None:
+            spy.append(dict(frame.events))
+
+    engine.observers.append(Spy())
+    engine.step()
+    assert "plastic_updates" not in spy[0]
 
 
 def test_la_recompensa_no_incluye_la_cesion_recibida(monkeypatch: pytest.MonkeyPatch) -> None:

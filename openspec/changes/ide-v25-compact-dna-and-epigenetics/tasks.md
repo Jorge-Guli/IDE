@@ -255,15 +255,15 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 14.1 **[RED]** Tests para:
+- [x] 14.1 **[RED]** Tests para:
   - (a) el modo 3 plástico sólo sobre destinos de conducta e inerte en el fenotipo, y `AST_PIPE` mudado a `0x3F` (D59.1, D61);
   - (b) el rasgo `plasticity_rate` (`0x0F`) con base 0 (D59.3);
   - (c) la recompensa de la Fase 4, los codones elegibles y la actualización acotada (D59.4);
   - (d) `plastic_weights` vacío al nacer, no heredado y vaciado en `set_dna` (D59.2);
   - (e) el caché único de la evaluación (precisión 88), extendido con los pesos, igual a la evaluación directa (D59.5);
   - (f) la inercia sin $R_{40}$.
-- [ ] 14.2 **[GREEN]** Implementar D59.
-- [ ] 14.3 **[REFACTOR]** Verificación del bloque.
+- [x] 14.2 **[GREEN]** Implementar D59.
+- [x] 14.3 **[REFACTOR]** Verificación del bloque. (1503 tests, cobertura 99 %; un solo registro de la decisión del tick, `plastic_updates` cuenta sólo los pesos que se mueven y R40 exige la evolución; precisiones 94 a 96.)
 
 ## 15. Señales evolucionables (R41) (`compact-dna`, `simulation-engine`)
 

@@ -1,7 +1,9 @@
 """Micro-agente autónomo: percepción local, comunicación delegada y decisión."""
 
 import math
+from collections.abc import Mapping
 from dataclasses import replace
+from types import MappingProxyType
 
 import numpy as np
 
@@ -54,7 +56,6 @@ _ExpressionKey = tuple[int, EpigeneticRole, int]
 # aprendidos no forman parte de la clave: el caché guarda la evaluación sin ellos (D59.5).
 _EvaluationKey = tuple[_ExpressionKey, SensorySignals, int, int]
 _STATE_MASK = 0xFF  # `internal_state` tiene 8 bits (D58.1)
-_BEHAVIOR_SLOT = {behavior: slot for slot, behavior in enumerate(Behavior)}  # orden de D46.1
 # Tope del caché de la evaluación, por agente: al alcanzarlo se vacía. Las claves posibles son
 # muchas (10 niveles, 4 roles, 3 bandas, 2^12 señales y 256 estados), así que sin tope el caché
 # crecería sin medida en una vida larga. Medido en el bloque 13 (002a y 003a con ADN, política
@@ -156,16 +157,14 @@ class MicroAgent:
         self._internal_state = 0
         # Eventos del tick anterior, que escribe el motor al final de cada tick (D58.5).
         self._last_events = EventSignals()
-        # Evaluación de la decisión, con su tick: la registra la política genética al decidir y
-        # la leen los sistemas del motor de ese tick (D58.3); `None` sin decisión registrada.
-        self._decision: tuple[int, BehaviorEvaluation] | None = None
+        # Registro único de la decisión: (tick, evaluación, posición en `Behavior` de la conducta
+        # elegida o `None` si cayó en `IDLE`). Lo escribe la política genética al decidir y lo
+        # leen los sistemas del motor de ese tick (D58.3, D59.4); `None` sin decisión registrada.
+        self._decision: tuple[int, BehaviorEvaluation, int | None] | None = None
         # --- R40 (design D59) ---
-        # Pesos aprendidos por posición en `chromosome + plasmids`: vacíos al nacer (todos en 0),
-        # no se heredan y se vacían en `set_dna` (D59.2).
+        # Pesos aprendidos por posición en `chromosome + plasmids`, en orden ascendente de
+        # posición: vacíos al nacer (todos en 0), no se heredan y se vacían en `set_dna` (D59.2).
         self._plastic_weights: dict[int, float] = {}
-        # Conducta elegida en la decisión registrada (`None` si cayó en `IDLE`): la registra la
-        # política genética y la lee la regla de aprendizaje de la Fase 4 (D59.4).
-        self._decision_behavior: Behavior | None = None
         self._dna: CompactDNA | None = None
         self._phenotype: ExpressedPhenotype
         self._last_context: EpigeneticContext
@@ -362,15 +361,17 @@ class MicroAgent:
     def decision_behavior(self, tick: int) -> Behavior | None:
         """La conducta elegida en la decisión registrada de `tick`, o `None` (D59.4)."""
         decision = self._decision
-        if decision is None or decision[0] != tick:
+        if decision is None or decision[0] != tick or decision[2] is None:
             return None
-        return self._decision_behavior
+        return tuple(Behavior)[decision[2]]
 
     @property
-    def plastic_weights(self) -> dict[int, float]:
-        """Copia de los pesos aprendidos ($R_{40}$, D59.2), ordenada por posición."""
-        weights = self._plastic_weights
-        return {index: weights[index] for index in sorted(weights)}
+    def plastic_weights(self) -> Mapping[int, float]:
+        """Vista de sólo lectura de los pesos aprendidos ($R_{40}$, D59.2), por posición ascendente.
+
+        No copia: refleja los pesos vigentes hasta el próximo `set_dna`, que los reemplaza.
+        """
+        return MappingProxyType(self._plastic_weights)
 
     @property
     def birth_tick(self) -> int:
@@ -427,8 +428,7 @@ class MicroAgent:
         self._dna = dna
         self._expression_cache.clear()
         self._evaluation_cache.clear()
-        self._decision = None  # la evaluación registrada era la de otro ADN
-        self._decision_behavior = None
+        self._decision = None  # la decisión registrada era la de otro ADN
         self._plastic_weights = {}  # las posiciones de los codones cambian (D59.2)
 
     def set_endospore(self, flag: bool) -> None:
@@ -522,20 +522,20 @@ class MicroAgent:
             raise RuntimeError(f"el agente {self._agent_id} ya decidió en el tick {tick}")
         evaluation = self.evaluate_behavior(signals)
         if not self._is_endospore:
-            self._decision = (tick, evaluation)
-            self._decision_behavior = None
+            self._decision = (tick, evaluation, None)
         return evaluation
 
-    def record_behavior(self, behavior: Behavior, tick: int) -> None:
-        """Registra la conducta elegida en la decisión de `tick` (D59.4).
+    def record_behavior(self, slot: int, tick: int) -> None:
+        """Registra la conducta elegida, por su posición en `Behavior`, en la decisión de `tick`.
 
-        La invoca la política genética al elegir una conducta factible. Sin una decisión
+        La invoca la política genética al elegir una conducta factible (D59.4). Sin una decisión
         registrada en `tick` (por ejemplo, en endospora) no hace nada.
         """
-        if self.decision_evaluation(tick) is not None:
-            self._decision_behavior = behavior
+        decision = self._decision
+        if decision is not None and decision[0] == tick:
+            self._decision = (tick, decision[1], slot)
 
-    def reinforce(self, tick: int, reward: float) -> None:
+    def reinforce(self, tick: int, reward: float) -> int:
         """Regla de aprendizaje de $R_{40}$ (D59.4) con la recompensa `reward` de la Fase 4.
 
         La invoca el motor inmediatamente después de ejecutar la acción del agente, sólo con
@@ -543,19 +543,31 @@ class MicroAgent:
         evaluación registrada de `tick` (`decision_evaluation(tick).plastic`) con destino igual a
         la conducta elegida (`decision_behavior(tick)`); cada uno se actualiza con
         $w_i \\leftarrow \\min(1, \\max(-1, w_i + \\eta \\cdot r))$, con
-        $\\eta$ = `phenotype.plasticity_rate`. Sin decisión o conducta registradas, o con
-        $\\eta \\cdot r = 0$, no cambia nada (tampoco agrega pesos en 0). No consume generadores.
+        $\\eta$ = `phenotype.plasticity_rate`. Con $\\eta \\cdot r = 0$ ningún peso cambia ni se
+        agregan pesos en 0; los pesos nuevos se insertan manteniendo el orden por posición. No
+        consume generadores.
+
+        Returns:
+            Las actualizaciones que mueven un peso ($\\eta \\cdot r \\ne 0$): una por codón
+            elegible, para `plastic_updates` (D63.3, precisiones 62 y 96); 0 sin decisión o
+            conducta registradas o con $\\eta \\cdot r = 0$.
         """
-        evaluation = self.decision_evaluation(tick)
-        behavior = self._decision_behavior
-        if evaluation is None or behavior is None:
-            return
+        decision = self._decision
+        if decision is None or decision[0] != tick or decision[2] is None or reward == 0.0:
+            return 0
+        eligible = decision[1].plastic[decision[2]]
         step = self._phenotype.plasticity_rate * reward
         if step == 0.0:
-            return
+            return 0
         weights = self._plastic_weights
-        for index in evaluation.plastic[_BEHAVIOR_SLOT[behavior]]:
+        unsorted = False
+        for index in eligible:
+            if index not in weights and weights and index < next(reversed(weights)):
+                unsorted = True
             weights[index] = min(1.0, max(-1.0, weights.get(index, 0.0) + step))
+        if unsorted:
+            self._plastic_weights = dict(sorted(weights.items()))
+        return len(eligible)
 
     def apply_internal_state(self, tick: int) -> None:
         """Aplica `(internal_state | set_mask) & ~clear_mask` de la decisión de `tick` (D58.3).
