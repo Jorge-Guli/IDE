@@ -1,13 +1,19 @@
 """Motor de simulación: pipeline determinista de sistemas sin coordinador cognitivo (D44)."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import cast
 
 import numpy as np
 
-from ide.agent.dna import plasticity_active
+from ide.agent.dna import (
+    crispr_immunity_active,
+    plasmid_hgt_active,
+    plasticity_active,
+    purge_plasmid,
+    receive_plasmid,
+)
 from ide.agent.epistemology import is_known
 from ide.agent.evolution import (
     compute_dna_cost,
@@ -211,6 +217,10 @@ class SimulationEngine:
         self.donor_rng = np.random.Generator(
             np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(4,)))
         )
+        # Conjugación de plásmidos (R26, D30.4): su único uso; sólo se consume con R26 efectiva.
+        self.hgt_rng = np.random.Generator(
+            np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(5,)))
+        )
         self.env: EnvironmentPort = env if env is not None else ToroidalGrid2D(config, self.rng)
         self._evo_env: EvolutionaryEnvironmentPort | None = (
             self.env if isinstance(self.env, EvolutionaryEnvironmentPort) else None
@@ -235,6 +245,9 @@ class SimulationEngine:
         self.sporulation_active = sporulation_active(config)
         # R40 efectivamente activa (D59): la Fase 4 aplica la regla de aprendizaje tras cada acción.
         self.plasticity_active = plasticity_active(config)
+        # R26 y R27 efectivamente activas (D30.3, D37): conjugación y ensayo CRISPR en la Fase 5.
+        self.plasmid_hgt_active = plasmid_hgt_active(config)
+        self.crispr_immunity_active = crispr_immunity_active(config)
         # R41 (D60.4): por receptor, el OR de los símbolos emitidos en la Fase 3 del tick anterior
         # por los emisores de los que era vecino de comunicación; lo consume la Fase 1.
         self.pending_signals: dict[int, int] = {}
@@ -892,6 +905,110 @@ class SimulationEngine:
             child.assimilate_testimony(belief, parent.agent_id, tick)
         self.agents[child.agent_id] = child
         return child
+
+    # --- Fase II-B: plásmidos (R26) e inmunidad CRISPR (R27) ----------------------------------
+
+    def _conjugate(self, tick: int, events: Counter[str]) -> None:
+        """Conjugación de la Fase 5 (vi), design D37: sorteo completo y después aplicación."""
+        self._apply_conjugations(self._draw_conjugations(), tick, events)
+
+    def _draw_conjugations(self) -> list[tuple[int, int]]:
+        """Sorteo de la conjugación con `hgt_rng` (D37, pasos 1 y 2); no cambia ningún ADN.
+
+        Los donantes y los candidatos se fijan al empezar el paso, con los agentes vivos en ese
+        momento (también los nacidos en la reproducción del tick) y su estado de endospora
+        vigente (P1). Para cada donante, en orden de `agent_id`: `u = hgt_rng.random()`; si
+        `u < hgt_rate` y tiene candidatos (vivos, distintos, no endosporas, a distancia de
+        Chebyshev <= 1), el receptor y el codón salen de `hgt_rng.integers`, en ese orden.
+        Devuelve los pares `(receptor, codón)` registrados, en el orden del sorteo.
+        """
+        config = self.config
+        agents = self.agents
+        alive = sorted(agents)
+        threshold = config.hgt_energy_ratio * config.reproduction_threshold
+        active = [aid for aid in alive if not agents[aid].is_endospore]
+        donors: list[tuple[int, tuple[int, ...]]] = []
+        for aid in active:
+            agent = agents[aid]
+            dna = agent.dna
+            if dna is not None and dna.plasmids and agent.energy >= threshold:
+                donors.append((aid, dna.plasmids))
+        transfers: list[tuple[int, int]] = []
+        if not donors:
+            return transfers
+        rng, rate, evo = self.hgt_rng, config.hgt_rate, self._evo
+        for donor, plasmids in donors:
+            if float(rng.random()) >= rate:
+                continue
+            candidates = [b for b in active if b != donor and evo.get_agent_distance(donor, b) <= 1]
+            if not candidates:
+                continue
+            receptor = candidates[int(rng.integers(len(candidates)))]
+            codon = plasmids[int(rng.integers(len(plasmids)))]
+            transfers.append((receptor, codon))
+        return transfers
+
+    def _apply_conjugations(
+        self, transfers: list[tuple[int, int]], tick: int, events: Counter[str]
+    ) -> None:
+        """Aplica las transferencias sorteadas (D37, paso 3; precisión 5).
+
+        Con dos o más, en el orden de `hgt_rng.permutation(len(transfers))`: la llegada de
+        varias al mismo receptor es un conflicto y se resuelve por sorteo. Un `None` de
+        `receive_plasmid` cuenta en `crispr_rejections`; un ADN que cambió se guarda con
+        `set_dna` (que vacía las cachés, la decisión registrada y `plastic_weights`), cuenta en
+        `hgt_transfers` y, con $R_{27}$, abre el ensayo `(tick, energía actual, 0.0)`. Un codón
+        ya presente no cuenta. No toca la memoria epistémica ni el control nulo (D37).
+        """
+        if not transfers:
+            return
+        order = [0]
+        if len(transfers) > 1:
+            order = cast(
+                list[int],
+                self.hgt_rng.permutation(len(transfers)).tolist(),  # pyright: ignore[reportUnknownMemberType]
+            )
+        config, crispr = self.config, self.crispr_immunity_active
+        for k in order:
+            receptor, codon = transfers[k]
+            agent = self.agents[receptor]
+            dna = agent.dna
+            if dna is None:  # pragma: no cover - R26 efectiva exige ADN en toda la población
+                raise RuntimeError("la conjugación exige que el receptor tenga ADN")
+            received = receive_plasmid(dna, codon, config)
+            if received is None:
+                events["crispr_rejections"] += 1
+            elif received is not dna:
+                agent.set_dna(received)
+                events["hgt_transfers"] += 1
+                if crispr:
+                    agent.open_plasmid_trial(codon, tick)
+
+    def _evaluate_crispr(self, tick: int, events: Counter[str]) -> None:
+        """Ensayo CRISPR de la Fase 5 (vi), design D37 y precisión 4.
+
+        Para cada agente en orden de `agent_id` y cada ensayo en orden de codón, un ensayo
+        vencido (`tick - t0 >= crispr_eval_ticks`) purga el codón con `purge_plasmid` si sigue en
+        `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold`, y se cierra siempre; si
+        el plásmido se perdió (FIFO), se cierra sin purga. Cuenta `crispr_purges`.
+        """
+        config = self.config
+        window, limit = config.crispr_eval_ticks, -config.crispr_toxicity_threshold
+        for aid in sorted(self.agents):
+            agent = self.agents[aid]
+            trials = agent.plasmid_trials
+            for codon, (opened, entry_energy, ceded) in trials.items():
+                if tick - opened < window:
+                    continue
+                dna = agent.dna
+                if (
+                    dna is not None
+                    and codon in dna.plasmids
+                    and agent.energy - entry_energy + ceded < limit
+                ):
+                    agent.set_dna(purge_plasmid(dna, codon, config))
+                    events["crispr_purges"] += 1
+                agent.close_plasmid_trial(codon)
 
     # --- Perturbaciones (entre ticks; el tick efectivo es `next_tick`) --------------------------
 

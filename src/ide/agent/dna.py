@@ -44,6 +44,7 @@ __all__ = [
     "Codon",
     "apply_plastic_weights",
     "behavior_terms",
+    "crispr_immunity_active",
     "decode_codon",
     "encode_codon",
     "evaluate_behavior",
@@ -54,7 +55,10 @@ __all__ = [
     "internal_state_active",
     "mutate_dna",
     "phenotype_from_genome",
+    "plasmid_hgt_active",
     "plasticity_active",
+    "purge_plasmid",
+    "receive_plasmid",
     "recombine_dna",
     "transcribe_phenotype",
 ]
@@ -279,6 +283,27 @@ def signals_active(config: SimulationConfig) -> bool:
     destino `0x48` y los promotores `0x38`-`0x3F` son inertes y no hay emisión ni costo.
     """
     return genetic_policy_active(config) and config.enable_signals
+
+
+def plasmid_hgt_active(config: SimulationConfig) -> bool:
+    """$R_{26}$ efectivamente activa: `enable_plasmid_hgt` con ADN (D30.3, D37).
+
+    Es la única definición de la condición de la conjugación: la usan `build_systems` y el motor,
+    que la guarda en `engine.plasmid_hgt_active`. Exige la evolución explícitamente, como $R_{36}$
+    y $R_{37}$ (precisión 83), aunque la validación del ADN ya la exige. Sin ella, `hgt_rng` no
+    se consume (D30.4).
+    """
+    return config.enable_evolution and config.enable_compact_dna and config.enable_plasmid_hgt
+
+
+def crispr_immunity_active(config: SimulationConfig) -> bool:
+    """$R_{27}$ efectivamente activa: `enable_crispr_immunity` con $R_{26}$ efectiva (D30.3, D37).
+
+    Es la única definición de la condición del ensayo CRISPR: la usan `build_systems` y el motor,
+    que la guarda en `engine.crispr_immunity_active`. Sin $R_{26}$ no llegan plásmidos por
+    conjugación, no se abren ensayos y la bandera es inerte.
+    """
+    return plasmid_hgt_active(config) and config.enable_crispr_immunity
 
 
 def heard_symbols(dna: CompactDNA) -> int:
@@ -728,6 +753,44 @@ def recombine_dna(
     return CompactDNA(
         chromosome=chromosome, plasmids=parent.plasmids, crispr_memory=parent.crispr_memory
     )
+
+
+def receive_plasmid(dna: CompactDNA, codon: int, config: SimulationConfig) -> CompactDNA | None:
+    """Recepción de un plásmido por conjugación (R26 y R27, design D37), pura.
+
+    Devuelve `None` si `config.enable_crispr_immunity` y `codon` está en `crispr_memory`: la
+    transferencia se bloquea. Devuelve el mismo `dna` (la misma instancia) si `codon` ya está en
+    `plasmids`. Si no, devuelve un ADN con `codon` al final de `plasmids`, descartando el primero
+    si se supera `max_plasmids` (FIFO). El motor sólo la invoca con $R_{26}$ efectivamente activa
+    (`plasmid_hgt_active`), así que leer aquí la bandera de $R_{27}$ equivale a leer
+    `crispr_immunity_active` (P1).
+    """
+    if config.enable_crispr_immunity and codon in dna.crispr_memory:
+        return None
+    if codon in dna.plasmids:
+        return dna
+    plasmids = (*dna.plasmids, codon)
+    if len(plasmids) > config.max_plasmids:
+        plasmids = plasmids[len(plasmids) - config.max_plasmids :]  # FIFO
+    return CompactDNA(chromosome=dna.chromosome, plasmids=plasmids, crispr_memory=dna.crispr_memory)
+
+
+def purge_plasmid(dna: CompactDNA, codon: int, config: SimulationConfig) -> CompactDNA:
+    """Purga CRISPR de un plásmido (R27, design D37), pura.
+
+    Quita `codon` de `plasmids` y lo agrega al final de `crispr_memory`, descartando la firma
+    más antigua si se supera `crispr_memory_size` (FIFO).
+
+    Raises:
+        ValueError: si `codon` no está en `plasmids`: el motor sólo purga un plásmido presente.
+    """
+    if codon not in dna.plasmids:
+        raise ValueError(f"purge_plasmid: el codón {codon} no está en plasmids")
+    plasmids = tuple(c for c in dna.plasmids if c != codon)
+    memory = (*(c for c in dna.crispr_memory if c != codon), codon)
+    if len(memory) > config.crispr_memory_size:
+        memory = memory[len(memory) - config.crispr_memory_size :]  # FIFO
+    return CompactDNA(chromosome=dna.chromosome, plasmids=plasmids, crispr_memory=memory)
 
 
 def _base_promoter_expressible(promoter: int, holonic: bool, roles: bool, senses: bool) -> bool:

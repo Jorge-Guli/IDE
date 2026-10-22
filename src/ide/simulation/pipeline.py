@@ -23,7 +23,12 @@ from typing import TYPE_CHECKING, NamedTuple, Protocol, cast, runtime_checkable
 
 import numpy as np
 
-from ide.agent.dna import internal_state_active, signals_active
+from ide.agent.dna import (
+    crispr_immunity_active,
+    internal_state_active,
+    plasmid_hgt_active,
+    signals_active,
+)
 from ide.agent.evolution import sos_mutation_active
 from ide.agent.holon import CompositeAgent
 from ide.config import (
@@ -922,6 +927,35 @@ class ReproductionSystem(BaseSystem):
         frame.births = engine._reproduce(frame.tick)
 
 
+class ConjugationSystem(BaseSystem):
+    """(vi) Conjugación de plásmidos (R26, design D37), después de la reproducción.
+
+    Sortea con `hgt_rng` las transferencias de los donantes fijados al empezar el paso y las
+    aplica después de sortearlas todas. Suma los eventos `hgt_transfers` y `crispr_rejections`
+    (precisión 5). Sólo está en la lista con $R_{26}$ efectivamente activa
+    (`plasmid_hgt_active`): sin ella `hgt_rng` no se consume.
+    """
+
+    name = "conjugation"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        engine._conjugate(frame.tick, frame.events)
+
+
+class CrisprTrialSystem(BaseSystem):
+    """(vi) Ensayo CRISPR (R27, design D37), después de la conjugación.
+
+    Cierra los ensayos vencidos y purga los plásmidos tóxicos; suma el evento `crispr_purges`
+    (precisión 5). Sólo está en la lista con $R_{27}$ efectivamente activa
+    (`crispr_immunity_active`). No consume generadores.
+    """
+
+    name = "crispr_trials"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        engine._evaluate_crispr(frame.tick, frame.events)
+
+
 class DownwardCausationSystem(BaseSystem):
     """(vii) R18 sobre el bosque del final del tick."""
 
@@ -1058,6 +1092,11 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
         if sos_mutation_active(config):
             systems.append(StressSystem())
         systems.append(ReproductionSystem())
+        # (vi) Conjugación y ensayo CRISPR (D37, D53.1): el ADN exige la evolución.
+        if plasmid_hgt_active(config):
+            systems.append(ConjugationSystem())
+            if crispr_immunity_active(config):
+                systems.append(CrisprTrialSystem())
     if holonic:
         systems.append(DownwardCausationSystem())
     if epigenetic_roles_active(config):
