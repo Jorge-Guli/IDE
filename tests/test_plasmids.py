@@ -703,7 +703,7 @@ def test_historiales_iguales_entre_procesos_con_r26_y_r27() -> None:
     assert purges > 0
 
 
-# --- Precisión 125: lo cedido por SHARE y lo robado no cuentan como toxicidad ---
+# --- Precisión 125: las transferencias entre agentes no cuentan como toxicidad ---
 
 
 def test_credit_plasmid_trials_suma_a_todos_los_ensayos_abiertos() -> None:
@@ -766,12 +766,63 @@ def test_una_presa_no_purga_por_lo_que_le_roban() -> None:
     assert events == Counter()
 
 
-def test_lo_recibido_por_share_no_se_descuenta() -> None:
+def test_lo_recibido_por_share_ajeno_se_descuenta() -> None:
+    # Precisión 125 (ronda 3): lo recibido tampoco es un efecto metabólico del plásmido.
     engine = crispr_pair()
     set_energy(engine, 3, 1.0)
-    _execute_share(engine, 3, 2, TickFrame(31))  # el 2 recibe, no cede
-    assert engine.agents[2].plasmid_trials[33][2] == 0.0
+    _execute_share(engine, 3, 2, TickFrame(31))  # el 2 recibe 0.9 * 0.25 = 0.225
+    assert engine.agents[2].energy == pytest.approx(1.625, abs=1e-9)
+    assert engine.agents[2].plasmid_trials[33][2] == pytest.approx(-0.225, abs=1e-9)
     assert engine.agents[3].plasmid_trials == {}
+
+
+def test_un_receptor_de_share_con_perdida_metabolica_purga() -> None:
+    engine = crispr_pair()
+    set_energy(engine, 3, 1.0)
+    _execute_share(engine, 3, 2, TickFrame(31))  # recibe 0.225
+    set_energy(engine, 2, 1.375)  # y pierde 0.25 por metabolismo: e - e0 = -0.025
+    events: Counter[str] = Counter()
+    engine._evaluate_crispr(50, events)  # pyright: ignore[reportPrivateUsage]
+    # Sin descontar lo recibido el balance sería -0.025; con la precisión 125 es -0.25.
+    assert crispr_of(engine, 2) == (33,)
+    assert events == Counter({"crispr_purges": 1})
+
+
+def test_lo_ganado_por_un_ataque_propio_se_descuenta() -> None:
+    engine = crispr_pair()
+    set_energy(engine, 3, 1.0)  # el 2 (1.4) es más fuerte: su ataque tiene éxito
+    frame = TickFrame(31)
+    _execute_attack(engine, 2, 3, frame)
+    assert frame.predated == {3}
+    # Gana predation_efficiency * stolen = 0.6 * 0.5 = 0.3.
+    assert engine.agents[2].energy == pytest.approx(1.7, abs=1e-9)
+    assert engine.agents[2].plasmid_trials[33][2] == pytest.approx(-0.3, abs=1e-9)
+    set_energy(engine, 2, 1.45)  # y pierde 0.25 por metabolismo: e - e0 = 0.05
+    events: Counter[str] = Counter()
+    engine._evaluate_crispr(50, events)  # pyright: ignore[reportPrivateUsage]
+    # Sin descontar lo ganado el balance sería 0.05; con la precisión 125 es -0.25.
+    assert crispr_of(engine, 2) == (33,)
+    assert events == Counter({"crispr_purges": 1})
+
+
+def test_un_ataque_fallido_no_transfiere_ni_registra() -> None:
+    engine = crispr_pair()
+    set_energy(engine, 3, 5.0)  # el 2 es más débil: el ataque falla
+    _execute_attack(engine, 2, 3, TickFrame(31))
+    assert engine.agents[2].plasmid_trials[33][2] == 0.0
+
+
+def test_debit_plasmid_trials_resta_de_todos_los_ensayos_abiertos() -> None:
+    engine = SimulationEngine(cfg(enable_crispr_immunity=True))
+    agent = engine.agents[2]
+    agent.debit_plasmid_trials(0.3)  # sin ensayos no hace nada
+    assert agent.plasmid_trials == {}
+    set_energy(engine, 2, 1.0)
+    engine._apply_conjugations([(2, 40)], 3, Counter())  # pyright: ignore[reportPrivateUsage]
+    engine._apply_conjugations([(2, 30)], 4, Counter())  # pyright: ignore[reportPrivateUsage]
+    agent.credit_plasmid_trials(0.25)
+    agent.debit_plasmid_trials(0.75)
+    assert agent.plasmid_trials == {30: (4, 1.0, -0.5), 40: (3, 1.0, -0.5)}
 
 
 def test_una_perdida_metabolica_sigue_purgando() -> None:

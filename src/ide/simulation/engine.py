@@ -45,7 +45,6 @@ from ide.config import (
     recombination_active,
     sporulation_active,
     stress_energy_limit,
-    symbiotic_ratchet_active,
 )
 from ide.domain.extensions import CompositeRule, TrustStrategyPort
 from ide.domain.ports import (
@@ -278,10 +277,9 @@ class SimulationEngine:
         self.next_holon_id: int = -2
         self.next_agent_id: int = max(self.agents) + 1 if self.agents else 0
         self.composite_completions: int = 0
-        # R25 y R31 efectivamente activas (D36, D50.3): la asignación de roles de la Fase 5 y la
-        # impronta; el sello, la protección contra SPLIT y el descuento de coordinación.
+        # R25 efectivamente activa (D36): la asignación de roles de la Fase 5 y la impronta. La de
+        # R31 (D50.3) la evalúan `should_lock_holon` e `is_effectively_locked` sobre la config.
         self.epigenetic_roles_active = epigenetic_roles_active(config)
-        self.symbiotic_ratchet_active = symbiotic_ratchet_active(config)
         # R25 (D36): de cada raíz, el conjunto de hojas que tenía en su última asignación.
         self._role_leaf_sets: dict[int, frozenset[int]] = {}
         self.evo_collector = EvolutionaryMetricsCollector(config)
@@ -651,7 +649,9 @@ class SimulationEngine:
                 cast(MicroAgent, node).memory.set_redundant_patterns(frozenset(), 1.0)
         return reach
 
-    def _assign_epigenetic_roles(self, reach: Mapping[int, list[int]] | None = None) -> None:
+    def _assign_epigenetic_roles(
+        self, reach: Mapping[int, list[int]] | None = None, registered_only: bool = False
+    ) -> None:
         """R25 (D36): roles de las raíces cuya composición cambió, tras R18 en la Fase 5.
 
         Recorre las raíces por `node_id`: un holón sin entrada en `_role_leaf_sets` o con otro
@@ -662,8 +662,15 @@ class SimulationEngine:
         generadores. Sólo escribe `NONE` en las hojas de las entradas que cambiaron o
         desaparecieron: un rol distinto de `NONE` siempre pertenece a una entrada registrada, o
         a una réplica sin registrar que este mismo paso recalcula (precisiones 110 y 111).
+
+        Con `registered_only` (una ablación entre pasos, precisión 123) sólo recalcula las raíces
+        que descienden de entradas registradas (todas sus hojas estaban en alguna) y no registra
+        las demás: un holón que nunca pasó por la Fase 5 recibe sus primeros roles en ella.
         """
         previous = self._role_leaf_sets
+        registered: frozenset[int] = (
+            frozenset[int]().union(*previous.values()) if registered_only else frozenset()
+        )
         roles: dict[int, EpigeneticRole] = {}
         leaf_sets: dict[int, frozenset[int]] = {}
         for nid in sorted(self.root_nodes):
@@ -672,6 +679,8 @@ class SimulationEngine:
                 continue
             leaves = node.leaf_agents
             current = frozenset(leaf.agent_id for leaf in leaves)
+            if registered_only and not current <= registered:
+                continue  # sin entrada previa: lo asigna la Fase 5 siguiente
             leaf_sets[nid] = current
             if previous.get(nid) == current:
                 continue
@@ -854,15 +863,17 @@ class SimulationEngine:
                 for replica in composite_nodes(child):
                     replica.formation_knowledge = self._formation_knowledge(replica, world)
                 self._set_root(child)
-                if self.epigenetic_roles_active:  # impronta de R25 (D36, precisiones 11 y 111)
+                # Impronta de R25 (D36, precisiones 11 y 111). Si la composición del progenitor
+                # cambió en este tick, sus roles no son de ella: los hijos nacen en NONE, la
+                # réplica no queda registrada y el paso (vii) le asigna roles.
+                if self.epigenetic_roles_active and self._role_leaf_sets.get(nid) == frozenset(
+                    leaf.agent_id for leaf in leaves
+                ):
                     for leaf in leaves:
                         offspring[leaf.agent_id].set_epigenetic_role(leaf.epigenetic_role)
-                    # Si la composición del progenitor cambió en este tick, sus roles no son de
-                    # ella: la réplica no queda registrada y el paso (vii) le asigna roles.
-                    if self._role_leaf_sets.get(nid) == frozenset(leaf.agent_id for leaf in leaves):
-                        self._role_leaf_sets[child.node_id] = frozenset(
-                            c.agent_id for c in offspring.values()
-                        )
+                    self._role_leaf_sets[child.node_id] = frozenset(
+                        c.agent_id for c in offspring.values()
+                    )
                 reproduced.update(offspring)
                 reproduced.update(c.agent_id for c in offspring.values())
                 births += len(offspring)
@@ -1075,9 +1086,11 @@ class SimulationEngine:
 
         Para cada agente en orden de `agent_id` y cada ensayo en orden de codón, un ensayo
         vencido (`tick - t0 >= crispr_eval_ticks`) purga el codón con `purge_plasmid` si sigue en
-        `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold`, y se cierra siempre; si
-        el plásmido se perdió (FIFO), se cierra sin purga. `cedida` suma la energía de los hijos,
-        la cedida por `SHARE` propios y la robada por ataques sufridos (precisión 125). Salta
+        `plasmids` y `energy - e0 + neto < -crispr_toxicity_threshold`, y se cierra siempre; si
+        el plásmido se perdió (FIFO), se cierra sin purga. `neto` es el neto de las
+        transferencias entre agentes en la ventana: suma lo dado a hijos, lo cedido por `SHARE`
+        propios y lo robado, y resta lo recibido por `SHARE` ajenos y lo ganado por ataques
+        propios (precisión 125). Salta
         sin copiar ni ordenar a los agentes sin ensayos abiertos. Cuenta `crispr_purges`.
         """
         config = self.config
@@ -1086,14 +1099,14 @@ class SimulationEngine:
             agent = self.agents[aid]
             if not agent.has_plasmid_trials:
                 continue
-            for codon, (opened, entry_energy, ceded) in agent.plasmid_trials.items():
+            for codon, (opened, entry_energy, net) in agent.plasmid_trials.items():
                 if tick - opened < window:
                     continue
                 dna = agent.dna
                 if (
                     dna is not None
                     and codon in dna.plasmids
-                    and agent.energy - entry_energy + ceded < limit
+                    and agent.energy - entry_energy + net < limit
                 ):
                     agent.set_dna(purge_plasmid(dna, codon, config))
                     events["crispr_purges"] += 1
@@ -1145,7 +1158,7 @@ class SimulationEngine:
             # con R25, los holones podados se reasignan como en la Fase 5 (precisión 123).
             reach = self._apply_downward_causation()
             if self.epigenetic_roles_active:
-                self._assign_epigenetic_roles(reach)
+                self._assign_epigenetic_roles(reach, registered_only=True)
 
     def inject_false_belief(
         self, pattern: Pattern, false_value: float, confidence: float, fraction: float

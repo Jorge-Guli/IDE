@@ -152,7 +152,8 @@ class MicroAgent:
         self._birth_tick = 0
         self._is_endospore = False
         self._last_stress_tick: int | None = None
-        # Ensayos CRISPR abiertos: codón -> (tick de apertura, energía de ingreso, cedida).
+        # Ensayos CRISPR abiertos: codón -> (tick de apertura, energía de ingreso, neto
+        # transferido a otros agentes, precisión 125).
         self._plasmid_trials: dict[int, tuple[int, float, float]] = {}
         self._expression_cache: dict[_ExpressionKey, ExpressedPhenotype] = {}
         self._evaluation_cache: dict[_EvaluationKey, BehaviorTerms] = {}
@@ -493,17 +494,27 @@ class MicroAgent:
         return bool(self._plasmid_trials)
 
     def credit_plasmid_trials(self, amount: float) -> None:
-        """Suma `amount` a la energía cedida de los ensayos CRISPR abiertos (precisión 125).
+        """Suma `amount` al neto transferido de los ensayos CRISPR abiertos (precisión 125).
 
-        La energía cedida descuenta del balance del ensayo lo que el agente transfiere a otros
-        y no es un efecto metabólico del plásmido: la energía de cada hijo (`create_offspring`),
-        la que cede con un `SHARE` propio y la que le roban en un ataque sufrido. Sin ensayos
-        abiertos no hace nada.
+        El tercer valor del ensayo es el neto de las transferencias de energía entre agentes
+        durante la ventana, que el balance excluye porque no son un efecto metabólico del
+        plásmido. Suma lo que el agente da: la energía de cada hijo (`create_offspring`), la que
+        cede con un `SHARE` propio y la que le roban en un ataque sufrido. Lo que recibe lo
+        resta `debit_plasmid_trials`. Sin ensayos abiertos no hace nada; el orden no importa.
         """
         trials = self._plasmid_trials
-        for codon in sorted(trials):
-            opened, entry_energy, ceded = trials[codon]
-            trials[codon] = (opened, entry_energy, ceded + amount)
+        if not trials:
+            return
+        for codon, (opened, entry_energy, net) in trials.items():
+            trials[codon] = (opened, entry_energy, net + amount)
+
+    def debit_plasmid_trials(self, amount: float) -> None:
+        """Resta `amount` del neto transferido de los ensayos CRISPR abiertos (precisión 125).
+
+        Registra lo que el agente recibe de otro: la energía de un `SHARE` ajeno y la que gana
+        con un ataque propio con éxito (`predation_efficiency * stolen`).
+        """
+        self.credit_plasmid_trials(-amount)
 
     def _expression_key(self, context: EpigeneticContext) -> _ExpressionKey:
         """Clave del caché: el fenotipo sólo depende del nivel acotado, el rol y la banda."""
@@ -692,7 +703,8 @@ class MicroAgent:
         tenga o no ADN. `mutation_scale` es la escala de R30 (design D35). Con ADN, el hijo
         muta el ADN con la configuración base y se expresa al nacer (design D34.6). El hijo
         nace con `birth_tick = tick`, sin rol, sin endospora, sin estrés registrado y sin
-        ensayos CRISPR; su energía se suma a la cedida de los ensayos abiertos del progenitor.
+        ensayos CRISPR; su energía se suma al neto transferido de los ensayos abiertos del
+        progenitor.
         La herencia cultural (R14) la entrega el motor después, por `assimilate_testimony`.
         """
         if not (mutation_scale >= 0.0 and math.isfinite(mutation_scale)):

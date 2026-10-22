@@ -288,10 +288,10 @@ def signals_active(config: SimulationConfig) -> bool:
 def plasmid_hgt_active(config: SimulationConfig) -> bool:
     """$R_{26}$ efectivamente activa: `enable_plasmid_hgt` con ADN (D30.3, D37).
 
-    Es la única definición de la condición de la conjugación: la usan `build_systems` y el motor,
-    que la guarda en `engine.plasmid_hgt_active`. Exige la evolución explícitamente, como $R_{36}$
-    y $R_{37}$ (precisión 83), aunque la validación del ADN ya la exige. Sin ella, `hgt_rng` no
-    se consume (D30.4).
+    Es la única definición de la condición de la conjugación: la usan `build_systems` (que agrega
+    `ConjugationSystem`), `crispr_immunity_active` y la escisión de `mutate_dna`; el motor no la
+    guarda. Exige la evolución explícitamente, como $R_{36}$ y $R_{37}$ (precisión 83), aunque la
+    validación del ADN ya la exige. Sin ella, `hgt_rng` no se consume (D30.4).
     """
     return config.enable_evolution and config.enable_compact_dna and config.enable_plasmid_hgt
 

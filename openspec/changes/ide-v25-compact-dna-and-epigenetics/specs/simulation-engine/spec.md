@@ -373,7 +373,7 @@ Después de sortear todas las transferencias, el motor SHALL aplicarlas con `rec
 - **THEN** el ADN del receptor no cambia, no se abre ensayo y se cuenta un rechazo CRISPR del tick.
 
 ### Requirement: Ensayo CRISPR (R27)
-Con `enable_crispr_immunity` activa, después de la conjugación, para cada agente en orden de `agent_id` y cada ensayo en orden de codón, un ensayo vencido (`tick - t0 >= crispr_eval_ticks`) SHALL purgar el codón con `purge_plasmid` si sigue en `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold` (`cedida`: lo dado a hijos, cedido por `SHARE` propios o robado por ataques sufridos en la ventana), y SHALL cerrarse siempre; un plásmido perdido por FIFO se cierra al vencer, sin purga.
+Con `enable_crispr_immunity` activa, tras la conjugación, en orden de `agent_id` y de codón, un ensayo vencido (`tick - t0 >= crispr_eval_ticks`) SHALL purgar el codón con `purge_plasmid` si sigue en `plasmids` y `energy - e0 + neto < -crispr_toxicity_threshold`, y SHALL cerrarse siempre (sin purga si el FIFO lo perdió). `neto` suma lo dado en la ventana a hijos, por `SHARE` o robado, y resta lo recibido por `SHARE` o ganado atacando.
 
 #### Scenario: Plásmido tóxico purgado
 - **WHEN** con `crispr_eval_ticks = 20` y `crispr_toxicity_threshold = 0.20` un ensayo abierto en el tick 30 con `e0 = 1.4` llega al tick 50 con `energy = 1.1` y el codón en `plasmids`
@@ -390,6 +390,14 @@ Con `enable_crispr_immunity` activa, después de la conjugación, para cada agen
 #### Scenario: Ser depredado no cuenta como toxicidad
 - **WHEN** el mismo ensayo llega al tick 50 con `energy = 0.9` después de que otro agente le robara `0.5` con un `ATTACK` dentro de la ventana
 - **THEN** el balance es `0.9 - 1.4 + 0.5 = 0`, el codón sigue en `plasmids` y el ensayo se cierra sin purga.
+
+#### Scenario: Lo recibido de otro no oculta la toxicidad
+- **WHEN** el mismo ensayo llega al tick 50 con `energy = 1.375` después de que el agente recibiera `0.225` por un `SHARE` ajeno dentro de la ventana
+- **THEN** el balance es `1.375 - 1.4 - 0.225 = -0.25`, el codón se purga y se cuenta una purga.
+
+#### Scenario: Lo ganado depredando no oculta la toxicidad
+- **WHEN** el mismo ensayo llega al tick 50 con `energy = 1.45` después de que el agente ganara `0.3` con un `ATTACK` propio con éxito dentro de la ventana
+- **THEN** el balance es `1.45 - 1.4 - 0.3 = -0.25`, el codón se purga y se cuenta una purga.
 
 #### Scenario: La reproducción no cuenta como toxicidad
 - **WHEN** el mismo ensayo llega al tick 50 con `energy = 1.1` después de que el agente cediera `1.2` de energía a un hijo dentro de la ventana

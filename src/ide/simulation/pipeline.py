@@ -668,9 +668,10 @@ def _execute_share(
     config = engine.config
     amount = config.share_fraction * donor.energy
     donor.apply_energy_delta(-amount)
-    donor.credit_plasmid_trials(amount)  # R27: lo cedido no es toxicidad (precisión 125)
+    donor.credit_plasmid_trials(amount)  # R27: las transferencias no son toxicidad (prec. 125)
     received = config.share_efficiency * amount
     receiver.apply_energy_delta(received)
+    receiver.debit_plasmid_trials(received)
     if amount > 0:
         frame.events["shares"] += 1
     if received > 0:
@@ -699,8 +700,10 @@ def _execute_attack(
     config = engine.config
     stolen = min(config.attack_power, max(0.0, victim.energy))
     victim.apply_energy_delta(-stolen)
-    victim.credit_plasmid_trials(stolen)  # R27: lo robado no es toxicidad (precisión 125)
-    attacker.apply_energy_delta(config.predation_efficiency * stolen)
+    victim.credit_plasmid_trials(stolen)  # R27: las transferencias no son toxicidad (prec. 125)
+    gained = config.predation_efficiency * stolen
+    attacker.apply_energy_delta(gained)
+    attacker.debit_plasmid_trials(gained)
     frame.events["successful_attacks"] += 1
     if stolen > 0:
         frame.predated.add(victim.agent_id)

@@ -2391,6 +2391,64 @@ def test_impronta_sin_registro_si_la_composicion_cambio(monkeypatch: pytest.Monk
     }
 
 
+def test_ablacion_entre_pasos_no_asigna_por_primera_vez(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Precisión 123: entre pasos sólo se reasignan entradas ya registradas; los holones armados
+    # antes del tick 0 reciben sus primeros roles en la Fase 5, no en la perturbación.
+    engine = SimulationEngine(roles_config(num_agents=6))
+    engine.agents[3].memory.upsert(direct(pat(0), 1.0), 0)
+    engine.agents[1].memory.upsert(direct(pat(1), 1.0), 0)
+    triple = make_holon(engine, [1, 2, 3])
+    pair = make_holon(engine, [4, 5])
+    calls = count_assignments(monkeypatch)
+    engine.direct_discoverers[pat(9)] = {3}
+    assert engine.ablate_discoverers(pat(9), retire_stimulus=False) == [3]
+    assert calls == []
+    assert engine._role_leaf_sets == {}  # pyright: ignore[reportPrivateUsage]
+    assert set(roles_of(engine).values()) == {R_NONE}
+    act(monkeypatch, engine)
+    engine.step()
+    assert calls == [pair.node_id, triple.node_id]
+    assert engine._role_leaf_sets == {  # pyright: ignore[reportPrivateUsage]
+        triple.node_id: frozenset({1, 2}),
+        pair.node_id: frozenset({4, 5}),
+    }
+    assert roles_of(engine)[1] is R_LIBRARIAN
+
+
+def test_impronta_en_none_si_la_composicion_cambio(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Precisión 111: si el progenitor cambió de composición en el tick, sus roles son obsoletos;
+    # los hijos nacen en NONE y el paso (vii) les asigna roles en ese mismo tick.
+    engine = SimulationEngine(
+        roles_config(num_agents=5, enable_holon_reproduction=True, reproduction_threshold=2.0)
+    )
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    make_holon(engine, [1, 2, 3])
+    act(monkeypatch, engine)
+    engine.step()
+    assert {roles_of(engine)[aid] for aid in (1, 2, 3)} == {R_LIBRARIAN, R_EXPLORER, R_NERVE}
+    merged = make_holon(engine, [1, 4])  # como un BOND en este tick: composición nueva
+    for aid in (1, 2, 3, 4):
+        engine.agents[aid].apply_energy_delta(10.0)
+    original = engine._assign_epigenetic_roles  # pyright: ignore[reportPrivateUsage]
+    at_vii: list[dict[int, EpigeneticRole]] = []
+
+    def spy(reach: Any = None) -> None:
+        at_vii.append({c: engine.agents[c].epigenetic_role for c in sorted(engine.agents) if c > 4})
+        original(reach)
+
+    monkeypatch.setattr(engine, "_assign_epigenetic_roles", spy)
+    act(monkeypatch, engine)
+    engine.step()
+    replica = engine.root_nodes[engine.agent_to_root[5]]
+    assert isinstance(replica, CompositeAgent) and replica is not merged
+    children = sorted(c.agent_id for c in replica.leaf_agents)
+    assert len(at_vii) == 1 and sorted(at_vii[0]) == children
+    assert set(at_vii[0].values()) == {R_NONE}  # nacieron sin los roles obsoletos
+    leaf_sets = engine._role_leaf_sets  # pyright: ignore[reportPrivateUsage]
+    assert leaf_sets[replica.node_id] == frozenset(children)
+    assert R_LIBRARIAN in {c.epigenetic_role for c in replica.leaf_agents}  # (vii) les asigna
+
+
 def test_raices_individuales_siempre_en_none() -> None:
     engine = SimulationEngine(_phase_ii_b_holonic(seed=3))
     for _ in range(60):
