@@ -30,6 +30,7 @@ from ide.agent.dna import (
     encode_codon,
     evaluate_behavior,
     founder_dna,
+    heard_symbols,
     signals_active,
     transcribe_phenotype,
 )
@@ -49,7 +50,9 @@ from ide.experiments.attribution import PHASE2_PROTOCOL_CONFIGS
 from ide.simulation.engine import SimulationEngine
 from ide.simulation.pipeline import (
     DECISION_SYSTEM,
+    BaseSystem,
     DecisionSystem,
+    GerminationSystem,
     MetabolismSystem,
     SignalEmissionSystem,
     SignalPerceptionSystem,
@@ -310,6 +313,50 @@ def test_cache_de_la_evaluacion_igual_a_la_directa(steps: list[tuple[Any, ...]])
         assert agent.evaluate_for_decision(sig, tick) == expected
 
 
+def test_heard_symbols() -> None:
+    dna = CompactDNA(
+        chromosome=(
+            *FOUNDER_TRAITS,
+            encode_codon(0x38, WANDER, 0, 0, 64),
+            encode_codon(0x3D, SIGNAL, 0, 1),
+            encode_codon(0x22, SIGNAL, 0, 2),
+        ),
+        plasmids=(encode_codon(0x3F, CONSUME, 0, 0, 9),),
+    )
+    assert heard_symbols(dna) == 0b10100001
+    assert heard_symbols(founder_dna(R41)) == 0
+
+
+def test_la_clave_del_cache_acota_la_mascara_a_lo_que_el_adn_oye() -> None:
+    """Máscaras que difieren sólo en símbolos que el ADN no oye comparten la entrada del caché."""
+    agent = agent_with(encode_codon(0x39, WANDER, 0, 0, 64))
+    cache = agent._evaluation_cache  # pyright: ignore[reportPrivateUsage]
+    sig = signals()
+    agent.set_perceived_symbols(0b10)
+    heard = agent.evaluate_behavior(sig)
+    for mask in (0b11, 0b11111110, 0b10000010):
+        agent.set_perceived_symbols(mask)
+        assert agent.evaluate_behavior(sig) == heard
+    assert len(cache) == 1
+    agent.set_perceived_symbols(0b11111101)
+    silent = agent.evaluate_behavior(sig)
+    assert silent.drives[3] == 0.0 and heard.drives[3] == pytest.approx(0.5)
+    assert len(cache) == 2
+    agent.set_dna(CompactDNA(chromosome=(*FOUNDER_TRAITS, encode_codon(0x3A, WANDER, 0, 0, 64))))
+    agent.set_perceived_symbols(0b100)
+    assert agent.evaluate_behavior(sig).drives[3] == pytest.approx(0.5)  # recalcula lo que oye
+
+
+def test_lo_que_oye_un_hijo_sale_de_su_adn() -> None:
+    parent = agent_with(encode_codon(0x39, WANDER, 0, 0, 64))
+    parent.apply_energy_delta(3.0)
+    child = parent.create_offspring(9, 4, np.random.Generator(np.random.PCG64(0)))
+    assert child.dna is not None
+    child.set_perceived_symbols(0xFF)
+    expected = evaluate_behavior(child.dna, child.last_context, signals(), R41, perceived=0xFF)
+    assert child.evaluate_behavior(signals()) == expected
+
+
 # --- Motor: escenas -----------------------------------------------------------------------------
 
 
@@ -432,15 +479,34 @@ def test_signal_no_ocupa_la_accion(monkeypatch: pytest.MonkeyPatch) -> None:
     assert actions[0].action_type is ActionType.MOVE
 
 
-def test_la_endospora_no_emite(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = scene(monkeypatch, small(), {5: (emit(1),), 6: (emit(2),)}, group=(5, 6))
+class KeepDormant(BaseSystem):
+    """Sustituye a la germinación: ninguna endospora germina y `frame.dormant` es la de D38."""
+
+    name = "germination"
+
+    def run(self, engine: SimulationEngine, frame: TickFrame) -> None:
+        agents = engine.agents
+        frame.dormant = frozenset(aid for aid in frame.order if agents[aid].is_endospore)
+
+
+def keep_dormant(engine: SimulationEngine) -> None:
+    engine.systems = tuple(
+        KeepDormant() if isinstance(system, GerminationSystem) else system
+        for system in engine.systems
+    )
+
+
+def test_la_endospora_dormida_no_emite(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = small(enable_sporulation=True)
+    engine = scene(monkeypatch, config, {5: (emit(1),), 6: (emit(2),)}, group=(5, 6))
+    keep_dormant(engine)
     engine.agents[5].set_endospore(True)
     recorder = record(engine)
-    start = engine.agents[5].energy
     engine.step()
+    assert engine.agents[5].decision_evaluation(0) is None
     assert recorder.signals[0] == {6: 0b100}
-    assert engine.agents[5].energy == start
     assert recorder.events[0]["signals_emitted"] == 1
+    assert engine.pending_signals.get(6, 0) == 0  # el 6 no oye nada de la endospora 5
 
 
 def test_metabolismo_cobra_por_simbolo() -> None:
@@ -482,14 +548,64 @@ def test_or_de_varios_emisores(monkeypatch: pytest.MonkeyPatch) -> None:
     assert recorder.perceived[1][3] == 0b1  # el 3 oye al 2
 
 
-def test_la_endospora_no_percibe(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = scene(monkeypatch, small(), {2: (emit(3),)}, group=(2, 5, 6))
+def test_la_endospora_dormida_no_percibe(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = scene(monkeypatch, small(enable_sporulation=True), {2: (emit(3),)}, group=(2, 5, 6))
+    keep_dormant(engine)
     recorder = record(engine)
     engine.step()
     engine.agents[6].set_endospore(True)
     engine.step()
     assert recorder.perceived[1][5] == 0b1000
     assert recorder.perceived[1][6] == 0
+
+
+def test_el_emisor_que_muere_igual_es_percibido(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Precisión 97: el emisor muere en la Fase 5 del tick t (por el costo de su señal) y su
+    símbolo se percibe en t + 1; D60.4 sólo exige que el receptor siga vivo y activo."""
+    engine = scene(monkeypatch, small(signal_cost=0.01), {2: (emit(3),)}, group=(2, 5))
+    engine.agents[2].apply_energy_delta(0.005 - engine.agents[2].energy)
+    recorder = record(engine)
+    engine.step()
+    assert 2 not in engine.agents  # murió en la Fase 5 del tick 0
+    engine.step()
+    assert recorder.perceived[1][5] == 0b1000
+
+
+def test_las_senales_no_dependen_de_comm_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Precisión 104: canal sensorial independiente de `comm_enabled`; su ablación es R41."""
+    engine = scene(monkeypatch, small(comm_enabled=False), {2: (emit(3),)}, group=(2, 5))
+    assert "signal_perception" in names(engine.config)
+    assert "signal_emission" in names(engine.config)
+    recorder = record(engine)
+    start = engine.agents[2].energy
+    engine.run(2)
+    assert recorder.perceived[1][5] == 0b1000
+    assert recorder.signals[0] == {2: 0b1000}
+    assert start - engine.agents[2].energy == pytest.approx(2 * 0.002, abs=1e-9)
+
+
+def test_solo_se_ponen_en_cero_los_receptores_anteriores() -> None:
+    """La percepción no recorre a toda la población: sólo toca a los receptores."""
+    engine = SimulationEngine(small())
+    touched: list[int] = []
+    for aid, agent in engine.agents.items():
+        original = agent.set_perceived_symbols
+
+        def spy(mask: int, aid: int = aid, original: Any = original) -> None:
+            touched.append(aid)
+            original(mask)
+
+        object.__setattr__(agent, "set_perceived_symbols", spy)
+    engine.pending_signals = {7: 0b1, 3: 0b10, 5: 0}
+    SignalPerceptionSystem().run(engine, TickFrame(1))
+    assert touched == [3, 7]
+    assert engine.signal_receivers == (3, 7)
+    touched.clear()
+    engine.pending_signals = {4: 0b100}
+    SignalPerceptionSystem().run(engine, TickFrame(2))
+    assert touched == [3, 7, 4]
+    assert [engine.agents[a].perceived_symbols for a in (3, 4, 7)] == [0, 0b100, 0]
+    assert engine.signal_receivers == (4,)
 
 
 def test_la_mascara_se_recalcula_en_cada_tick(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -561,11 +677,10 @@ def test_sin_control_nulo_no_consume_null_rng() -> None:
 
 def test_control_nulo_omite_receptores_muertos_o_endosporas() -> None:
     engine = SimulationEngine(small(comm_content_null=True))
-    engine.agents[4].set_endospore(True)
     engine.pending_signals = {4: 0b1, 99: 0b1, 6: 0b10}
     twin = np.random.Generator(np.random.PCG64(0))
     twin.bit_generator.state = engine.null_rng.bit_generator.state
-    SignalPerceptionSystem().run(engine, TickFrame(1))
+    SignalPerceptionSystem().run(engine, TickFrame(1, dormant=frozenset({4})))
     assert engine.agents[6].perceived_symbols == int(twin.integers(1, 256))
     assert engine.agents[4].perceived_symbols == 0
     assert engine.null_rng.bit_generator.state == twin.bit_generator.state

@@ -212,6 +212,10 @@ Los símbolos emitidos en la Fase 3 del tick $t$ SHALL percibirlos, en la Fase 1
 - **WHEN** el agente 5 es vecino de comunicación de los emisores 2 (símbolo 0) y 3 (símbolos 0 y 6) en el tick 10
 - **THEN** su máscara percibida en el tick 11 es `0b1000001`.
 
+#### Scenario: Señales sin comunicación de mensajes
+- **WHEN** con $R_{41}$ efectivamente activa y `comm_enabled=False` el agente 2 emite el símbolo 3 en el tick 10 y el agente 5 es su vecino de comunicación
+- **THEN** la emisión cobra `signal_cost` y la máscara percibida del agente 5 en el tick 11 incluye `0b1000`: las señales no dependen de `comm_enabled` y su ablación es $R_{41}$ (design precisión 104).
+
 ### Requirement: Control Nulo de las Señales con null_rng
 Con $R_{41}$ efectivamente activa y `comm_content_null=True`, la máscara percibida no vacía de cada receptor SHALL reemplazarse, en orden de `agent_id`, por `int(null_rng.integers(1, 256))`: la señal conserva su presencia y pierde su contenido; las máscaras vacías SHALL quedar en 0 sin consumir `null_rng` (design D60.5).
 

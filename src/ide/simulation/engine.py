@@ -235,6 +235,9 @@ class SimulationEngine:
         # R41 (D60.4): por receptor, el OR de los símbolos emitidos en la Fase 3 del tick anterior
         # por los emisores de los que era vecino de comunicación; lo consume la Fase 1.
         self.pending_signals: dict[int, int] = {}
+        # R41: los agentes con máscara percibida no nula, ascendentes; la Fase 1 siguiente los
+        # pone en 0 antes de asignar las máscaras nuevas, sin recorrer a toda la población.
+        self.signal_receivers: tuple[int, ...] = ()
         # `GeneticPolicy` no guarda estado: una sola instancia sirve a todos los fundadores.
         policy = GeneticPolicy() if self.genetic_policy_active else None
         self.agents: dict[int, MicroAgent] = {
@@ -601,7 +604,7 @@ class SimulationEngine:
         moved: set[int],
         sent: Mapping[int, int],
         attacks: Mapping[int, int],
-        signals: Mapping[int, int] | None = None,
+        signals: Mapping[int, int],
         dormant: frozenset[int] = frozenset(),
     ) -> None:
         """Cobra el costo basal, de movimiento y de mensajes a cada agente, por `agent_id`.
@@ -631,8 +634,8 @@ class SimulationEngine:
             cost += config.move_cost * (aid in moved) + config.message_cost * sent.get(aid, 0)
             if aid in attacks:
                 cost += config.attack_cost * attacks[aid]
-            if signals and aid in signals:
-                cost += config.signal_cost * signals[aid].bit_count()
+            # Sin símbolos suma 0.0, que no cambia el costo en un bit.
+            cost += config.signal_cost * signals.get(aid, 0).bit_count()
             agent.apply_energy_delta(-cost)
 
     def _charge_senescence(self, tick: int) -> None:

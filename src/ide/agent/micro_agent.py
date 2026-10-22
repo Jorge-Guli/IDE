@@ -9,10 +9,12 @@ import numpy as np
 
 from ide.agent.dna import (
     BEHAVIORS,
+    SYMBOL_MASK,
     BehaviorTerms,
     apply_plastic_weights,
     behavior_terms,
     founder_dna,
+    heard_symbols,
     mutate_dna,
     phenotype_from_genome,
     transcribe_phenotype,
@@ -115,6 +117,7 @@ class MicroAgent:
         if config.enable_compact_dna:
             # El ADN fundador expresa exactamente la base (design D32): `_genome` no cambia.
             self._dna = founder_dna(config)
+            self._heard_mask = heard_symbols(self._dna)
             self._phenotype = self._transcribe(self._last_context)
         else:
             self._phenotype = phenotype_from_genome(self._genome, config)
@@ -170,6 +173,9 @@ class MicroAgent:
         # Máscara de símbolos percibidos: 0 al nacer, no se hereda y la recalcula el motor en cada
         # Fase 1. Es un canal sensorial: nunca se escribe en la memoria (D60.6).
         self._perceived_symbols = 0
+        # Símbolos que el ADN puede oír (`heard_symbols`): se calcula al fijar el ADN y acota la
+        # máscara percibida en la clave del caché de la evaluación (precisión 105).
+        self._heard_mask = 0
         self._dna: CompactDNA | None = None
         self._phenotype: ExpressedPhenotype
         self._last_context: EpigeneticContext
@@ -271,6 +277,8 @@ class MicroAgent:
         agent._parent_id = parent_id
         agent._base_config = base
         agent._dna = dna
+        if dna is not None:
+            agent._heard_mask = heard_symbols(dna)
         agent._phenotype = phenotype
         agent._last_context = _birth_context(energy, base) if context is None else context
         if dna is not None:
@@ -438,6 +446,7 @@ class MicroAgent:
         if not self._base_config.enable_compact_dna:
             raise ValueError("set_dna exige base_config.enable_compact_dna=True")
         self._dna = dna
+        self._heard_mask = heard_symbols(dna)
         self._expression_cache.clear()
         self._evaluation_cache.clear()
         self._decision = None  # la decisión registrada era la de otro ADN
@@ -463,7 +472,7 @@ class MicroAgent:
         Raises:
             ValueError: si `mask` no está en $[0, 255]$.
         """
-        if not 0 <= mask <= _STATE_MASK:
+        if not 0 <= mask <= SYMBOL_MASK:
             raise ValueError(f"perceived_symbols debe estar en [0, 255]; recibió {mask}")
         self._perceived_symbols = mask
 
@@ -512,7 +521,8 @@ class MicroAgent:
 
         Evalúa con el `internal_state`, la máscara percibida (`perceived_symbols`) y los
         `plastic_weights` vigentes. La clave del caché es la de expresión (D34.2) más `signals`, el
-        estado y la máscara percibida (precisión 57): los promotores de contexto sólo distinguen el
+        estado y la máscara percibida restringida a los símbolos que el ADN oye (precisiones 57 y
+        105): los promotores de contexto sólo distinguen el
         nivel acotado, el rol y la banda de energía. El caché guarda la evaluación sin los pesos
         (`behavior_terms`) y los suma después (`apply_plastic_weights`, D59.5), así que es igual a
         `evaluate_behavior` con los pesos vigentes. `set_dna` invalida el caché, así que nunca
@@ -522,10 +532,11 @@ class MicroAgent:
         dna = self._dna
         if dna is None:
             raise ValueError("la evaluación de conducta exige un agente con ADN")
+        # Sólo los bits que algún `HEARD_k` del ADN lee cambian la evaluación (precisión 105).
         context, state, perceived = (
             self._last_context,
             self._internal_state,
-            self._perceived_symbols,
+            self._perceived_symbols & self._heard_mask,
         )
         key = (self._expression_key(context), signals, state, perceived)
         terms = self._evaluation_cache.get(key)

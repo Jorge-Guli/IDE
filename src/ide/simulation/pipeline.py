@@ -372,27 +372,38 @@ class SignalPerceptionSystem(BaseSystem):
     """Percepción de las señales del tick anterior ($R_{41}$, D60.4, D60.5, precisiones 64 y 65).
 
     Va después de la germinación y de la percepción social, y antes de la emisión de mensajes.
-    Recalcula `perceived_symbols` de cada agente, en orden de `agent_id`: la máscara pendiente
-    de `engine.pending_signals` (el OR de los símbolos que emitieron en la Fase 3 del tick
-    anterior los emisores de los que era vecino de comunicación), si sigue vivo y no es
-    endospora; si no, 0. Con `comm_content_null`, cada máscara no vacía se reemplaza en ese
-    orden por `int(null_rng.integers(1, 256))`: la señal conserva su presencia y pierde su
-    contenido. Vacía `pending_signals`: nadie percibe una señal dos veces. Las señales no son
-    `Message` ni creencias: no pasan por el protocolo ni por la memoria (D60.6). Sólo está en la
-    lista con $R_{41}$ efectivamente activa, y sólo consume `null_rng` con el control nulo.
+    Recalcula `perceived_symbols` sin recorrer a toda la población: pone en 0 a los receptores
+    del tick anterior (`engine.signal_receivers`) y asigna, en orden de `agent_id`, la máscara
+    pendiente de `engine.pending_signals` (el OR de los símbolos que emitieron en la Fase 3 del
+    tick anterior los emisores de los que era vecino de comunicación) a cada receptor que sigue
+    vivo y no es una endospora dormida (`frame.dormant`, precisión 98). Con
+    `comm_content_null`, cada máscara no vacía se reemplaza en ese orden por
+    `int(null_rng.integers(1, 256))`: la señal conserva su presencia y pierde su contenido.
+    Vacía `pending_signals`: nadie percibe una señal dos veces. Las señales no son `Message` ni
+    creencias: no pasan por el protocolo ni por la memoria (D60.6), y no dependen de
+    `comm_enabled` (precisión 104). Sólo está en la lista con $R_{41}$ efectivamente activa, y
+    sólo consume `null_rng` con el control nulo.
     """
 
     name = "signal_perception"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        pending, agents = engine.pending_signals, engine.agents
+        pending, agents, dormant = engine.pending_signals, engine.agents, frame.dormant
         null = engine.config.comm_content_null
-        for aid in sorted(agents):
-            agent = agents[aid]
-            mask = 0 if agent.is_endospore else pending.get(aid, 0)
-            if mask and null:
+        for aid in engine.signal_receivers:
+            agent = agents.get(aid)
+            if agent is not None:  # puede haber muerto o sido retirado
+                agent.set_perceived_symbols(0)
+        receivers: list[int] = []
+        for aid in sorted(pending):
+            agent, mask = agents.get(aid), pending[aid]
+            if agent is None or aid in dormant or not mask:
+                continue
+            if null:
                 mask = int(engine.null_rng.integers(1, 256))
             agent.set_perceived_symbols(mask)
+            receivers.append(aid)
+        engine.signal_receivers = tuple(receivers)
         engine.pending_signals = {}
 
 
@@ -459,10 +470,7 @@ class DecisionSystem(BaseSystem):
     """
 
     name = DECISION_SYSTEM
-
-    def __init__(self, notifies_decisions: bool = True) -> None:
-        # Con $R_{41}$ la marca pasa a `SignalEmissionSystem`, que la sigue en la Fase 3.
-        self.notifies_decisions = notifies_decisions
+    notifies_decisions = True  # `build_systems` la fija según el núcleo de la Fase 3
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, tick, rng = engine.agents, frame.tick, engine.rng
@@ -506,12 +514,14 @@ class DecisionSystem(BaseSystem):
 class SignalEmissionSystem(BaseSystem):
     """Emisión de señales en la Fase 3 ($R_{41}$, D60.2-D60.4, precisión 97).
 
-    Va inmediatamente después de la decisión y lleva la marca `notifies_decisions`: la Fase 3 es
+    Va inmediatamente después de la decisión y `build_systems` le da la marca
+    `notifies_decisions`, porque es el último sistema del núcleo de la Fase 3: la Fase 3 es
     decisión, emisión de señales, contexto de compuestos (que corre dentro de la decisión y es
     independiente de la emisión), `on_decisions` y estado interno. Cada agente que decidió con
     la política genética emite los símbolos `emitted` de la evaluación registrada de su
     decisión, a la vez que actúa: `SIGNAL` no ocupa la acción. Una endospora no registra su
-    decisión, así que no emite. Escribe `frame.signals` (emisor -> máscara, que el metabolismo
+    decisión (una endospora dormida, `frame.dormant`, ni siquiera decide), así que no emite.
+    Escribe `frame.signals` (emisor -> máscara, que el metabolismo
     cobra a `signal_cost` por símbolo), suma el evento `signals_emitted` y deja en
     `engine.pending_signals`, por receptor, el OR de las máscaras de los emisores de cuya
     observación del tick era vecino de comunicación (`neighbor_ids`), para la Fase 1 del tick
@@ -520,7 +530,6 @@ class SignalEmissionSystem(BaseSystem):
     """
 
     name = "signal_emission"
-    notifies_decisions = True
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, tick, observations = engine.agents, frame.tick, frame.observations
@@ -961,12 +970,15 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
         systems.append(SocialExchangeSystem())
     if view:
         systems.append(HolonViewSystem("holon_view_own", from_memory=False))
-    # Fase 3: decisión y, con R41, emisión de señales (D60.3); los observadores reciben
-    # `on_decisions` después del último de los dos; con R39, al terminarla, la aplicación del
-    # estado interno (D58.3).
-    systems.append(DecisionSystem(notifies_decisions=not signals))
+    # Fase 3: su núcleo es la decisión y, con R41, la emisión de señales (D60.3); el último
+    # sistema del núcleo lleva la marca, así que `on_decisions` llega después de todos ellos y
+    # antes de, con R39, la aplicación del estado interno (D58.3, precisiones 73 y 97).
+    core: list[EngineSystem] = [DecisionSystem()]
     if signals:
-        systems.append(SignalEmissionSystem())
+        core.append(SignalEmissionSystem())
+    for system in core:
+        system.notifies_decisions = system is core[-1]
+    systems.extend(core)
     if internal_state_active(config):
         systems.append(InternalStateSystem())
     # Fase 4.

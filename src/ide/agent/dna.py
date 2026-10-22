@@ -110,7 +110,9 @@ _PROM_SURPLUS = 0x19
 # estado interno 0x30-0x37 (`STATE_k`) y señales percibidas 0x38-0x3F (`HEARD_k`).
 _PROM_SENSE_FIRST = 0x20
 _PROM_SENSE_LAST = 0x3F
+_PROM_HEARD_FIRST = 0x38  # `HEARD_0`; `HEARD_k` es `0x38 + k` (D60.4)
 _STATE_BITS = 8  # `internal_state` tiene 8 bits (D58.1)
+SYMBOL_MASK = 0xFF  # ocho símbolos de señal, `channel & 0x07` (D60.2)
 _NO_PLASTIC: tuple[tuple[int, ...], ...] = ((),) * len(Behavior)
 _PROM_TF_FIRST = 0x80
 _PROM_TF_LAST = 0xBF
@@ -276,6 +278,22 @@ def signals_active(config: SimulationConfig) -> bool:
     destino `0x48` y los promotores `0x38`-`0x3F` son inertes y no hay emisión ni costo.
     """
     return genetic_policy_active(config) and config.enable_signals
+
+
+def heard_symbols(dna: CompactDNA) -> int:
+    """Máscara de los símbolos que el ADN puede oír: el bit $k$ vale 1 si algún codón de
+    `chromosome + plasmids` tiene el promotor `HEARD_k` (`0x38 + k`).
+
+    La evaluación de conducta sólo depende de `perceived` a través de esos promotores, así que
+    `perceived & heard_symbols(dna)` da la misma evaluación que `perceived` (precisión 105). Pura,
+    sin generador.
+    """
+    mask = 0
+    for codon in dna.chromosome + dna.plasmids:
+        promoter = decode_codon(codon).promoter
+        if _PROM_HEARD_FIRST <= promoter <= _PROM_SENSE_LAST:
+            mask |= 1 << (promoter - _PROM_HEARD_FIRST)
+    return mask
 
 
 def _bits(mask: int) -> tuple[bool, ...]:

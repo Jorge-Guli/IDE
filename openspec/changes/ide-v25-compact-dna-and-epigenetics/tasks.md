@@ -32,7 +32,7 @@
 >
 > **Pre-registro.** Es design D56, **aprobado** el 2026-10-21 en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
-> **Etapa actual:** las etapas A, R y B están completas y el pre-registro D56 aprobado. Sigue la etapa L.
+> **Etapa actual:** las etapas A, R, B y L están completas (y los bloques 16 y 17 de la etapa M); el pre-registro D56 está aprobado. Sigue la etapa M (bloques 18 a 20).
 
 ## 0. Decisiones y pre-registro
 
@@ -271,15 +271,15 @@
 >
 > Punto de control: fin de la etapa L. Mostrar, para $R_{39}$–$R_{41}$, que cada ablación deja la regla inerte, que el ADN fundador sigue reproduciendo la política escrita a mano y que los historiales son iguales entre procesos con distinto `PYTHONHASHSEED`.
 
-- [ ] 15.1 **[RED]** Tests para:
+- [x] 15.1 **[RED]** Tests para:
   - (a) la emisión por mayoría por símbolo, su costo en el metabolismo y que `SIGNAL` no ocupa la acción (D60.2, D60.3);
   - (b) la percepción en la Fase 1 del tick siguiente por los vecinos del emisor en el tick de emisión, sin endosporas (D60.4);
   - (c) los promotores `0x38`–`0x3F` sólo en la evaluación de conducta;
   - (d) el control nulo con `null_rng`, en orden de `agent_id` (D60.5);
   - (e) que las señales no pasan por `protocol.py` ni por la memoria (D60.6);
   - (f) la inercia sin $R_{41}$.
-- [ ] 15.2 **[GREEN]** Implementar D60.
-- [ ] 15.3 **[REFACTOR]** Verificación del bloque.
+- [x] 15.2 **[GREEN]** Implementar D60.
+- [x] 15.3 **[REFACTOR]** Verificación del bloque. (1604 tests, cobertura 99 %; las señales son independientes de `comm_enabled` y la clave del caché sólo usa los símbolos que el ADN escucha; precisiones 97, 104 y 105. Punto de control de la etapa L: ablaciones de R39–R41 inertes, aceptación de D46.5 con la ampliación activa e historiales iguales con `PYTHONHASHSEED` 0 y 123, en `test_internal_state.py`, `test_plasticity.py` y `test_signals.py`.)
 
 ## 16. Senescencia (R29) y mutación SOS (R30) (`evolutionary-dynamics`, `simulation-engine`)
 
