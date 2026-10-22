@@ -146,6 +146,17 @@ python -m ide.experiments.exp003_runner --attribution --jobs 4   # atribución d
 python -m ide.experiments.phase2_calibration --jobs 4            # calibración de viabilidad (--refined: Enmienda 1b)
 ```
 
+Fase II-B (sin `--jobs`, todos los runners y CLI usan los núcleos detectados, D62.3):
+
+```bash
+python -m ide.experiments.phase25_viability                 # compuerta de viabilidad (D55)
+python -m ide.experiments.phase25_viability --amendment2    # grilla extendida (Enmienda 2 de D55, D55.7)
+python -m ide.experiments.exp25_runner --smoke              # prueba de humo (D56): terminación, generación máxima y población
+python -m ide.experiments.exp25_runner                      # protocolos 25a–25d con PHASE25_SEEDS y el perfil phase25
+python -m ide.experiments.exp25_runner --histories          # además, historiales genético y ecológico por corrida
+python -m ide.experiments.exp25_runner --attribution        # atribución de C13–C20 (--rule-effect-seeds: rule_effects exploratorios)
+```
+
 ## Integración continua
 
 `.github/workflows/ci.yml` corre en cada PR y en cada push a `main`: en Python 3.13 (job requerido `Calidad y tests`) `ruff check`, `ruff format --check`, `pyright`, `python -m pytest --cov=ide` (también con otro `PYTHONHASHSEED`) y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`. Un segundo job, `Compatibilidad` (Python 3.11 y 3.12), corre sólo la suite para respaldar el mínimo declarado. Si cambian los pasos de verificación de este documento, actualiza también el workflow. `/code-review` sigue siendo un paso manual.

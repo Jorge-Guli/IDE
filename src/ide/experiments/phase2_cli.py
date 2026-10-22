@@ -2,7 +2,8 @@
 
 Cada protocolo se describe con un `ProtocolSpec`: sus condiciones (todas con la misma semilla),
 la función que corre una condición y la que arma el reporte. Las condiciones son corridas
-independientes, así que la CLI las reparte en `--jobs` procesos sin cambiar la salida.
+independientes, así que la CLI las reparte en `--jobs` procesos (por defecto, los núcleos
+detectados; D62.3 y precisión 55) sin cambiar la salida.
 """
 
 import argparse
@@ -18,6 +19,7 @@ from ide.experiments.exp001_runner import (
     PROFILES,
     aggregate_reports,
     aggregate_values,
+    default_jobs,
     map_in_order,
     non_negative_int,
     positive_int,
@@ -82,7 +84,9 @@ def build_arg_parser(description: str) -> argparse.ArgumentParser:
         help="por defecto, 42; con --attribution, las semillas pre-registradas (PHASE2_SEEDS)",
     )
     parser.add_argument("--out", type=Path, default=Path("results/"))
-    parser.add_argument("--jobs", type=positive_int, default=1)
+    parser.add_argument(
+        "--jobs", type=positive_int, default=default_jobs(), help="por defecto, los núcleos"
+    )
     parser.add_argument(
         "--attribution",
         action="store_true",

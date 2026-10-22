@@ -58,6 +58,21 @@ python -m ide.experiments.exp003_runner --attribution --jobs 4
 
 # Calibración de viabilidad del perfil de la Fase II (Enmiendas 1 y 1b de D29)
 python -m ide.experiments.phase2_calibration --jobs 4
+
+# Fase II-B (design D55 y D56): sin --jobs, todos los runners y CLI usan los núcleos detectados
+# Compuerta de viabilidad (D55) y su grilla extendida (Enmienda 2, lee la original de registros/)
+python -m ide.experiments.phase25_viability
+python -m ide.experiments.phase25_viability --amendment2
+# Prueba de humo (D56): sólo terminación, generación máxima y población final, sin métricas de
+# afirmación; escribe results/exp25_phase25_smoke.json
+python -m ide.experiments.exp25_runner --smoke
+# Protocolos 25a-25d con PHASE25_SEEDS y el perfil phase25 (un JSON por protocolo y condición);
+# --histories escribe además los historiales genético y ecológico de cada corrida
+python -m ide.experiments.exp25_runner
+python -m ide.experiments.exp25_runner --histories
+# Atribución de C13-C20 con el perfil pre-registrado y los rule_effects exploratorios
+python -m ide.experiments.exp25_runner --attribution
+python -m ide.experiments.exp25_runner --attribution --rule-effect-seeds 42 43 44
 ```
 
 El paralelismo (`--jobs`) es sólo entre corridas independientes: el diseño exige salida idéntica para cualquier número de procesos y para cualquier `PYTHONHASHSEED`. Con la ampliación de la Fase II-B, todos los runners y CLI de calibración, también los de las Fases I y II, usarán por defecto tantos procesos como núcleos disponibles (design D62.3 y precisión 55, previsto); como la salida no depende de `--jobs`, ningún resultado registrado cambia. La suite lo comprueba con `--jobs 1` frente a `--jobs 2` y con `PYTHONHASHSEED` 0 frente a 1 (perfil `quick`). No se comparan historiales entre versiones distintas de Python o de NumPy: el determinismo vale dentro de un mismo entorno.

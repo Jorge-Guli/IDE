@@ -1,7 +1,8 @@
 """Protocolos del Experimento 001 (001-A, 001-B, 001-C) y su CLI reproducible.
 
 Uso: `python -m ide.experiments.exp001_runner [--profile {quick,full}] [--seeds 42 43 ...]
-[--out results/] [--jobs N] [--attribution]`. Con `--attribution` ejecuta sólo 001-D.
+[--out results/] [--jobs N] [--attribution]`. Con `--attribution` ejecuta sólo 001-D. `--jobs` usa
+por defecto los núcleos detectados (D62.3 y precisión 55); la salida es idéntica para cualquiera.
 """
 
 import argparse
@@ -478,7 +479,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", choices=sorted(PROFILES), default="full")
     parser.add_argument("--seeds", type=non_negative_int, nargs="+", default=[42])
     parser.add_argument("--out", type=Path, default=Path("results/"))
-    parser.add_argument("--jobs", type=positive_int, default=1)
+    parser.add_argument(
+        "--jobs", type=positive_int, default=default_jobs(), help="por defecto, los núcleos"
+    )
     parser.add_argument(
         "--attribution",
         action="store_true",

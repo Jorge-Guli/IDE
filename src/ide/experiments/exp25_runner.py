@@ -2,19 +2,29 @@
 
 Cada protocolo parte de su configuración en `PHASE25_PROTOCOL_CONFIGS` (condición `full`) y
 compara las condiciones de `phase25_conditions`, todas con la misma semilla. Usa la
-infraestructura de `phase2_cli.py` (`ProtocolSpec` y `run_protocol`). Tres modos:
+infraestructura de `phase2_cli.py` (`ProtocolSpec` y `run_protocol`). Antes de crear `--out`, la
+CLI comprueba que cada configuración respete los rasgos de su protocolo (`_check_phase25_protocol`
+de la atribución); un problema de configuración o de argumentos sale con código 2. Los archivos
+llevan el perfil en el nombre (`exp25_{perfil}_...`) y registran el perfil, las semillas y la
+configuración. Tres modos:
 
 - **Protocolos** (por defecto): corre cada protocolo con sus condiciones y semillas (por defecto
-  `PHASE25_SEEDS` y el perfil `phase25`, del que sólo se usa `total_ticks`) y escribe un JSON por
-  condición con el resumen de cada semilla (`Phase25ConditionSummary`). Con `--histories` escribe
-  además los historiales genético y ecológico completos de cada corrida, en archivos aparte. La
-  consola sólo muestra demografía.
-- **Prueba de humo** (`--smoke`, D56): registra, por protocolo, condición y semilla, sólo la
-  terminación, la generación máxima y la población final. No arma resúmenes ni calcula ninguna
-  métrica de afirmación.
+  `PHASE25_SEEDS` y el perfil `phase25`, del que sólo se usa `total_ticks`) y escribe
+  `exp25_{perfil}_{protocolo}_{condición}.json` con el resumen de cada semilla
+  (`Phase25ConditionSummary`). Con `--histories`, cada corrida escribe al terminar sus historiales
+  genético y ecológico completos en `exp25_{perfil}_{protocolo}_{condición}_seed{s}_histories.json`,
+  sin acumularlos. La consola sólo muestra demografía.
+- **Prueba de humo** (`--smoke`, D56): `exp25_{perfil}_smoke.json` registra, por protocolo,
+  condición y semilla, sólo la terminación (`finished` o `error`, con el tipo y el mensaje de la
+  excepción), la población final (hojas vivas y activas) y la generación máxima. Sus motores corren
+  sin `telemetry_observers`: no producen los historiales genético y ecológico ni calculan ninguna
+  métrica de afirmación. Una corrida que falla no aborta las demás; la CLI devuelve 1 si alguna
+  falló.
 - **Atribución** (`--attribution`): `run_phase25_attribution` con las semillas (por defecto
-  `PHASE25_SEEDS`) y los `rule_effects` exploratorios (por defecto `PHASE25_RULE_EFFECT_SEEDS`);
-  escribe el `Phase25Report` en JSON y una tabla en consola. Usa siempre el perfil pre-registrado.
+  `PHASE25_SEEDS`) y los `rule_effects` exploratorios (`--rule-effect-seeds`, sólo en este modo; por
+  defecto `PHASE25_RULE_EFFECT_SEEDS`); escribe el `Phase25Report` en
+  `exp25_phase25_attribution.json` y una tabla en consola. Usa siempre el perfil pre-registrado:
+  otro `--profile` es un error de argumentos.
 
 Las corridas son independientes: se reparten en `--jobs` procesos (por defecto, los núcleos
 detectados; D62.3 y precisión 55) y la salida es idéntica para cualquier `--jobs`. Las
@@ -26,7 +36,7 @@ Uso: `python -m ide.experiments.exp25_runner [--profile P] [--seeds 42 43 ...] [
 
 import argparse
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from statistics import median
@@ -40,9 +50,8 @@ from ide.experiments.attribution import (
     PHASE25_MIN_VALID_PAIRS,
     PHASE25_RULE_EFFECT_SEEDS,
     PHASE25_SEEDS,
-    Phase25ClaimEvaluation,
     Phase25Report,
-    effect_threshold,
+    claim_threshold_and_valid_seeds,
     final_demography,
     phase25_conditions,
     run_phase25_attribution,
@@ -147,7 +156,11 @@ def _spec(key: str) -> ProtocolSpec:
             for name, s in report.conditions.items()
         )
 
-    return ProtocolSpec(key, conditions, run_phase25_condition, assemble, headline)
+    def validate(config: SimulationConfig) -> None:
+        """La configuración `full` respeta los rasgos de su protocolo (D56); si no, `ValueError`."""
+        attribution._check_phase25_protocol(key, config)  # pyright: ignore[reportPrivateUsage]
+
+    return ProtocolSpec(key, conditions, run_phase25_condition, assemble, headline, validate)
 
 
 PHASE25_SPECS: tuple[ProtocolSpec, ...] = tuple(_spec(key) for key in _PROTOCOLS)
@@ -166,24 +179,57 @@ def run_phase25_protocol(
 
 # --- Unidades de trabajo -----------------------------------------------------------------------
 
-_Task = tuple[SimulationConfig, int, bool]  # (configuración, ticks, con historiales)
+# Destino de un historial: (ruta, encabezado con perfil, protocolo, condición, semilla, ticks y
+# configuración). Una corrida compartida por varias condiciones escribe un archivo por cada una.
+_HistoryTarget = tuple[str, dict[str, Any]]
+_Task = tuple[SimulationConfig, int, tuple[_HistoryTarget, ...]]  # (config, ticks, historiales)
 
 
-def _run_task(
-    task: _Task,
-) -> tuple[Phase25ConditionSummary, Phase25ConditionHistories | None]:
-    config, total_ticks, keep_histories = task
+def _run_task(task: _Task) -> Phase25ConditionSummary:
+    """Corre una configuración y escribe sus historiales al terminar: no viajan ni se acumulan."""
+    config, total_ticks, targets = task
     summary, histories = run_phase25_condition_histories(config, total_ticks)
-    return summary, (histories if keep_histories else None)  # no viajan si no se piden
+    if targets:
+        data = report_to_dict(histories)
+        for path, header in targets:
+            write_json(Path(path), {**header, **data})
+    return summary
 
 
-def _smoke_task(task: tuple[SimulationConfig, int]) -> tuple[int, int]:
-    """(población final, generación máxima): sólo demografía, sin resúmenes ni métricas."""
-    config, total_ticks = task
+def _smoke_engine(config: SimulationConfig) -> SimulationEngine:
+    """Motor de la prueba de humo (D56): sin telemetría de evolución abierta.
+
+    Con `telemetry_observers` vacía no se producen `genetic_history` ni `ecology_history`, de donde
+    salen las métricas de C13-C20. La telemetría no consume generadores ni cambia el estado del
+    motor, así que la demografía es la misma que con ella.
+    """
     engine = SimulationEngine(config)
-    engine.run(total_ticks)
-    final_agents, _, max_generation = final_demography(engine)
-    return final_agents, max_generation
+    engine.telemetry_observers = []
+    return engine
+
+
+def _smoke_task(task: tuple[SimulationConfig, int]) -> dict[str, Any]:
+    """Terminación y demografía final de una corrida; una excepción se registra, no se propaga."""
+    config, total_ticks = task
+    try:
+        engine = _smoke_engine(config)
+        engine.run(total_ticks)
+    except Exception as error:  # se registra la falla y siguen las demás corridas (D56)
+        return {
+            "termination": "error",
+            "error": {"type": type(error).__name__, "message": str(error)},
+            "final_agents": None,
+            "final_active_agents": None,
+            "max_generation": None,
+        }
+    final_agents, final_active_agents, max_generation = final_demography(engine)
+    return {
+        "termination": "finished",
+        "error": None,
+        "final_agents": final_agents,
+        "final_active_agents": final_active_agents,
+        "max_generation": max_generation,
+    }
 
 
 # --- CLI ---------------------------------------------------------------------------------------
@@ -197,15 +243,21 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--profile",
         choices=sorted(PROFILES),
         default=PHASE25_ATTRIBUTION_PROFILE,
-        help="sólo se usa `total_ticks` del perfil; --attribution lo ignora",
+        help=(
+            "sólo se usa `total_ticks` del perfil; --attribution sólo admite el pre-registrado "
+            f"({PHASE25_ATTRIBUTION_PROFILE})"
+        ),
     )
     parser.add_argument("--seeds", type=non_negative_int, nargs="+", default=list(PHASE25_SEEDS))
     parser.add_argument(
         "--rule-effect-seeds",
         type=non_negative_int,
         nargs="*",
-        default=list(PHASE25_RULE_EFFECT_SEEDS),
-        help="semillas de los rule_effects exploratorios (sólo con --attribution)",
+        default=None,
+        help=(
+            "sólo con --attribution: semillas de los rule_effects exploratorios (por defecto, "
+            "PHASE25_RULE_EFFECT_SEEDS; sin valores, ninguna)"
+        ),
     )
     parser.add_argument("--out", type=Path, default=Path("results/"))
     parser.add_argument(
@@ -214,7 +266,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--histories",
         action="store_true",
-        help="escribe también los historiales genético y ecológico de cada corrida",
+        help="sólo en el modo protocolos: escribe los historiales genético y ecológico",
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -230,50 +282,81 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _validate_configs(configs: Mapping[str, SimulationConfig]) -> None:
+    """Cada protocolo tiene su configuración y respeta sus rasgos (D56); si no, `ValueError`."""
+    missing = [key for key in _PROTOCOLS if key not in configs]
+    if missing:
+        raise ValueError(f"faltan las configuraciones de los protocolos {missing}")
+    for spec in PHASE25_SPECS:
+        spec.validate(configs[spec.key])
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
     seeds: list[int] = args.seeds
-    rule_effect_seeds: list[int] = args.rule_effect_seeds
     out: Path = args.out
     jobs: int = args.jobs
+    profile: str = args.profile
+    # Opciones que no aplican al modo elegido: error de argumentos, antes de crear --out.
+    if args.rule_effect_seeds is not None and not args.attribution:
+        parser.error("--rule-effect-seeds sólo se usa con --attribution")
+    if args.attribution and profile != PHASE25_ATTRIBUTION_PROFILE:
+        parser.error(
+            f"--attribution usa siempre el perfil pre-registrado {PHASE25_ATTRIBUTION_PROFILE}"
+        )
+    if args.histories and (args.smoke or args.attribution):
+        parser.error("--histories sólo se usa en el modo protocolos")
+    rule_effect_seeds: list[int] = (
+        list(PHASE25_RULE_EFFECT_SEEDS)
+        if args.rule_effect_seeds is None
+        else args.rule_effect_seeds
+    )
     try:
         validate_seeds(seeds)
     except ValueError as error:
         parser.error(f"--seeds: {error}")
-    if args.attribution and rule_effect_seeds:
+    if rule_effect_seeds:
         try:
             validate_seeds(rule_effect_seeds)
         except ValueError as error:
             parser.error(f"--rule-effect-seeds: {error}")
-    if args.histories and (args.smoke or args.attribution):
-        parser.error("--histories sólo se usa en el modo protocolos")
     configs = attribution.PHASE25_PROTOCOL_CONFIGS  # se lee aquí: los tests lo reemplazan
-    try:  # antes de crear --out: un --out inválido falla ya
+    # (protocolo, condición, semilla) -> configuración, en orden fijo.
+    planned: dict[tuple[str, str, int], SimulationConfig] = {}
+    try:  # antes de crear --out: una configuración que no respeta su protocolo falla ya
+        _validate_configs(configs)
+        if not args.attribution:
+            planned = {
+                (protocol, name, seed): config
+                for protocol in _PROTOCOLS
+                for seed in seeds
+                for name, config in phase25_conditions(
+                    protocol, replace(configs[protocol], seed=seed)
+                ).items()
+            }
+    except ValueError as error:
+        parser.error(f"configuración inválida: {error}")
+    try:
         out.mkdir(parents=True, exist_ok=True)
     except OSError as error:
         parser.error(f"--out no es un directorio utilizable ({out}): {error}")
     if args.attribution:
         return _main_attribution(seeds, rule_effect_seeds, out, jobs, configs)
-    profile: str = args.profile
     total_ticks = PROFILES[profile].total_ticks
-    # (protocolo, condición, semilla) -> configuración, en orden fijo.
-    planned: dict[tuple[str, str, int], SimulationConfig] = {
-        (protocol, name, seed): config
-        for protocol in _PROTOCOLS
-        for seed in seeds
-        for name, config in phase25_conditions(
-            protocol, replace(configs[protocol], seed=seed)
-        ).items()
-    }
     if args.smoke:
-        return _main_smoke(planned, profile, total_ticks, seeds, out, jobs)
+        return _main_smoke(planned, profile, total_ticks, seeds, out, jobs, configs)
     return _main_protocols(planned, profile, total_ticks, seeds, out, jobs, args.histories)
 
 
 def _labels(planned: Mapping[tuple[str, str, int], SimulationConfig]) -> list[tuple[str, str]]:
     """(protocolo, condición) en el orden de los protocolos y de `phase25_conditions`."""
     return list(dict.fromkeys((protocol, name) for protocol, name, _ in planned))
+
+
+def _prefix(profile: str) -> str:
+    """Prefijo de los archivos: el experimento y el perfil, para no mezclar corridas."""
+    return f"{_NAME}_{profile}"
 
 
 def _main_protocols(
@@ -285,38 +368,36 @@ def _main_protocols(
     jobs: int,
     histories: bool,
 ) -> int:
-    tasks: list[_Task] = list(
-        dict.fromkeys((config, total_ticks, histories) for config in planned.values())
-    )
-    results = dict(zip(tasks, map_in_order(_run_task, tasks, jobs), strict=True))
-
-    def result(key: tuple[str, str, int]) -> Any:
-        return results[(planned[key], total_ticks, histories)]
+    prefix = _prefix(profile)
+    # Una configuración idéntica corre una vez; con --histories escribe un archivo por etiqueta.
+    targets: dict[SimulationConfig, list[_HistoryTarget]] = {}
+    for (protocol, name, seed), config in planned.items():
+        group = targets.setdefault(config, [])
+        if histories:
+            path = out / f"{prefix}_{protocol}_{name}_seed{seed}_histories.json"
+            header = {
+                "profile": profile,
+                "protocol": protocol,
+                "condition": name,
+                "seed": seed,
+                "total_ticks": total_ticks,
+                "config": config.to_dict(),
+            }
+            group.append((str(path), header))
+    tasks: list[_Task] = [(config, total_ticks, tuple(group)) for config, group in targets.items()]
+    summaries = dict(zip(targets, map_in_order(_run_task, tasks, jobs), strict=True))
 
     for protocol, name in _labels(planned):
-        runs: list[dict[str, Any]] = []
-        for seed in seeds:
-            summary, history = result((protocol, name, seed))
-            runs.append(
-                {
-                    "seed": seed,
-                    "config": planned[(protocol, name, seed)].to_dict(),
-                    "summary": report_to_dict(summary),
-                }
-            )
-            if history is not None:
-                write_json(
-                    out / f"{_NAME}_{protocol}_{name}_seed{seed}_histories.json",
-                    {
-                        "protocol": protocol,
-                        "condition": name,
-                        "seed": seed,
-                        "total_ticks": total_ticks,
-                        **report_to_dict(history),
-                    },
-                )
+        runs = [
+            {
+                "seed": seed,
+                "config": planned[(protocol, name, seed)].to_dict(),
+                "summary": report_to_dict(summaries[planned[(protocol, name, seed)]]),
+            }
+            for seed in seeds
+        ]
         write_json(
-            out / f"{_NAME}_{protocol}_{name}.json",
+            out / f"{prefix}_{protocol}_{name}.json",
             {
                 "protocol": protocol,
                 "condition": name,
@@ -329,12 +410,12 @@ def _main_protocols(
     for seed in seeds:
         lines: list[str] = []
         for spec in PHASE25_SPECS:
-            summaries = {
-                name: result((protocol, name, s))[0]
-                for (protocol, name, s) in planned
+            by_condition = {
+                name: summaries[config]
+                for (protocol, name, s), config in planned.items()
                 if protocol == spec.key and s == seed
             }
-            lines.append(spec.headline(spec.assemble(seed, total_ticks, summaries)))
+            lines.append(spec.headline(spec.assemble(seed, total_ticks, by_condition)))
         print(f"semilla {seed}: " + " | ".join(lines))
     return 0
 
@@ -346,53 +427,49 @@ def _main_smoke(
     seeds: list[int],
     out: Path,
     jobs: int,
+    configs: Mapping[str, SimulationConfig],
 ) -> int:
-    """Prueba de humo de D56: sólo terminación, generación máxima y población final."""
+    """Prueba de humo de D56: sólo terminación, generación máxima y población final.
+
+    Devuelve 1 si alguna corrida falló (su tipo y mensaje quedan en el registro) y 0 si no.
+    """
     tasks = list(dict.fromkeys((config, total_ticks) for config in planned.values()))
     results = dict(zip(tasks, map_in_order(_smoke_task, tasks, jobs), strict=True))
     runs: list[dict[str, Any]] = []
+    failures = 0
     print(f"Prueba de humo de la Fase II-B: perfil {profile} ({total_ticks} ticks)")
     for protocol, name in _labels(planned):
         parts: list[str] = []
         for seed in seeds:
-            final_agents, max_generation = results[(planned[(protocol, name, seed)], total_ticks)]
-            termination = "alive" if final_agents > 0 else "extinct"
-            runs.append(
-                {
-                    "protocol": protocol,
-                    "condition": name,
-                    "seed": seed,
-                    "termination": termination,
-                    "final_agents": final_agents,
-                    "max_generation": max_generation,
-                }
-            )
-            parts.append(
-                f"semilla {seed} {termination}, población {final_agents}, "
-                f"generación {max_generation}"
-            )
+            result = results[(planned[(protocol, name, seed)], total_ticks)]
+            runs.append({"protocol": protocol, "condition": name, "seed": seed, **result})
+            if result["termination"] == "error":
+                failures += 1
+                error = result["error"]
+                parts.append(f"semilla {seed} falló ({error['type']}: {error['message']})")
+            else:
+                parts.append(
+                    f"semilla {seed} terminó, población {result['final_agents']} "
+                    f"(hojas activas {result['final_active_agents']}), "
+                    f"generación {result['max_generation']}"
+                )
         print(f"  {protocol} {name}: " + "; ".join(parts))
     write_json(
-        out / f"{_NAME}_smoke.json",
-        {"profile": profile, "total_ticks": total_ticks, "seeds": seeds, "runs": runs},
+        out / f"{_prefix(profile)}_smoke.json",
+        {
+            "profile": profile,
+            "total_ticks": total_ticks,
+            "seeds": seeds,
+            "configs": {key: configs[key].to_dict() for key in _PROTOCOLS},
+            "runs": runs,
+        },
     )
-    return 0
+    if failures:
+        print(f"Aviso: {failures} corridas fallaron; el registro guarda el tipo y el mensaje.")
+    return 1 if failures else 0
 
 
 # --- Atribución --------------------------------------------------------------------------------
-
-
-def _valid_seeds(evaluation: Phase25ClaimEvaluation, seeds: Sequence[int]) -> list[int]:
-    excluded = evaluation.excluded_seeds
-    return [s for s in seeds if s not in excluded]
-
-
-def _threshold(evaluation: Phase25ClaimEvaluation, seeds: Sequence[int]) -> float:
-    """Umbral de efecto de D56 con `M` sobre los pares válidos (precisiones 116 y 119)."""
-    claim = next(c for c in PHASE25_CLAIMS if c.claim_id == evaluation.claim_id)
-    valid = _valid_seeds(evaluation, seeds)
-    comparison = median([evaluation.comparison_values[s] for s in valid]) if valid else 0.0
-    return effect_threshold(claim, comparison)
 
 
 def _demography_line(condition: str, records: Mapping[int, Mapping[str, float]]) -> str:
@@ -414,10 +491,7 @@ def _main_attribution(
     configs: Mapping[str, SimulationConfig],
 ) -> int:
     """Atribución de C13-C20 (D56): JSON del `Phase25Report` y tabla en consola."""
-    print(
-        f"Atribución de la Fase II-B con el perfil {PHASE25_ATTRIBUTION_PROFILE} "
-        "(pre-registrado; ignora --profile)"
-    )
+    print(f"Atribución de la Fase II-B con el perfil pre-registrado {PHASE25_ATTRIBUTION_PROFILE}")
     if len(seeds) < PHASE25_MIN_VALID_PAIRS:
         print(
             f"Aviso: con menos de {PHASE25_MIN_VALID_PAIRS} semillas ninguna afirmación es "
@@ -430,15 +504,21 @@ def _main_attribution(
         configs=configs,
         rule_effect_seeds=rule_effect_seeds,
     )
-    thresholds = {e.claim_id: _threshold(e, seeds) for e in report.evaluations}
-    valid_pairs = {e.claim_id: len(_valid_seeds(e, seeds)) for e in report.evaluations}
+    claims = {c.claim_id: c for c in PHASE25_CLAIMS}
+    thresholds: dict[str, float] = {}
+    valid_pairs: dict[str, int] = {}
+    for e in report.evaluations:  # la misma cuenta con la que la atribución decide el estado
+        threshold, valid = claim_threshold_and_valid_seeds(
+            claims[e.claim_id], e.comparison_values, seeds, e.excluded_seeds
+        )
+        thresholds[e.claim_id], valid_pairs[e.claim_id] = threshold, len(valid)
     data = report_to_dict(report)
     data["seeds"] = seeds
     data["rule_effect_seeds"] = rule_effect_seeds
     data["thresholds"] = thresholds
     data["valid_pairs"] = valid_pairs
     data["configs"] = {key: configs[key].to_dict() for key in sorted(configs)}
-    write_json(out / f"{_NAME}_attribution.json", data)
+    write_json(out / f"{_prefix(PHASE25_ATTRIBUTION_PROFILE)}_attribution.json", data)
 
     def fmt(value: float | None) -> str:
         return "—" if value is None else f"{value:.5f}"

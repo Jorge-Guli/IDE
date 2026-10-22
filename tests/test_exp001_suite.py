@@ -26,6 +26,7 @@ from ide.experiments.exp001_runner import (
     SurplusReport,
     aggregate_reports,
     build_arg_parser,
+    default_jobs,
     main,
     recovery_ticks,
     report_to_dict,
@@ -289,7 +290,20 @@ def test_valores_por_defecto_de_la_cli() -> None:
     assert args.profile == "full"
     assert args.seeds == [42]
     assert Path(args.out) == Path("results/")
-    assert args.jobs == 1
+    assert args.jobs == default_jobs()  # los núcleos detectados (D62.3 y precisión 55)
+
+
+def _affinity(_: int) -> set[int]:
+    return {0, 1, 2}
+
+
+def test_jobs_por_defecto_con_los_nucleos_detectados(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Escenarios de la spec "Procesos por Defecto con los Núcleos Detectados" (D62.3)."""
+    monkeypatch.setattr(os, "sched_getaffinity", _affinity, raising=False)
+    assert build_arg_parser().parse_args([]).jobs == 3
+    monkeypatch.delattr(os, "sched_getaffinity", raising=False)
+    monkeypatch.setattr(os, "cpu_count", lambda: None)
+    assert build_arg_parser().parse_args([]).jobs == 1
 
 
 def run_cli(out: Path, hash_seed: str, *extra: str) -> None:

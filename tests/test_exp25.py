@@ -8,6 +8,7 @@ registros genético y ecológico, los historiales opcionales, la CLI en sus tres
 
 import dataclasses
 import json
+import multiprocessing
 import os
 import statistics
 from pathlib import Path
@@ -42,6 +43,7 @@ from ide.experiments.exp25_runner import (
 )
 from ide.experiments.metrics import EcologyTickMetrics, GeneticTickMetrics
 from ide.simulation.engine import SimulationEngine
+from ide.simulation.telemetry import EcologyMetricsObserver, GeneticMetricsObserver
 
 SMALL = {"grid_width": 10, "grid_height": 10, "num_agents": 12}
 TICKS = 40
@@ -58,7 +60,16 @@ CONDITIONS = {
 LABELS = [(protocol, name) for protocol in PROTOCOLS for name in CONDITIONS[protocol]]
 
 # Únicos campos de una corrida de la prueba de humo (D56): nada de las métricas de C13-C20.
-SMOKE_KEYS = {"protocol", "condition", "seed", "termination", "final_agents", "max_generation"}
+SMOKE_KEYS = {
+    "protocol",
+    "condition",
+    "seed",
+    "termination",
+    "error",
+    "final_agents",
+    "final_active_agents",
+    "max_generation",
+}
 CLAIM_METRICS = sorted({claim.metric for claim in PHASE25_CLAIMS})
 
 
@@ -236,7 +247,9 @@ def test_parser_por_defecto() -> None:
     args = build_arg_parser().parse_args([])
     assert args.seeds == list(PHASE25_SEEDS)
     assert args.profile == "phase25"
-    assert args.rule_effect_seeds == list(PHASE25_RULE_EFFECT_SEEDS)
+    assert (
+        args.rule_effect_seeds is None
+    )  # sólo con --attribution; por defecto, las pre-registradas
     assert (args.attribution, args.smoke, args.histories) == (False, False, False)
     assert Path(args.out) == Path("results/")
 
@@ -254,6 +267,55 @@ def test_semillas_repetidas(tmp_path: Path) -> None:
     assert not (tmp_path / "r").exists()
 
 
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--rule-effect-seeds", "42"],
+        ["--smoke", "--rule-effect-seeds", "42"],
+        ["--rule-effect-seeds"],
+        ["--attribution", "--profile", "quick"],
+        ["--smoke", "--histories"],
+        ["--attribution", "--histories"],
+    ],
+)
+def test_opciones_que_no_aplican_al_modo(tmp_path: Path, argv: list[str]) -> None:
+    """Una opción ajena al modo elegido es un error de argumentos, antes de crear `--out`."""
+    with pytest.raises(SystemExit) as exc:
+        main([*argv, "--out", str(tmp_path / "r")])
+    assert exc.value.code == 2
+    assert not (tmp_path / "r").exists()
+
+
+@pytest.mark.parametrize("mode", [[], ["--smoke"], ["--attribution"]])
+def test_configuracion_que_no_respeta_su_protocolo(
+    tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch, mode: list[str]
+) -> None:
+    """`_check_phase25_protocol` rechaza la configuración antes de crear `--out` (código 2)."""
+    broken = dict(attribution.PHASE25_PROTOCOL_CONFIGS)
+    broken["25a"] = dataclasses.replace(broken["25a"], enable_predation=False)
+    monkeypatch.setattr(attribution, "PHASE25_PROTOCOL_CONFIGS", broken)
+    profile = [] if mode == ["--attribution"] else ["--profile", tiny]
+    with pytest.raises(SystemExit) as exc:
+        main([*mode, *profile, "--seeds", "7", "--jobs", "1", "--out", str(tmp_path / "r")])
+    assert exc.value.code == 2
+    assert not (tmp_path / "r").exists()
+
+
+def test_falta_un_protocolo(tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    partial = {k: v for k, v in attribution.PHASE25_PROTOCOL_CONFIGS.items() if k != "25c"}
+    monkeypatch.setattr(attribution, "PHASE25_PROTOCOL_CONFIGS", partial)
+    with pytest.raises(SystemExit) as exc:
+        main(["--profile", tiny, "--seeds", "7", "--out", str(tmp_path / "r")])
+    assert exc.value.code == 2
+    assert not (tmp_path / "r").exists()
+
+
+def test_protocolo_valida_su_configuracion() -> None:
+    config = dataclasses.replace(protocol_config("25c"), comm_propensity_base=0.5)
+    with pytest.raises(ValueError, match="25c"):
+        run_phase25_protocol("25c", config, TICKS)
+
+
 def test_out_inutilizable(tmp_path: Path, tiny: str) -> None:
     blocker = tmp_path / "archivo"
     blocker.write_text("x", encoding="utf-8")
@@ -262,23 +324,31 @@ def test_out_inutilizable(tmp_path: Path, tiny: str) -> None:
     assert exc.value.code == 2
 
 
-def condition_files(prefix: str = "exp25") -> list[str]:
-    return sorted(f"{prefix}_{protocol}_{name}.json" for protocol, name in LABELS)
+def condition_files(profile: str) -> list[str]:
+    return sorted(f"exp25_{profile}_{protocol}_{name}.json" for protocol, name in LABELS)
+
+
+def history_files(profile: str, seeds: tuple[int, ...]) -> list[str]:
+    return sorted(
+        f"exp25_{profile}_{protocol}_{name}_seed{seed}_histories.json"
+        for protocol, name in LABELS
+        for seed in seeds
+    )
 
 
 def test_cli_de_protocolos(tmp_path: Path, tiny: str, capsys: pytest.CaptureFixture[str]) -> None:
-    """Un JSON por condición, idéntico con `--jobs 1` y `--jobs 2`."""
+    """Un JSON por condición, con el perfil en el nombre, idéntico con `--jobs 1` y `--jobs 2`."""
     sequential, parallel = tmp_path / "jobs1", tmp_path / "jobs2"
     for out, jobs in ((sequential, "1"), (parallel, "2")):
         argv = ["--profile", tiny, "--seeds", "7", "8", "--jobs", jobs, "--out", str(out)]
         assert main(argv) == 0
     files = sorted(p.name for p in sequential.iterdir())
-    assert files == condition_files()
+    assert files == condition_files(tiny)
     for file in files:
         assert (sequential / file).read_bytes() == (parallel / file).read_bytes(), file
     small = attribution.PHASE25_PROTOCOL_CONFIGS
     for protocol, name in LABELS:
-        data = json.loads((sequential / f"exp25_{protocol}_{name}.json").read_text())
+        data = json.loads((sequential / f"exp25_{tiny}_{protocol}_{name}.json").read_text())
         assert (data["protocol"], data["condition"]) == (protocol, name)
         assert (data["profile"], data["total_ticks"], data["seeds"]) == (tiny, TINY_TICKS, [7, 8])
         assert [run["seed"] for run in data["runs"]] == [7, 8]
@@ -296,20 +366,49 @@ def test_cli_de_protocolos(tmp_path: Path, tiny: str, capsys: pytest.CaptureFixt
 
 
 def test_cli_con_historiales(tmp_path: Path, tiny: str) -> None:
-    out = tmp_path / "r"
-    argv = ["--profile", tiny, "--seeds", "7", "--jobs", "1", "--histories", "--out", str(out)]
-    assert main(argv) == 0
-    histories = sorted(p.name for p in out.iterdir() if p.name.endswith("_histories.json"))
-    assert histories == sorted(
-        f"exp25_{protocol}_{name}_seed7_histories.json" for protocol, name in LABELS
-    )
+    """Historiales con perfil, semilla y configuración, idénticos con `--jobs 1` y `--jobs 2`."""
+    outs = {jobs: tmp_path / f"jobs{jobs}" for jobs in ("1", "2")}
+    for jobs, out in outs.items():
+        argv = ["--profile", tiny, "--seeds", "7", "8", "--jobs", jobs, "--histories"]
+        assert main([*argv, "--out", str(out)]) == 0
+    histories = sorted(p.name for p in outs["1"].iterdir() if p.name.endswith("_histories.json"))
+    assert histories == history_files(tiny, (7, 8))
+    for file in sorted(p.name for p in outs["1"].iterdir()):
+        assert (outs["1"] / file).read_bytes() == (outs["2"] / file).read_bytes(), file
     small = attribution.PHASE25_PROTOCOL_CONFIGS
     condition = phase25_conditions("25d", dataclasses.replace(small["25d"], seed=7))["full"]
     _, expected = run_phase25_condition_histories(condition, TINY_TICKS)
-    data = json.loads((out / "exp25_25d_full_seed7_histories.json").read_text())
+    data = json.loads((outs["1"] / f"exp25_{tiny}_25d_full_seed7_histories.json").read_text())
+    assert (data["profile"], data["protocol"], data["condition"]) == (tiny, "25d", "full")
+    assert (data["seed"], data["total_ticks"]) == (7, TINY_TICKS)
+    assert data["config"] == condition.to_dict()
     assert data["genetic_history"] == as_json(expected.genetic_history)
     assert data["ecology_history"] == as_json(expected.ecology_history)
     assert len(data["genetic_history"]) == TINY_TICKS
+    # `stable` de 25d es `full` de 25a: una sola corrida, dos archivos con sus propias etiquetas.
+    stable = json.loads((outs["1"] / f"exp25_{tiny}_25d_stable_seed7_histories.json").read_text())
+    full = json.loads((outs["1"] / f"exp25_{tiny}_25a_full_seed7_histories.json").read_text())
+    assert (stable["protocol"], stable["condition"]) == ("25d", "stable")
+    assert stable["genetic_history"] == full["genetic_history"]
+
+
+def test_historiales_se_escriben_al_terminar_cada_corrida(
+    tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cada corrida escribe sus historiales al terminar: no se acumulan hasta el final."""
+    written_before: list[int] = []
+    original = exp25_runner.run_phase25_condition_histories
+
+    def spying(config: SimulationConfig, total_ticks: int) -> Any:
+        written_before.append(len(list(tmp_path.glob("*_histories.json"))))
+        return original(config, total_ticks)
+
+    monkeypatch.setattr(exp25_runner, "run_phase25_condition_histories", spying)
+    argv = ["--profile", tiny, "--seeds", "7", "--jobs", "1", "--histories"]
+    assert main([*argv, "--out", str(tmp_path)]) == 0
+    # Antes de la corrida k ya están los historiales de las k anteriores (alguna escribe dos).
+    assert all(count >= k for k, count in enumerate(written_before))
+    assert len(list(tmp_path.glob("*_histories.json"))) == len(LABELS)
 
 
 def test_condiciones_identicas_corren_una_vez(
@@ -332,49 +431,127 @@ def test_condiciones_identicas_corren_una_vez(
 # --- CLI: prueba de humo (D56) -----------------------------------------------------------------
 
 
-def test_prueba_de_humo(
-    tmp_path: Path,
-    tiny: str,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def _forbidden(*_: Any, **__: Any) -> Any:
+    raise AssertionError("la prueba de humo no calcula resúmenes, historiales ni métricas")
+
+
+@pytest.fixture
+def no_claim_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
+    """La prueba de humo no arma resúmenes, historiales ni métricas de afirmación (D56).
+
+    La telemetría de evolución abierta queda vetada: si un motor de la prueba de humo la
+    notificara, su corrida fallaría y se registraría con `termination == "error"`. Los parches
+    llegan a los procesos de `--jobs 2` porque se crean con `fork`.
+    """
+    monkeypatch.setattr(exp25_runner, "run_phase25_condition", _forbidden)
+    monkeypatch.setattr(exp25_runner, "run_phase25_condition_histories", _forbidden)
+    monkeypatch.setattr(attribution, "phase25_metric_value", _forbidden)
+    monkeypatch.setattr(attribution, "phase25_run_record", _forbidden)
+    for observer in (GeneticMetricsObserver, EcologyMetricsObserver):
+        monkeypatch.setattr(observer, "on_decisions", _forbidden)
+        monkeypatch.setattr(observer, "on_tick_end", _forbidden)
+
+
+requires_fork = pytest.mark.skipif(
+    multiprocessing.get_start_method() != "fork",
+    reason="los parches del test sólo llegan a los procesos hijos con fork",
+)
+
+
+@requires_fork
+@pytest.mark.usefixtures("no_claim_metrics")
+def test_prueba_de_humo(tmp_path: Path, tiny: str, capsys: pytest.CaptureFixture[str]) -> None:
     """Sólo terminación, generación máxima y población final; sin métricas de afirmación."""
-
-    def forbidden(*_: Any, **__: Any) -> Any:
-        raise AssertionError("la prueba de humo no calcula resúmenes ni métricas")
-
-    monkeypatch.setattr(exp25_runner, "run_phase25_condition", forbidden)
-    monkeypatch.setattr(exp25_runner, "run_phase25_condition_histories", forbidden)
-    monkeypatch.setattr(attribution, "phase25_metric_value", forbidden)
     outs = {jobs: tmp_path / f"jobs{jobs}" for jobs in ("1", "2")}
     for jobs, out in outs.items():
         argv = ["--smoke", "--profile", tiny, "--seeds", "7", "8", "--jobs", jobs]
         assert main([*argv, "--out", str(out)]) == 0
-    assert sorted(p.name for p in outs["1"].iterdir()) == ["exp25_smoke.json"]
-    assert (outs["1"] / "exp25_smoke.json").read_bytes() == (
-        outs["2"] / "exp25_smoke.json"
-    ).read_bytes()
-    data = json.loads((outs["1"] / "exp25_smoke.json").read_text())
+    name = f"exp25_{tiny}_smoke.json"
+    assert sorted(p.name for p in outs["1"].iterdir()) == [name]
+    assert (outs["1"] / name).read_bytes() == (outs["2"] / name).read_bytes()
+    data = json.loads((outs["1"] / name).read_text())
     assert (data["profile"], data["total_ticks"], data["seeds"]) == (tiny, TINY_TICKS, [7, 8])
+    small = attribution.PHASE25_PROTOCOL_CONFIGS
+    assert data["configs"] == {key: small[key].to_dict() for key in PROTOCOLS}
     runs = data["runs"]
     assert [(r["protocol"], r["condition"], r["seed"]) for r in runs] == [
         (protocol, name, seed) for protocol, name in LABELS for seed in (7, 8)
     ]
-    small = attribution.PHASE25_PROTOCOL_CONFIGS
     for run in runs:
         assert set(run) == SMOKE_KEYS
         condition = phase25_conditions(
             run["protocol"], dataclasses.replace(small[run["protocol"]], seed=run["seed"])
         )[run["condition"]]
         engine = SimulationEngine(condition)
+        engine.telemetry_observers.clear()  # vetada por el fixture; no cambia la demografía
         engine.run(TINY_TICKS)
-        agents, _, generation = final_demography(engine)
-        assert (run["final_agents"], run["max_generation"]) == (agents, generation)
-        assert run["termination"] == ("alive" if agents > 0 else "extinct")
+        agents, active, generation = final_demography(engine)
+        assert (run["termination"], run["error"]) == ("finished", None)
+        assert (run["final_agents"], run["final_active_agents"]) == (agents, active)
+        assert run["max_generation"] == generation
     output = capsys.readouterr().out
     assert "25a no_predation_drift" in output
     assert not any(metric in output for metric in CLAIM_METRICS)
-    assert "activas" not in output  # sólo población final, no hojas activas
+
+
+def test_motores_de_la_prueba_de_humo_sin_telemetria(
+    tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """En el mismo proceso: sin `telemetry_observers` ni historiales genético y ecológico."""
+    engines: list[SimulationEngine] = []
+
+    class Recording(SimulationEngine):
+        def __init__(self, config: SimulationConfig) -> None:
+            super().__init__(config)
+            engines.append(self)
+
+    monkeypatch.setattr(exp25_runner, "SimulationEngine", Recording)
+    argv = ["--smoke", "--profile", tiny, "--seeds", "7", "--jobs", "1"]
+    assert main([*argv, "--out", str(tmp_path)]) == 0
+    assert len(engines) == len(LABELS) - 2  # las configuraciones idénticas corren una vez
+    for engine in engines:
+        assert engine.next_tick == TINY_TICKS
+        assert engine.telemetry_observers == []
+        assert engine.genetic_history == [] and engine.ecology_history == []
+
+
+@requires_fork
+@pytest.mark.parametrize("jobs", ["1", "2"])
+def test_prueba_de_humo_registra_las_fallas(
+    tmp_path: Path,
+    tiny: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    jobs: str,
+) -> None:
+    """Una corrida que falla se registra con su tipo y mensaje, sin abortar las demás."""
+
+    class Failing(SimulationEngine):
+        def run(self, num_ticks: int) -> Any:
+            if self.config.seed == 8 and not self.config.enable_predation:
+                raise RuntimeError(f"falla simulada en la semilla {self.config.seed}")
+            return super().run(num_ticks)
+
+    monkeypatch.setattr(exp25_runner, "SimulationEngine", Failing)
+    argv = ["--smoke", "--profile", tiny, "--seeds", "7", "8", "--jobs", jobs]
+    assert main([*argv, "--out", str(tmp_path)]) == 1
+    data = json.loads((tmp_path / f"exp25_{tiny}_smoke.json").read_text())
+    assert len(data["runs"]) == 2 * len(LABELS)
+    for run in data["runs"]:
+        assert set(run) == SMOKE_KEYS
+        failed = run["seed"] == 8 and run["condition"] in ("no_predation", "no_predation_drift")
+        if failed:
+            assert run["termination"] == "error"
+            assert run["error"] == {
+                "type": "RuntimeError",
+                "message": "falla simulada en la semilla 8",
+            }
+            assert run["final_agents"] is None and run["max_generation"] is None
+            assert run["final_active_agents"] is None
+        else:
+            assert (run["termination"], run["error"]) == ("finished", None)
+            assert isinstance(run["final_agents"], int)
+    assert "RuntimeError" in capsys.readouterr().out
 
 
 # --- CLI: atribución ---------------------------------------------------------------------------
@@ -437,8 +614,8 @@ def test_cli_de_atribucion(
     assert received["jobs"] == 3
     assert received["rule"] == list(PHASE25_RULE_EFFECT_SEEDS)
     assert received["configs"] == attribution.PHASE25_PROTOCOL_CONFIGS
-    assert sorted(p.name for p in out.iterdir()) == ["exp25_attribution.json"]
-    data = json.loads((out / "exp25_attribution.json").read_text())
+    assert sorted(p.name for p in out.iterdir()) == ["exp25_phase25_attribution.json"]
+    data = json.loads((out / "exp25_phase25_attribution.json").read_text())
     assert data["profile"] == "phase25"
     assert data["seeds"] == seeds
     assert data["rule_effect_seeds"] == list(PHASE25_RULE_EFFECT_SEEDS)
@@ -463,8 +640,26 @@ def test_atribucion_real_corta(tmp_path: Path, tiny: str, monkeypatch: pytest.Mo
     out = tmp_path / "r"
     argv = ["--attribution", "--seeds", "7", "8", "--rule-effect-seeds", "--jobs", "1"]
     assert main([*argv, "--out", str(out)]) == 0
-    data = json.loads((out / "exp25_attribution.json").read_text())
+    data = json.loads((out / "exp25_phase25_attribution.json").read_text())
     assert data["seeds"] == [7, 8] and data["rule_effect_seeds"] == []
     assert all(e["evaluable"] is False for e in data["evaluations"])  # menos de 20 pares
     assert all(effects == {} or all(v is None for v in effects.values())
                for effects in data["rule_effects"].values())  # fmt: skip
+
+
+def test_atribucion_acepta_el_perfil_pre_registrado(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--profile phase25` con `--attribution` es redundante y se acepta; queda en el JSON."""
+
+    def fake(seeds: Any, claims: Any, jobs: int, configs: Any, rule_effect_seeds: Any) -> Any:
+        return Phase25Report(
+            evaluations=tuple(fake_evaluation(c.claim_id, list(seeds)) for c in claims),
+            rule_effects={c.claim_id: {} for c in claims},
+        )
+
+    monkeypatch.setattr(exp25_runner, "run_phase25_attribution", fake)
+    argv = ["--attribution", "--profile", "phase25", "--jobs", "1", "--out", str(tmp_path)]
+    assert main(argv) == 0
+    data = json.loads((tmp_path / "exp25_phase25_attribution.json").read_text())
+    assert data["profile"] == "phase25"

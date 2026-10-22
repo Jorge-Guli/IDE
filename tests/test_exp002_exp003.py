@@ -15,7 +15,7 @@ import pytest
 from ide.config import SimulationConfig
 from ide.experiments import attribution, exp002_runner, exp003_runner, phase2_cli
 from ide.experiments.attribution import PHASE2_PROTOCOL_CONFIGS, ablate
-from ide.experiments.exp001_runner import PROFILES, Profile
+from ide.experiments.exp001_runner import PROFILES, Profile, default_jobs
 from ide.experiments.exp002_runner import (
     AdaptationReport,
     CulturalInheritanceReport,
@@ -394,8 +394,24 @@ def test_cli_argumentos_invalidos(
 def test_parser_por_defecto() -> None:
     for runner, _, _ in RUNNERS:
         args = runner.build_arg_parser().parse_args([])
-        assert (args.profile, args.seeds, args.jobs, args.attribution) == ("phase2", None, 1, False)
+        assert (args.profile, args.seeds, args.attribution) == ("phase2", None, False)
+        assert args.jobs == default_jobs()  # los núcleos detectados (D62.3 y precisión 55)
         assert Path(args.out) == Path("results/")
+
+
+def _affinity(_: int) -> set[int]:
+    return {0, 1, 2}
+
+
+def test_jobs_por_defecto_con_los_nucleos_detectados(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Escenarios de la spec "Procesos por Defecto con los Núcleos Detectados" (D62.3)."""
+    monkeypatch.setattr(os, "sched_getaffinity", _affinity, raising=False)
+    for runner, _, _ in RUNNERS:
+        assert runner.build_arg_parser().parse_args([]).jobs == 3
+    monkeypatch.delattr(os, "sched_getaffinity", raising=False)
+    monkeypatch.setattr(os, "cpu_count", lambda: None)
+    for runner, _, _ in RUNNERS:
+        assert runner.build_arg_parser().parse_args([]).jobs == 1
 
 
 @pytest.mark.parametrize(("runner", "name", "keys"), RUNNERS)

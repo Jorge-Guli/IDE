@@ -1296,6 +1296,25 @@ def effect_threshold(claim: Phase25Claim, comparison_median: float) -> float:
     return max(claim.delta_min, claim.delta_relative * comparison_median)
 
 
+def claim_threshold_and_valid_seeds(
+    claim: Phase25Claim,
+    comparison_values: Mapping[int, float],
+    seeds: Sequence[int],
+    excluded_seeds: Sequence[int],
+) -> tuple[float, tuple[int, ...]]:
+    """Umbral de efecto de D56 y pares válidos de una afirmación (precisiones 45, 116 y 119).
+
+    Los pares válidos son las semillas de `seeds`, en su orden, que no están en `excluded_seeds`;
+    el umbral es `effect_threshold` con `M` la mediana de `comparison_values` sobre ellos (0.0 si no
+    queda ninguno). Es la misma cuenta con la que `evaluate_phase25_claims` decide el estado, y la
+    usan también los reportes, para no recalcularla aparte.
+    """
+    excluded = set(excluded_seeds)
+    valid = tuple(s for s in seeds if s not in excluded)
+    comparison_median = median([comparison_values[s] for s in valid]) if valid else 0.0
+    return effect_threshold(claim, comparison_median), valid
+
+
 def phase25_status(
     *,
     by_construction: bool,
@@ -1375,11 +1394,10 @@ def _evaluate_one(
     else:
         values = {s: value("full", s) for s in seeds}
         comparison_values = {s: value(claim.comparison, s) for s in seeds}
-    valid = [s for s in seeds if all(_active(runs[c][s]) for c in conditions)]
-    valid_set = set(valid)
-    excluded = tuple(s for s in seeds if s not in valid_set)
+    active = {s for s in seeds if all(_active(runs[c][s]) for c in conditions)}
+    excluded = tuple(s for s in seeds if s not in active)
+    threshold, valid = claim_threshold_and_valid_seeds(claim, comparison_values, seeds, excluded)
     differences = [values[s] - comparison_values[s] for s in valid]
-    comparison_median = median([comparison_values[s] for s in valid]) if valid else 0.0
     e4_valid = [s for s in seeds if _active(runs["full"][s]) and _active(runs[NULL_CONTENT][s])]
     evaluation = Phase25ClaimEvaluation(
         claim_id=claim.claim_id,
@@ -1396,7 +1414,6 @@ def _evaluate_one(
         excluded_pairs=len(excluded),
         evaluable=len(valid) >= PHASE25_MIN_VALID_PAIRS,
     )
-    threshold = effect_threshold(claim, comparison_median)
     return _Partial(evaluation, threshold, _phase25_by_construction(claim))
 
 
