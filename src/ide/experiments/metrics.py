@@ -10,20 +10,23 @@ import math
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, fields
+from operator import attrgetter
 from typing import Literal, NamedTuple
 
 from ide.agent.dna import (
     BEHAVIORS,
+    SYMBOL_MASK,
+    CodonCensus,
     canonical_codon,
+    codon_census,
     evaluate_behavior,
-    expressible_codons,
     founder_dna,
     functional_codon_values,
-    learning_codons,
-    trait_or_behavior_codons,
+    is_functional_codon,
 )
 from ide.agent.holon import AgentNode, CompositeAgent, composite_nodes, is_effectively_locked
 from ide.agent.micro_agent import MicroAgent
+from ide.agent.policy import behavior_order, first_feasible
 from ide.config import SimulationConfig
 from ide.domain.types import (
     ActionType,
@@ -515,13 +518,10 @@ class DecisionEcology(NamedTuple):
 def first_feasible_slot(drives: Sequence[float], feasible: Sequence[bool]) -> int | None:
     """La posición de la primera conducta factible en el orden de `GeneticPolicy` (D46.4).
 
-    Se prueban las conductas con impulso positivo en orden de `(-d_B, posición)`; `None` si
-    ninguna es factible (la decisión es `IDLE`).
+    Se prueban las conductas con impulso positivo en el orden de `behavior_order`, el mismo de
+    la política; `None` si ninguna es factible (la decisión es `IDLE`).
     """
-    for _, slot in sorted((-drive, slot) for slot, drive in enumerate(drives) if drive > 0):
-        if feasible[slot]:
-            return slot
-    return None
+    return first_feasible(behavior_order(drives), feasible.__getitem__)
 
 
 def _binary_information(n11: int, n10: int, n01: int, n00: int) -> float:
@@ -540,7 +540,8 @@ def _binary_information(n11: int, n10: int, n01: int, n00: int) -> float:
 
 
 _SIGNAL_FIELDS = tuple(f.name for f in fields(SensorySignals))
-_SYMBOLS = 8  # símbolos de señal, `channel & 0x07` (D60.2)
+_signal_values = attrgetter(*_SIGNAL_FIELDS)
+_SYMBOLS = SYMBOL_MASK.bit_length()  # símbolos de señal, `channel & 0x07` (D60.2)
 
 
 def signal_information(samples: Sequence[tuple[int, SensorySignals]]) -> float:
@@ -553,16 +554,29 @@ def signal_information(samples: Sequence[tuple[int, SensorySignals]]) -> float:
         emitted |= mask
     if not total or not emitted:
         return 0.0
-    columns = [[bool(getattr(signals, name)) for _, signals in samples] for name in _SIGNAL_FIELDS]
+    # Cada variable binaria es una máscara sobre las decisiones (bit i = decisión i), así que los
+    # conteos de la tabla son `bit_count` de máscaras precalculadas.
+    sent = [0] * _SYMBOLS
+    columns = [0] * len(_SIGNAL_FIELDS)
+    for i, (mask, signals) in enumerate(samples):
+        bit = 1 << i
+        for k in range(_SYMBOLS):
+            if mask >> k & 1:
+                sent[k] |= bit
+        for j, value in enumerate(_signal_values(signals)):
+            if value:
+                columns[j] |= bit
+    column_counts = [column.bit_count() for column in columns]
     best = 0.0
     for k in range(_SYMBOLS):
         if not emitted >> k & 1:
             continue  # un símbolo que nadie emitió no informa nada
-        sent = [bool(mask >> k & 1) for mask, _ in samples]
-        for column in columns:
-            n11 = sum(1 for s, v in zip(sent, column, strict=True) if s and v)
-            n10 = sum(sent) - n11
-            n01 = sum(column) - n11
+        sent_k = sent[k]
+        sent_count = sent_k.bit_count()
+        for column, column_count in zip(columns, column_counts, strict=True):
+            n11 = (sent_k & column).bit_count()
+            n10 = sent_count - n11
+            n01 = column_count - n11
             best = max(best, _binary_information(n11, n10, n01, total - n11 - n10 - n01))
     return best
 
@@ -616,18 +630,6 @@ def ecology_tick_metrics(
     )
 
 
-class _Genotype(NamedTuple):
-    """Consultas por genotipo de una hoja, que dependen sólo de su ADN y del protocolo."""
-
-    expressible: int
-    nonattack: int
-    conditional: int
-    functional: int
-    learning: int  # sin la condición del modo 3
-    learning_plastic: int  # con ella (hoja con `plasticity_rate > 0`)
-
-
-_ATTACK_TARGET = 0x45  # destino de `ATTACK` (D46.1): inerte en `no_predation` (precisión 42)
 _ROLE_FIELDS = (EpigeneticRole.EXPLORER, EpigeneticRole.LIBRARIAN, EpigeneticRole.NERVE)
 
 
@@ -636,8 +638,8 @@ class GeneticMetricsCollector:
 
     Guarda la actividad $a_c$ de cada valor canónico funcional ausente del cromosoma fundador,
     la actividad nueva acumulada, los nacimientos y las edades de las muertes. Las consultas por
-    genotipo se guardan por instancia de ADN mientras alguna hoja viva la porte, así que el
-    resultado no depende del caché. No consume generadores.
+    genotipo (`codon_census`) se guardan por contenido (`chromosome`, `plasmids`) mientras alguna
+    hoja viva lo porte, así que el resultado no depende del caché. No consume generadores.
     """
 
     def __init__(self, config: SimulationConfig) -> None:
@@ -652,36 +654,32 @@ class GeneticMetricsCollector:
         self.founder_drives: tuple[float, ...] = evaluate_behavior(
             founder, EpigeneticContext(), signals, config
         ).drives
+        # Orden de prueba del fundador (`behavior_order`), fijo por la misma razón.
+        self.founder_order: list[int] = behavior_order(self.founder_drives)
         self._activity: dict[int, int] = {}
         self._cumulative_new_activity = 0
         self._cumulative_births = 0
         self._death_age_sum = 0
         self._deaths = 0
-        self._genotypes: dict[int, tuple[CompactDNA, _Genotype]] = {}
+        self._genotypes: dict[tuple[tuple[int, ...], tuple[int, ...]], CodonCensus] = {}
 
     def _genotype(
-        self, dna: CompactDNA, cache: dict[int, tuple[CompactDNA, _Genotype]]
-    ) -> _Genotype:
-        key = id(dna)
-        entry = cache.get(key) or self._genotypes.get(key)
-        if entry is None or entry[0] is not dna:
-            config = self._config
-            holonic, roles = config.enable_holonic_hierarchy, config.enable_epigenetic_roles
-            values = expressible_codons(dna, holonic, roles)
-            fixed = learning_codons(dna, holonic, roles, False)
-            entry = (
-                dna,
-                _Genotype(
-                    expressible=len(values),
-                    nonattack=sum(1 for v, _ in values if (v >> 16) & 0xFF != _ATTACK_TARGET),
-                    conditional=sum(1 for _, conditional in values if conditional),
-                    functional=trait_or_behavior_codons(dna),
-                    learning=len(fixed),
-                    learning_plastic=len(learning_codons(dna, holonic, roles, True)),
-                ),
-            )
-        cache[key] = entry
-        return entry[1]
+        self,
+        dna: CompactDNA,
+        cache: dict[tuple[tuple[int, ...], tuple[int, ...]], CodonCensus],
+    ) -> CodonCensus:
+        """`codon_census` de `dna`, calculado una vez por contenido (`chromosome`, `plasmids`)."""
+        key = (dna.chromosome, dna.plasmids)
+        census = cache.get(key)
+        if census is None:
+            census = self._genotypes.get(key)
+            if census is None:
+                config = self._config
+                census = codon_census(
+                    dna, config.enable_holonic_hierarchy, config.enable_epigenetic_roles
+                )
+            cache[key] = census
+        return census
 
     def _activity_step(
         self, births: Sequence[Birth], receptions: Sequence[tuple[CompactDNA, int]]
@@ -692,12 +690,15 @@ class GeneticMetricsCollector:
         increments: Counter[int] = Counter()
         for birth in births:
             if birth.dna is not None:
-                increments.update(functional_codon_values(birth.dna) - founder)
+                increments.update(sorted(functional_codon_values(birth.dna) - founder))
         for before, codon in receptions:
             # Cuenta si el codón recibido es funcional, no es fundador y el receptor no lo portaba.
             value = canonical_codon(codon)
-            functional = value in functional_codon_values(CompactDNA((codon,)))
-            if functional and value not in founder and value not in functional_codon_values(before):
+            if (
+                is_functional_codon(codon)
+                and value not in founder
+                and value not in functional_codon_values(before)
+            ):
                 increments[value] += 1
         threshold = self._config.activity_threshold
         crossed = 0
@@ -719,18 +720,20 @@ class GeneticMetricsCollector:
         death_ages: Sequence[int],
         receptions: Sequence[tuple[CompactDNA, int]],
         decisions: DecisionGenetics,
+        births_count: int | None = None,
     ) -> GeneticTickMetrics:
         """El registro del tick, con el estado de las hojas vivas al final del tick.
 
         `births` son los nacimientos del tick, `death_ages` las edades de sus muertes (paso de
         muerte, sin las perturbaciones), `receptions` las conjugaciones que cambiaron el ADN del
         receptor (con su ADN anterior y el codón recibido) y `decisions` lo leído en
-        `on_decisions` (precisión 126).
+        `on_decisions` (precisión 126). `births_count` es el conteo de nacimientos del motor
+        (`frame.births`), el denominador de `new_activity_per_birth`; sin él, `len(births)`.
         """
         config = self._config
         new_activity = self._activity_step(births, receptions)
         self._cumulative_new_activity += new_activity
-        self._cumulative_births += len(births)
+        self._cumulative_births += len(births) if births_count is None else births_count
         self._deaths += len(death_ages)
         self._death_age_sum += sum(death_ages)
 
@@ -741,7 +744,7 @@ class GeneticMetricsCollector:
         awake = [agent for agent in population if not agent.is_endospore]
         weights = [abs(w) for agent in population for w in agent.plastic_weights.values()]
 
-        cache: dict[int, tuple[CompactDNA, _Genotype]] = {}
+        cache: dict[tuple[tuple[int, ...], tuple[int, ...]], CodonCensus] = {}
         chromosomes: set[tuple[int, ...]] = set()
         dna_count = lengths = plasmids = expressed = 0
         expressible = nonattack = conditional = functional = learning = 0

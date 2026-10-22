@@ -26,7 +26,7 @@ from ide.agent.epistemology import (
 )
 from ide.agent.evolution import genome_from_config
 from ide.agent.memory import BoundedMemory
-from ide.agent.policy import HandwrittenPolicy, PolicyPort
+from ide.agent.policy import DecisionTrace, HandwrittenPolicy, PolicyPort
 from ide.agent.protocol import BeliefExchangeProtocol
 from ide.config import SimulationConfig, is_stress_energy_ratio
 from ide.domain.extensions import (
@@ -166,9 +166,12 @@ class MicroAgent:
         # Eventos del tick anterior, que escribe el motor al final de cada tick (D58.5).
         self._last_events = EventSignals()
         # Registro único de la decisión: (tick, evaluación, posición en `Behavior` de la conducta
-        # elegida o `None` si cayó en `IDLE`). Lo escribe la política genética al decidir y lo
-        # leen los sistemas del motor de ese tick (D58.3, D59.4); `None` sin decisión registrada.
-        self._decision: tuple[int, BehaviorEvaluation, int | None] | None = None
+        # elegida o `None` si cayó en `IDLE`, y lo que la política calculó al decidir o `None`).
+        # Lo escribe la política genética al decidir y lo leen los sistemas del motor y la
+        # telemetría de ese tick (D58.3, D59.4, D53.2); `None` sin decisión registrada.
+        self._decision: tuple[int, BehaviorEvaluation, int | None, DecisionTrace | None] | None = (
+            None
+        )
         # --- R40 (design D59) ---
         # Pesos aprendidos por posición en `chromosome + plasmids`, en orden ascendente de
         # posición: vacíos al nacer (todos en 0), no se heredan y se vacían en `set_dna` (D59.2).
@@ -394,6 +397,14 @@ class MicroAgent:
             return None
         return BEHAVIORS[decision[2]]
 
+    def decision_trace(self, tick: int) -> DecisionTrace | None:
+        """Lo que la política genética calculó al decidir en `tick` (señales y factibilidad), o
+        `None` sin decisión registrada en `tick` o sin registro de la política."""
+        decision = self._decision
+        if decision is None or decision[0] != tick:
+            return None
+        return decision[3]
+
     @property
     def plastic_weights(self) -> Mapping[int, float]:
         """Vista viva de sólo lectura de los pesos aprendidos ($R_{40}$, D59.2).
@@ -610,7 +621,7 @@ class MicroAgent:
             raise RuntimeError(f"el agente {self._agent_id} ya decidió en el tick {tick}")
         evaluation = self.evaluate_behavior(signals)
         if not self._is_endospore:
-            self._decision = (tick, evaluation, None)
+            self._decision = (tick, evaluation, None, None)
         return evaluation
 
     def record_behavior(self, slot: int, tick: int) -> None:
@@ -621,7 +632,18 @@ class MicroAgent:
         """
         decision = self._decision
         if decision is not None and decision[0] == tick:
-            self._decision = (tick, decision[1], slot)
+            self._decision = (tick, decision[1], slot, decision[3])
+
+    def record_decision_trace(self, trace: DecisionTrace, tick: int) -> None:
+        """Registra en la decisión de `tick` lo que la política genética calculó al decidir.
+
+        La invoca `GeneticPolicy` después de `evaluate_for_decision`; la lee la telemetría en
+        `on_decisions` (D53.2, precisión 126). Sin una decisión registrada en `tick` (por
+        ejemplo, en endospora) no hace nada.
+        """
+        decision = self._decision
+        if decision is not None and decision[0] == tick:
+            self._decision = (tick, decision[1], decision[2], trace)
 
     def reinforce(self, tick: int, reward: float) -> int:
         """Regla de aprendizaje de $R_{40}$ (D59.4) con la recompensa `reward` de la Fase 4.

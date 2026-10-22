@@ -298,6 +298,9 @@ class SimulationEngine:
         # `observers` (precisión 130); el colector acumula lo que cruza ticks (precisión 43).
         self.genetic_collector = GeneticMetricsCollector(config)
         self.genetic_history: list[GeneticTickMetrics] = []
+        # Nacimientos del último paso de reproducción (precisión 68): `_give_birth` anota cada uno
+        # aquí, sin excepción, y `ReproductionSystem` los pasa a `frame.born`.
+        self.born: list[Birth] = []
         self.ecology_history: list[EcologyTickMetrics] = []
         self.telemetry_observers: list[TickObserver] = [
             GeneticMetricsObserver(),
@@ -823,7 +826,7 @@ class SimulationEngine:
             self._remove(dead, tick)
         return dead
 
-    def _reproduce(self, tick: int, events: Counter[str], born: list[Birth] | None = None) -> int:
+    def _reproduce(self, tick: int, events: Counter[str]) -> int:
         """R17 y luego R12 (o su ablación neutral), a lo sumo un evento por agente (D26).
 
         Con ADN y reproducción neutral, cada hoja progenitora de R17 recibe, en el orden de
@@ -834,9 +837,10 @@ class SimulationEngine:
         el del donante) con el de una pareja; R17 no recombina. Cada cruce suma el evento
         `recombinations` de `events` (precisión 20).
 
-        `born` recibe, en el orden de los nacimientos, la fuente genética y el ADN de cada hijo
-        (`_give_birth`, precisión 68).
+        Vacía `born` al empezar: al terminar tiene, en el orden de los nacimientos, la fuente
+        genética y el ADN de cada hijo (`_give_birth`, precisión 68), uno por nacimiento contado.
         """
+        self.born = []
         config = self.config
         reproduced: set[int] = set()
         neutral = config.reproduction_mode == "neutral"
@@ -879,13 +883,11 @@ class SimulationEngine:
                     for leaf, donor in zip(leaves, leaf_donors, strict=True):
                         self._check_donor(leaf, donor)
                     offspring = {
-                        leaf.agent_id: self._give_birth(leaf, tick, donor, born=born)
+                        leaf.agent_id: self._give_birth(leaf, tick, donor)
                         for leaf, donor in zip(leaves, leaf_donors, strict=True)
                     }
                 else:
-                    offspring = {
-                        leaf.agent_id: self._give_birth(leaf, tick, born=born) for leaf in leaves
-                    }
+                    offspring = {leaf.agent_id: self._give_birth(leaf, tick) for leaf in leaves}
                 child = reproduce_holon(node, offspring, self._take_holon_id, tick)
                 world = self.env.get_world_patterns()
                 for replica in composite_nodes(child):
@@ -923,7 +925,7 @@ class SimulationEngine:
                 crossed = self._cross(agent, donor, pool)
                 if crossed is not None:
                     events["recombinations"] += 1
-            child = self._give_birth(agent, tick, donor, crossed, born)
+            child = self._give_birth(agent, tick, donor, crossed)
             self._set_root(child)
             reproduced.update((aid, child.agent_id))
             births += 1
@@ -1002,7 +1004,6 @@ class SimulationEngine:
         tick: int,
         donor: MicroAgent | None = None,
         crossed: CompactDNA | None = None,
-        born: list[Birth] | None = None,
     ) -> MicroAgent:
         """Hijo con ID nuevo, ubicado junto al progenitor y con su herencia cultural (D22, D26).
 
@@ -1015,7 +1016,7 @@ class SimulationEngine:
         de partir la energía; en la reproducción holónica, con el de cada hoja. Sin la regla, la
         escala es 1.0 y la Fase II no cambia en un bit.
 
-        Punto de enganche de la telemetría (precisión 68): si recibe `born`, anota la fuente
+        Punto de enganche de la telemetría (precisión 68): anota siempre en `born` la fuente
         genética del hijo, el `agent_id` cuyo ADN hereda antes de mutar (el donante si lo hay;
         si no, el progenitor), y el ADN con que nació. Con $R_{38}$ la fuente es la misma, el que
         inicia el cruce (el progenitor o, en neutral, el donante): la pareja no se anota. No
@@ -1040,9 +1041,8 @@ class SimulationEngine:
                 self.next_agent_id, tick, rng, dna_source=donor.dna, mutation_scale=scale
             )
         self.next_agent_id += 1
-        if born is not None:
-            source = parent if donor is None else donor
-            born.append(Birth(source.agent_id, child.dna))
+        source = parent if donor is None else donor
+        self.born.append(Birth(source.agent_id, child.dna))
         genome = child.genome
         self._evo.spawn_agent_near(
             child.agent_id,

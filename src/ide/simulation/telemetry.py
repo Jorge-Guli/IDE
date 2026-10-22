@@ -13,14 +13,13 @@ del tick los toman del marco, donde los dejó `TickMetricsObserver`.
 from typing import TYPE_CHECKING
 
 from ide.agent.dna import BEHAVIORS
-from ide.agent.policy import behavior_feasibility
+from ide.agent.policy import DecisionTrace, behavior_order
 from ide.domain.ports import EcologicalEnvironmentPort
 from ide.experiments.metrics import (
     BEHAVIOR_SLOTS,
     DecisionEcology,
     DecisionRecord,
     ecology_tick_metrics,
-    first_feasible_slot,
     summarize_decisions,
 )
 from ide.simulation.pipeline import TickFrame
@@ -34,10 +33,15 @@ def tick_decisions(engine: "SimulationEngine", frame: TickFrame) -> list[int]:
     Fase 3, incluidas las que terminan en `IDLE`, ascendentes.
 
     Se leen en `on_decisions`, antes de la Fase 4, que es donde `SPORULATE` cambia el estado. Una
-    endospora puesta a mano sin $R_{28}$ decide (precisión 100) pero no cuenta.
+    endospora puesta a mano sin $R_{28}$ decide (precisión 100) pero no cuenta. Se calculan una
+    vez por tick y quedan en `frame.decision_ids`, que comparten los dos observadores.
     """
-    agents = engine.agents
-    return sorted(aid for aid in frame.active_order if not agents[aid].is_endospore)
+    decisions = frame.decision_ids
+    if decisions is None:
+        agents = engine.agents
+        decisions = sorted(aid for aid in frame.active_order if not agents[aid].is_endospore)
+        frame.decision_ids = decisions
+    return decisions
 
 
 class GeneticMetricsObserver:
@@ -47,13 +51,15 @@ class GeneticMetricsObserver:
     genética, compara la primera conducta factible según el ADN del agente (con la evaluación
     registrada de su decisión) con la del ADN fundador, sobre las mismas señales y
     factibilidades, con `EXPLORE` factible si hay recursos alcanzables desconocidos y sin
-    extraer de ningún generador; y lee los símbolos emitidos (`frame.signals`). En `on_tick_end`
-    arma el registro con el estado de las hojas vivas al final del tick.
+    extraer de ningún generador; y lee los símbolos emitidos (`frame.signals`). Las señales y la
+    factibilidad son las que la política registró en la decisión (`DecisionTrace`): sólo se
+    evalúan las posiciones que faltan para la conducta del fundador. En `on_tick_end` arma el
+    registro con el estado de las hojas vivas al final del tick.
     """
 
     def on_decisions(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, tick = engine.agents, frame.tick
-        founder = engine.genetic_collector.founder_drives
+        founder = engine.genetic_collector.founder_order
         records: list[DecisionRecord] = []
         for aid in tick_decisions(engine, frame):
             agent = agents[aid]
@@ -62,16 +68,21 @@ class GeneticMetricsObserver:
             if evaluation is None:  # no decidió con la política genética
                 records.append(DecisionRecord(emitted, None, False))
                 continue
-            signals, feasible = behavior_feasibility(
-                agent, frame.observations[aid], frame.social.get(aid)
-            )
-            own = first_feasible_slot(evaluation.drives, feasible)
+            trace = agent.decision_trace(tick)
+            if trace is None:  # una evaluación registrada fuera de `GeneticPolicy`
+                trace = DecisionTrace(agent, frame.observations[aid], frame.social.get(aid))
+            own = trace.first_feasible(behavior_order(evaluation.drives))
             records.append(
-                DecisionRecord(emitted, signals, own != first_feasible_slot(founder, feasible))
+                DecisionRecord(emitted, trace.signals, own != trace.first_feasible(founder))
             )
         frame.decision_genetics = summarize_decisions(records)
 
     def on_tick_end(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        if len(frame.born) != frame.births:  # todo nacimiento contado se anota (precisión 68)
+            raise RuntimeError(
+                f"nacimientos sin anotar en el tick {frame.tick}: el motor contó {frame.births} "
+                f"y se anotaron {len(frame.born)}"
+            )
         engine.genetic_history.append(
             engine.genetic_collector.record_tick(
                 frame.tick,
@@ -82,6 +93,7 @@ class GeneticMetricsObserver:
                 frame.death_ages,
                 frame.plasmid_receptions,
                 frame.decision_genetics,
+                frame.births,
             )
         )
 

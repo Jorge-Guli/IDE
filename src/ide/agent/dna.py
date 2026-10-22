@@ -42,9 +42,11 @@ __all__ = [
     "FOUNDER_DNA_LENGTH",
     "BehaviorTerms",
     "Codon",
+    "CodonCensus",
     "apply_plastic_weights",
     "behavior_terms",
     "canonical_codon",
+    "codon_census",
     "crispr_immunity_active",
     "decode_codon",
     "encode_codon",
@@ -55,6 +57,7 @@ __all__ = [
     "founder_dna_length",
     "functional_codon_values",
     "internal_state_active",
+    "is_functional_codon",
     "learning_codons",
     "mutate_dna",
     "phenotype_from_genome",
@@ -91,6 +94,8 @@ BEHAVIORS: tuple[Behavior, ...] = tuple(Behavior)
 BEHAVIOR_TARGETS = (0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47)
 assert len(BEHAVIOR_TARGETS) == len(Behavior), "BEHAVIOR_TARGETS debe tener un destino por Behavior"
 _BEHAVIOR_SLOT = {target: slot for slot, target in enumerate(BEHAVIOR_TARGETS)}
+# Destino de `ATTACK` (D46.1): inerte en `no_predation` (precisión 42).
+_ATTACK_TARGET = BEHAVIOR_TARGETS[BEHAVIORS.index(Behavior.ATTACK)]
 _BEHAVIOR_COUNT = len(Behavior)
 
 # Destinos de otras decisiones (D61): `0x0D`/`0x0E` estado interno (R39, D58.2) y `0x48` señal.
@@ -826,16 +831,16 @@ def canonical_codon(codon: int) -> int:
 
 
 def _expressible_entries(
-    dna: CompactDNA, holonic: bool, roles: bool
+    raws: tuple[int, ...], codons: list[Codon], holonic: bool, roles: bool
 ) -> list[tuple[int, Codon, bool]]:
     """Codones de destino funcional (D61) con promotor expresable en el protocolo, de cualquier
-    modo, en el orden de `chromosome + plasmids`: `(codón, decodificado, condicional)`.
+    modo, en el orden de `chromosome + plasmids` (`raws`, ya decodificados en `codons`):
+    `(codón, decodificado, condicional)`.
 
     Es la regla de expresabilidad de la precisión 42 (ampliada por la 59), que comparten
-    `expressible_codons` (sin el modo 3) y `learning_codons` (con él, precisión 52).
+    `expressible_codons` (sin el modo 3), `learning_codons` (con él, precisión 52) y
+    `codon_census`.
     """
-    raws = dna.chromosome + dna.plasmids
-    codons = [decode_codon(c) for c in raws]
     emitters: dict[int, list[int]] = {}
     for codon in codons:
         if (
@@ -868,6 +873,35 @@ def _expressible_entries(
     return entries
 
 
+def _decoded(dna: CompactDNA) -> tuple[tuple[int, ...], list[Codon]]:
+    """`chromosome + plasmids` y sus codones decodificados, una sola vez."""
+    raws = dna.chromosome + dna.plasmids
+    return raws, [decode_codon(c) for c in raws]
+
+
+def _expressible_values(entries: list[tuple[int, Codon, bool]]) -> dict[int, bool]:
+    """Valor canónico -> condicional de las entradas expresables de modo distinto de 3."""
+    found: dict[int, bool] = {}
+    for raw, codon, conditional in entries:
+        if codon.mode != _MODE_PLASTIC:
+            found[canonical_codon(raw)] = conditional
+    return found
+
+
+def _learning_values(entries: list[tuple[int, Codon, bool]], plastic: bool) -> set[int]:
+    """Valores canónicos de memoria y aprendizaje de las entradas expresables (precisión 52)."""
+    found: set[int] = set()
+    for raw, codon, _ in entries:
+        target, mode = codon.target, codon.mode
+        if (
+            (target in (_TARGET_SET_STATE, _TARGET_CLEAR_STATE) and mode != _MODE_PLASTIC)
+            or (_PROM_STATE_FIRST <= codon.promoter <= _PROM_STATE_LAST)
+            or (plastic and mode == _MODE_PLASTIC and target in _BEHAVIOR_SLOT)
+        ):
+            found.add(canonical_codon(raw))
+    return found
+
+
 def expressible_codons(dna: CompactDNA, holonic: bool, roles: bool) -> tuple[tuple[int, bool], ...]:
     """Valores canónicos distintos de los codones funcionales expresables (precisión 42).
 
@@ -881,10 +915,7 @@ def expressible_codons(dna: CompactDNA, holonic: bool, roles: bool) -> tuple[tup
     destinos de rasgo y de conducta, donde no tiene efecto. No recibe las banderas de $R_{39}$ a
     $R_{41}$ (límite declarado, precisión 60).
     """
-    found: dict[int, bool] = {}
-    for raw, codon, conditional in _expressible_entries(dna, holonic, roles):
-        if codon.mode != _MODE_PLASTIC:
-            found[canonical_codon(raw)] = conditional
+    found = _expressible_values(_expressible_entries(*_decoded(dna), holonic, roles))
     return tuple((value, found[value]) for value in sorted(found))
 
 
@@ -897,16 +928,48 @@ def learning_codons(dna: CompactDNA, holonic: bool, roles: bool, plastic: bool) 
     (de cualquier modo); o modo 3 sobre un destino de conducta, sólo si `plastic` (la hoja tiene
     `plasticity_rate > 0` expresada según su `last_context`, precisiones 23 y 52). Ascendentes.
     """
-    found: set[int] = set()
-    for raw, codon, _ in _expressible_entries(dna, holonic, roles):
-        target, mode = codon.target, codon.mode
-        if (
-            (target in (_TARGET_SET_STATE, _TARGET_CLEAR_STATE) and mode != _MODE_PLASTIC)
-            or (_PROM_STATE_FIRST <= codon.promoter <= _PROM_STATE_LAST)
-            or (plastic and mode == _MODE_PLASTIC and target in _BEHAVIOR_SLOT)
-        ):
-            found.add(canonical_codon(raw))
-    return tuple(sorted(found))
+    entries = _expressible_entries(*_decoded(dna), holonic, roles)
+    return tuple(sorted(_learning_values(entries, plastic)))
+
+
+class CodonCensus(NamedTuple):
+    """Conteos por genotipo de la telemetría genética (D53.2, precisiones 42, 52 y 54).
+
+    Son los de `expressible_codons` (`expressible`, sin `ATTACK` en `nonattack` y condicionales
+    en `conditional`), `trait_or_behavior_codons` (`functional`) y `learning_codons` sin y con
+    la condición del modo 3 (`learning`, `learning_plastic`).
+    """
+
+    expressible: int
+    nonattack: int
+    conditional: int
+    functional: int
+    learning: int
+    learning_plastic: int
+
+
+def codon_census(dna: CompactDNA, holonic: bool, roles: bool) -> CodonCensus:
+    """`CodonCensus` de `dna` en el protocolo, decodificando `chromosome + plasmids` una vez.
+
+    Da los mismos conteos que las funciones por separado, con la misma regla de expresabilidad.
+    """
+    raws, codons = _decoded(dna)
+    entries = _expressible_entries(raws, codons, holonic, roles)
+    values = _expressible_values(entries)
+    return CodonCensus(
+        expressible=len(values),
+        nonattack=sum(1 for v in values if (v >> 16) & 0xFF != _ATTACK_TARGET),
+        conditional=sum(1 for conditional in values.values() if conditional),
+        functional=sum(1 for codon in codons if _is_trait_or_behavior(codon)),
+        learning=len(_learning_values(entries, False)),
+        learning_plastic=len(_learning_values(entries, True)),
+    )
+
+
+def is_functional_codon(codon: int) -> bool:
+    """Si el codón es funcional para la actividad (precisión 43): destino funcional (D61: rasgo,
+    estado, conducta o señal) y modo distinto de 3, cualquiera sea el promotor."""
+    return ((codon >> 16) & 0xFF) in _FUNCTIONAL_TARGETS and (codon >> 14) & 0x3 != _MODE_PLASTIC
 
 
 def functional_codon_values(dna: CompactDNA) -> frozenset[int]:
@@ -916,21 +979,20 @@ def functional_codon_values(dna: CompactDNA) -> frozenset[int]:
     distinto de 3, cualquiera sea el promotor. Es lo que cuenta la actividad de Bedau-Packard por
     nacimientos portadores: un individuo aporta 1 por valor canónico aunque lo porte varias veces.
     """
-    found: set[int] = set()
-    for raw in dna.chromosome + dna.plasmids:
-        codon = decode_codon(raw)
-        if codon.target in _FUNCTIONAL_TARGETS and codon.mode != _MODE_PLASTIC:
-            found.add(canonical_codon(raw))
-    return frozenset(found)
+    return frozenset(
+        canonical_codon(raw) for raw in dna.chromosome + dna.plasmids if is_functional_codon(raw)
+    )
 
 
 def trait_or_behavior_codons(dna: CompactDNA) -> int:
     """Codones de `chromosome + plasmids` con destino de rasgo (`0x00`-`0x08`, `0x0A`-`0x0C`,
     `0x0F`) o de conducta (`0x40`-`0x47`) y modo distinto de 3, cualquiera sea su promotor y con
     repeticiones: el conteo de `mean_functional_codons` (D53.2, precisión 54)."""
-    count = 0
-    for raw in dna.chromosome + dna.plasmids:
-        codon = decode_codon(raw)
-        if codon.target in _CHANNEL_FREE_TARGETS and codon.mode != _MODE_PLASTIC:
-            count += 1
-    return count
+    return sum(
+        1 for raw in dna.chromosome + dna.plasmids if _is_trait_or_behavior(decode_codon(raw))
+    )
+
+
+def _is_trait_or_behavior(codon: Codon) -> bool:
+    """Destino de rasgo o de conducta y modo distinto de 3 (precisión 54)."""
+    return codon.target in _CHANNEL_FREE_TARGETS and codon.mode != _MODE_PLASTIC

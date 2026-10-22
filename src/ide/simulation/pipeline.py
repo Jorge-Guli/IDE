@@ -118,7 +118,8 @@ class TickFrame:
     `death_ages`, las edades de las muertes del paso de muerte (precisión 49);
     `plasmid_receptions`, el ADN anterior y el codón de cada conjugación que cambió el ADN del
     receptor (precisión 43); y lo que los observadores leen de las decisiones en `on_decisions`
-    (precisión 126): `decision_genetics` y `decision_ecology`.
+    (precisión 126): `decision_ids`, las decisiones del tick (precisión 5), calculadas una vez
+    por `tick_decisions`, `decision_genetics` y `decision_ecology`.
     """
 
     tick: int
@@ -159,6 +160,7 @@ class TickFrame:
     plasmid_receptions: list[tuple[CompactDNA, int]] = field(
         default_factory=list[tuple[CompactDNA, int]]
     )
+    decision_ids: list[int] | None = None
     decision_genetics: DecisionGenetics = NO_DECISIONS
     decision_ecology: DecisionEcology | None = None
 
@@ -950,7 +952,8 @@ class ReproductionSystem(BaseSystem):
     name = "reproduction"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        frame.births = engine._reproduce(frame.tick, frame.events, frame.born)
+        frame.births = engine._reproduce(frame.tick, frame.events)
+        frame.born = engine.born
 
 
 class ConjugationSystem(BaseSystem):

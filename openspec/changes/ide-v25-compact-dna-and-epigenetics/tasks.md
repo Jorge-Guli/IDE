@@ -32,7 +32,7 @@
 >
 > **Pre-registro.** Es design D56, **aprobado** el 2026-10-21 en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
-> **Etapa actual:** las etapas A, R, B, L y M están completas y el bloque 22 implementado; el pre-registro D56 está aprobado. Sigue la etapa C (bloque 21 en curso, después 23 a 25).
+> **Etapa actual:** las etapas A, R, B, L y M están completas y el bloque 22 implementado; el pre-registro D56 está aprobado. Sigue la etapa C: bloques 23 a 25.
 
 ## 0. Decisiones y pre-registro
 
@@ -349,21 +349,21 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 21.1 **[RED]** Ampliar `tests/test_metrics.py` y `tests/test_simulation_engine.py` con tests para:
+- [x] 21.1 **[RED]** Ampliar `tests/test_metrics.py` y `tests/test_simulation_engine.py` con tests para:
   - `GeneticTickMetrics` de D53.2, incluidas `mean_conditional_codons`, `mean_expressible_nonattack_codons`, `regulated_expression_fraction` y `mean_expressible_codons` con los valores canónicos expresables de la precisión 42, `policy_divergence` (sin extraer de `rng`), `communicating_fraction`, `distinct_genotypes`, `mean_functional_codons`, la actividad de Bedau–Packard por nacimientos portadores y sin los codones fundadores, `cumulative_births`, `new_activity_per_birth` y `mean_age_at_death` (precisiones 43 y 49);
   - `EcologyTickMetrics` de D53.3, con `signals_emitted`, `plastic_updates`, `decision_opportunities` y `correct_decisions` (D63.3, D63.4);
   - los campos de la ampliación en `GeneticTickMetrics` (D63.2), incluidos `mean_learning_codons` (con la `plasticity_rate` expresada según `last_context`, precisión 52) y `max_signal_information`;
   - `birth_source_ids` como último campo de `GeneticTickMetrics` (precisión 68): la fuente genética de cada nacimiento (el progenitor con selección, el donante en neutral, también en $R_{17}$, y con $R_{38}$ el que inicia el cruce, sin la pareja), sin repeticiones de reproductores dentro de un tick;
   - el registro en cada tick con cualquier combinación de banderas y los valores con la población vacía;
   - que `TickMetrics` y `EvolutionaryTickMetrics` no cambian.
-- [ ] 21.2 **[GREEN]** Implementar los observadores y los tipos de métricas.
-- [ ] 21.3 **[REFACTOR]** Verificación del bloque.
+- [x] 21.2 **[GREEN]** Implementar los observadores y los tipos de métricas.
+- [x] 21.3 **[REFACTOR]** Verificación del bloque. (1910 tests, cobertura 99 %; la telemetría cuesta menos del 10 % en `25a`, `25d` y la Fase I y no cambia ningún historial; precisiones 130 a 139.)
 
 ## 22. Atribución del pre-registro (`emergence-attribution`)
 
 > Ejecuta: implementador-delicado
 
-- [ ] 22.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
+- [x] 22.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
   - `PHASE25_DESIGN_RULES` (`R24`–`R41`) con sus `purpose`, `PHASE25_ALL_RULES` y `ablate()` con las reglas nuevas;
   - `PHASE25_PROTOCOL_CONFIGS` (`25a`, `25b`, `25c` y `25d`, con `dna_max_length = 64`), sus condiciones (incluidas `no_predation_drift`, `stable` con `dataclasses.replace`, `stable_drift` y `no_learning`, y la identidad de `stable` y `stable_drift` con `full` y `drift` de `25a`) y `PHASE25_CLAIMS` (C13–C19 genuinas y C20 funcional, con `post_shift_accuracy`) con métricas, comparaciones, `baseline_drift`, `comparison_drift`, $R_C$, canales y $\delta_{\min}$;
   - la diferencia de diferencias de C17 y C19, con `values` y `comparison_values` de la precisión 69 y los pares válidos sobre sus cuatro condiciones;
@@ -373,8 +373,8 @@
   - los `rule_effects` exploratorios con las semillas 42–51, por afirmación, con la regla de pares válidos de la precisión 45, la métrica simple también en C17 y C19 y `None` sin semillas válidas (precisión 66);
   - el caché de corridas por (protocolo, variante, semilla) (precisión 67);
   - que los reportes de C1–C8 no cambian.
-- [ ] 22.2 **[GREEN]** Implementar en `attribution.py` el pre-registro aprobado en 0.5. Las constantes deben coincidir exactamente con design D56.
-- [ ] 22.3 **[REFACTOR]** Verificación del bloque.
+- [x] 22.2 **[GREEN]** Implementar en `attribution.py` el pre-registro aprobado en 0.5. Las constantes deben coincidir exactamente con design D56.
+- [x] 22.3 **[REFACTOR]** Verificación del bloque. (Con la telemetría del bloque 21 corre el test de extremo a extremo; precisiones 112 a 121; `PHASE25_ABUNDANCE` y la viabilidad de `null_content` son provisionales hasta 23.4.)
 
 ## 23. Rendimiento del perfil largo y compuerta de viabilidad (`experimental-suite`)
 

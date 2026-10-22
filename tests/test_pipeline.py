@@ -182,6 +182,7 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
         "born",
         "death_ages",
         "plasmid_receptions",
+        "decision_ids",
         "decision_genetics",
         "decision_ecology",
     ]
