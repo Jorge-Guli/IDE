@@ -916,7 +916,7 @@ class SimulationEngine:
 
         Los donantes y los candidatos se fijan al empezar el paso, con los agentes vivos en ese
         momento (también los nacidos en la reproducción del tick) y su estado de endospora
-        vigente (P1). Para cada donante, en orden de `agent_id`: `u = hgt_rng.random()`; si
+        vigente (prec. 124). Para cada donante, en orden de `agent_id`: `u = hgt_rng.random()`; si
         `u < hgt_rate` y tiene candidatos (vivos, distintos, no endosporas, a distancia de
         Chebyshev <= 1), el receptor y el codón salen de `hgt_rng.integers`, en ese orden.
         Devuelve los pares `(receptor, codón)` registrados, en el orden del sorteo.
@@ -990,7 +990,7 @@ class SimulationEngine:
         vencido (`tick - t0 >= crispr_eval_ticks`) purga el codón con `purge_plasmid` si sigue en
         `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold`, y se cierra siempre; si
         el plásmido se perdió (FIFO), se cierra sin purga. `cedida` suma la energía de los hijos,
-        la cedida por `SHARE` propios y la robada por ataques sufridos en la ventana (P2). Salta
+        la cedida por `SHARE` propios y la robada por ataques sufridos (precisión 125). Salta
         sin copiar ni ordenar a los agentes sin ensayos abiertos. Cuenta `crispr_purges`.
         """
         config = self.config

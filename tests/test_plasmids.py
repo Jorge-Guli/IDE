@@ -703,7 +703,7 @@ def test_historiales_iguales_entre_procesos_con_r26_y_r27() -> None:
     assert purges > 0
 
 
-# --- P2: lo cedido por SHARE y lo robado no cuentan como toxicidad --------------------------------
+# --- Precisión 125: lo cedido por SHARE y lo robado no cuentan como toxicidad ---
 
 
 def test_credit_plasmid_trials_suma_a_todos_los_ensayos_abiertos() -> None:
@@ -746,7 +746,7 @@ def test_un_cooperador_que_cede_energia_no_purga_por_eso() -> None:
     assert engine.agents[2].plasmid_trials[33][2] == pytest.approx(0.35, abs=1e-9)
     events: Counter[str] = Counter()
     engine._evaluate_crispr(50, events)  # pyright: ignore[reportPrivateUsage]
-    # Sin descontar lo cedido el balance sería -0.35 < -0.20; con P2 es 0.
+    # Sin descontar lo cedido el balance sería -0.35 < -0.20; con la precisión 125 es 0.
     assert plasmids_of(engine, 2) == (33,)
     assert engine.agents[2].plasmid_trials == {}
     assert events == Counter()
@@ -784,7 +784,7 @@ def test_una_perdida_metabolica_sigue_purgando() -> None:
     assert events == Counter({"crispr_purges": 1})
 
 
-# --- P3: set_dna en la Fase 5 descarta la decisión ya consumida del tick --------------------------
+# --- Precisión 126: set_dna en la Fase 5 descarta la decisión ya consumida del tick ---
 
 
 class DecisionSpy:
@@ -828,5 +828,5 @@ def test_la_conjugacion_descarta_la_decision_ya_consumida() -> None:
     engine.run(3)
     assert spy.receptors
     # En `on_decisions` la decisión existía; tras `set_dna` en la Fase 5 queda descartada y los
-    # pesos plásticos vacíos (D59.2, precisiones 88 y 94; P3).
+    # pesos plásticos vacíos (D59.2, precisiones 88 y 94; precisión 126).
     assert all(seen and dropped and weights == 0 for seen, dropped, weights in spy.receptors)

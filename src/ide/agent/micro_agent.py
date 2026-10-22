@@ -493,7 +493,7 @@ class MicroAgent:
         return bool(self._plasmid_trials)
 
     def credit_plasmid_trials(self, amount: float) -> None:
-        """Suma `amount` a la energía cedida de todos los ensayos CRISPR abiertos (D37, P2).
+        """Suma `amount` a la energía cedida de los ensayos CRISPR abiertos (precisión 125).
 
         La energía cedida descuenta del balance del ensayo lo que el agente transfiere a otros
         y no es un efecto metabólico del plásmido: la energía de cada hijo (`create_offspring`),

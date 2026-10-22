@@ -310,25 +310,25 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 18.1 **[RED]** Ampliar `tests/test_holonic_hierarchy.py` y `tests/test_simulation_engine.py` con tests para:
+- [x] 18.1 **[RED]** Ampliar `tests/test_holonic_hierarchy.py` y `tests/test_simulation_engine.py` con tests para:
   - (a) `assign_epigenetic_roles` de D36, con su asignación por el motor, el regreso a `NONE` y la impronta;
   - (b) el sello de $R_{31}$ por compromiso expresado medio $\ge 0.5$ (D50.3), su permanencia, `should_split_holon` en `False`, el descuento de coordinación sólo en la raíz soldada y la poda;
   - (c) que con `symbiotic_commitment_base = 0.0` y el ADN fundador ningún holón se suelda.
-- [ ] 18.2 **[GREEN]** Implementar D36 y D50.3.
-- [ ] 18.3 **[REFACTOR]** Verificación del bloque.
+- [x] 18.2 **[GREEN]** Implementar D36 y D50.3.
+- [x] 18.3 **[REFACTOR]** Verificación del bloque. (1744 tests; sello con tolerancia y heredado en la poda de un holón anidado; precisiones 108 a 111, 122 y 123.)
 
 ## 19. Plásmidos (R26) e inmunidad CRISPR (R27) (`compact-dna`, `simulation-engine`)
 
 > Ejecuta: implementador-delicado
 
-- [ ] 19.1 **[RED]** Tests para:
+- [x] 19.1 **[RED]** Tests para:
   - `receive_plasmid` (bloqueo, duplicado y FIFO) y `purge_plasmid` (FIFO de firmas);
   - la conjugación con `hgt_rng` (`spawn_key=(5,)`): donantes y candidatos fijados al empezar el paso, sin endosporas, la secuencia exacta de extracciones de D37 y la aplicación después del sorteo;
   - la apertura y el cierre de ensayos CRISPR, la purga por toxicidad y el cierre sin purga si el plásmido se perdió;
   - que `hgt_rng` no se consume con $R_{26}$ apagada;
   - la igualdad entre procesos con distinto `PYTHONHASHSEED`.
-- [ ] 19.2 **[GREEN]** Implementar D37.
-- [ ] 19.3 **[REFACTOR]** Verificación del bloque.
+- [x] 19.2 **[GREEN]** Implementar D37.
+- [x] 19.3 **[REFACTOR]** Verificación del bloque. (Integrado con el 18: 1787 tests, cobertura 99 %; el balance CRISPR no cuenta como toxicidad lo cedido ni lo robado; precisiones 124 a 126.)
 
 ## 20. Recombinación (R38) (`compact-dna`, `simulation-engine`)
 
