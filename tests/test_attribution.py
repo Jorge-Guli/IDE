@@ -2059,7 +2059,7 @@ def test_reportes_de_c1_a_c8_sin_cambios(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_empate_con_tolerancia_en_la_diferencia_de_diferencias() -> None:
-    """(0.3 − 0.1) − (0.5 − 0.3) es -2.8e-17 en flotante: es un empate y se descarta (A1)."""
+    """(0.3 − 0.1) − (0.5 − 0.3) es -2.8e-17 en flotante: empate descartado (precisión 112)."""
     seeds = SEEDS30[:21]
     values = {
         ("C19", "full"): [0.3] * 20 + [1.0],
@@ -2073,7 +2073,7 @@ def test_empate_con_tolerancia_en_la_diferencia_de_diferencias() -> None:
 
 
 def test_mediana_que_alcanza_el_umbral_con_tolerancia() -> None:
-    """Una mediana de 0.9999999999999998 alcanza δ_min = 1.0 en C17 (A1)."""
+    """Una mediana de 0.9999999999999998 alcanza δ_min = 1.0 en C17 (precisión 112)."""
     values = {
         ("C17", "full"): [0.0] * 30,
         ("C17", "drift"): [0.0] * 30,
@@ -2095,7 +2095,7 @@ def test_mediana_que_alcanza_el_umbral_con_tolerancia() -> None:
 
 
 def test_umbral_relativo_en_la_diferencia_de_diferencias() -> None:
-    """En una diferencia de diferencias, M es la mediana de `comparison_values` (A8)."""
+    """En una diferencia de diferencias, M es la mediana de `comparison_values` (precisión 119)."""
     relative = dataclasses.replace(CLAIMS25["C17"], delta_min=0.0, delta_relative=1.0)
     values = {
         ("C17", "full"): [10.0] * 30,
@@ -2124,7 +2124,7 @@ def test_exactitud_tras_los_cambios_con_ventanas_por_indice() -> None:
 def test_e4_depende_de_la_abundancia_corrida(
     fake_phase25: list[SimulationConfig], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """E4 sólo es interpretable con la abundancia elegida por la compuerta (A2)."""
+    """E4 sólo es interpretable con la abundancia elegida por la compuerta (precisión 113)."""
     monkeypatch.setattr(attribution, "PHASE25_NULL_CONTENT_VIABLE_SEEDS", {"25a": 10, "25b": 8})
     claims = [CLAIMS25["C13"], CLAIMS25["C18"]]
     chosen = run_phase25_attribution(seeds=(42,), claims=claims, rule_effect_seeds=())
@@ -2163,7 +2163,7 @@ def test_atribucion_valida_la_configuracion_de_cada_protocolo(
 def test_cada_corrida_calcula_solo_las_metricas_de_sus_protocolos(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`stable` de 25d es `full` de 25a: una sola corrida con las métricas de los dos (A10)."""
+    """`stable` de 25d es `full` de 25a: una corrida, métricas de los dos (precisión 121)."""
     jobs: list[Job] = []
 
     def execute(job: Job) -> Phase25RunRecord:

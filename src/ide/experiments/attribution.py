@@ -509,7 +509,7 @@ PHASE25_VIABILITY_SEEDS: tuple[int, ...] = tuple(range(0, 10))  # compuerta de v
 PHASE25_FINAL_WINDOW = 1000  # un ciclo estacional con `season_length = 500` (precisión 4)
 PHASE25_POST_SHIFT_WINDOW = 200  # ticks de `post_shift_accuracy` tras cada cambio (precisión 63)
 PHASE25_ALPHA = 0.05
-PHASE25_FLOAT_TOLERANCE = 1e-9  # empates y umbral con la tolerancia de `CLAUDE.md` (A1)
+PHASE25_FLOAT_TOLERANCE = 1e-9  # empates y umbral con la tolerancia de `CLAUDE.md` (precisión 112)
 PHASE25_MIN_VALID_PAIRS = 20  # menos pares válidos: no evaluable (precisión 45)
 PHASE25_HOLM_M = 7  # Holm-Bonferroni sobre las genuinas C13-C19 (D56)
 PHASE25_MIN_VIABLE_NULL_SEEDS = 9  # de las 10 de viabilidad, para interpretar E4 (D56)
@@ -1278,7 +1278,7 @@ def effect_threshold(claim: Phase25Claim, comparison_median: float) -> float:
     """`max(δ_min, delta_relative · M)`, con `M` la mediana de `comparison_values` (D56).
 
     En una diferencia simple `M` es la mediana de la condición de comparación; en C17 y C19, la de
-    `comp − comp_drift` (precisión 69, A8). Sólo C16 tiene `delta_relative` distinto de cero.
+    `comp − comp_drift` (precisiones 69 y 119). Sólo C16 tiene `delta_relative` distinto de cero.
     """
     return max(claim.delta_min, claim.delta_relative * comparison_median)
 
@@ -1304,13 +1304,13 @@ def phase25_status(
         raise ValueError("una afirmación genuina exige su p-valor ajustado")
     else:
         p = p_adjusted
-    reaches = median_difference >= threshold - PHASE25_FLOAT_TOLERANCE  # A1
+    reaches = median_difference >= threshold - PHASE25_FLOAT_TOLERANCE  # precisión 112
     observed = evaluable and p < alpha and reaches
     return ClaimStatus.OBSERVED if observed else ClaimStatus.NOT_OBSERVED
 
 
 def phase25_sign_test(differences: Sequence[float]) -> float:
-    """Prueba de signo unilateral con `|d| <= 1e-9` como empate, que se descarta (A1)."""
+    """Prueba de signo unilateral con `|d| <= 1e-9` como empate, que se descarta (precisión 112)."""
     return sign_test_p_value([0.0 if abs(d) <= PHASE25_FLOAT_TOLERANCE else d for d in differences])
 
 
@@ -1482,7 +1482,7 @@ def _check_phase25_protocol(protocol: str, config: SimulationConfig) -> None:
 def _phase25_e4_flags(configs: Mapping[str, SimulationConfig]) -> dict[str, bool]:
     """E4 se interpreta sólo con la abundancia elegida por la compuerta y su `null_content` viable.
 
-    Con otra abundancia la viabilidad registrada no aplica y E4 no es interpretable (A2).
+    Con otra abundancia la viabilidad registrada no aplica y E4 no es interpretable (precisión 113).
     """
     return {
         protocol: (config.resources_per_pattern, config.resource_regen_delay) == PHASE25_ABUNDANCE
