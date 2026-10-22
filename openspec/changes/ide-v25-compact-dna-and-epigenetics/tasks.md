@@ -386,6 +386,7 @@
 - [x] 23.2 **[RED]** Tests de `phase25_viability.py`: el `--jobs` por defecto con los núcleos detectados y la salida idéntica para cualquier `--jobs` (D62.3), el criterio por corrida y por configuración (con `no_predation_drift` y `stable_drift`), el orden de la grilla, la detención en la primera viable y que no calcula ninguna métrica de afirmación.
 - [x] 23.3 **[GREEN]** Crear `src/ide/experiments/phase25_viability.py` con su CLI (D55).
 - [x] 23.4 Correr la compuerta con `PHASE25_VIABILITY_SEEDS` y registrar la salida en `registros/` y en `docs/RESULTADOS.md`. Fijar en `PHASE25_PROTOCOL_CONFIGS` la configuración elegida, en un commit propio. (Corrida el 2026-10-22: **ninguna configuración de la grilla es viable**; decide el responsable del proyecto, D55.5.)
+- [ ] 23.5 Correr la Enmienda 2 de D55 (D55.7, decisión del responsable del proyecto del 2026-10-22) con `python -m ide.experiments.phase25_viability --amendment2 --out registros/phase25_viability_enmienda2.json`: la grilla extendida `(60, 20)`, `(60, 10)`, `(80, 20)` y `(80, 10)` con el mismo criterio, semillas y perfil, y, si no hay viable, la salida de respaldo fijada de antemano. Registrar la salida en `registros/` y en `docs/RESULTADOS.md` (declarando si la configuración es de respaldo) y fijar en `PHASE25_PROTOCOL_CONFIGS` la configuración elegida, en un commit propio.
 
 ## 24. Prueba de humo (`experimental-suite`)
 

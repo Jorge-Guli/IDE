@@ -212,3 +212,13 @@ Una revisión cruzada independiente del borrador D56 encontró problemas antes d
 - **Por qué no es un cambio del pre-registro.** La corrección B3 de la revisión cruzada, aprobada con D56 en la tarea 0.5, ya había fijado que la precisión 42 remite a D61 y a la precisión 54 para esa lista, y la precisión 43 remite a la 42. El texto de la 43 había quedado sin actualizar: la redacción nueva alinea el documento con lo aprobado y no cambia la definición vigente.
 - **Cuándo.** Antes de correr ninguna corrida de los protocolos `25a`–`25d` y sin mirar ninguna métrica de afirmación; la compuerta de viabilidad (bloque 23) todavía no se corrió.
 - **Decisión:** agente principal, por delegación del responsable del proyecto.
+
+## Enmienda 2 de D55 (2026-10-22, decisión del responsable del proyecto, antes de correrla)
+
+- **Quién decidió:** el responsable del proyecto, por D55.5 ("Enmienda: más abundancia"), con el tratamiento de la Enmienda 1b de la Fase II. El agente principal fijó el contenido con esa decisión.
+- **Por qué.** La compuerta de viabilidad se corrió el 2026-10-22 y ninguna configuración de la grilla de D55.4 fue viable (`registros/phase25_viability.json`, `docs/RESULTADOS.md`): fallaron sobre todo las condiciones con reproducción neutral (`drift`) y el entorno cambiante de `25d`. La decisión se tomó viendo sólo demografía, sin ninguna métrica de afirmación.
+- **Qué se agrega** (design D55.7):
+  - la grilla extendida `(60, 20)`, `(60, 10)`, `(80, 20)` y `(80, 10)`, de menos a más abundancia, con el mismo criterio, las mismas semillas y el mismo perfil, y parada en la primera viable;
+  - una salida de respaldo fijada de antemano: si tampoco hay una viable, la configuración de las diez con más semillas viables sumadas sobre las condiciones que deciden (empate: la de menos abundancia), declarada de respaldo en `docs/RESULTADOS.md`; las afirmaciones con menos de 20 pares válidos quedan `NOT_OBSERVED` con `evaluable=False` (precisión 45) y E4 sigue su regla.
+- **Qué no cambia:** ninguna afirmación, métrica ni umbral de C13–C20 (D56), ni el criterio de viabilidad de D55.3.
+- **Cuándo.** Antes de correr la grilla extendida y sin mirar ninguna métrica de afirmación; la prueba de humo y los protocolos todavía no se corrieron.

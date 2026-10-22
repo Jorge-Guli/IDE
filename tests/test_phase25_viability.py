@@ -24,17 +24,28 @@ from ide.experiments.attribution import (
 )
 from ide.experiments.exp001_runner import PROFILES
 from ide.experiments.phase25_viability import (
+    AMENDMENT2_DEFAULT_OUT,
+    AMENDMENT2_GRID,
     DECIDING_CONDITIONS,
     DEFAULT_OUT,
     MIN_GENERATION,
     MIN_VIABLE_SEEDS,
     NOT_PREREGISTERED,
+    ORIGINAL_RECORD,
     VIABILITY_GRID,
+    Amendment2Report,
+    ConfigurationResult,
+    ViabilityReport,
     ViabilityRun,
     build_arg_parser,
+    deciding_viable_seeds,
     default_jobs,
+    fallback_configuration,
     is_viable_configuration,
     main,
+    report_from_json,
+    report_to_json,
+    run_amendment2,
     run_viability,
     viability_conditions,
 )
@@ -565,3 +576,330 @@ def test_veredicto_monotono_en_las_semillas_viables(
         n >= MIN_VIABLE_SEEDS for (_, c), n in zip(LABELS, counts, strict=True) if c != NULL_CONTENT
     )
     assert is_viable_configuration(_runs_from(counts)) is expected
+
+
+# --- Enmienda 2 de D55 (2026-10-22): grilla extendida y salida de respaldo ----------------------
+
+
+def test_enmienda2_declarada() -> None:
+    """Grilla extendida en orden de menos a más abundancia, y rutas de entrada y salida."""
+    assert AMENDMENT2_GRID == ((60, 20), (60, 10), (80, 20), (80, 10))
+    assert not set(AMENDMENT2_GRID) & set(VIABILITY_GRID)
+    assert Path("registros/phase25_viability.json") == ORIGINAL_RECORD
+    assert AMENDMENT2_DEFAULT_OUT not in (DEFAULT_OUT, ORIGINAL_RECORD)
+
+
+def configuration(abundance: tuple[int, int], **exceptions: int) -> ConfigurationResult:
+    runs = tuple(all_runs(**exceptions))
+    return ConfigurationResult(abundance, is_viable_configuration(runs), runs)
+
+
+def test_semillas_viables_de_las_condiciones_que_deciden() -> None:
+    """Suma sobre las 13 (protocolo, condición) que deciden; `null_content` no cuenta."""
+    assert deciding_viable_seeds(all_runs()) == 13 * 10
+    nulls = {f"{p}__null_content": 0 for p in ("25a", "25b", "25c", "25d")}
+    assert deciding_viable_seeds(all_runs(**nulls)) == 130
+    assert deciding_viable_seeds(all_runs(**{"25c__full": 3, "25d__no_learning": 0})) == 130 - 17
+
+
+def test_respaldo_elige_la_de_mas_semillas_viables() -> None:
+    results = [
+        configuration((40, 20), **{"25c__full": 2}),
+        configuration((60, 20), **{"25c__full": 5}),
+        configuration((60, 10), **{"25c__full": 1}),
+    ]
+    assert fallback_configuration(results) == (60, 20)
+
+
+def test_respaldo_desempata_por_menos_abundancia() -> None:
+    """Empate: gana la primera en el orden de las grillas (original y después extendida)."""
+    results = [
+        configuration((30, 10), **{"25c__full": 4}),
+        configuration((40, 20), **{"25c__full": 6, "25b__drift": 9}),  # 125
+        configuration((60, 20), **{"25c__full": 5, "25a__null_content": 0}),  # 125
+        configuration((80, 10), **{"25c__full": 5}),
+    ]
+    assert fallback_configuration(results) == (40, 20)
+    assert fallback_configuration(results[2:]) == (60, 20)
+    with pytest.raises(ValueError):
+        fallback_configuration([])
+
+
+@given(st.lists(st.integers(0, 10), min_size=1, max_size=6))
+def test_respaldo_maximo_y_primero(full_counts: list[int]) -> None:
+    grid = [*VIABILITY_GRID, *AMENDMENT2_GRID][: len(full_counts)]
+    results = [
+        configuration(point, **{"25c__full": n}) for point, n in zip(grid, full_counts, strict=True)
+    ]
+    best = max(full_counts)
+    assert fallback_configuration(results) == grid[full_counts.index(best)]
+
+
+def original_report(
+    small: None, monkeypatch: pytest.MonkeyPatch, ticks: int = 7
+) -> ViabilityReport:
+    """Compuerta original simulada, sin viables: (30, 10) con la semilla 0 viable en todo."""
+    calls: list[Any] = []
+
+    def demography(task: tuple[SimulationConfig, int]) -> tuple[int, int, int]:
+        config, _ = task
+        calls.append(task)
+        point = (config.resources_per_pattern, config.resource_regen_delay)
+        return (10, 10, 30) if point == (30, 10) and config.seed == 0 else (0, 0, 3)
+
+    monkeypatch.setattr(phase25_viability, "demography", demography)
+    report = run_viability(total_ticks=ticks, jobs=1)
+    assert report.chosen is None
+    return report
+
+
+def test_json_de_la_compuerta_original_ida_y_vuelta(
+    small: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = original_report(small, monkeypatch)
+    data = json.loads(json.dumps(report_to_json(original)))
+    assert report_from_json(data) == original
+
+
+def test_json_original_incoherente_se_rechaza(small: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    data = report_to_json(original_report(small, monkeypatch))
+    broken = json.loads(json.dumps(data))
+    broken["configurations"][3]["conditions"][0]["viable_seeds"] = 2
+    with pytest.raises(ValueError):
+        report_from_json(broken)
+    broken = json.loads(json.dumps(data))
+    broken["grid"] = [[20, 20]]
+    with pytest.raises(ValueError):
+        report_from_json(broken)
+
+
+def test_enmienda2_detencion_en_la_primera_viable(
+    small: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = original_report(small, monkeypatch)
+    calls: list[Any] = []
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography({(60, 10)}, calls))
+    report = run_amendment2(original, total_ticks=7, jobs=1)
+    assert isinstance(report, Amendment2Report)
+    assert (report.chosen, report.fallback) == ((60, 10), False)
+    assert [c.abundance for c in report.extended.configurations] == [(60, 20), (60, 10)]
+    seen = list(dict.fromkeys((c.resources_per_pattern, c.resource_regen_delay) for c, _ in calls))
+    assert seen == [(60, 20), (60, 10)]  # no corre (80, 20) ni (80, 10) ni repite la original
+    assert report.null_content_viable_seeds == {"25a": 2, "25b": 2, "25c": 2, "25d": 2}
+
+
+def test_enmienda2_sin_viables_usa_el_respaldo(
+    small: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = original_report(small, monkeypatch)
+    calls: list[Any] = []
+
+    def demography(task: tuple[SimulationConfig, int]) -> tuple[int, int, int]:
+        """Sólo (80, 20) con la semilla 0 viable en todo: empata con (30, 10) de la original."""
+        config, _ = task
+        calls.append(task)
+        point = (config.resources_per_pattern, config.resource_regen_delay)
+        return (10, 10, 30) if point == (80, 20) and config.seed == 0 else (0, 0, 3)
+
+    monkeypatch.setattr(phase25_viability, "demography", demography)
+    report = run_amendment2(original, total_ticks=7, jobs=1)
+    assert [c.abundance for c in report.extended.configurations] == list(AMENDMENT2_GRID)
+    seen = list(dict.fromkeys((c.resources_per_pattern, c.resource_regen_delay) for c, _ in calls))
+    assert seen == list(AMENDMENT2_GRID)
+    assert report.fallback is True
+    assert report.chosen == (30, 10)  # empate en 13: gana la de menos abundancia
+    assert report.null_content_viable_seeds == {"25a": 1, "25b": 1, "25c": 1, "25d": 1}
+    totals = report.deciding_viable_seeds
+    assert list(totals) == [*VIABILITY_GRID, *AMENDMENT2_GRID]
+    assert totals[(30, 10)] == totals[(80, 20)] == 13
+    assert sum(totals.values()) == 26
+
+
+def test_enmienda2_exige_la_misma_compuerta(small: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    original = original_report(small, monkeypatch)
+    with pytest.raises(ValueError, match="ticks"):
+        run_amendment2(original, total_ticks=8, jobs=1)
+    with pytest.raises(ValueError, match="semillas"):
+        run_amendment2(original, total_ticks=7, jobs=1, seeds=(0, 1, 2))
+    chosen = dataclasses.replace(original, chosen=(20, 20))
+    with pytest.raises(ValueError, match="viable"):
+        run_amendment2(chosen, total_ticks=7, jobs=1)
+    partial = dataclasses.replace(original, configurations=original.configurations[:5])
+    with pytest.raises(ValueError, match="grilla"):
+        run_amendment2(partial, total_ticks=7, jobs=1)
+
+
+def test_enmienda2_cli_json_y_no_calcula_metricas(
+    small: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    original_path = tmp_path / "original.json"
+    original = original_report(small, monkeypatch, ticks=6)
+    original_path.write_text(json.dumps(report_to_json(original)), encoding="utf-8")
+
+    def forbidden(*_: Any, **__: Any) -> Any:
+        raise AssertionError("la compuerta no calcula métricas de afirmación")
+
+    for name in (
+        "phase25_metric_value",
+        "phase25_run_record",
+        "post_shift_accuracy",
+        "effective_parents",
+        "final_window",
+        "evaluate_phase25_claims",
+    ):
+        monkeypatch.setattr(attribution, name, forbidden)
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography(set(), []))
+    out = tmp_path / "enmienda2.json"
+    argv = ["--amendment2", "--original", str(original_path), "--jobs", "1", "--ticks", "6"]
+    assert main([*argv, "--out", str(out)]) == 0
+    data: dict[str, Any] = json.loads(out.read_text(encoding="utf-8"))
+    assert data["amendment"] == 2
+    assert (data["preregistered"], data["note"]) == (False, NOT_PREREGISTERED)
+    assert data["grid"] == [list(point) for point in AMENDMENT2_GRID]
+    assert data["original_grid"] == [list(point) for point in VIABILITY_GRID]
+    assert data["chosen"] == {"resources_per_pattern": 30, "resource_regen_delay": 10}
+    assert data["fallback"] is True
+    assert data["null_content_viable_seeds"] == {"25a": 1, "25b": 1, "25c": 1, "25d": 1}
+    totals = data["deciding_viable_seeds"]
+    assert [[t["resources_per_pattern"], t["resource_regen_delay"]] for t in totals] == [
+        list(point) for point in (*VIABILITY_GRID, *AMENDMENT2_GRID)
+    ]
+    assert [t["viable_seeds"] for t in totals] == [0, 0, 0, 13, 0, 0, 0, 0, 0, 0]
+    assert len(data["configurations"]) == len(AMENDMENT2_GRID)
+    text = out.read_text(encoding="utf-8")
+    for claim in attribution.PHASE25_CLAIMS:
+        assert claim.metric not in text
+    for configuration_json in data["configurations"]:
+        for condition in configuration_json["conditions"]:
+            for record in condition["runs"]:
+                assert set(record) == RUN_KEYS
+    printed = capsys.readouterr().out
+    assert "respaldo" in printed and "(30, 10)" in printed and NOT_PREREGISTERED in printed
+
+
+def test_enmienda2_salida_identica_para_cualquier_jobs(small: None, tmp_path: Path) -> None:
+    """Con la demografía real (6 ticks: nada es viable, así que aplica el respaldo)."""
+    original_path = tmp_path / "original.json"
+    assert main(["--jobs", "1", "--ticks", "6", "--out", str(original_path)]) == 0
+    argv = ["--amendment2", "--original", str(original_path), "--ticks", "6"]
+    one, two = tmp_path / "uno.json", tmp_path / "dos.json"
+    assert main([*argv, "--jobs", "1", "--out", str(one)]) == 0
+    assert main([*argv, "--jobs", "2", "--out", str(two)]) == 0
+    assert one.read_bytes() == two.read_bytes()
+    assert json.loads(one.read_text(encoding="utf-8"))["fallback"] is True
+
+
+def test_enmienda2_cli_validaciones(
+    small: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    with pytest.raises(SystemExit):  # --original sólo con --amendment2
+        main(["--original", str(tmp_path / "x.json"), "--ticks", "6", "--out", str(tmp_path)])
+    with pytest.raises(SystemExit):  # original inexistente
+        main(["--amendment2", "--original", str(tmp_path / "no.json"), "--ticks", "6",
+              "--out", str(tmp_path / "e.json")])  # fmt: skip
+    original_path = tmp_path / "original.json"
+    original_path.write_text(
+        json.dumps(report_to_json(original_report(small, monkeypatch, ticks=6))), encoding="utf-8"
+    )
+    with pytest.raises(SystemExit):  # prueba sin --out explícito
+        main(["--amendment2", "--original", str(original_path), "--ticks", "6"])
+    with pytest.raises(SystemExit):  # prueba con el --out predeterminado
+        main(["--amendment2", "--original", str(original_path), "--ticks", "6",
+              "--out", str(AMENDMENT2_DEFAULT_OUT)])  # fmt: skip
+    with pytest.raises(SystemExit):  # otra duración que la de la original
+        main(["--amendment2", "--original", str(original_path), "--ticks", "7",
+              "--out", str(tmp_path / "e.json")])  # fmt: skip
+    assert not (tmp_path / "e.json").exists()
+
+
+def test_enmienda2_preregistrada_anuncia_la_elegida(
+    small: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    original_path = tmp_path / "original.json"
+    original = original_report(small, monkeypatch, ticks=PROFILES["phase25"].total_ticks)
+    original_path.write_text(json.dumps(report_to_json(original)), encoding="utf-8")
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography({(80, 20)}, []))
+    out = tmp_path / "enmienda2.json"
+    assert main(["--amendment2", "--original", str(original_path), "--jobs", "1",
+                 "--out", str(out)]) == 0  # fmt: skip
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert (data["preregistered"], data["fallback"]) == (True, False)
+    assert data["chosen"] == {"resources_per_pattern": 80, "resource_regen_delay": 20}
+    printed = capsys.readouterr().out
+    assert "configuración elegida" in printed and "(80, 20)" in printed
+    assert "respaldo" not in printed.split("Resultado")[-1]
+
+
+def test_el_registro_original_sirve_para_la_enmienda2() -> None:
+    """El registro de la tarea 23.4 se relee y cumple lo que exige la enmienda."""
+    path = Path(__file__).resolve().parents[1] / ORIGINAL_RECORD
+    original = report_from_json(json.loads(path.read_text(encoding="utf-8")))
+    assert original.preregistered and original.chosen is None
+    phase25_viability.check_original(
+        original, PROFILES["phase25"].total_ticks, attribution.PHASE25_VIABILITY_SEEDS
+    )
+    totals = [deciding_viable_seeds(c.runs) for c in original.configurations]
+    assert len(totals) == len(VIABILITY_GRID)
+
+
+def _corrupt(data: dict[str, Any], change: str) -> dict[str, Any]:
+    broken = json.loads(json.dumps(data))
+    configuration = broken["configurations"][0]
+    if change == "criterio":
+        broken["min_generation"] = 5
+    elif change == "condiciones":
+        configuration["conditions"].pop()
+    elif change == "semillas":
+        configuration["conditions"][0]["runs"].pop()
+    elif change == "corrida":
+        configuration["conditions"][0]["runs"][0]["viable"] = True
+    elif change == "configuracion":
+        configuration["viable"] = True
+    elif change == "elegida":
+        broken["chosen"] = {"resources_per_pattern": 20, "resource_regen_delay": 20}
+    elif change == "nulo":
+        broken["null_content_viable_seeds"] = {"25a": 0, "25b": 0, "25c": 0, "25d": 0}
+    return broken
+
+
+@pytest.mark.parametrize(
+    "change",
+    ["criterio", "condiciones", "semillas", "corrida", "configuracion", "elegida", "nulo"],
+)
+def test_report_from_json_rechaza_incoherencias(
+    small: None, monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    data = report_to_json(original_report(small, monkeypatch))
+    with pytest.raises(ValueError):
+        report_from_json(_corrupt(data, change))
+
+
+def test_report_from_json_con_elegida(small: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography({(20, 10)}, []))
+    report = run_viability(total_ticks=7, jobs=1)
+    assert report_from_json(json.loads(json.dumps(report_to_json(report)))) == report
+
+
+def test_grilla_repetida_o_vacia_se_rechaza() -> None:
+    with pytest.raises(ValueError, match="grilla"):
+        run_viability(total_ticks=3, jobs=1, grid=[(60, 20), (60, 20)])
+    with pytest.raises(ValueError, match="grilla"):
+        run_viability(total_ticks=3, jobs=1, grid=[])
+
+
+def test_enmienda2_preregistrada_con_respaldo(
+    small: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    original_path = tmp_path / "original.json"
+    original = original_report(small, monkeypatch, ticks=PROFILES["phase25"].total_ticks)
+    original_path.write_text(json.dumps(report_to_json(original)), encoding="utf-8")
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography(set(), []))
+    out = tmp_path / "enmienda2.json"
+    assert main(["--amendment2", "--original", str(original_path), "--jobs", "1",
+                 "--out", str(out)]) == 0  # fmt: skip
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert (data["preregistered"], data["fallback"]) == (True, True)
+    assert data["chosen"] == {"resources_per_pattern": 30, "resource_regen_delay": 10}
+    printed = capsys.readouterr().out
+    assert "configuración de respaldo" in printed and "(30, 10)" in printed
+    assert NOT_PREREGISTERED not in printed

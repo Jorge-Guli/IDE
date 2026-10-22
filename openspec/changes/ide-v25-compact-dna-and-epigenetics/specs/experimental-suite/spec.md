@@ -381,6 +381,28 @@ Si ninguna configuración de la grilla es viable, la compuerta SHALL reportarlo 
 - **WHEN** ninguna de las seis configuraciones es viable
 - **THEN** la compuerta informa que no hay configuración elegida y no corre ninguna corrida con otros valores.
 
+### Requirement: Grilla Extendida de la Enmienda 2 de D55
+Con `--amendment2`, la compuerta SHALL probar, sólo si la grilla original no tiene viables, `(60, 20)`, `(60, 10)`, `(80, 20)` y `(80, 10)` en ese orden, con el mismo criterio, las semillas `PHASE25_VIABILITY_SEEDS` y el perfil `phase25`, elegir la primera viable, detenerse al encontrarla y registrar sólo demografía (design D55.7).
+
+#### Scenario: Detención en la primera viable de la extendida
+- **WHEN** la grilla original no tiene viables, `(60, 20)` no es viable y `(60, 10)` sí
+- **THEN** la enmienda elige `(60, 10)`, no es de respaldo y no corre `(80, 20)`, `(80, 10)` ni ninguna configuración de la grilla original.
+
+#### Scenario: Original con una configuración viable
+- **WHEN** el registro de la compuerta original tiene una configuración elegida, otra duración o otras semillas
+- **THEN** la enmienda se rechaza sin correr nada.
+
+### Requirement: Salida de Respaldo de la Enmienda 2 de D55
+Si la grilla extendida no tiene viables, la enmienda SHALL elegir, entre las diez configuraciones (original y extendida), la de más semillas viables sumadas sobre las condiciones que deciden, con empate a favor de la primera en el orden de las grillas, y SHALL marcarla como de respaldo en su JSON (design D55.7).
+
+#### Scenario: Respaldo con desempate
+- **WHEN** ninguna configuración es viable y `(30, 10)` y `(80, 20)` empatan con el mayor total de semillas viables en las condiciones que deciden
+- **THEN** la enmienda elige `(30, 10)`, la marca como de respaldo y registra la viabilidad de su `null_content` para E4.
+
+#### Scenario: El control nulo no suma
+- **WHEN** dos configuraciones difieren sólo en las semillas viables de `null_content`
+- **THEN** sus totales para la salida de respaldo son iguales.
+
 ### Requirement: Runner de los Protocolos de la Fase II-B
 `src/ide/experiments/exp25_runner.py` SHALL implementar los protocolos `25a`, `25b`, `25c` y `25d` sobre `PHASE25_PROTOCOL_CONFIGS`, con la infraestructura `ProtocolSpec` y la CLI de `phase2_cli.py` (semillas por defecto `PHASE25_SEEDS`) y reportes serializables a JSON. Los protocolos `002c`, `002d`, `002e` y `003c` no existen.
 
