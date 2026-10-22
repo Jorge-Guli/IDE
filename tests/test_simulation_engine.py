@@ -3,6 +3,7 @@
 import ast
 import builtins
 import copy
+import dataclasses
 import hashlib
 import os
 import subprocess
@@ -30,6 +31,7 @@ from ide.domain.types import (
     ActionType,
     AgentAction,
     AgentGenome,
+    Behavior,
     CompactDNA,
     EpigeneticContext,
     EpigeneticRole,
@@ -40,9 +42,18 @@ from ide.domain.types import (
     Resource,
 )
 from ide.environments.grid2d import ToroidalGrid2D
-from ide.experiments.attribution import PHASE2_PROTOCOL_CONFIGS, ablate
+from ide.experiments.attribution import PHASE2_PROTOCOL_CONFIGS, PHASE25_PROTOCOL_CONFIGS, ablate
+from ide.experiments.metrics import (
+    EcologyTickMetrics,
+    EvolutionaryTickMetrics,
+    GeneticTickMetrics,
+    TickMetrics,
+    first_feasible_slot,
+)
 from ide.simulation import engine as engine_module
 from ide.simulation.engine import SimulationEngine
+from ide.simulation.pipeline import TickFrame, TickObserver
+from ide.simulation.telemetry import EcologyMetricsObserver, GeneticMetricsObserver
 
 Cell = tuple[int, int]
 ROOT = Path(__file__).resolve().parents[1]
@@ -2457,3 +2468,271 @@ def test_raices_individuales_siempre_en_none() -> None:
             node = engine.root_nodes[nid]
             if not isinstance(node, CompositeAgent):
                 assert engine.agents[nid].epigenetic_role is R_NONE
+
+
+# --- Fase II-B: telemetría de evolución abierta (bloque 21; D53.2, D53.3, D63.2-D63.4) ---------
+
+TELEMETRY_GRID = {"grid_width": 12, "grid_height": 12, "num_agents": 16, "resources_per_pattern": 6}
+# Promotor reservado: un codón con él es inerte y hace único el ADN de cada agente sin efecto.
+INERT_TAG = 0x0B
+
+
+def phase25(name: str = "25a", **overrides: Any) -> SimulationConfig:
+    """Un protocolo de D56 en una grilla chica, con todas sus reglas."""
+    return replace(PHASE25_PROTOCOL_CONFIGS[name], **{**TELEMETRY_GRID, **overrides})
+
+
+class EndSpy:
+    """Captura, por tick, los eventos, los nacimientos y las fechas de nacimiento previas."""
+
+    def __init__(self) -> None:
+        self.events: list[dict[str, int]] = []
+        self.births: list[int] = []
+        self.born_ticks: list[dict[int, int]] = []
+        self.alive_after: list[set[int]] = []
+
+    def on_decisions(self, engine: SimulationEngine, frame: TickFrame) -> None:
+        self.born_ticks.append({aid: a.birth_tick for aid, a in engine.agents.items()})
+
+    def on_tick_end(self, engine: SimulationEngine, frame: TickFrame) -> None:
+        self.events.append(dict(frame.events))
+        self.births.append(frame.births)
+        self.alive_after.append(set(engine.agents))
+
+
+def rng_states(engine: SimulationEngine) -> list[Any]:
+    generators = (engine.rng, engine.null_rng, engine.evo_rng, engine.donor_rng, engine.hgt_rng)
+    return [g.bit_generator.state for g in generators]
+
+
+def test_observadores_de_la_telemetria_de_la_fase_ii_b() -> None:
+    engine = SimulationEngine(small_config())
+    kinds = [type(o) for o in engine.telemetry_observers]
+    assert kinds == [GeneticMetricsObserver, EcologyMetricsObserver]
+    assert all(isinstance(o, TickObserver) for o in engine.telemetry_observers)
+
+
+@pytest.mark.parametrize("dna", [True, False])
+def test_registro_genetico_por_tick_sin_tocar_las_metricas_previas(dna: bool) -> None:
+    """Escenario de la spec: 30 registros con ADN y con las banderas de la Fase II-B apagadas."""
+    config = small_config(enable_evolution=True, enable_compact_dna=True) if dna else small_config()
+    engine = SimulationEngine(config)
+    engine.run(30)
+    assert [m.tick for m in engine.genetic_history] == list(range(30))
+    assert all(isinstance(m, GeneticTickMetrics) for m in engine.genetic_history)
+    assert len(dataclasses.fields(TickMetrics)) == 14
+    assert len(dataclasses.fields(EvolutionaryTickMetrics)) == 17
+    if not dna:
+        assert all(m.mean_chromosome_length == 0.0 for m in engine.genetic_history)
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        small_config(),
+        replace(PHASE2_PROTOCOL_CONFIGS["002a"], **TELEMETRY_GRID),
+        replace(PHASE2_PROTOCOL_CONFIGS["003a"], **TELEMETRY_GRID, enable_compact_dna=True),
+        phase25("25a"),
+        phase25("25b"),
+        phase25("25c", reproduction_mode="neutral"),
+        phase25("25d", world_shift_period=7),
+    ],
+    ids=["fase_i", "002a", "003a_adn", "25a", "25b", "25c_neutral", "25d"],
+)
+def test_registro_ecologico_por_tick(config: SimulationConfig) -> None:
+    engine = SimulationEngine(config)
+    engine.run(20)
+    assert [m.tick for m in engine.ecology_history] == list(range(20))
+    assert [m.tick for m in engine.genetic_history] == list(range(20))
+    assert all(isinstance(m, EcologyTickMetrics) for m in engine.ecology_history)
+    for metrics, ecology in zip(engine.history, engine.ecology_history, strict=True):
+        assert ecology.decision_opportunities == metrics.decision_opportunities
+        assert ecology.correct_decisions == metrics.correct_decisions
+        assert len(ecology.behavior_counts) == 8
+
+
+def test_telemetria_con_la_poblacion_extinguida() -> None:
+    engine = SimulationEngine(phase25())
+    engine.run(3)
+    engine.ablate_population(1.0)
+    engine.step()
+    genetic, ecology = engine.genetic_history[-1], engine.ecology_history[-1]
+    assert (genetic.mean_age, genetic.max_age, genetic.distinct_genotypes) == (0.0, 0, 0)
+    assert genetic.mean_expressible_codons == genetic.mean_learning_codons == 0.0
+    assert genetic.communicating_fraction == genetic.policy_divergence == 0.0
+    assert (genetic.signaling_rate, genetic.symbol_diversity) == (0.0, 0)
+    assert genetic.birth_source_ids == ()
+    assert ecology.share_rate == 0.0 and ecology.behavior_counts == (0,) * 8
+
+
+def test_la_telemetria_no_consume_generadores_ni_cambia_historiales() -> None:
+    """Escenario de la spec: `policy_divergence` y el resto no extraen de ningún generador."""
+    config = phase25()
+    observed, bare = SimulationEngine(config), SimulationEngine(config)
+    bare.telemetry_observers.clear()
+    for _ in range(40):
+        observed.step()
+        bare.step()
+        assert rng_states(observed) == rng_states(bare)
+    assert observed.history == bare.history
+    assert repr(observed.evolutionary_history) == repr(bare.evolutionary_history)
+    assert bare.genetic_history == [] and len(observed.genetic_history) == 40
+
+
+def test_divergencia_nula_del_fundador_y_sin_politica_genetica() -> None:
+    engine = SimulationEngine(phase25())
+    engine.step()
+    assert engine.genetic_history[0].policy_divergence == 0.0
+    handwritten = SimulationEngine(phase25(enable_genetic_policy=False))
+    handwritten.run(5)
+    assert all(m.policy_divergence == 0.0 for m in handwritten.genetic_history)
+    assert all(m.behavior_counts == (0,) * 8 for m in handwritten.ecology_history)
+
+
+def test_divergencia_de_un_adn_sin_conductas() -> None:
+    config = phase25()
+    engine = SimulationEngine(config)
+    traits = CompactDNA(founder_dna(config).chromosome[:9])
+    for aid in sorted(engine.agents):
+        engine.agents[aid].set_dna(traits)
+    engine.step()
+    assert engine.genetic_history[0].policy_divergence == 1.0  # IDLE frente al fundador
+    assert engine.ecology_history[0].behavior_counts == (0,) * 8
+
+
+def test_la_factibilidad_determinista_coincide_con_la_politica() -> None:
+    """Con `epsilon_explore = 1`, EXPLORE no falla: la conducta elegida es la primera factible."""
+    from ide.agent.policy import behavior_feasibility
+
+    class Spy:
+        checked = 0
+
+        def on_decisions(self, engine: SimulationEngine, frame: TickFrame) -> None:
+            for aid in sorted(frame.active_order):
+                agent = engine.agents[aid]
+                evaluation = agent.decision_evaluation(frame.tick)
+                if evaluation is None:
+                    continue
+                _, feasible = behavior_feasibility(
+                    agent, frame.observations[aid], frame.social.get(aid)
+                )
+                behavior = agent.decision_behavior(frame.tick)
+                slot = first_feasible_slot(evaluation.drives, feasible)
+                assert (None if slot is None else list(Behavior)[slot]) == behavior
+                Spy.checked += 1
+
+        def on_tick_end(self, engine: SimulationEngine, frame: TickFrame) -> None:
+            pass
+
+    engine = SimulationEngine(phase25(epsilon_explore=1.0))
+    engine.observers.append(Spy())
+    engine.run(30)
+    assert Spy.checked > 100
+
+
+def test_fuentes_de_los_nacimientos_con_seleccion() -> None:
+    engine = SimulationEngine(phase25())
+    for aid in (0, 3, 5, 9):
+        engine.agents[aid].apply_energy_delta(5.0)
+    engine.step()
+    born = [a for a in engine.agents.values() if a.birth_tick == 0 and a.generation >= 1]
+    sources = engine.genetic_history[0].birth_source_ids
+    assert sources == tuple(sorted(cast(int, a.parent_id) for a in born))
+    assert len(sources) == engine.evolutionary_history[0].births_this_tick >= 4
+    assert len(set(sources)) == len(sources)  # con selección nadie se repite (D26)
+
+
+def test_fuentes_de_los_nacimientos_neutrales_son_los_donantes() -> None:
+    config = small_config(
+        enable_evolution=True,
+        enable_compact_dna=True,
+        reproduction_mode="neutral",
+        dna_point_mutation_rate=0.0,
+        dna_duplication_rate=0.0,
+        dna_deletion_rate=0.0,
+    )
+    engine = SimulationEngine(config)
+    owner: dict[CompactDNA, int] = {}
+    for aid in sorted(engine.agents):
+        tag = encode_codon(INERT_TAG, 0x00, 0, 0, aid)  # promotor reservado: inerte
+        dna = CompactDNA((*founder_dna(config).chromosome, tag))
+        engine.agents[aid].set_dna(dna)
+        owner[dna] = aid
+    for aid in (1, 2, 4, 7):
+        engine.agents[aid].apply_energy_delta(5.0)
+    engine.step()
+    born = [a for a in engine.agents.values() if a.generation >= 1]
+    assert len(born) >= 4
+    expected = tuple(sorted(owner[cast(CompactDNA, a.dna)] for a in born))
+    assert engine.genetic_history[0].birth_source_ids == expected
+
+
+def test_contadores_del_tick_iguales_a_los_eventos_del_marco() -> None:
+    engine = SimulationEngine(phase25(hgt_rate=0.5))
+    spy = EndSpy()
+    engine.observers.append(spy)
+    for tick in range(120):
+        if tick in (5, 40):
+            for aid in sorted(engine.agents)[:2]:
+                engine.agents[aid].apply_energy_delta(-50.0)  # mueren en la Fase 5
+        engine.step()
+    genetic_names = ("hgt_transfers", "crispr_rejections", "crispr_purges")
+    ecology_names = (
+        "shares", "attacks", "successful_attacks", "predation_deaths", "starvation_deaths",
+        "carcasses_deposited", "carcasses_eaten", "sporulations", "recombinations",
+        "signals_emitted", "plastic_updates",
+    )  # fmt: skip
+    births = ages = deaths = 0
+    for t, (genetic, ecology) in enumerate(
+        zip(engine.genetic_history, engine.ecology_history, strict=True)
+    ):
+        events = spy.events[t]
+        for name in genetic_names:
+            assert getattr(genetic, name) == events.get(name, 0)
+        for name in ecology_names:
+            assert getattr(ecology, name) == events.get(name, 0)
+        births += spy.births[t]
+        assert genetic.cumulative_births == births
+        before = spy.born_ticks[t]
+        dead = sorted(set(before) - spy.alive_after[t])
+        ages += sum(t - before[aid] for aid in dead)
+        deaths += len(dead)
+        assert genetic.mean_age_at_death == pytest.approx(
+            ages / deaths if deaths else 0.0, abs=1e-9
+        )
+    assert deaths >= 4 and births > 0
+
+
+def test_telemetria_reproducible_entre_procesos() -> None:
+    """Los historiales de la telemetría son idénticos con distinto `PYTHONHASHSEED`."""
+    script = textwrap.dedent(
+        """
+        import hashlib
+        from dataclasses import replace
+        from ide.experiments.attribution import PHASE25_PROTOCOL_CONFIGS
+        from ide.simulation.engine import SimulationEngine
+
+        grid = {"grid_width": 12, "grid_height": 12, "num_agents": 16, "resources_per_pattern": 6}
+        engine = SimulationEngine(replace(PHASE25_PROTOCOL_CONFIGS["25b"], **grid))
+        engine.run(60)
+        state = (engine.genetic_history, engine.ecology_history)
+        print(hashlib.sha256(repr(state).encode()).hexdigest())
+        print(sum(m.cumulative_births > 0 for m in engine.genetic_history))
+        """
+    )
+    outputs = []
+    for hash_seed in ("0", "12345"):
+        path = os.pathsep.join(
+            filter(None, [str(ROOT / "src"), str(ROOT), os.environ.get("PYTHONPATH")])
+        )
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed, "PYTHONPATH": path}
+        done = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=True,
+            cwd=ROOT,
+        )
+        outputs.append(done.stdout)
+    assert outputs[0] == outputs[1]

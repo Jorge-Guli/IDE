@@ -2010,16 +2010,6 @@ def test_atribucion_de_fase_ii_b_sin_semillas_de_efectos(
     assert all(v is None for v in report.rule_effects["C13"].values())
 
 
-def _has_phase25_telemetry() -> bool:
-    from ide.experiments import metrics
-
-    return hasattr(metrics, "GeneticTickMetrics") and hasattr(metrics, "EcologyTickMetrics")
-
-
-@pytest.mark.skipif(
-    not _has_phase25_telemetry(),
-    reason="GeneticTickMetrics y EcologyTickMetrics llegan con el bloque 21",
-)
 def test_atribucion_de_fase_ii_b_con_un_perfil_corto(monkeypatch: pytest.MonkeyPatch) -> None:
     """Escenario de la spec: perfil corto, dos semillas y una semilla de efectos de regla."""
     monkeypatch.setitem(PROFILES, "phase25", Profile(40, 0, 1, 1))

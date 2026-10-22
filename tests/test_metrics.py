@@ -5,23 +5,48 @@ from dataclasses import replace
 from typing import Any
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
+from ide.agent.dna import encode_codon, founder_dna, learning_codons
 from ide.agent.holon import AgentNode, CompositeAgent
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
-from ide.domain.types import ActionType, AgentAction, KnowledgeUnit, Pattern
+from ide.domain.types import (
+    ActionType,
+    AgentAction,
+    Behavior,
+    CompactDNA,
+    EpigeneticContext,
+    EpigeneticRole,
+    KnowledgeUnit,
+    Pattern,
+    SensorySignals,
+)
 from ide.environments.grid2d import ToroidalGrid2D
 from ide.experiments.metrics import (
+    NO_DECISIONS,
+    Birth,
+    DecisionEcology,
+    DecisionGenetics,
+    DecisionRecord,
+    EcologyTickMetrics,
     EvolutionaryMetricsCollector,
     EvolutionaryTickMetrics,
+    GeneticMetricsCollector,
+    GeneticTickMetrics,
     MetricsCollector,
     TickMetrics,
     correct_known_patterns,
+    ecology_tick_metrics,
+    first_feasible_slot,
     holon_tick_mean,
     holon_ticks,
     judge_decision,
     knowledge_snapshot,
     propagation_time,
+    signal_information,
+    summarize_decisions,
     windowed_accuracy,
 )
 from ide.simulation.engine import SimulationEngine
@@ -474,3 +499,558 @@ def test_media_por_par_tick_holon() -> None:
     assert holon_ticks(empty) == 0
     assert holon_tick_mean(empty, "acquired_coverage") is None
     assert holon_tick_mean([], "redundancy_reduction") is None
+
+
+# --- Fase II-B: telemetría de evolución abierta (bloque 21; D53.2, D53.3, D63.2-D63.4) ---------
+
+GENETIC_FIELDS = [
+    "tick", "mean_chromosome_length", "mean_expressed_codons", "mean_plasmids", "endospores",
+    "senescent_agents", "mean_age", "max_age", "explorers", "librarians", "nerves",
+    "locked_holons", "hgt_transfers", "crispr_rejections", "crispr_purges",
+    "distinct_genotypes", "mean_functional_codons", "regulated_expression_fraction",
+    "policy_divergence", "communicating_fraction", "new_activity", "cumulative_new_activity",
+    "mean_expressible_codons", "cumulative_births", "new_activity_per_birth",
+    "mean_age_at_death", "mean_conditional_codons", "mean_expressible_nonattack_codons",
+    "mean_internal_state_bits", "mean_plasticity_rate", "mean_abs_plastic_weight",
+    "mean_learning_codons", "signaling_rate", "symbol_diversity", "max_signal_information",
+    "birth_source_ids",
+]  # fmt: skip
+ECOLOGY_FIELDS = [
+    "tick", "resources_available", "shares", "attacks", "successful_attacks",
+    "predation_deaths", "starvation_deaths", "carcasses_deposited", "carcasses_eaten",
+    "sporulations", "recombinations", "share_rate", "behavior_counts", "signals_emitted",
+    "plastic_updates", "decision_opportunities", "correct_decisions",
+]  # fmt: skip
+DNA_CFG = SimulationConfig(enable_evolution=True, enable_compact_dna=True)
+GENETIC_CFG = replace(DNA_CFG, enable_genetic_policy=True)
+HOLONIC_DNA_CFG = replace(DNA_CFG, enable_holonic_hierarchy=True)
+TRAITS = tuple(encode_codon(0x00, t) for t in range(9))
+FOUNDER13 = founder_dna(GENETIC_CFG).chromosome
+NEW_C = encode_codon(0x00, 0x44, 0, 0, 10)  # SHARE: ausente del fundador
+SIGNAL_NAMES = tuple(f.name for f in dataclasses.fields(SensorySignals))
+
+
+def dna_agent(
+    aid: int,
+    chromosome: tuple[int, ...],
+    plasmids: tuple[int, ...] = (),
+    config: SimulationConfig = GENETIC_CFG,
+) -> MicroAgent:
+    agent = MicroAgent(aid, config)
+    agent.set_dna(CompactDNA(chromosome=chromosome, plasmids=plasmids))
+    return agent
+
+
+def genetic(
+    tick: int,
+    agents: list[MicroAgent],
+    config: SimulationConfig = GENETIC_CFG,
+    collector: GeneticMetricsCollector | None = None,
+    roots: list[AgentNode] | None = None,
+    events: dict[str, int] | None = None,
+    births: list[Birth] | None = None,
+    death_ages: list[int] | None = None,
+    receptions: list[tuple[CompactDNA, int]] | None = None,
+    decisions: DecisionGenetics = NO_DECISIONS,
+) -> GeneticTickMetrics:
+    """Un registro de `GeneticTickMetrics`; sin `roots`, cada agente es su propio nodo raíz."""
+    nodes = roots if roots is not None else list(agents)
+    collector = collector if collector is not None else GeneticMetricsCollector(config)
+    return collector.record_tick(
+        tick,
+        {a.agent_id: a for a in agents},
+        {n.node_id: n for n in nodes},
+        events or {},
+        births or [],
+        death_ages or [],
+        receptions or [],
+        decisions,
+    )
+
+
+def sig(**true_fields: bool) -> SensorySignals:
+    values = dict.fromkeys(SIGNAL_NAMES, False)
+    values.update(true_fields)
+    return SensorySignals(**values)
+
+
+def set_phenotype(agent: MicroAgent, **fields: Any) -> None:
+    agent._phenotype = replace(agent.phenotype, **fields)  # pyright: ignore[reportPrivateUsage]
+
+
+def test_campos_de_la_telemetria_genetica() -> None:
+    assert [f.name for f in dataclasses.fields(GeneticTickMetrics)] == GENETIC_FIELDS
+    assert len(GENETIC_FIELDS) == 36
+    registered = genetic(0, [])
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        registered.tick = 1  # type: ignore[misc]
+
+
+def test_campos_de_la_telemetria_ecologica() -> None:
+    assert [f.name for f in dataclasses.fields(EcologyTickMetrics)] == ECOLOGY_FIELDS
+    assert len(ECOLOGY_FIELDS) == 17
+    registered = ecology_tick_metrics(0, 3, {}, DecisionEcology(0, (0,) * 8), 0, 0)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        registered.shares = 1  # type: ignore[misc]
+
+
+def test_metricas_previas_sin_cambios() -> None:
+    assert len(TICK_METRICS_FIELDS) == 14
+    assert [f.name for f in dataclasses.fields(TickMetrics)] == TICK_METRICS_FIELDS
+    assert [f.name for f in dataclasses.fields(EvolutionaryTickMetrics)] == EVOLUTIONARY_FIELDS
+
+
+def test_telemetria_genetica_con_la_poblacion_vacia() -> None:
+    m = genetic(9, [])
+    assert (m.tick, m.mean_age, m.max_age) == (9, 0.0, 0)
+    assert isinstance(m.mean_age, float) and isinstance(m.max_age, int)
+    assert m.distinct_genotypes == 0
+    assert m.mean_functional_codons == 0.0
+    assert m.mean_expressible_codons == 0.0
+    assert m.mean_expressible_nonattack_codons == 0.0
+    assert m.mean_conditional_codons == 0.0
+    assert m.regulated_expression_fraction == 0.0
+    assert m.communicating_fraction == 0.0
+    assert m.mean_internal_state_bits == 0.0
+    assert m.mean_plasticity_rate == 0.0
+    assert m.mean_abs_plastic_weight == 0.0
+    assert m.mean_learning_codons == 0.0
+    assert m.signaling_rate == 0.0
+    assert m.symbol_diversity == 0
+    assert m.max_signal_information == 0.0
+    assert m.birth_source_ids == ()
+    assert (m.mean_chromosome_length, m.mean_expressed_codons, m.mean_plasmids) == (0.0, 0.0, 0.0)
+    assert (m.endospores, m.senescent_agents, m.locked_holons) == (0, 0, 0)
+    assert (m.explorers, m.librarians, m.nerves) == (0, 0, 0)
+    assert (m.new_activity, m.cumulative_new_activity, m.cumulative_births) == (0, 0, 0)
+    assert (m.new_activity_per_birth, m.mean_age_at_death, m.policy_divergence) == (0.0, 0.0, 0.0)
+
+
+def test_poblacion_sin_adn() -> None:
+    """Escenario de la spec: sin ADN las medias genéticas valen 0.0 y la edad sale de birth_tick."""
+    config = SimulationConfig(
+        enable_evolution=True, enable_telomere_senescence=True, telomere_base_lifespan=600
+    )
+    old = MicroAgent(0, config)  # nacido en el tick 0
+    m = genetic(700, [old, MicroAgent(1, config)], config=config)
+    assert (m.mean_chromosome_length, m.mean_expressed_codons, m.mean_plasmids) == (0.0, 0.0, 0.0)
+    assert m.senescent_agents == 2
+    assert m.mean_age == pytest.approx(700.0, abs=1e-9)
+    assert m.max_age == 700
+    assert m.distinct_genotypes == 0
+    assert m.mean_expressible_codons == 0.0
+    assert m.mean_learning_codons == 0.0
+    assert genetic(600, [old], config=config).senescent_agents == 0  # `age > lifespan`, estricto
+
+
+def test_campos_heredados_de_d41() -> None:
+    config = replace(GENETIC_CFG, enable_holonic_hierarchy=True)
+    a = dna_agent(0, FOUNDER13, plasmids=(NEW_C,), config=config)
+    b = dna_agent(1, FOUNDER13[:9], config=config)
+    c = dna_agent(2, FOUNDER13, config=config)
+    a.set_epigenetic_role(EpigeneticRole.EXPLORER)
+    b.set_epigenetic_role(EpigeneticRole.NERVE)
+    c.set_epigenetic_role(EpigeneticRole.NERVE)
+    c.set_endospore(True)
+    m = genetic(
+        4,
+        [a, b, c],
+        config=config,
+        events={"hgt_transfers": 2, "crispr_rejections": 1, "crispr_purges": 3, "shares": 9},
+    )
+    assert m.mean_chromosome_length == pytest.approx((13 + 9 + 13) / 3, abs=1e-9)
+    assert m.mean_plasmids == pytest.approx(1 / 3, abs=1e-9)
+    expressed = sum(x.phenotype.expressed_codons for x in (a, b, c))
+    assert m.mean_expressed_codons == pytest.approx(expressed / 3, abs=1e-9)
+    assert (m.endospores, m.explorers, m.librarians, m.nerves) == (1, 1, 0, 2)
+    assert (m.hgt_transfers, m.crispr_rejections, m.crispr_purges) == (2, 1, 3)
+    assert m.distinct_genotypes == 2  # cromosomas distintos: los plásmidos no cuentan
+
+
+def test_eventos_de_conjugacion_por_tick() -> None:
+    """Escenario de la spec: los contadores son del tick, no acumulados."""
+    collector = GeneticMetricsCollector(GENETIC_CFG)
+    t30 = genetic(30, [], collector=collector, events={"hgt_transfers": 2, "crispr_rejections": 1})
+    t31 = genetic(31, [], collector=collector)
+    assert (t30.hgt_transfers, t30.crispr_rejections) == (2, 1)
+    assert (t31.hgt_transfers, t31.crispr_rejections) == (0, 0)
+
+
+def test_holones_soldados() -> None:
+    config = replace(GENETIC_CFG, enable_holonic_hierarchy=True, enable_symbiotic_ratchet=True)
+    a, b, c, d = (dna_agent(i, FOUNDER13, config=config) for i in range(4))
+    inner = CompositeAgent(-2, (a, b), 0, True)
+    outer = CompositeAgent(-3, (inner, c), 0, True)
+    inner.is_locked = True
+    outer.is_locked = True
+    assert genetic(1, [a, b, c, d], config=config, roots=[outer, d]).locked_holons == 2
+    inert = replace(config, enable_symbiotic_ratchet=False)  # R31 inerte: el sello no rige
+    assert genetic(1, [a, b, c, d], config=inert, roots=[outer, d]).locked_holons == 0
+
+
+@pytest.mark.parametrize(
+    ("births", "expected"),
+    [
+        ([Birth(30, None), Birth(4, None)], (4, 30)),  # neutral: los donantes, no los padres
+        ([Birth(12, None), Birth(5, None)], (5, 12)),  # selección: los progenitores
+        ([Birth(30, None), Birth(30, None)], (30, 30)),  # un donante repetido
+        ([Birth(30, None)], (30,)),  # recombinación neutral: sin la pareja
+        ([], ()),
+    ],
+)
+def test_fuentes_geneticas_de_los_nacimientos(
+    births: list[Birth], expected: tuple[int, ...]
+) -> None:
+    assert genetic(3, [], births=births).birth_source_ids == expected
+
+
+def test_codones_funcionales_y_expresables_del_fundador_conductual() -> None:
+    m = genetic(0, [dna_agent(i, FOUNDER13) for i in range(3)])
+    assert m.distinct_genotypes == 1
+    assert m.mean_functional_codons == 13.0
+    assert m.mean_expressible_codons == 13.0
+    assert m.mean_expressible_nonattack_codons == 13.0
+    assert m.mean_conditional_codons == 0.0
+    assert m.regulated_expression_fraction == 0.0
+    assert m.mean_learning_codons == 0.0
+
+
+def test_codon_inerte_por_su_modo() -> None:
+    m = genetic(0, [dna_agent(0, (*FOUNDER13, encode_codon(0x00, 0x40, 3)))])
+    assert m.mean_functional_codons == 13.0
+
+
+def test_duplicados_e_inertes_no_suman() -> None:
+    extra = (encode_codon(0x00, 0x00), encode_codon(0x00, 0x01, 3), encode_codon(0x00, 0x10))
+    m = genetic(0, [dna_agent(0, (*TRAITS, *extra), config=DNA_CFG)], config=DNA_CFG)
+    assert m.mean_expressible_codons == 9.0
+    assert m.mean_functional_codons == 10.0
+
+
+def test_codon_con_promotor_reservado() -> None:
+    m = genetic(0, [dna_agent(0, (*FOUNDER13, encode_codon(0x0B, 0x43)))])
+    assert m.mean_expressible_codons == 13.0
+
+
+def test_sinonimo_por_el_campo_channel() -> None:
+    synonym = encode_codon(0x00, 0x03, 0, 12)
+    m = genetic(0, [dna_agent(0, (*TRAITS, synonym), config=DNA_CFG)], config=DNA_CFG)
+    assert m.mean_expressible_codons == 9.0
+    assert m.mean_functional_codons == 10.0
+
+
+def test_un_codon_attack_no_suma() -> None:
+    m = genetic(0, [dna_agent(0, (*FOUNDER13, encode_codon(0x00, 0x45, 0, 0, 64)))])
+    assert m.mean_expressible_codons == 14.0
+    assert m.mean_expressible_nonattack_codons == 13.0
+
+
+def test_borrar_codones_constitutivos_no_sube_los_condicionales() -> None:
+    stress = encode_codon(0x18, 0x01, 0, 0, 10)
+    with_founders = genetic(0, [dna_agent(0, (*TRAITS, stress), config=DNA_CFG)], config=DNA_CFG)
+    alone = genetic(0, [dna_agent(0, (stress,), config=DNA_CFG)], config=DNA_CFG)
+    assert with_founders.regulated_expression_fraction == pytest.approx(0.1, abs=1e-9)
+    assert alone.regulated_expression_fraction == pytest.approx(1.0, abs=1e-9)
+    assert with_founders.mean_conditional_codons == alone.mean_conditional_codons == 1.0
+
+
+def test_promotor_de_nivel_con_y_sin_holones() -> None:
+    chromosome = (
+        encode_codon(0x00, 0x00),
+        encode_codon(0x00, 0x01),
+        encode_codon(0x00, 0x02),
+        encode_codon(0x01, 0x03),
+    )
+    agent = dna_agent(0, chromosome, config=DNA_CFG)
+    holonic = genetic(0, [agent], config=HOLONIC_DNA_CFG)
+    flat = genetic(0, [agent], config=DNA_CFG)
+    assert holonic.regulated_expression_fraction == pytest.approx(0.25, abs=1e-9)
+    assert flat.regulated_expression_fraction == 0.0
+
+
+def test_promotor_de_estres() -> None:
+    chromosome = (*(encode_codon(0x00, t) for t in range(4)), encode_codon(0x18, 0x04))
+    m = genetic(0, [dna_agent(0, chromosome, config=DNA_CFG)], config=DNA_CFG)
+    assert m.regulated_expression_fraction == pytest.approx(0.2, abs=1e-9)
+
+
+def test_hoja_sin_codones_expresables_aporta_cero() -> None:
+    half = dna_agent(0, (encode_codon(0x00, 0x00), encode_codon(0x18, 0x01)), config=DNA_CFG)
+    none = dna_agent(1, (encode_codon(0x0B, 0x00),), config=DNA_CFG)
+    m = genetic(0, [half, none], config=DNA_CFG)
+    assert m.regulated_expression_fraction == pytest.approx(0.25, abs=1e-9)
+    assert m.mean_expressible_codons == pytest.approx(1.0, abs=1e-9)
+
+
+def test_independencia_del_estado_del_tick() -> None:
+    chromosome = (*FOUNDER13, encode_codon(0x18, 0x42, 0, 0, 40), encode_codon(0x00, 0x45))
+    active = dna_agent(0, chromosome)
+    dormant = dna_agent(1, chromosome)
+    dormant.set_endospore(True)
+    dormant.apply_energy_delta(-1.0)
+    dormant.set_epigenetic_role(EpigeneticRole.LIBRARIAN)
+    a = genetic(0, [active])
+    b = genetic(0, [dormant])
+    for name in (
+        "mean_conditional_codons",
+        "mean_expressible_nonattack_codons",
+        "mean_expressible_codons",
+        "regulated_expression_fraction",
+    ):
+        assert getattr(a, name) == getattr(b, name)
+    assert a.mean_conditional_codons == 1.0
+
+
+def test_fraccion_comunicante() -> None:
+    zero = replace(GENETIC_CFG, comm_propensity_base=0.0)
+    founders = [MicroAgent(i, zero) for i in range(3)]
+    assert genetic(0, founders, config=zero).communicating_fraction == 0.0
+    talker, mute, spore = (MicroAgent(i, GENETIC_CFG) for i in range(3))
+    set_phenotype(mute, comm_propensity=0.49)
+    set_phenotype(spore, comm_propensity=0.0)
+    spore.set_endospore(True)  # las endosporas no cuentan, ni en el denominador
+    assert genetic(0, [talker, mute, spore]).communicating_fraction == pytest.approx(0.5, abs=1e-9)
+
+
+# --- Actividad de Bedau-Packard por nacimientos (precisión 43) ----------------------------------
+
+
+def carrier(*extra: int, plasmids: tuple[int, ...] = ()) -> CompactDNA:
+    return CompactDNA(chromosome=(*FOUNDER13, *extra), plasmids=plasmids)
+
+
+def activity_run(
+    threshold: int, ticks: dict[int, dict[str, Any]], last: int
+) -> list[GeneticTickMetrics]:
+    config = replace(GENETIC_CFG, activity_threshold=threshold)
+    collector = GeneticMetricsCollector(config)
+    return [
+        genetic(t, [], config=config, collector=collector, **ticks.get(t, {}))
+        for t in range(last + 1)
+    ]
+
+
+def test_una_hoja_longeva_no_hace_cruzar_el_umbral() -> None:
+    history = activity_run(10, {1: {"births": [Birth(0, carrier(NEW_C))]}}, 500)
+    assert all(m.new_activity == 0 for m in history)
+    assert history[-1].cumulative_new_activity == 0
+
+
+def test_los_codones_fundadores_no_cuentan() -> None:
+    births = [Birth(0, carrier()) for _ in range(100)]
+    history = activity_run(10, {1: {"births": births}}, 3)
+    assert all(m.new_activity == 0 and m.cumulative_new_activity == 0 for m in history)
+    assert history[-1].cumulative_births == 100
+
+
+def test_un_individuo_cuenta_una_vez_por_valor_canonico() -> None:
+    synonym = encode_codon(0x00, 0x44, 0, 5, 10)  # difiere de NEW_C sólo en `channel`
+    dna = carrier(NEW_C, NEW_C, synonym, plasmids=(NEW_C,))
+    one = activity_run(2, {1: {"births": [Birth(0, dna)]}}, 2)
+    two = activity_run(2, {1: {"births": [Birth(0, dna)]}, 2: {"births": [Birth(0, dna)]}}, 2)
+    assert [m.new_activity for m in one] == [0, 0, 0]  # a_c = 1, no 4
+    assert [m.new_activity for m in two] == [0, 0, 1]
+
+
+def test_recepcion_por_conjugacion() -> None:
+    receptions = [(carrier(), NEW_C), (carrier(NEW_C), NEW_C)]
+    crossed = activity_run(1, {0: {"receptions": receptions}}, 0)
+    not_twice = activity_run(2, {0: {"receptions": receptions}}, 0)
+    assert crossed[0].new_activity == 1
+    assert not_twice[0].new_activity == 0  # la segunda recepción no suma
+
+
+def test_cruce_del_umbral_por_nacimientos() -> None:
+    four = [Birth(0, carrier(NEW_C)) for _ in range(4)]
+    history = activity_run(10, {t: {"births": four} for t in (1, 2, 3)}, 5)
+    assert [m.new_activity for m in history] == [0, 0, 0, 1, 0, 0]
+    assert [m.cumulative_new_activity for m in history] == [0, 0, 0, 1, 1, 1]
+
+
+def test_actividad_sin_nacimientos() -> None:
+    other = encode_codon(0x00, 0x46, 0, 0, 10)
+    receptions = [(carrier(), NEW_C), (carrier(), other)]
+    m = activity_run(1, {5: {"receptions": receptions}}, 5)[-1]
+    assert m.cumulative_new_activity == 2
+    assert m.cumulative_births == 0
+    assert m.new_activity_per_birth == 0.0
+
+
+def test_normalizacion_por_nacimientos() -> None:
+    births = [Birth(0, carrier()) for _ in range(288)]
+    births += [Birth(0, carrier(encode_codon(0x00, 0x44, 0, 0, k))) for k in range(1, 13)]
+    m = activity_run(1, {0: {"births": births}}, 0)[-1]
+    assert m.cumulative_new_activity == 12
+    assert m.cumulative_births == 300
+    assert m.new_activity_per_birth == pytest.approx(0.04, abs=1e-9)
+
+
+def test_edad_media_al_morir() -> None:
+    collector = GeneticMetricsCollector(GENETIC_CFG)
+    assert genetic(0, [], collector=collector).mean_age_at_death == 0.0
+    at_50 = genetic(50, [], collector=collector, death_ages=[40])
+    at_80 = genetic(80, [], collector=collector, death_ages=[80])
+    assert at_50.mean_age_at_death == pytest.approx(40.0, abs=1e-9)
+    assert at_80.mean_age_at_death == pytest.approx(60.0, abs=1e-9)
+
+
+# --- Estado interno, plasticidad y codones de aprendizaje (D63.2, precisión 52) -----------------
+
+
+def test_medias_de_estado_y_de_pesos() -> None:
+    a, b = MicroAgent(0, GENETIC_CFG), MicroAgent(1, GENETIC_CFG)
+    a._internal_state = 0b11  # pyright: ignore[reportPrivateUsage]
+    b._internal_state = 0b1  # pyright: ignore[reportPrivateUsage]
+    set_phenotype(a, plasticity_rate=0.2)
+    set_phenotype(b, plasticity_rate=0.4)
+    a._plastic_weights.update({0: 0.5, 2: -0.3})  # pyright: ignore[reportPrivateUsage]
+    m = genetic(0, [a, b])
+    assert m.mean_internal_state_bits == pytest.approx(1.5, abs=1e-9)
+    assert m.mean_plasticity_rate == pytest.approx(0.3, abs=1e-9)
+    assert m.mean_abs_plastic_weight == pytest.approx(0.4, abs=1e-9)
+    assert genetic(0, [b]).mean_abs_plastic_weight == 0.0
+
+
+def test_codon_plastico_segun_la_tasa() -> None:
+    extra = (
+        encode_codon(0x00, 0x0D, 0, 1),
+        encode_codon(0x31, 0x40, 0, 0, 64),
+        encode_codon(0x00, 0x43, 3, 0, 32),
+    )
+    agent = dna_agent(0, (*FOUNDER13, *extra))
+    set_phenotype(agent, plasticity_rate=0.0)
+    assert genetic(0, [agent]).mean_learning_codons == 2.0
+    set_phenotype(agent, plasticity_rate=0.3)
+    assert genetic(0, [agent]).mean_learning_codons == 3.0
+
+
+def test_promotor_de_estado_sobre_un_rasgo() -> None:
+    m = genetic(0, [dna_agent(0, (*FOUNDER13, encode_codon(0x31, 0x00, 0, 0, 64)))])
+    assert m.mean_learning_codons == 0.0
+
+
+def test_tasa_de_plasticidad_segun_el_ultimo_contexto() -> None:
+    config = replace(GENETIC_CFG, enable_plasticity=True, plasticity_rate_base=0.0)
+    extra = (encode_codon(0x18, 0x0F, 0, 0, 64), encode_codon(0x00, 0x43, 3, 0, 32))
+    agent = dna_agent(0, (*FOUNDER13, *extra), config=config)
+    agent.express(EpigeneticContext(0, EpigeneticRole.NONE, 0.1), 1)  # estrés
+    assert agent.phenotype.plasticity_rate > 0
+    assert genetic(1, [agent], config=config).mean_learning_codons == 1.0
+    agent.express(EpigeneticContext(0, EpigeneticRole.NONE, 0.9), 2)
+    assert genetic(2, [agent], config=config).mean_learning_codons == 0.0
+
+
+# --- Decisiones del tick: divergencia y señales (D53.2, D63.2) ----------------------------------
+
+
+def test_primera_conducta_factible() -> None:
+    drives = (0.5, 0.9, 0.0, 0.9, -1.0, 0.1, 0.0, 0.0)
+    assert first_feasible_slot(drives, (True,) * 8) == 1  # empate: menor posición
+    assert first_feasible_slot(drives, (True, False, True, True, True, True, True, True)) == 3
+    assert first_feasible_slot(drives, (False, False, True, False, True, False, True, True)) is None
+    assert first_feasible_slot((0.0,) * 8, (True,) * 8) is None
+
+
+def test_tasa_y_diversidad_de_las_senales() -> None:
+    records = [DecisionRecord(mask, sig(), False) for mask in (0b10010, 0b10000, 0b10000)]
+    records += [DecisionRecord(0, sig(), False) for _ in range(7)]
+    d = summarize_decisions(records)
+    assert d.signaling_rate == pytest.approx(0.3, abs=1e-9)
+    assert d.symbol_diversity == 2
+
+
+def test_senal_perfectamente_informativa() -> None:
+    records = [
+        DecisionRecord(1, sig(known_good=True), False),
+        DecisionRecord(1, sig(known_good=True), False),
+        DecisionRecord(0, sig(), False),
+        DecisionRecord(0, sig(), False),
+    ]
+    assert summarize_decisions(records).max_signal_information == pytest.approx(1.0, abs=1e-9)
+
+
+def test_sin_emisiones() -> None:
+    d = summarize_decisions([DecisionRecord(0, sig(unknown=True), False) for _ in range(5)])
+    assert (d.signaling_rate, d.symbol_diversity, d.max_signal_information) == (0.0, 0, 0.0)
+    assert summarize_decisions([]) == NO_DECISIONS
+
+
+def test_divergencia_sobre_las_decisiones_geneticas() -> None:
+    records = [
+        DecisionRecord(0, sig(), True),
+        DecisionRecord(0, sig(), False),
+        DecisionRecord(0, None, False),  # decidió sin la política genética: no cuenta
+    ]
+    assert summarize_decisions(records).policy_divergence == pytest.approx(0.5, abs=1e-9)
+    assert summarize_decisions([DecisionRecord(0, None, False)]).policy_divergence == 0.0
+
+
+@given(
+    st.lists(
+        st.tuples(st.integers(0, 255), st.lists(st.booleans(), min_size=12, max_size=12)),
+        max_size=30,
+    )
+)
+def test_informacion_mutua_acotada(samples: list[tuple[int, list[bool]]]) -> None:
+    value = signal_information([(mask, SensorySignals(*flags)) for mask, flags in samples])
+    assert 0.0 <= value <= 1.0 + 1e-9
+
+
+# --- Telemetría ecológica (D53.3, D63.3, D63.4) -------------------------------------------------
+
+
+def test_tasa_de_transferencia_y_conteos() -> None:
+    counts = (3, 0, 0, 1, 0, 0, 0, 0)
+    events = {"shares": 2, "attacks": 5, "successful_attacks": 2, "predation_deaths": 1}
+    events |= {"starvation_deaths": 4, "carcasses_deposited": 5, "carcasses_eaten": 1}
+    events |= {"sporulations": 2, "recombinations": 3, "signals_emitted": 3}
+    events |= {"plastic_updates": 1, "hgt_transfers": 7}
+    m = ecology_tick_metrics(6, 11, events, DecisionEcology(40, counts), 2, 1)
+    assert m.shares == 2 and m.share_rate == pytest.approx(0.05, abs=1e-9)
+    assert (m.tick, m.resources_available) == (6, 11)
+    assert (m.attacks, m.successful_attacks, m.predation_deaths, m.starvation_deaths) == (
+        5,
+        2,
+        1,
+        4,
+    )
+    assert (m.carcasses_deposited, m.carcasses_eaten, m.sporulations) == (5, 1, 2)
+    assert (m.recombinations, m.signals_emitted, m.plastic_updates) == (3, 3, 1)
+    assert (m.decision_opportunities, m.correct_decisions) == (2, 1)
+    assert m.behavior_counts == counts
+    assert len(m.behavior_counts) == len(Behavior)
+
+
+def test_tasa_de_transferencia_sin_decisiones() -> None:
+    m = ecology_tick_metrics(0, 0, {"shares": 0}, DecisionEcology(0, (0,) * 8), 0, 0)
+    assert m.share_rate == 0.0
+
+
+# --- Propiedades de las métricas por genotipo ---------------------------------------------------
+
+_CODONS = st.integers(0, 2**32 - 1)
+_LOW_CODONS = st.builds(
+    encode_codon,
+    st.sampled_from([0x00, 0x01, 0x05, 0x10, 0x18, 0x22, 0x31, 0x3A, 0x80, 0x81, 0xC0]),
+    st.sampled_from([0x00, 0x03, 0x09, 0x0D, 0x0E, 0x0F, 0x10, 0x40, 0x43, 0x45, 0x48]),
+    st.integers(0, 3),
+    st.integers(0, 2),
+    st.integers(-128, 127),
+)
+
+
+@given(
+    st.lists(st.one_of(_CODONS, _LOW_CODONS), min_size=1, max_size=20),
+    st.booleans(),
+    st.booleans(),
+)
+def test_metricas_por_genotipo_acotadas(chromosome: list[int], holonic: bool, roles: bool) -> None:
+    config = replace(DNA_CFG, enable_holonic_hierarchy=holonic, enable_epigenetic_roles=roles)
+    dna = CompactDNA(chromosome=tuple(chromosome))
+    m = genetic(0, [dna_agent(0, dna.chromosome, config=DNA_CFG)], config=config)
+    assert 0.0 <= m.mean_conditional_codons <= m.mean_expressible_codons
+    assert m.mean_expressible_nonattack_codons <= m.mean_expressible_codons
+    assert 0.0 <= m.regulated_expression_fraction <= 1.0
+    assert m.mean_expressible_codons <= m.mean_functional_codons + len(chromosome)
+    fixed = set(learning_codons(dna, holonic, roles, False))
+    assert fixed <= set(learning_codons(dna, holonic, roles, True))

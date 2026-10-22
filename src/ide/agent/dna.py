@@ -2,8 +2,8 @@
 
 Cubre D32 y D33 (codón y fenotipo), D46 (conducta en el ADN: promotores sensoriales, impulsos y
 fundador conductual), D58 y D60.1 (evaluación de conducta con eventos y estado interno, R39),
-D59 (modo plástico y tasa de plasticidad, R40), D51.2 (recombinación) y la precisión 42 (codones
-expresables).
+D59 (modo plástico y tasa de plasticidad, R40), D51.2 (recombinación), la precisión 42 (codones
+expresables) y las consultas por genotipo de la telemetría (precisiones 43 y 52, D53.2).
 
 Módulo puro: sólo conoce `ide.domain`, `ide.config`, `numpy` (sólo para tipar el generador) y la
 biblioteca estándar (los codones son `int` de Python, no `numpy.uint32`, D32). No importa
@@ -44,6 +44,7 @@ __all__ = [
     "Codon",
     "apply_plastic_weights",
     "behavior_terms",
+    "canonical_codon",
     "crispr_immunity_active",
     "decode_codon",
     "encode_codon",
@@ -52,7 +53,9 @@ __all__ = [
     "expressible_codons",
     "founder_dna",
     "founder_dna_length",
+    "functional_codon_values",
     "internal_state_active",
+    "learning_codons",
     "mutate_dna",
     "phenotype_from_genome",
     "plasmid_hgt_active",
@@ -60,6 +63,7 @@ __all__ = [
     "purge_plasmid",
     "receive_plasmid",
     "recombine_dna",
+    "trait_or_behavior_codons",
     "transcribe_phenotype",
 ]
 
@@ -114,6 +118,8 @@ _PROM_SURPLUS = 0x19
 # estado interno 0x30-0x37 (`STATE_k`) y señales percibidas 0x38-0x3F (`HEARD_k`).
 _PROM_SENSE_FIRST = 0x20
 _PROM_SENSE_LAST = 0x3F
+_PROM_STATE_FIRST = 0x30  # `STATE_0`; `STATE_k` es `0x30 + k` (D58.4)
+_PROM_STATE_LAST = 0x37
 _PROM_HEARD_FIRST = 0x38  # `HEARD_0`; `HEARD_k` es `0x38 + k` (D60.4)
 _STATE_BITS = 8  # `internal_state` tiene 8 bits (D58.1)
 _SYMBOL_BITS = 8  # ocho símbolos de señal, `channel & 0x07` (D60.2)
@@ -811,20 +817,25 @@ def _base_promoter_constitutive(promoter: int, holonic: bool) -> bool:
     return promoter == 0x00 or (promoter == _PROM_SOLITARY_L0 and not holonic)
 
 
-def expressible_codons(dna: CompactDNA, holonic: bool, roles: bool) -> tuple[tuple[int, bool], ...]:
-    """Valores canónicos distintos de los codones funcionales expresables (precisión 42).
+def canonical_codon(codon: int) -> int:
+    """Valor canónico de un codón (precisión 42, D61): `codon & ~0x3F00` en los destinos de rasgo
+    y de conducta, donde `channel` no tiene efecto; el codón intacto en los demás destinos, donde
+    `channel` elige un bit, un símbolo o un canal."""
+    target = (codon >> 16) & 0xFF
+    return codon & ~_CHANNEL_MASK if target in _CHANNEL_FREE_TARGETS else codon
 
-    Depende sólo del genotipo y del protocolo (`holonic` = holones activos, `roles` = roles
-    epigenéticos activos). Cada valor, en orden ascendente, va con si su promotor es condicional.
-    Un codón funcional tiene destino funcional (D61), modo distinto de 3 y promotor expresable;
-    cuentan `chromosome + plasmids`, nunca `crispr_memory`. Los regulados `0x80`-`0xBF` son
-    expresables si su canal tiene un emisor activador (`EMIT_TF` de modo 0 o 2) con promotor
-    expresable menor que 0x80, y constitutivos si alguno de esos emisores lo es: aproximación
-    declarada que no considera represores. El valor canónico enmascara `channel` sólo en los
-    destinos de rasgo y de conducta, donde no tiene efecto. No recibe las banderas de $R_{39}$ a
-    $R_{41}$ (límite declarado, precisión 60).
+
+def _expressible_entries(
+    dna: CompactDNA, holonic: bool, roles: bool
+) -> list[tuple[int, Codon, bool]]:
+    """Codones de destino funcional (D61) con promotor expresable en el protocolo, de cualquier
+    modo, en el orden de `chromosome + plasmids`: `(codón, decodificado, condicional)`.
+
+    Es la regla de expresabilidad de la precisión 42 (ampliada por la 59), que comparten
+    `expressible_codons` (sin el modo 3) y `learning_codons` (con él, precisión 52).
     """
-    codons = [decode_codon(c) for c in dna.chromosome + dna.plasmids]
+    raws = dna.chromosome + dna.plasmids
+    codons = [decode_codon(c) for c in raws]
     emitters: dict[int, list[int]] = {}
     for codon in codons:
         if (
@@ -833,9 +844,9 @@ def expressible_codons(dna: CompactDNA, holonic: bool, roles: bool) -> tuple[tup
             and codon.promoter < _PROM_TF_FIRST
         ):
             emitters.setdefault(codon.channel, []).append(codon.promoter)
-    found: dict[int, bool] = {}
-    for raw, codon in zip(dna.chromosome + dna.plasmids, codons, strict=True):
-        if codon.target not in _FUNCTIONAL_TARGETS or codon.mode == _MODE_PLASTIC:
+    entries: list[tuple[int, Codon, bool]] = []
+    for raw, codon in zip(raws, codons, strict=True):
+        if codon.target not in _FUNCTIONAL_TARGETS:
             continue
         senses = codon.target in _SENSING_TARGETS
         if codon.promoter < _PROM_TF_FIRST:
@@ -853,6 +864,73 @@ def expressible_codons(dna: CompactDNA, holonic: bool, roles: bool) -> tuple[tup
             conditional = not any(_base_promoter_constitutive(p, holonic) for p in sources)
         else:
             continue
-        value = raw & ~_CHANNEL_MASK if codon.target in _CHANNEL_FREE_TARGETS else raw
-        found[value] = conditional
+        entries.append((raw, codon, conditional))
+    return entries
+
+
+def expressible_codons(dna: CompactDNA, holonic: bool, roles: bool) -> tuple[tuple[int, bool], ...]:
+    """Valores canónicos distintos de los codones funcionales expresables (precisión 42).
+
+    Depende sólo del genotipo y del protocolo (`holonic` = holones activos, `roles` = roles
+    epigenéticos activos). Cada valor, en orden ascendente, va con si su promotor es condicional.
+    Un codón funcional tiene destino funcional (D61), modo distinto de 3 y promotor expresable;
+    cuentan `chromosome + plasmids`, nunca `crispr_memory`. Los regulados `0x80`-`0xBF` son
+    expresables si su canal tiene un emisor activador (`EMIT_TF` de modo 0 o 2) con promotor
+    expresable menor que 0x80, y constitutivos si alguno de esos emisores lo es: aproximación
+    declarada que no considera represores. El valor canónico enmascara `channel` sólo en los
+    destinos de rasgo y de conducta, donde no tiene efecto. No recibe las banderas de $R_{39}$ a
+    $R_{41}$ (límite declarado, precisión 60).
+    """
+    found: dict[int, bool] = {}
+    for raw, codon, conditional in _expressible_entries(dna, holonic, roles):
+        if codon.mode != _MODE_PLASTIC:
+            found[canonical_codon(raw)] = conditional
     return tuple((value, found[value]) for value in sorted(found))
+
+
+def learning_codons(dna: CompactDNA, holonic: bool, roles: bool, plastic: bool) -> tuple[int, ...]:
+    """Valores canónicos distintos de los codones de memoria y aprendizaje (C19, precisión 52).
+
+    Son los de `chromosome + plasmids` con promotor expresable en el protocolo (la regla de
+    `expressible_codons`) que cumplen alguna de estas condiciones: destino `0x0D` o `0x0E` y modo
+    distinto de 3; promotor `0x30`-`0x37` sobre un destino de conducta, de estado o de señal
+    (de cualquier modo); o modo 3 sobre un destino de conducta, sólo si `plastic` (la hoja tiene
+    `plasticity_rate > 0` expresada según su `last_context`, precisiones 23 y 52). Ascendentes.
+    """
+    found: set[int] = set()
+    for raw, codon, _ in _expressible_entries(dna, holonic, roles):
+        target, mode = codon.target, codon.mode
+        if (
+            (target in (_TARGET_SET_STATE, _TARGET_CLEAR_STATE) and mode != _MODE_PLASTIC)
+            or (_PROM_STATE_FIRST <= codon.promoter <= _PROM_STATE_LAST)
+            or (plastic and mode == _MODE_PLASTIC and target in _BEHAVIOR_SLOT)
+        ):
+            found.add(canonical_codon(raw))
+    return tuple(sorted(found))
+
+
+def functional_codon_values(dna: CompactDNA) -> frozenset[int]:
+    """Valores canónicos de los codones funcionales de `chromosome + plasmids` (precisión 43).
+
+    Funcional quiere decir destino funcional (D61: rasgo, estado, conducta o señal) y modo
+    distinto de 3, cualquiera sea el promotor. Es lo que cuenta la actividad de Bedau-Packard por
+    nacimientos portadores: un individuo aporta 1 por valor canónico aunque lo porte varias veces.
+    """
+    found: set[int] = set()
+    for raw in dna.chromosome + dna.plasmids:
+        codon = decode_codon(raw)
+        if codon.target in _FUNCTIONAL_TARGETS and codon.mode != _MODE_PLASTIC:
+            found.add(canonical_codon(raw))
+    return frozenset(found)
+
+
+def trait_or_behavior_codons(dna: CompactDNA) -> int:
+    """Codones de `chromosome + plasmids` con destino de rasgo (`0x00`-`0x08`, `0x0A`-`0x0C`,
+    `0x0F`) o de conducta (`0x40`-`0x47`) y modo distinto de 3, cualquiera sea su promotor y con
+    repeticiones: el conteo de `mean_functional_codons` (D53.2, precisión 54)."""
+    count = 0
+    for raw in dna.chromosome + dna.plasmids:
+        codon = decode_codon(raw)
+        if codon.target in _CHANNEL_FREE_TARGETS and codon.mode != _MODE_PLASTIC:
+            count += 1
+    return count

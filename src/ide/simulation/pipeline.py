@@ -43,6 +43,7 @@ from ide.domain.types import (
     CARCASS_PATTERN,
     ActionType,
     AgentAction,
+    CompactDNA,
     EventSignals,
     Message,
     Observation,
@@ -50,7 +51,13 @@ from ide.domain.types import (
     SocialPerception,
     integer_id,
 )
-from ide.experiments.metrics import TickMetrics
+from ide.experiments.metrics import (
+    NO_DECISIONS,
+    Birth,
+    DecisionEcology,
+    DecisionGenetics,
+    TickMetrics,
+)
 
 if TYPE_CHECKING:
     from ide.agent.micro_agent import MicroAgent
@@ -105,6 +112,13 @@ class TickFrame:
 
     Por último, `holon_reach`: el alcance local que usó R18 en el paso (vii), que reutiliza la
     asignación de roles de $R_{25}$ del mismo paso (precisión 110); `None` sin holones.
+
+    Al final, los insumos de la telemetría de evolución abierta (bloque 21, precisión 73): `born`,
+    la fuente genética y el ADN de cada nacimiento, que anota `_give_birth` (precisión 68);
+    `death_ages`, las edades de las muertes del paso de muerte (precisión 49);
+    `plasmid_receptions`, el ADN anterior y el codón de cada conjugación que cambió el ADN del
+    receptor (precisión 43); y lo que los observadores leen de las decisiones en `on_decisions`
+    (precisión 126): `decision_genetics` y `decision_ecology`.
     """
 
     tick: int
@@ -140,6 +154,13 @@ class TickFrame:
     signals: dict[int, int] = field(default_factory=dict[int, int])
     dormant: frozenset[int] = frozenset()
     holon_reach: dict[int, list[int]] | None = None
+    born: list[Birth] = field(default_factory=list[Birth])
+    death_ages: list[int] = field(default_factory=list[int])
+    plasmid_receptions: list[tuple[CompactDNA, int]] = field(
+        default_factory=list[tuple[CompactDNA, int]]
+    )
+    decision_genetics: DecisionGenetics = NO_DECISIONS
+    decision_ecology: DecisionEcology | None = None
 
     @property
     def active_order(self) -> list[int]:
@@ -895,7 +916,7 @@ class DeathSystem(BaseSystem):
     name = "death"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        dead = engine._remove_dead(frame.tick)
+        dead = engine._remove_dead(frame.tick, frame.death_ages)
         frame.deaths = len(dead)
         if not dead:
             return
@@ -929,7 +950,7 @@ class ReproductionSystem(BaseSystem):
     name = "reproduction"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        frame.births = engine._reproduce(frame.tick, frame.events)  # `recombinations` (R38)
+        frame.births = engine._reproduce(frame.tick, frame.events, frame.born)
 
 
 class ConjugationSystem(BaseSystem):
@@ -944,7 +965,7 @@ class ConjugationSystem(BaseSystem):
     name = "conjugation"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        engine._conjugate(frame.tick, frame.events)
+        engine._conjugate(frame.tick, frame.events, frame.plasmid_receptions)
 
 
 class CrisprTrialSystem(BaseSystem):

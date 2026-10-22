@@ -178,6 +178,12 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
         "dormant",
         # Alcance local de R18 en el paso (vii), que reutilizan los roles (R25, precisión 110).
         "holon_reach",
+        # Insumos de la telemetría de evolución abierta (bloque 21, precisiones 73 y 126 y 131).
+        "born",
+        "death_ages",
+        "plasmid_receptions",
+        "decision_genetics",
+        "decision_ecology",
     ]
     frame = TickFrame(7)
     assert frame.tick == 7

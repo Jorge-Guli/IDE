@@ -204,6 +204,48 @@ class GeneticPolicy:
         return _IDLE
 
 
+def _feasible(
+    behavior: Behavior,
+    agent: "MicroAgent",
+    obs: Observation,
+    social: SocialPerception,
+    survey: _Survey,
+) -> bool:
+    """Factibilidad de `behavior` sin generador (D46.1, precisiones 11, 24 y 30).
+
+    `EXPLORE` es factible si hay algún recurso alcanzable desconocido y `WANDER` si hay algún
+    movimiento: la extracción de `rng` que decide si EXPLORE explora y adónde camina WANDER es
+    aparte (`_feasible_action`). `SHARE` y `ATTACK` exigen además un objetivo
+    (`social.weakest_adjacent is not None`): con una percepción incoherente no son factibles.
+    """
+    config = agent.config
+    match behavior:
+        case Behavior.CONSUME:
+            return bool(survey.beneficial)
+        case Behavior.EXPLORE:
+            return bool(survey.unknown)
+        case Behavior.NAVIGATE:
+            return config.enable_navigation and bool(survey.goals)
+        case Behavior.WANDER:
+            return bool(obs.available_moves)
+        case Behavior.SHARE:
+            return (
+                config.enable_energy_transfer
+                and social.weakest_adjacent is not None
+                and agent.energy > 0
+            )
+        case Behavior.ATTACK:
+            return (
+                config.enable_predation
+                and social.weaker_adjacent
+                and social.weakest_adjacent is not None
+            )
+        case Behavior.FLEE:
+            return social.flee_move is not None
+        case Behavior.SPORULATE:
+            return sporulation_active(config) and agent.energy <= agent.phenotype.spore_threshold
+
+
 def _feasible_action(
     behavior: Behavior,
     agent: "MicroAgent",
@@ -212,41 +254,49 @@ def _feasible_action(
     survey: _Survey,
     rng: np.random.Generator,
 ) -> AgentAction | None:
-    """Acción de `behavior` si es factible (D46.1, precisiones 11, 24 y 30); si no, `None`.
+    """Acción de `behavior` si es factible (`_feasible`); si no, `None`.
 
-    `SHARE` y `ATTACK` exigen además un objetivo (`social.weakest_adjacent is not None`): con
-    una percepción incoherente no devuelven una acción sin destinatario.
+    `EXPLORE` extrae de `rng` sólo si existe algún candidato (D46.1), y explora con probabilidad
+    `epsilon_explore`; `WANDER` extrae el movimiento sólo si hay alguno: las extracciones son las
+    de antes de separar la factibilidad (bloque 21).
     """
-    config = agent.config
+    if not _feasible(behavior, agent, obs, social, survey):
+        return None
     match behavior:
         case Behavior.CONSUME:
-            if survey.beneficial:
-                return AgentAction(ActionType.INTERACT, min(survey.beneficial)[1])
+            return AgentAction(ActionType.INTERACT, min(survey.beneficial)[1])
         case Behavior.EXPLORE:
-            # La extracción ocurre sólo si existe algún candidato (D46.1).
-            if survey.unknown and rng.random() < config.epsilon_explore:
+            if rng.random() < agent.config.epsilon_explore:
                 target = min(survey.unknown, key=lambda r: r.resource_id)
                 return AgentAction(ActionType.INTERACT, target.resource_id)
+            return None
         case Behavior.NAVIGATE:
-            if config.enable_navigation and survey.goals:
-                goal = min(survey.goals, key=lambda r: (r.distance, r.resource_id))
-                return AgentAction(ActionType.MOVE, goal.recommended_move)
+            goal = min(survey.goals, key=lambda r: (r.distance, r.resource_id))
+            return AgentAction(ActionType.MOVE, goal.recommended_move)
         case Behavior.WANDER:
             moves = obs.available_moves
-            if moves:
-                return AgentAction(ActionType.MOVE, moves[int(rng.integers(len(moves)))])
+            return AgentAction(ActionType.MOVE, moves[int(rng.integers(len(moves)))])
         case Behavior.SHARE:
-            target = social.weakest_adjacent
-            if config.enable_energy_transfer and target is not None and agent.energy > 0:
-                return AgentAction(ActionType.SHARE, target)
+            return AgentAction(ActionType.SHARE, social.weakest_adjacent)
         case Behavior.ATTACK:
-            target = social.weakest_adjacent
-            if config.enable_predation and social.weaker_adjacent and target is not None:
-                return AgentAction(ActionType.ATTACK, target)
+            return AgentAction(ActionType.ATTACK, social.weakest_adjacent)
         case Behavior.FLEE:
-            if social.flee_move is not None:
-                return AgentAction(ActionType.MOVE, social.flee_move)
+            return AgentAction(ActionType.MOVE, social.flee_move)
         case Behavior.SPORULATE:
-            if sporulation_active(config) and agent.energy <= agent.phenotype.spore_threshold:
-                return AgentAction(ActionType.SPORULATE)
-    return None
+            return AgentAction(ActionType.SPORULATE)
+
+
+def behavior_feasibility(
+    agent: "MicroAgent", obs: Observation, social: SocialPerception | None
+) -> tuple[SensorySignals, tuple[bool, ...]]:
+    """Señales del tick y factibilidad de cada `Behavior`, en el orden de `BEHAVIORS`, sin `rng`.
+
+    Es la consulta de `policy_divergence` (D53.2): las mismas señales y factibilidades con que
+    decide `GeneticPolicy`, con `EXPLORE` factible si hay recursos alcanzables desconocidos. Con
+    `social=None` usa `SocialPerception()` (precisión 24). No consume generadores ni cambia el
+    agente.
+    """
+    social = _NO_SOCIAL if social is None else social
+    survey = _survey(agent, obs)
+    signals = _signals(survey, obs, social, agent.last_events)
+    return signals, tuple(_feasible(b, agent, obs, social, survey) for b in BEHAVIORS)

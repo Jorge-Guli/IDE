@@ -63,8 +63,12 @@ from ide.domain.types import (
 )
 from ide.environments.grid2d import ToroidalGrid2D
 from ide.experiments.metrics import (
+    Birth,
+    EcologyTickMetrics,
     EvolutionaryMetricsCollector,
     EvolutionaryTickMetrics,
+    GeneticMetricsCollector,
+    GeneticTickMetrics,
     KnowledgeSnapshot,
     MetricsCollector,
     TickMetrics,
@@ -84,6 +88,7 @@ from ide.simulation.pipeline import (
     energy_transfer_active,
     predation_active,
 )
+from ide.simulation.telemetry import EcologyMetricsObserver, GeneticMetricsObserver
 
 # Emisor sintético de los testimonios estigmérgicos (D27); los holones usan IDs <= -2 (D23).
 STIGMERGY_SENDER_ID = -1
@@ -288,6 +293,16 @@ class SimulationEngine:
         self.systems: tuple[EngineSystem, ...] = build_systems(config)
         self.metrics_observer = TickMetricsObserver()
         self.observers: list[TickObserver] = [EvolutionaryMetricsObserver()]
+        # Telemetría de evolución abierta (D53.2, D53.3): se registra en cada tick, con cualquier
+        # combinación de banderas. Sus observadores van en una lista propia, notificada después de
+        # `observers` (precisión 130); el colector acumula lo que cruza ticks (precisión 43).
+        self.genetic_collector = GeneticMetricsCollector(config)
+        self.genetic_history: list[GeneticTickMetrics] = []
+        self.ecology_history: list[EcologyTickMetrics] = []
+        self.telemetry_observers: list[TickObserver] = [
+            GeneticMetricsObserver(),
+            EcologyMetricsObserver(),
+        ]
 
     @property
     def _evo(self) -> EvolutionaryEnvironmentPort:
@@ -300,15 +315,16 @@ class SimulationEngine:
     def step(self) -> TickMetrics:
         """Ejecuta el tick `next_tick` con los sistemas de `build_systems` y lo incrementa (D44).
 
-        Los observadores (`metrics_observer` primero y después los de `observers`) reciben
-        `on_decisions` inmediatamente después del sistema marcado con `notifies_decisions`, antes
-        de ejecutar ninguna acción, y `on_tick_end` al final del tick, con `frame.world_patterns`
-        ya calculado. Si `metrics_observer` no produce el `TickMetrics`, el tick falla antes de
-        notificar a los demás observadores y de incrementar `next_tick`, para que ningún
-        historial quede desalineado.
+        Los observadores (`metrics_observer` primero, después los de `observers` y por último los
+        de `telemetry_observers`) reciben `on_decisions` inmediatamente después del sistema
+        marcado con `notifies_decisions`, antes de ejecutar ninguna acción, y `on_tick_end` al
+        final del tick, con `frame.world_patterns` ya calculado. Si `metrics_observer` no produce
+        el `TickMetrics`, el tick falla antes de notificar a los demás observadores y de
+        incrementar `next_tick`, para que ningún historial quede desalineado.
         """
         frame = TickFrame(self.next_tick)
-        metrics_observer, observers = self.metrics_observer, self.observers
+        metrics_observer = self.metrics_observer
+        observers = (*self.observers, *self.telemetry_observers)
         for system in self.systems:
             system.run(self, frame)
             if system.notifies_decisions:
@@ -787,15 +803,18 @@ class SimulationEngine:
             if agent.energy < limit:
                 agent.record_stress(tick)
 
-    def _remove_dead(self, tick: int) -> list[int]:
+    def _remove_dead(self, tick: int, ages: list[int] | None = None) -> list[int]:
         """Elimina, por `agent_id`, a quien quedó con E <= 0 tras el metabolismo (R13).
 
         Con R35 (D48.3, precisiones 17 y 78), antes de quitarlos deposita el cadáver de cada
         muerto en su celda, en el mismo orden de `agent_id`. Las perturbaciones no pasan por
-        aquí, así que no dejan cadáver. Devuelve los muertos, en orden.
+        aquí, así que no dejan cadáver. Devuelve los muertos, en orden. Si recibe `ages`, le
+        agrega la edad `tick - birth_tick` de cada muerto, para `mean_age_at_death` (precisión 49).
         """
         dead = [aid for aid in sorted(self.agents) if self.agents[aid].energy <= 0]
         if dead:
+            if ages is not None:
+                ages.extend(tick - self.agents[aid].birth_tick for aid in dead)
             if self.carcasses_active:
                 env = cast(EcologicalEnvironmentPort, self.env)
                 value = self.config.carcass_value
@@ -804,7 +823,7 @@ class SimulationEngine:
             self._remove(dead, tick)
         return dead
 
-    def _reproduce(self, tick: int, events: Counter[str]) -> int:
+    def _reproduce(self, tick: int, events: Counter[str], born: list[Birth] | None = None) -> int:
         """R17 y luego R12 (o su ablación neutral), a lo sumo un evento por agente (D26).
 
         Con ADN y reproducción neutral, cada hoja progenitora de R17 recibe, en el orden de
@@ -814,6 +833,9 @@ class SimulationEngine:
         (D51), la reproducción individual cruza el primer ADN (el del progenitor o, en neutral,
         el del donante) con el de una pareja; R17 no recombina. Cada cruce suma el evento
         `recombinations` de `events` (precisión 20).
+
+        `born` recibe, en el orden de los nacimientos, la fuente genética y el ADN de cada hijo
+        (`_give_birth`, precisión 68).
         """
         config = self.config
         reproduced: set[int] = set()
@@ -857,11 +879,13 @@ class SimulationEngine:
                     for leaf, donor in zip(leaves, leaf_donors, strict=True):
                         self._check_donor(leaf, donor)
                     offspring = {
-                        leaf.agent_id: self._give_birth(leaf, tick, donor)
+                        leaf.agent_id: self._give_birth(leaf, tick, donor, born=born)
                         for leaf, donor in zip(leaves, leaf_donors, strict=True)
                     }
                 else:
-                    offspring = {leaf.agent_id: self._give_birth(leaf, tick) for leaf in leaves}
+                    offspring = {
+                        leaf.agent_id: self._give_birth(leaf, tick, born=born) for leaf in leaves
+                    }
                 child = reproduce_holon(node, offspring, self._take_holon_id, tick)
                 world = self.env.get_world_patterns()
                 for replica in composite_nodes(child):
@@ -899,7 +923,7 @@ class SimulationEngine:
                 crossed = self._cross(agent, donor, pool)
                 if crossed is not None:
                     events["recombinations"] += 1
-            child = self._give_birth(agent, tick, donor, crossed)
+            child = self._give_birth(agent, tick, donor, crossed, born)
             self._set_root(child)
             reproduced.update((aid, child.agent_id))
             births += 1
@@ -978,6 +1002,7 @@ class SimulationEngine:
         tick: int,
         donor: MicroAgent | None = None,
         crossed: CompactDNA | None = None,
+        born: list[Birth] | None = None,
     ) -> MicroAgent:
         """Hijo con ID nuevo, ubicado junto al progenitor y con su herencia cultural (D22, D26).
 
@@ -989,6 +1014,12 @@ class SimulationEngine:
         Con $R_{30}$ (D39), la escala de mutación se decide con el estado del progenitor antes
         de partir la energía; en la reproducción holónica, con el de cada hoja. Sin la regla, la
         escala es 1.0 y la Fase II no cambia en un bit.
+
+        Punto de enganche de la telemetría (precisión 68): si recibe `born`, anota la fuente
+        genética del hijo, el `agent_id` cuyo ADN hereda antes de mutar (el donante si lo hay;
+        si no, el progenitor), y el ADN con que nació. Con $R_{38}$ la fuente es la misma, el que
+        inicia el cruce (el progenitor o, en neutral, el donante): la pareja no se anota. No
+        consume generadores.
         """
         rng = self.evo_rng
         scale = compute_sos_scale(parent.energy, parent.last_stress_tick, tick, self.config)
@@ -1009,6 +1040,9 @@ class SimulationEngine:
                 self.next_agent_id, tick, rng, dna_source=donor.dna, mutation_scale=scale
             )
         self.next_agent_id += 1
+        if born is not None:
+            source = parent if donor is None else donor
+            born.append(Birth(source.agent_id, child.dna))
         genome = child.genome
         self._evo.spawn_agent_near(
             child.agent_id,
@@ -1030,9 +1064,14 @@ class SimulationEngine:
 
     # --- Fase II-B: plásmidos (R26) e inmunidad CRISPR (R27) ----------------------------------
 
-    def _conjugate(self, tick: int, events: Counter[str]) -> None:
+    def _conjugate(
+        self,
+        tick: int,
+        events: Counter[str],
+        receptions: list[tuple[CompactDNA, int]] | None = None,
+    ) -> None:
         """Conjugación de la Fase 5 (vi), design D37: sorteo completo y después aplicación."""
-        self._apply_conjugations(self._draw_conjugations(), tick, events)
+        self._apply_conjugations(self._draw_conjugations(), tick, events, receptions)
 
     def _draw_conjugations(self) -> list[tuple[int, int]]:
         """Sorteo de la conjugación con `hgt_rng` (D37, pasos 1 y 2); no cambia ningún ADN.
@@ -1071,7 +1110,11 @@ class SimulationEngine:
         return transfers
 
     def _apply_conjugations(
-        self, transfers: list[tuple[int, int]], tick: int, events: Counter[str]
+        self,
+        transfers: list[tuple[int, int]],
+        tick: int,
+        events: Counter[str],
+        receptions: list[tuple[CompactDNA, int]] | None = None,
     ) -> None:
         """Aplica las transferencias sorteadas (D37, paso 3; precisión 5).
 
@@ -1080,7 +1123,9 @@ class SimulationEngine:
         `receive_plasmid` cuenta en `crispr_rejections`; un ADN que cambió se guarda con
         `set_dna` (que vacía las cachés, la decisión registrada y `plastic_weights`), cuenta en
         `hgt_transfers` y, con $R_{27}$, abre el ensayo `(tick, energía actual, 0.0)`. Un codón
-        ya presente no cuenta. No toca la memoria epistémica ni el control nulo (D37).
+        ya presente no cuenta. No toca la memoria epistémica ni el control nulo (D37). Si recibe
+        `receptions`, le agrega el ADN anterior y el codón de cada transferencia que cambió el
+        ADN, para la actividad por recepciones (precisión 43).
         """
         if not transfers:
             return
@@ -1101,6 +1146,8 @@ class SimulationEngine:
             if received is None:
                 events["crispr_rejections"] += 1
             elif received is not dna:
+                if receptions is not None:
+                    receptions.append((dna, codon))
                 agent.set_dna(received)
                 events["hgt_transfers"] += 1
                 if crispr:

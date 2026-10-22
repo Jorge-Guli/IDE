@@ -1,18 +1,40 @@
-"""Métricas poblacionales M1 a M7 y telemetría evolutiva M8 a M13 (`experimental-suite`).
+"""Métricas poblacionales M1 a M7, telemetría evolutiva M8 a M13 y telemetría de evolución
+abierta de la Fase II-B (`experimental-suite`, D53.2, D53.3 y D63.2-D63.4).
 
 Sólo cuentan las creencias de `BoundedMemory`. Una creencia es válida si su signo coincide con
 el del mundo y su confianza alcanza `decision_conf_threshold`; es falsa si el signo es opuesto
 con la misma confianza.
 """
 
+import math
+from collections import Counter
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from typing import Literal
+from dataclasses import dataclass, fields
+from typing import Literal, NamedTuple
 
-from ide.agent.holon import AgentNode, CompositeAgent, composite_nodes
+from ide.agent.dna import (
+    BEHAVIORS,
+    canonical_codon,
+    evaluate_behavior,
+    expressible_codons,
+    founder_dna,
+    functional_codon_values,
+    learning_codons,
+    trait_or_behavior_codons,
+)
+from ide.agent.holon import AgentNode, CompositeAgent, composite_nodes, is_effectively_locked
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
-from ide.domain.types import ActionType, AgentAction, Pattern, counts_as_knowledge
+from ide.domain.types import (
+    ActionType,
+    AgentAction,
+    CompactDNA,
+    EpigeneticContext,
+    EpigeneticRole,
+    Pattern,
+    SensorySignals,
+    counts_as_knowledge,
+)
 
 
 @dataclass(frozen=True)
@@ -350,3 +372,458 @@ def holon_tick_mean(
         if value is not None:
             total += value * m.eligible_holons
     return total / pairs
+
+
+# --- Fase II-B: telemetría de evolución abierta (D53.2, D53.3, D63.2-D63.4) --------------------
+
+
+@dataclass(frozen=True)
+class GeneticTickMetrics:
+    """Telemetría genética de un tick (D41, D53.2, precisiones 42, 43, 49 y 68, D63.2).
+
+    Los promedios son sobre las hojas vivas al final del tick (precisión 10); los de codones, sobre
+    las que tienen ADN. Con la población vacía los promedios valen 0.0 y los conteos 0.
+    """
+
+    # D41 y precisión 10.
+    tick: int
+    mean_chromosome_length: float
+    mean_expressed_codons: float
+    mean_plasmids: float
+    endospores: int
+    senescent_agents: int  # `tick - birth_tick > phenotype.lifespan`
+    mean_age: float
+    max_age: int
+    explorers: int
+    librarians: int
+    nerves: int
+    locked_holons: int
+    hgt_transfers: int  # eventos del tick (precisión 5)
+    crispr_rejections: int
+    crispr_purges: int
+    # D53.2.
+    distinct_genotypes: int
+    mean_functional_codons: float  # descriptiva
+    regulated_expression_fraction: float  # descriptiva (precisión 42)
+    policy_divergence: float  # métrica de C14
+    communicating_fraction: float  # métrica de C15
+    new_activity: int  # Bedau-Packard por nacimientos portadores (precisión 43)
+    cumulative_new_activity: int
+    # Precisiones 42, 43 y 49.
+    mean_expressible_codons: float  # descriptiva
+    cumulative_births: int
+    new_activity_per_birth: float  # métrica de C16
+    mean_age_at_death: float  # covariable (precisión 49)
+    mean_conditional_codons: float  # métrica de C13
+    mean_expressible_nonattack_codons: float  # métrica de C17
+    # D63.2.
+    mean_internal_state_bits: float
+    mean_plasticity_rate: float
+    mean_abs_plastic_weight: float
+    mean_learning_codons: float  # métrica de C19 (precisión 52)
+    signaling_rate: float
+    symbol_diversity: int
+    max_signal_information: float  # descriptiva
+    birth_source_ids: tuple[int, ...]  # precisión 68
+
+
+@dataclass(frozen=True)
+class EcologyTickMetrics:
+    """Telemetría ecológica de un tick (D53.3, D63.3, D63.4).
+
+    Los contadores son los eventos del tick (`frame.events`, precisión 20); `share_rate` es
+    `shares` sobre las decisiones del tick (precisiones 5 y 85).
+    """
+
+    tick: int
+    resources_available: int
+    shares: int
+    attacks: int
+    successful_attacks: int
+    predation_deaths: int
+    starvation_deaths: int
+    carcasses_deposited: int
+    carcasses_eaten: int
+    sporulations: int
+    recombinations: int
+    share_rate: float  # métrica de C18
+    behavior_counts: tuple[int, ...]  # decisiones por `Behavior`, en el orden de D46.1
+    signals_emitted: int
+    plastic_updates: int
+    decision_opportunities: int  # M2 del tick (D63.4), métrica de C20
+    correct_decisions: int
+
+
+# Contadores de `EcologyTickMetrics` que se copian de `frame.events` (precisión 20).
+_ECOLOGY_EVENTS = (
+    "shares",
+    "attacks",
+    "successful_attacks",
+    "predation_deaths",
+    "starvation_deaths",
+    "carcasses_deposited",
+    "carcasses_eaten",
+    "sporulations",
+    "recombinations",
+)
+
+
+class Birth(NamedTuple):
+    """Un nacimiento del tick: su fuente genética (precisión 68) y el ADN con que nació.
+
+    La fuente es el `agent_id` cuyo ADN hereda el hijo antes de mutar: el progenitor con
+    selección; el donante en la reproducción neutral (también en $R_{17}$, precisión 41); con
+    $R_{38}$, el que inicia el cruce, sin la pareja. `dna` es el del hijo al nacer (`None` sin
+    ADN): la actividad cuenta los individuos que nacieron portando un codón (precisión 43).
+    """
+
+    source_id: int
+    dna: CompactDNA | None
+
+
+class DecisionRecord(NamedTuple):
+    """Una decisión del tick (precisión 5) para la telemetría genética de la Fase 3.
+
+    `signals` es `None` si la decisión no se tomó con la política genética; `divergent` dice si
+    la primera conducta factible según el ADN del agente difiere de la del ADN fundador.
+    """
+
+    emitted: int  # máscara de símbolos emitidos (R41); 0 sin emisión
+    signals: SensorySignals | None
+    divergent: bool
+
+
+class DecisionGenetics(NamedTuple):
+    """Lo que la telemetría genética lee de las decisiones del tick, en `on_decisions`."""
+
+    policy_divergence: float
+    signaling_rate: float
+    symbol_diversity: int
+    max_signal_information: float
+
+
+NO_DECISIONS = DecisionGenetics(0.0, 0.0, 0, 0.0)
+
+
+class DecisionEcology(NamedTuple):
+    """Las decisiones del tick (precisión 5) y su conteo por `Behavior` (D53.3)."""
+
+    decisions: int
+    behavior_counts: tuple[int, ...]
+
+
+def first_feasible_slot(drives: Sequence[float], feasible: Sequence[bool]) -> int | None:
+    """La posición de la primera conducta factible en el orden de `GeneticPolicy` (D46.4).
+
+    Se prueban las conductas con impulso positivo en orden de `(-d_B, posición)`; `None` si
+    ninguna es factible (la decisión es `IDLE`).
+    """
+    for _, slot in sorted((-drive, slot) for slot, drive in enumerate(drives) if drive > 0):
+        if feasible[slot]:
+            return slot
+    return None
+
+
+def _binary_information(n11: int, n10: int, n01: int, n00: int) -> float:
+    """Información mutua, en bits, entre dos variables binarias con esa tabla de conteos."""
+    total = n11 + n10 + n01 + n00
+    x1, y1 = n11 + n10, n11 + n01
+    marginal = {(1, 1): x1 * y1, (1, 0): x1 * (total - y1)}
+    marginal |= {(0, 1): (total - x1) * y1, (0, 0): (total - x1) * (total - y1)}
+    joint = {(1, 1): n11, (1, 0): n10, (0, 1): n01, (0, 0): n00}
+    info = 0.0
+    for cell in ((1, 1), (1, 0), (0, 1), (0, 0)):
+        count = joint[cell]
+        if count:
+            info += count / total * math.log2(count * total / marginal[cell])
+    return info
+
+
+_SIGNAL_FIELDS = tuple(f.name for f in fields(SensorySignals))
+_SYMBOLS = 8  # símbolos de señal, `channel & 0x07` (D60.2)
+
+
+def signal_information(samples: Sequence[tuple[int, SensorySignals]]) -> float:
+    """`max_signal_information` (D63.2): el máximo, sobre los pares (símbolo $k$, campo $j$ de
+    las `SensorySignals` del emisor), de la información mutua en bits entre "emitió $k$" y "$j$
+    es verdadero" en las decisiones dadas; 0.0 sin decisiones o sin emisiones."""
+    total = len(samples)
+    emitted = 0
+    for mask, _ in samples:
+        emitted |= mask
+    if not total or not emitted:
+        return 0.0
+    columns = [[bool(getattr(signals, name)) for _, signals in samples] for name in _SIGNAL_FIELDS]
+    best = 0.0
+    for k in range(_SYMBOLS):
+        if not emitted >> k & 1:
+            continue  # un símbolo que nadie emitió no informa nada
+        sent = [bool(mask >> k & 1) for mask, _ in samples]
+        for column in columns:
+            n11 = sum(1 for s, v in zip(sent, column, strict=True) if s and v)
+            n10 = sum(sent) - n11
+            n01 = sum(column) - n11
+            best = max(best, _binary_information(n11, n10, n01, total - n11 - n10 - n01))
+    return best
+
+
+def summarize_decisions(records: Sequence[DecisionRecord]) -> DecisionGenetics:
+    """Telemetría genética de las decisiones del tick (D53.2, D63.2, precisión 5).
+
+    `policy_divergence` es la fracción de las decisiones genéticas que divergen del fundador
+    (0.0 sin ellas); `signaling_rate`, la de decisiones cuyo agente emitió algún símbolo;
+    `symbol_diversity`, los símbolos distintos emitidos; y `max_signal_information`, la de
+    `signal_information` sobre las decisiones genéticas, las únicas con señales.
+    """
+    if not records:
+        return NO_DECISIONS
+    genetic = [r for r in records if r.signals is not None]
+    union = 0
+    for record in records:
+        union |= record.emitted
+    return DecisionGenetics(
+        policy_divergence=(
+            sum(1 for r in genetic if r.divergent) / len(genetic) if genetic else 0.0
+        ),
+        signaling_rate=sum(1 for r in records if r.emitted) / len(records),
+        symbol_diversity=union.bit_count(),
+        max_signal_information=signal_information(
+            [(r.emitted, r.signals) for r in genetic if r.signals is not None]
+        ),
+    )
+
+
+def ecology_tick_metrics(
+    tick: int,
+    resources_available: int,
+    events: Mapping[str, int],
+    decisions: DecisionEcology,
+    decision_opportunities: int,
+    correct_decisions: int,
+) -> EcologyTickMetrics:
+    """Arma el `EcologyTickMetrics` del tick a partir de los eventos y de las decisiones."""
+    counts = {name: events.get(name, 0) for name in _ECOLOGY_EVENTS}
+    return EcologyTickMetrics(
+        tick=tick,
+        resources_available=resources_available,
+        **counts,
+        share_rate=counts["shares"] / decisions.decisions if decisions.decisions else 0.0,
+        behavior_counts=decisions.behavior_counts,
+        signals_emitted=events.get("signals_emitted", 0),
+        plastic_updates=events.get("plastic_updates", 0),
+        decision_opportunities=decision_opportunities,
+        correct_decisions=correct_decisions,
+    )
+
+
+class _Genotype(NamedTuple):
+    """Consultas por genotipo de una hoja, que dependen sólo de su ADN y del protocolo."""
+
+    expressible: int
+    nonattack: int
+    conditional: int
+    functional: int
+    learning: int  # sin la condición del modo 3
+    learning_plastic: int  # con ella (hoja con `plasticity_rate > 0`)
+
+
+_ATTACK_TARGET = 0x45  # destino de `ATTACK` (D46.1): inerte en `no_predation` (precisión 42)
+_ROLE_FIELDS = (EpigeneticRole.EXPLORER, EpigeneticRole.LIBRARIAN, EpigeneticRole.NERVE)
+
+
+class GeneticMetricsCollector:
+    """Arma un `GeneticTickMetrics` por tick y acumula lo que cruza ticks (precisiones 43 y 49).
+
+    Guarda la actividad $a_c$ de cada valor canónico funcional ausente del cromosoma fundador,
+    la actividad nueva acumulada, los nacimientos y las edades de las muertes. Las consultas por
+    genotipo se guardan por instancia de ADN mientras alguna hoja viva la porte, así que el
+    resultado no depende del caché. No consume generadores.
+    """
+
+    def __init__(self, config: SimulationConfig) -> None:
+        self._config = config
+        founder = founder_dna(config)
+        self._founder_values = functional_codon_values(founder)
+        # Los codones del fundador tienen el promotor constitutivo 0x00 (D32, D46.5): sus
+        # impulsos no dependen de las señales, del contexto ni del estado del tick.
+        if any((codon >> 24) & 0xFF for codon in founder.chromosome):  # pragma: no cover
+            raise ValueError("el ADN fundador debe tener sólo el promotor constitutivo 0x00")
+        signals = SensorySignals(**dict.fromkeys(_SIGNAL_FIELDS, False))
+        self.founder_drives: tuple[float, ...] = evaluate_behavior(
+            founder, EpigeneticContext(), signals, config
+        ).drives
+        self._activity: dict[int, int] = {}
+        self._cumulative_new_activity = 0
+        self._cumulative_births = 0
+        self._death_age_sum = 0
+        self._deaths = 0
+        self._genotypes: dict[int, tuple[CompactDNA, _Genotype]] = {}
+
+    def _genotype(
+        self, dna: CompactDNA, cache: dict[int, tuple[CompactDNA, _Genotype]]
+    ) -> _Genotype:
+        key = id(dna)
+        entry = cache.get(key) or self._genotypes.get(key)
+        if entry is None or entry[0] is not dna:
+            config = self._config
+            holonic, roles = config.enable_holonic_hierarchy, config.enable_epigenetic_roles
+            values = expressible_codons(dna, holonic, roles)
+            fixed = learning_codons(dna, holonic, roles, False)
+            entry = (
+                dna,
+                _Genotype(
+                    expressible=len(values),
+                    nonattack=sum(1 for v, _ in values if (v >> 16) & 0xFF != _ATTACK_TARGET),
+                    conditional=sum(1 for _, conditional in values if conditional),
+                    functional=trait_or_behavior_codons(dna),
+                    learning=len(fixed),
+                    learning_plastic=len(learning_codons(dna, holonic, roles, True)),
+                ),
+            )
+        cache[key] = entry
+        return entry[1]
+
+    def _activity_step(
+        self, births: Sequence[Birth], receptions: Sequence[tuple[CompactDNA, int]]
+    ) -> int:
+        """Suma los nacimientos portadores y las recepciones del tick a $a_c$ (precisión 43) y
+        devuelve los valores que cruzaron `activity_threshold` en el tick."""
+        founder = self._founder_values
+        increments: Counter[int] = Counter()
+        for birth in births:
+            if birth.dna is not None:
+                increments.update(functional_codon_values(birth.dna) - founder)
+        for before, codon in receptions:
+            # Cuenta si el codón recibido es funcional, no es fundador y el receptor no lo portaba.
+            value = canonical_codon(codon)
+            functional = value in functional_codon_values(CompactDNA((codon,)))
+            if functional and value not in founder and value not in functional_codon_values(before):
+                increments[value] += 1
+        threshold = self._config.activity_threshold
+        crossed = 0
+        for value in sorted(increments):
+            old = self._activity.get(value, 0)
+            new = old + increments[value]
+            self._activity[value] = new
+            if old < threshold <= new:
+                crossed += 1
+        return crossed
+
+    def record_tick(
+        self,
+        tick: int,
+        agents: Mapping[int, MicroAgent],
+        root_nodes: Mapping[int, AgentNode],
+        events: Mapping[str, int],
+        births: Sequence[Birth],
+        death_ages: Sequence[int],
+        receptions: Sequence[tuple[CompactDNA, int]],
+        decisions: DecisionGenetics,
+    ) -> GeneticTickMetrics:
+        """El registro del tick, con el estado de las hojas vivas al final del tick.
+
+        `births` son los nacimientos del tick, `death_ages` las edades de sus muertes (paso de
+        muerte, sin las perturbaciones), `receptions` las conjugaciones que cambiaron el ADN del
+        receptor (con su ADN anterior y el codón recibido) y `decisions` lo leído en
+        `on_decisions` (precisión 126).
+        """
+        config = self._config
+        new_activity = self._activity_step(births, receptions)
+        self._cumulative_new_activity += new_activity
+        self._cumulative_births += len(births)
+        self._deaths += len(death_ages)
+        self._death_age_sum += sum(death_ages)
+
+        population = [agents[aid] for aid in sorted(agents)]
+        count = len(population)
+        ages = [tick - agent.birth_tick for agent in population]
+        roles = Counter(agent.epigenetic_role for agent in population)
+        awake = [agent for agent in population if not agent.is_endospore]
+        weights = [abs(w) for agent in population for w in agent.plastic_weights.values()]
+
+        cache: dict[int, tuple[CompactDNA, _Genotype]] = {}
+        chromosomes: set[tuple[int, ...]] = set()
+        dna_count = lengths = plasmids = expressed = 0
+        expressible = nonattack = conditional = functional = learning = 0
+        regulated = 0.0
+        for agent in population:
+            dna = agent.dna
+            if dna is None:  # sin ADN, las medias genéticas valen 0.0 (precisión 10)
+                continue
+            dna_count += 1
+            expressed += agent.phenotype.expressed_codons
+            genotype = self._genotype(dna, cache)
+            chromosomes.add(dna.chromosome)
+            lengths += len(dna.chromosome)
+            plasmids += len(dna.plasmids)
+            expressible += genotype.expressible
+            nonattack += genotype.nonattack
+            conditional += genotype.conditional
+            functional += genotype.functional
+            if genotype.expressible:
+                regulated += genotype.conditional / genotype.expressible
+            plastic = agent.phenotype.plasticity_rate > 0
+            learning += genotype.learning_plastic if plastic else genotype.learning
+        self._genotypes = cache  # sólo los ADN de las hojas vivas
+
+        def mean(total: float, n: int) -> float:
+            return total / n if n else 0.0
+
+        births_total = self._cumulative_births
+        return GeneticTickMetrics(
+            tick=tick,
+            mean_chromosome_length=mean(lengths, count),
+            mean_expressed_codons=mean(expressed, count),
+            mean_plasmids=mean(plasmids, count),
+            endospores=count - len(awake),
+            senescent_agents=sum(
+                1
+                for agent, age in zip(population, ages, strict=True)
+                if age > agent.phenotype.lifespan
+            ),
+            mean_age=mean(sum(ages), count),
+            max_age=max(ages, default=0),
+            explorers=roles[_ROLE_FIELDS[0]],
+            librarians=roles[_ROLE_FIELDS[1]],
+            nerves=roles[_ROLE_FIELDS[2]],
+            locked_holons=sum(
+                1
+                for nid in sorted(root_nodes)
+                for holon in composite_nodes(root_nodes[nid])
+                if is_effectively_locked(holon, config)
+            ),
+            hgt_transfers=events.get("hgt_transfers", 0),
+            crispr_rejections=events.get("crispr_rejections", 0),
+            crispr_purges=events.get("crispr_purges", 0),
+            distinct_genotypes=len(chromosomes),
+            mean_functional_codons=mean(functional, dna_count),
+            regulated_expression_fraction=mean(regulated, dna_count),
+            policy_divergence=decisions.policy_divergence,
+            communicating_fraction=mean(
+                sum(1 for agent in awake if agent.phenotype.comm_propensity >= 0.5), len(awake)
+            ),
+            new_activity=new_activity,
+            cumulative_new_activity=self._cumulative_new_activity,
+            mean_expressible_codons=mean(expressible, dna_count),
+            cumulative_births=births_total,
+            new_activity_per_birth=mean(self._cumulative_new_activity, births_total),
+            mean_age_at_death=mean(self._death_age_sum, self._deaths),
+            mean_conditional_codons=mean(conditional, dna_count),
+            mean_expressible_nonattack_codons=mean(nonattack, dna_count),
+            mean_internal_state_bits=mean(
+                sum(agent.internal_state.bit_count() for agent in population), count
+            ),
+            mean_plasticity_rate=mean(
+                sum(agent.phenotype.plasticity_rate for agent in population), count
+            ),
+            mean_abs_plastic_weight=mean(sum(weights), len(weights)),
+            mean_learning_codons=mean(learning, dna_count),
+            signaling_rate=decisions.signaling_rate,
+            symbol_diversity=decisions.symbol_diversity,
+            max_signal_information=decisions.max_signal_information,
+            birth_source_ids=tuple(sorted(birth.source_id for birth in births)),
+        )
+
+
+# Posición de cada `Behavior` en `behavior_counts` (el orden de la tabla de D46.1).
+BEHAVIOR_SLOTS = {behavior: slot for slot, behavior in enumerate(BEHAVIORS)}
