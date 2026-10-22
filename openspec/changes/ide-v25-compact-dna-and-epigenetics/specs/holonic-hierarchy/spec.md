@@ -64,7 +64,7 @@ En la reproducción holónica ($R_{17}$), cada hoja hija SHALL recibir el rol de
 - **THEN** las hojas de la réplica nacen con esos mismos roles, en correspondencia con sus progenitoras, y la Fase 5 no los recalcula mientras la réplica conserve sus hojas.
 
 ### Requirement: Sello por Compromiso Simbiótico (R31)
-`CompositeAgent` SHALL incorporar `is_locked: bool = False`. Con `enable_holonic_hierarchy`, `enable_compact_dna` y `enable_symbiotic_ratchet` activas, en el paso de coordinación de la Fase 5, antes de cobrar el costo de coordinación y de evaluar `SPLIT`, un holón raíz no soldado SHALL quedar soldado si la media del `symbiotic_commitment` expresado de sus hojas es $\ge 0.5$. El sello es permanente.
+`CompositeAgent` SHALL incorporar `is_locked: bool = False`. Con `enable_holonic_hierarchy`, `enable_compact_dna` y `enable_symbiotic_ratchet` activas, en el paso de coordinación de la Fase 5, antes de cobrar el costo de coordinación y de evaluar `SPLIT`, un holón raíz no soldado SHALL quedar soldado si la media del `symbiotic_commitment` expresado de sus hojas es $\ge 0.5$, con tolerancia `1e-9`. El sello es permanente.
 
 #### Scenario: Sello por compromiso medio
 - **WHEN** un holón raíz no soldado tiene 2 hojas que expresan `symbiotic_commitment` 0.25 y 0.75
@@ -102,6 +102,10 @@ Un holón soldado SHALL seguir sujeto a la poda por muerte: conserva el sello si
 #### Scenario: Poda de un holón soldado
 - **WHEN** en un holón soldado de 3 hojas muere una hoja, y después muere otra
 - **THEN** tras la primera muerte el holón conserva `is_locked == True` con 2 hojas, y tras la segunda colapsa y la hoja restante queda como raíz.
+
+#### Scenario: Poda de un holón soldado anidado
+- **WHEN** un holón raíz soldado $(S(A, B), C)$, con $S$ sin soldar, pierde la hoja $C$
+- **THEN** colapsa a $S$, que queda como raíz con `is_locked == True` (design, precisión 122).
 
 #### Scenario: Sello conservado tras una fusión
 - **WHEN** un holón soldado se fusiona por `BOND` en un holón de nivel superior que después se disuelve por `SPLIT`

@@ -24,6 +24,7 @@ from ide.agent.holon import (
     best_beliefs,
     composite_nodes,
     evaluate_bond_candidates,
+    is_effectively_locked,
     prune_dead_leaves,
     reproduce_holon,
     should_lock_holon,
@@ -521,18 +522,17 @@ class SimulationEngine:
         soldada se multiplica por `lock_coord_discount`, y `should_split_holon` no la parte.
         """
         config = self.config
-        ratchet = self.symbiotic_ratchet_active
         reach = self._local_reach()
         for nid in sorted(self.root_nodes):
             node = self.root_nodes[nid]
             if not isinstance(node, CompositeAgent):
                 continue
-            if ratchet and should_lock_holon(node, config):
-                node.is_locked = True
             leaves = node.leaf_agents
+            if should_lock_holon(node, config, leaves):
+                node.is_locked = True
             if config.enable_evolution:
                 share = config.holon_coord_cost * node.holon_level  # c_coord(U) / |U|
-                if ratchet and node.is_locked:  # sólo la raíz da descuento (precisión 8)
+                if is_effectively_locked(node, config):  # sólo la raíz da descuento (prec. 8)
                     share *= config.lock_coord_discount
                 for leaf in leaves:
                     leaf.apply_energy_delta(-share)
@@ -615,8 +615,12 @@ class SimulationEngine:
                     pairs.add(pair)
         return sorted(pairs)
 
-    def _apply_downward_causation(self) -> None:
-        """R18 sobre el bosque actual; los nodos raíz de nivel 0 quedan sin penalización."""
+    def _apply_downward_causation(self) -> dict[int, list[int]]:
+        """R18 sobre el bosque actual; los nodos raíz de nivel 0 quedan sin penalización.
+
+        Devuelve el alcance local que usó, para que la asignación de roles de $R_{25}$ del mismo
+        paso no lo recalcule (precisión 110).
+        """
         reach = self._local_reach()
         for nid in sorted(self.root_nodes):
             node = self.root_nodes[nid]
@@ -625,33 +629,43 @@ class SimulationEngine:
                 apply_downward_causation(node, local, self.config)
             else:
                 cast(MicroAgent, node).memory.set_redundant_patterns(frozenset(), 1.0)
+        return reach
 
-    def _assign_epigenetic_roles(self) -> None:
+    def _assign_epigenetic_roles(self, reach: Mapping[int, list[int]] | None = None) -> None:
         """R25 (D36): roles de las raíces cuya composición cambió, tras R18 en la Fase 5.
 
         Recorre las raíces por `node_id`: un holón sin entrada en `_role_leaf_sets` o con otro
         conjunto de hojas recibe roles nuevos (`assign_epigenetic_roles`, con el alcance local
-        de D25.1); las hojas que son su propia raíz vuelven a `NONE`; las entradas de raíces que
-        ya no existen se descartan. Los roles se escriben después de calcularlos todos. No
-        consume generadores.
+        de D25.1: `reach` si quien llama ya lo calculó, el de R18 del mismo paso); las hojas que
+        dejaron de estar en una raíz compuesta vuelven a `NONE`; las entradas de raíces que ya
+        no existen se descartan. Los roles se escriben después de calcularlos todos. No consume
+        generadores. Sólo escribe `NONE` en las hojas de las entradas que cambiaron o
+        desaparecieron: un rol distinto de `NONE` siempre pertenece a una entrada registrada, o
+        a una réplica sin registrar que este mismo paso recalcula (precisiones 110 y 111).
         """
-        reach: dict[int, list[int]] | None = None
+        previous = self._role_leaf_sets
         roles: dict[int, EpigeneticRole] = {}
         leaf_sets: dict[int, frozenset[int]] = {}
         for nid in sorted(self.root_nodes):
             node = self.root_nodes[nid]
             if not isinstance(node, CompositeAgent):
-                roles[nid] = EpigeneticRole.NONE
                 continue
             leaves = node.leaf_agents
             current = frozenset(leaf.agent_id for leaf in leaves)
             leaf_sets[nid] = current
-            if self._role_leaf_sets.get(nid) == current:
+            if previous.get(nid) == current:
                 continue
             if reach is None:  # sólo si alguna raíz cambió
                 reach = self._local_reach()
             local = {leaf.agent_id: reach[leaf.agent_id] for leaf in leaves}
             roles.update(assign_epigenetic_roles(node, local, self.config))
+        released: set[int] = set()
+        for nid, old in previous.items():
+            if leaf_sets.get(nid) != old:
+                released.update(old)
+        for aid in sorted(released):  # hojas que quedaron como su propia raíz
+            if aid not in roles and aid in self.agents and self.agent_to_root[aid] == aid:
+                roles[aid] = EpigeneticRole.NONE
         self._role_leaf_sets = leaf_sets
         for aid in sorted(roles):
             self.agents[aid].set_epigenetic_role(roles[aid])
@@ -801,12 +815,15 @@ class SimulationEngine:
                 for replica in composite_nodes(child):
                     replica.formation_knowledge = self._formation_knowledge(replica, world)
                 self._set_root(child)
-                if self.epigenetic_roles_active:  # impronta de R25 (D36, precisión 11)
+                if self.epigenetic_roles_active:  # impronta de R25 (D36, precisiones 11 y 111)
                     for leaf in leaves:
                         offspring[leaf.agent_id].set_epigenetic_role(leaf.epigenetic_role)
-                    self._role_leaf_sets[child.node_id] = frozenset(
-                        c.agent_id for c in offspring.values()
-                    )
+                    # Si la composición del progenitor cambió en este tick, sus roles no son de
+                    # ella: la réplica no queda registrada y el paso (vii) le asigna roles.
+                    if self._role_leaf_sets.get(nid) == frozenset(leaf.agent_id for leaf in leaves):
+                        self._role_leaf_sets[child.node_id] = frozenset(
+                            c.agent_id for c in offspring.values()
+                        )
                 reproduced.update(offspring)
                 reproduced.update(c.agent_id for c in offspring.values())
                 births += len(offspring)
@@ -918,8 +935,11 @@ class SimulationEngine:
                 node.formation_knowledge = self._formation_knowledge(node)
                 node.formation_tick = formation_tick
         if tick is None and self.config.enable_holonic_hierarchy:
-            # Entre pasos: las hojas liberadas pierden la penalización de R18 antes del tick.
-            self._apply_downward_causation()
+            # Entre pasos: las hojas liberadas pierden la penalización de R18 antes del tick y,
+            # con R25, los holones podados se reasignan como en la Fase 5 (precisión 123).
+            reach = self._apply_downward_causation()
+            if self.epigenetic_roles_active:
+                self._assign_epigenetic_roles(reach)
 
     def inject_false_belief(
         self, pattern: Pattern, false_value: float, confidence: float, fraction: float

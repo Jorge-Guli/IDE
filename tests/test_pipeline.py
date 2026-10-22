@@ -168,6 +168,8 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
         "signals",
         # Endosporas dormidas todo el tick (R28, precisión 98).
         "dormant",
+        # Alcance local de R18 en el paso (vii), que reutilizan los roles (R25, precisión 110).
+        "holon_reach",
     ]
     frame = TickFrame(7)
     assert frame.tick == 7

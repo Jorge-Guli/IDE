@@ -22,8 +22,9 @@ from ide.domain.extensions import compute_epistemic_synergy
 from ide.domain.types import EpigeneticRole, KnowledgeUnit, Pattern
 
 # Compromiso simbiótico expresado medio de las hojas a partir del cual un holón raíz se suelda
-# (R31, D50.3).
+# (R31, D50.3), comparado con la tolerancia absoluta de los floats calculados (CLAUDE.md).
 LOCK_COMMITMENT_THRESHOLD = 0.5
+LOCK_COMMITMENT_TOLERANCE = 1e-9
 
 
 @runtime_checkable
@@ -145,7 +146,9 @@ def composite_nodes(node: AgentNode) -> list[CompositeAgent]:
 def prune_dead_leaves(node: AgentNode, alive_ids: set[int]) -> AgentNode | None:
     """Poda recursiva: un sub-holón con una sola hoja viva colapsa a ella; sin hojas, `None`.
 
-    Modifica en el lugar los holones que sobreviven con dos o más hijos.
+    Modifica en el lugar los holones que sobreviven con dos o más hijos. Un holón soldado
+    ($R_{31}$) que queda con un único hijo compuesto (dos o más hojas vivas) colapsa a él y le
+    pasa el sello: conserva el sello si sobreviven dos o más hojas (D40, precisión 122).
     """
     if not isinstance(node, CompositeAgent):
         return node if node.node_id in alive_ids else None
@@ -157,7 +160,10 @@ def prune_dead_leaves(node: AgentNode, alive_ids: set[int]) -> AgentNode | None:
     if not surviving:
         return None
     if len(surviving) == 1:
-        return surviving[0]
+        only = surviving[0]
+        if node.is_locked and isinstance(only, CompositeAgent):
+            only.is_locked = True
+        return only
     node.children = tuple(surviving)
     return node
 
@@ -206,37 +212,53 @@ def should_split_holon(holon: CompositeAgent, config: SimulationConfig) -> bool:
     """
     if not config.enable_holon_splitting:
         return False
-    if holon.is_locked and symbiotic_ratchet_active(config):
+    if is_effectively_locked(holon, config):
         return False
     starving = holon.total_energy < len(holon.leaf_agents) * config.holon_min_energy_per_leaf
     return holon.ticks_without_surplus >= config.holon_split_patience or starving
 
 
-def should_lock_holon(holon: CompositeAgent, config: SimulationConfig) -> bool:
+def is_effectively_locked(holon: CompositeAgent, config: SimulationConfig) -> bool:
+    """Sello con efecto (D40, precisión 108): soldado y con $R_{31}$ efectivamente activa.
+
+    Es la única condición de los efectos del sello: la protección contra `SPLIT`
+    (`should_split_holon`) y el descuento de coordinación del motor.
+    """
+    return holon.is_locked and symbiotic_ratchet_active(config)
+
+
+def should_lock_holon(
+    holon: CompositeAgent,
+    config: SimulationConfig,
+    leaves: Sequence[MicroAgent] | None = None,
+) -> bool:
     """Sello de R31 (D50.3): el holón no soldado se suelda si sus hojas se comprometen.
 
     Devuelve `True` si y sólo si $R_{31}$ está efectivamente activa, el holón no está soldado y
-    la media del `symbiotic_commitment` expresado de todas sus hojas es >= 0.5. El motor lo
+    la media del `symbiotic_commitment` expresado de todas sus hojas es >= 0.5, con tolerancia
+    `1e-9`. `leaves` son las hojas del holón si quien llama ya las calculó. El motor lo
     evalúa sólo sobre las raíces, en el paso de coordinación de la Fase 5 y antes de cobrar el
     costo y de evaluar `SPLIT` (precisión 19). No modifica el holón.
     """
     if holon.is_locked or not symbiotic_ratchet_active(config):
         return False
-    leaves = holon.leaf_agents
+    leaves = holon.leaf_agents if leaves is None else leaves
     mean = sum(leaf.phenotype.symbiotic_commitment for leaf in leaves) / len(leaves)
-    return mean >= LOCK_COMMITMENT_THRESHOLD
+    return mean >= LOCK_COMMITMENT_THRESHOLD - LOCK_COMMITMENT_TOLERANCE
 
 
 def _validated_reach(
-    holon: CompositeAgent, local_reach: Mapping[int, Sequence[int]]
+    leaves: Sequence[MicroAgent], local_reach: Mapping[int, Sequence[int]]
 ) -> dict[int, list[int]]:
     """Valida `local_reach` (contrato de D25.1) y devuelve, por hoja, sus cercanas con ella.
+
+    `leaves` son las hojas del holón, ya calculadas por quien llama.
 
     Raises:
         ValueError: si `local_reach` no tiene exactamente una clave por hoja o da, para alguna
             hoja, agentes que no son hojas del holón.
     """
-    leaf_ids = {leaf.agent_id for leaf in holon.leaf_agents}
+    leaf_ids = {leaf.agent_id for leaf in leaves}
     if set(local_reach.keys()) != leaf_ids:
         raise ValueError(
             f"local_reach debe tener exactamente una clave por hoja: {sorted(leaf_ids)}"
@@ -264,8 +286,8 @@ def assign_epigenetic_roles(
     4. las demás quedan en `NONE`.
     Es pura: lee las memorias como R18, no conoce coordenadas y no escribe roles.
     """
-    nearby_ids = _validated_reach(holon, local_reach)
     leaves = holon.leaf_agents
+    nearby_ids = _validated_reach(leaves, local_reach)
     roles = {leaf.agent_id: EpigeneticRole.NONE for leaf in leaves}
     if not epigenetic_roles_active(config):
         return roles
@@ -306,7 +328,7 @@ def apply_downward_causation(
     leaves = holon.leaf_agents
     by_id = {leaf.agent_id: leaf for leaf in leaves}
     # Se valida aun con la regla apagada, para que la ablación no oculte un error del motor.
-    nearby_ids = _validated_reach(holon, local_reach)
+    nearby_ids = _validated_reach(leaves, local_reach)
     if not config.enable_downward_causation:
         for leaf in leaves:
             leaf.memory.set_redundant_patterns(frozenset(), 1.0)

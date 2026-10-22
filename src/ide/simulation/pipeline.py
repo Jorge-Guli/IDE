@@ -97,6 +97,9 @@ class TickFrame:
     en la Fase 4 no está en él: actuó en el tick. Es la única fuente de esa condición; de ella sale
     `active_order`, el orden del tick sin las dormidas, que recorren los sistemas de las Fases 1
     a 3 (precisión 98).
+
+    Por último, `holon_reach`: el alcance local que usó R18 en el paso (vii), que reutiliza la
+    asignación de roles de $R_{25}$ del mismo paso (precisión 110); `None` sin holones.
     """
 
     tick: int
@@ -131,6 +134,7 @@ class TickFrame:
     received: set[int] = field(default_factory=set[int])
     signals: dict[int, int] = field(default_factory=dict[int, int])
     dormant: frozenset[int] = frozenset()
+    holon_reach: dict[int, list[int]] | None = None
 
     @property
     def active_order(self) -> list[int]:
@@ -924,7 +928,7 @@ class DownwardCausationSystem(BaseSystem):
     name = "downward_causation"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        engine._apply_downward_causation()
+        frame.holon_reach = engine._apply_downward_causation()
 
 
 class EpigeneticRoleSystem(BaseSystem):
@@ -936,7 +940,7 @@ class EpigeneticRoleSystem(BaseSystem):
     name = "epigenetic_roles"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        engine._assign_epigenetic_roles()
+        engine._assign_epigenetic_roles(frame.holon_reach)
 
 
 class EnvironmentDynamicsSystem(BaseSystem):

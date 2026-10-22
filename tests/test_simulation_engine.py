@@ -2350,3 +2350,52 @@ def test_r25_y_r31_independientes_del_hash() -> None:
     assert outputs[0] == outputs[1]
     locked, with_role = (int(x) for x in outputs[0].splitlines()[:2])
     assert locked > 0 and with_role > 0  # se sueldan holones y se asignan roles de verdad
+
+
+def test_ablacion_entre_pasos_reasigna_los_roles(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(roles_config(num_agents=6))
+    engine.agents[3].memory.upsert(direct(pat(0), 1.0), 0)
+    triple = make_holon(engine, [1, 2, 3])
+    pair = make_holon(engine, [4, 5])
+    act(monkeypatch, engine)
+    engine.step()
+    assert roles_of(engine)[3] is R_LIBRARIAN and roles_of(engine)[5] is not R_NONE
+    engine.direct_discoverers[pat(9)] = {3, 5}
+    assert engine.ablate_discoverers(pat(9), retire_stimulus=False) == [3, 5]
+    # Sin esperar a la Fase 5: el holón podado se reasigna y la hoja suelta vuelve a NONE.
+    assert engine._role_leaf_sets == {triple.node_id: frozenset({1, 2})}  # pyright: ignore[reportPrivateUsage]
+    assert {roles_of(engine)[1], roles_of(engine)[2]} == {R_LIBRARIAN, R_EXPLORER}
+    assert pair.node_id not in engine.root_nodes and roles_of(engine)[4] is R_NONE
+
+
+def test_impronta_sin_registro_si_la_composicion_cambio(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        roles_config(num_agents=4, enable_holon_reproduction=True, reproduction_threshold=2.0)
+    )
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    holon = make_holon(engine, [1, 2, 3])  # sin asignación previa: su composición es nueva
+    for aid in (1, 2, 3):
+        engine.agents[aid].apply_energy_delta(10.0)
+    calls = count_assignments(monkeypatch)
+    act(monkeypatch, engine)
+    engine.step()
+    replica = engine.root_nodes[engine.agent_to_root[4]]
+    assert isinstance(replica, CompositeAgent) and replica is not holon
+    assert sorted(calls) == sorted([holon.node_id, replica.node_id])  # (vii) asigna la réplica
+    leaf_sets = engine._role_leaf_sets  # pyright: ignore[reportPrivateUsage]
+    assert leaf_sets[replica.node_id] == frozenset(c.agent_id for c in replica.leaf_agents)
+    assert {c.epigenetic_role for c in replica.leaf_agents} == {
+        R_LIBRARIAN,
+        R_EXPLORER,
+        R_NERVE,
+    }
+
+
+def test_raices_individuales_siempre_en_none() -> None:
+    engine = SimulationEngine(_phase_ii_b_holonic(seed=3))
+    for _ in range(60):
+        engine.step()
+        for nid in sorted(engine.root_nodes):
+            node = engine.root_nodes[nid]
+            if not isinstance(node, CompositeAgent):
+                assert engine.agents[nid].epigenetic_role is R_NONE

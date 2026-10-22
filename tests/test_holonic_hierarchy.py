@@ -16,6 +16,7 @@ from ide.agent.holon import (
     apply_downward_causation,
     assign_epigenetic_roles,
     evaluate_bond_candidates,
+    is_effectively_locked,
     prune_dead_leaves,
     reproduce_holon,
     should_lock_holon,
@@ -689,3 +690,32 @@ def test_sello_conservado_al_quedar_expuesto_como_raiz() -> None:
     outer = holon(-4, inner, leaf(3))
     assert outer.is_locked is False
     assert outer.children[0] is inner and inner.is_locked  # tras un SPLIT de `outer`
+
+
+def test_umbral_del_sello_con_tolerancia() -> None:
+    near = 0.5 - 5e-10
+    assert should_lock_holon(holon(-2, committed(1, near), committed(2, near)), RATCHET)
+    below = 0.5 - 2e-9
+    assert not should_lock_holon(holon(-2, committed(1, below), committed(2, below)), RATCHET)
+
+
+def test_sello_con_efecto_solo_con_r31_efectiva() -> None:
+    u = holon(-2, leaf(1), leaf(2))
+    assert not is_effectively_locked(u, RATCHET)
+    u.is_locked = True
+    assert is_effectively_locked(u, RATCHET)
+    assert not is_effectively_locked(u, replace(RATCHET, enable_compact_dna=False))
+
+
+def test_poda_de_un_holon_soldado_anidado_pasa_el_sello() -> None:
+    inner = holon(-3, leaf(1), leaf(2))
+    root = holon(-2, inner, leaf(3))
+    root.is_locked = True
+    pruned = prune_dead_leaves(root, {1, 2})  # R = (S(A, B), C) pierde C
+    assert pruned is inner and inner.is_locked  # sobreviven dos hojas: conserva el sello
+
+
+def test_poda_de_un_holon_sin_soldar_no_suelda_al_hijo() -> None:
+    inner = holon(-3, leaf(1), leaf(2))
+    pruned = prune_dead_leaves(holon(-2, inner, leaf(3)), {1, 2})
+    assert pruned is inner and not inner.is_locked
