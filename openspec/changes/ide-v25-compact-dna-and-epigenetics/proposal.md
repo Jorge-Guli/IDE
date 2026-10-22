@@ -205,3 +205,10 @@ Una revisión cruzada independiente del borrador D56 encontró problemas antes d
   - los valores por defecto de D52 y D63.
 - **Riesgo aceptado y declarado:** con el mínimo de la compuerta, C17 y C19 quedan cerca de los 20 pares válidos (D55.3); si quedan no evaluables, se informa como resultado.
 - A partir de aquí, cambiar D56 exige un commit que lo justifique.
+
+## Aclaración de la precisión 43 (2026-10-22, bloque 21, antes de mirar resultados)
+
+- **Qué cambió.** El texto de la precisión 43 (actividad por nacimiento, métrica de C16) definía "codón funcional" como destino de rasgo o de conducta. En la integración del bloque 21 (commit `84ef351`) pasó a remitir a la lista completa de destinos funcionales de D61 y de la precisión 54: rasgo, conducta, estado (`0x0D`, `0x0E`) y señal (`0x48`).
+- **Por qué no es un cambio del pre-registro.** La corrección B3 de la revisión cruzada, aprobada con D56 en la tarea 0.5, ya había fijado que la precisión 42 remite a D61 y a la precisión 54 para esa lista, y la precisión 43 remite a la 42. El texto de la 43 había quedado sin actualizar: la redacción nueva alinea el documento con lo aprobado y no cambia la definición vigente.
+- **Cuándo.** Antes de correr ninguna corrida de los protocolos `25a`–`25d` y sin mirar ninguna métrica de afirmación; la compuerta de viabilidad (bloque 23) todavía no se corrió.
+- **Decisión:** agente principal, por delegación del responsable del proyecto.
