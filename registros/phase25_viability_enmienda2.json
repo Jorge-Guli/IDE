@@ -1,0 +1,6141 @@
+{
+  "amendment": 2,
+  "chosen": {
+    "resource_regen_delay": 20,
+    "resources_per_pattern": 80
+  },
+  "configurations": [
+    {
+      "conditions": [
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 113,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 39,
+              "final_agents": 39,
+              "max_generation": 76,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 38,
+              "final_agents": 38,
+              "max_generation": 150,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 99,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 25,
+              "final_agents": 25,
+              "max_generation": 145,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 33,
+              "final_agents": 33,
+              "max_generation": 158,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 19,
+              "final_agents": 19,
+              "max_generation": 147,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 166,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 154,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 46,
+              "final_agents": 47,
+              "max_generation": 68,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 9
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 59,
+              "final_agents": 59,
+              "max_generation": 54,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 46,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 58,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 38,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 26,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 33,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 74,
+              "final_agents": 74,
+              "max_generation": 57,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 13,
+              "final_agents": 13,
+              "max_generation": 84,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 75,
+              "final_agents": 76,
+              "max_generation": 62,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 68,
+              "final_agents": 68,
+              "max_generation": 43,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "no_predation",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 18,
+              "final_agents": 18,
+              "max_generation": 34,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 23,
+              "final_agents": 23,
+              "max_generation": 36,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 66,
+              "final_agents": 66,
+              "max_generation": 39,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 73,
+              "final_agents": 73,
+              "max_generation": 33,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 35,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 30,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 59,
+              "final_agents": 59,
+              "max_generation": 48,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 39,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 62,
+              "final_agents": 62,
+              "max_generation": 45,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 70,
+              "final_agents": 70,
+              "max_generation": 35,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 9
+        },
+        {
+          "condition": "no_predation_drift",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 15,
+              "final_agents": 15,
+              "max_generation": 37,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 69,
+              "final_agents": 69,
+              "max_generation": 40,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 37,
+              "final_agents": 37,
+              "max_generation": 45,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 27,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 69,
+              "final_agents": 69,
+              "max_generation": 30,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 29,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 72,
+              "final_agents": 72,
+              "max_generation": 32,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 70,
+              "final_agents": 70,
+              "max_generation": 29,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 56,
+              "final_agents": 57,
+              "max_generation": 37,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 76,
+              "final_agents": 76,
+              "max_generation": 33,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 8
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 31,
+              "final_agents": 31,
+              "max_generation": 48,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 49,
+              "final_agents": 49,
+              "max_generation": 48,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 48,
+              "final_agents": 48,
+              "max_generation": 63,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 41,
+              "final_agents": 41,
+              "max_generation": 47,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 27,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 41,
+              "final_agents": 41,
+              "max_generation": 58,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 12,
+              "final_agents": 12,
+              "max_generation": 52,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 34,
+              "final_agents": 34,
+              "max_generation": 51,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 28,
+              "final_agents": 28,
+              "max_generation": 58,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 25,
+              "final_agents": 25,
+              "max_generation": 59,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 9
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 12,
+              "final_agents": 12,
+              "max_generation": 160,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 132,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 26,
+              "final_agents": 26,
+              "max_generation": 139,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 25,
+              "final_agents": 25,
+              "max_generation": 144,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 33,
+              "final_agents": 33,
+              "max_generation": 170,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 55,
+              "final_agents": 55,
+              "max_generation": 45,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 58,
+              "final_agents": 58,
+              "max_generation": 58,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 34,
+              "final_agents": 34,
+              "max_generation": 164,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 24,
+              "final_agents": 24,
+              "max_generation": 134,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 21,
+              "final_agents": 21,
+              "max_generation": 57,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 29,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 29,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 58,
+              "final_agents": 58,
+              "max_generation": 58,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 18,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 50,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 35,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 43,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 34,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 49,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 60,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 1
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 28,
+              "final_agents": 28,
+              "max_generation": 48,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 19,
+              "final_agents": 19,
+              "max_generation": 57,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 30,
+              "final_agents": 30,
+              "max_generation": 58,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 18,
+              "final_agents": 18,
+              "max_generation": 54,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 34,
+              "final_agents": 34,
+              "max_generation": 57,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 37,
+              "final_agents": 37,
+              "max_generation": 50,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 41,
+              "final_agents": 41,
+              "max_generation": 52,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 35,
+              "final_agents": 35,
+              "max_generation": 66,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 17,
+              "final_agents": 17,
+              "max_generation": 63,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 64,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 9
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 38,
+              "final_agents": 38,
+              "max_generation": 29,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 35,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 33,
+              "final_agents": 33,
+              "max_generation": 31,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 29,
+              "final_agents": 29,
+              "max_generation": 33,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 31,
+              "final_agents": 31,
+              "max_generation": 31,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 35,
+              "final_agents": 35,
+              "max_generation": 37,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 27,
+              "final_agents": 27,
+              "max_generation": 26,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 33,
+              "final_agents": 33,
+              "max_generation": 30,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 41,
+              "final_agents": 41,
+              "max_generation": 32,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 36,
+              "final_agents": 36,
+              "max_generation": 29,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 33,
+              "final_agents": 33,
+              "max_generation": 23,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 27,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 17,
+              "final_agents": 17,
+              "max_generation": 27,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 24,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 26,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 23,
+              "final_agents": 23,
+              "max_generation": 30,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 14,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 29,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 18,
+              "final_agents": 18,
+              "max_generation": 28,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 11,
+              "final_agents": 11,
+              "max_generation": 29,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 6
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 38,
+              "final_agents": 38,
+              "max_generation": 29,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 35,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 33,
+              "final_agents": 33,
+              "max_generation": 31,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 29,
+              "final_agents": 29,
+              "max_generation": 33,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 31,
+              "final_agents": 31,
+              "max_generation": 31,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 35,
+              "final_agents": 35,
+              "max_generation": 37,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 27,
+              "final_agents": 27,
+              "max_generation": 26,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 33,
+              "final_agents": 33,
+              "max_generation": 30,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 41,
+              "final_agents": 41,
+              "max_generation": 32,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 36,
+              "final_agents": 36,
+              "max_generation": 29,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 90,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 73,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 83,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 55,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 6,
+              "final_agents": 6,
+              "max_generation": 145,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 39,
+              "final_agents": 39,
+              "max_generation": 140,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 30,
+              "final_agents": 30,
+              "max_generation": 162,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 64,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 70,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 53,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 3
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 35,
+              "final_agents": 35,
+              "max_generation": 43,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 58,
+              "final_agents": 58,
+              "max_generation": 42,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 57,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 44,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 27,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 28,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 66,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 17,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 82,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 29,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 2
+        },
+        {
+          "condition": "stable",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 113,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 39,
+              "final_agents": 39,
+              "max_generation": 76,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 38,
+              "final_agents": 38,
+              "max_generation": 150,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 99,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 25,
+              "final_agents": 25,
+              "max_generation": 145,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 33,
+              "final_agents": 33,
+              "max_generation": 158,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 19,
+              "final_agents": 19,
+              "max_generation": 147,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 166,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 154,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 46,
+              "final_agents": 47,
+              "max_generation": 68,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 9
+        },
+        {
+          "condition": "stable_drift",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 59,
+              "final_agents": 59,
+              "max_generation": 54,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 46,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 58,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 38,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 26,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 33,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 74,
+              "final_agents": 74,
+              "max_generation": 57,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 13,
+              "final_agents": 13,
+              "max_generation": 84,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 75,
+              "final_agents": 76,
+              "max_generation": 62,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 68,
+              "final_agents": 68,
+              "max_generation": 43,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "no_learning",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 90,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 73,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 83,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 55,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 6,
+              "final_agents": 6,
+              "max_generation": 145,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 39,
+              "final_agents": 39,
+              "max_generation": 140,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 30,
+              "final_agents": 30,
+              "max_generation": 162,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 64,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 70,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 53,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 3
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 9,
+              "final_agents": 9,
+              "max_generation": 66,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 58,
+              "final_agents": 58,
+              "max_generation": 61,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 43,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 28,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 22,
+              "final_agents": 22,
+              "max_generation": 52,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 55,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 24,
+              "final_agents": 24,
+              "max_generation": 71,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 39,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 53,
+              "final_agents": 53,
+              "max_generation": 52,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 23,
+              "final_agents": 23,
+              "max_generation": 81,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 6
+        }
+      ],
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 60,
+      "viable": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 20,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 58,
+              "final_agents": 58,
+              "max_generation": 199,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 54,
+              "final_agents": 54,
+              "max_generation": 201,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 55,
+              "final_agents": 55,
+              "max_generation": 229,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 84,
+              "final_agents": 84,
+              "max_generation": 184,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 90,
+              "final_agents": 91,
+              "max_generation": 163,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 45,
+              "final_agents": 45,
+              "max_generation": 212,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 19,
+              "seed": 7,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 200,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 59,
+              "final_agents": 59,
+              "max_generation": 189,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 9
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 72,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 61,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 36,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 50,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 92,
+              "final_agents": 92,
+              "max_generation": 68,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 40,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 17,
+              "seed": 6,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 109,
+              "final_agents": 109,
+              "max_generation": 45,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 17,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 72,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 4
+        },
+        {
+          "condition": "no_predation",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 20,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 18,
+              "seed": 1,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 2,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 22,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 22,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 17,
+              "seed": 5,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 6,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 19,
+              "seed": 7,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 8,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 19,
+              "seed": 9,
+              "termination": "alive",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 3
+        },
+        {
+          "condition": "no_predation_drift",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 19,
+              "seed": 0,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 20,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 116,
+              "final_agents": 116,
+              "max_generation": 30,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 3,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 20,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 140,
+              "final_agents": 142,
+              "max_generation": 33,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 6,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 18,
+              "seed": 7,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 17,
+              "seed": 8,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 139,
+              "final_agents": 140,
+              "max_generation": 29,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 72,
+              "final_agents": 72,
+              "max_generation": 84,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 42,
+              "final_agents": 42,
+              "max_generation": 76,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 68,
+              "final_agents": 68,
+              "max_generation": 95,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 34,
+              "final_agents": 34,
+              "max_generation": 124,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 69,
+              "final_agents": 69,
+              "max_generation": 97,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 72,
+              "final_agents": 72,
+              "max_generation": 97,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 96,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 101,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 96,
+              "final_agents": 96,
+              "max_generation": 52,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 54,
+              "final_agents": 54,
+              "max_generation": 61,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 185,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 30,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 25,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 225,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 90,
+              "final_agents": 90,
+              "max_generation": 183,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 89,
+              "final_agents": 89,
+              "max_generation": 153,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 55,
+              "final_agents": 55,
+              "max_generation": 216,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 89,
+              "final_agents": 89,
+              "max_generation": 152,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 25,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 86,
+              "final_agents": 87,
+              "max_generation": 56,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 22,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 2,
+              "final_agents": 2,
+              "max_generation": 62,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 87,
+              "final_agents": 87,
+              "max_generation": 61,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 64,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 88,
+              "final_agents": 88,
+              "max_generation": 137,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 43,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 69,
+              "final_agents": 69,
+              "max_generation": 76,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 85,
+              "final_agents": 85,
+              "max_generation": 45,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 97,
+              "final_agents": 97,
+              "max_generation": 52,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 159,
+              "final_agents": 160,
+              "max_generation": 33,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 7
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 60,
+              "final_agents": 60,
+              "max_generation": 105,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 69,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 46,
+              "final_agents": 46,
+              "max_generation": 85,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 91,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 107,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 81,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 44,
+              "final_agents": 44,
+              "max_generation": 63,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 57,
+              "final_agents": 57,
+              "max_generation": 82,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 49,
+              "final_agents": 49,
+              "max_generation": 70,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 83,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 76,
+              "final_agents": 76,
+              "max_generation": 26,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 67,
+              "final_agents": 67,
+              "max_generation": 27,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 70,
+              "final_agents": 70,
+              "max_generation": 40,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 64,
+              "final_agents": 65,
+              "max_generation": 29,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 80,
+              "final_agents": 80,
+              "max_generation": 23,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 66,
+              "final_agents": 66,
+              "max_generation": 27,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 78,
+              "final_agents": 78,
+              "max_generation": 28,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 77,
+              "final_agents": 77,
+              "max_generation": 26,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 64,
+              "final_agents": 64,
+              "max_generation": 72,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 80,
+              "final_agents": 80,
+              "max_generation": 43,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 14,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 56,
+              "final_agents": 56,
+              "max_generation": 35,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 53,
+              "final_agents": 53,
+              "max_generation": 32,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 34,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 27,
+              "final_agents": 27,
+              "max_generation": 30,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 34,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 19,
+              "final_agents": 19,
+              "max_generation": 39,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 10,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 85,
+              "final_agents": 85,
+              "max_generation": 29,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 20,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 76,
+              "final_agents": 76,
+              "max_generation": 26,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 67,
+              "final_agents": 67,
+              "max_generation": 27,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 70,
+              "final_agents": 70,
+              "max_generation": 40,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 64,
+              "final_agents": 65,
+              "max_generation": 29,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 80,
+              "final_agents": 80,
+              "max_generation": 23,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 64,
+              "final_agents": 64,
+              "max_generation": 35,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 78,
+              "final_agents": 78,
+              "max_generation": 28,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 77,
+              "final_agents": 77,
+              "max_generation": 26,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 64,
+              "final_agents": 64,
+              "max_generation": 72,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 80,
+              "final_agents": 80,
+              "max_generation": 43,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 153,
+              "final_agents": 153,
+              "max_generation": 43,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 102,
+              "final_agents": 102,
+              "max_generation": 155,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 131,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 235,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 127,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 63,
+              "final_agents": 63,
+              "max_generation": 223,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 29,
+              "final_agents": 29,
+              "max_generation": 203,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 37,
+              "final_agents": 37,
+              "max_generation": 129,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 50,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 68,
+              "final_agents": 68,
+              "max_generation": 171,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 8
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 32,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 71,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 65,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 41,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 31,
+              "final_agents": 31,
+              "max_generation": 96,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 26,
+              "final_agents": 26,
+              "max_generation": 51,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 20,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 49,
+              "final_agents": 49,
+              "max_generation": 40,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 24,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 53,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 3
+        },
+        {
+          "condition": "stable",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 20,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 58,
+              "final_agents": 58,
+              "max_generation": 199,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 54,
+              "final_agents": 54,
+              "max_generation": 201,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 55,
+              "final_agents": 55,
+              "max_generation": 229,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 84,
+              "final_agents": 84,
+              "max_generation": 184,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 90,
+              "final_agents": 91,
+              "max_generation": 163,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 45,
+              "final_agents": 45,
+              "max_generation": 212,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 19,
+              "seed": 7,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 200,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 59,
+              "final_agents": 59,
+              "max_generation": 189,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 9
+        },
+        {
+          "condition": "stable_drift",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 72,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 61,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 36,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 50,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 92,
+              "final_agents": 92,
+              "max_generation": 68,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 40,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 17,
+              "seed": 6,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 109,
+              "final_agents": 109,
+              "max_generation": 45,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 17,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 72,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 4
+        },
+        {
+          "condition": "no_learning",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 153,
+              "final_agents": 153,
+              "max_generation": 43,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 102,
+              "final_agents": 102,
+              "max_generation": 155,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 180,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 235,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 127,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 207,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 59,
+              "final_agents": 61,
+              "max_generation": 190,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 144,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 50,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 56,
+              "final_agents": 56,
+              "max_generation": 137,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 7
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 34,
+              "final_agents": 34,
+              "max_generation": 88,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 75,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 26,
+              "final_agents": 26,
+              "max_generation": 56,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 45,
+              "final_agents": 45,
+              "max_generation": 105,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 50,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 45,
+              "final_agents": 45,
+              "max_generation": 58,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 19,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 82,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 32,
+              "final_agents": 32,
+              "max_generation": 50,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 57,
+              "final_agents": 57,
+              "max_generation": 88,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 6
+        }
+      ],
+      "resource_regen_delay": 10,
+      "resources_per_pattern": 60,
+      "viable": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 57,
+              "final_agents": 57,
+              "max_generation": 142,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 44,
+              "final_agents": 44,
+              "max_generation": 202,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 76,
+              "final_agents": 76,
+              "max_generation": 54,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 53,
+              "final_agents": 53,
+              "max_generation": 211,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 167,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 123,
+              "final_agents": 123,
+              "max_generation": 24,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 63,
+              "final_agents": 63,
+              "max_generation": 152,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 30,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 45,
+              "final_agents": 45,
+              "max_generation": 128,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 37,
+              "final_agents": 37,
+              "max_generation": 168,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 68,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 77,
+              "final_agents": 77,
+              "max_generation": 54,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 47,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 67,
+              "final_agents": 67,
+              "max_generation": 115,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 49,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 38,
+              "final_agents": 38,
+              "max_generation": 99,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 45,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 66,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 97,
+              "final_agents": 97,
+              "max_generation": 40,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 44,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "no_predation",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 12,
+              "final_agents": 12,
+              "max_generation": 23,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 79,
+              "final_agents": 79,
+              "max_generation": 42,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 95,
+              "final_agents": 95,
+              "max_generation": 33,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 56,
+              "final_agents": 56,
+              "max_generation": 29,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 107,
+              "final_agents": 107,
+              "max_generation": 25,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 123,
+              "final_agents": 123,
+              "max_generation": 24,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 107,
+              "final_agents": 107,
+              "max_generation": 29,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 30,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 80,
+              "final_agents": 80,
+              "max_generation": 28,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 95,
+              "final_agents": 95,
+              "max_generation": 31,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "no_predation_drift",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 114,
+              "final_agents": 114,
+              "max_generation": 21,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 156,
+              "final_agents": 156,
+              "max_generation": 30,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 131,
+              "final_agents": 131,
+              "max_generation": 24,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 157,
+              "final_agents": 157,
+              "max_generation": 26,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 114,
+              "final_agents": 114,
+              "max_generation": 24,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 122,
+              "final_agents": 122,
+              "max_generation": 22,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 152,
+              "final_agents": 152,
+              "max_generation": 22,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 129,
+              "final_agents": 129,
+              "max_generation": 24,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 97,
+              "final_agents": 97,
+              "max_generation": 40,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 131,
+              "final_agents": 132,
+              "max_generation": 28,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 72,
+              "final_agents": 72,
+              "max_generation": 64,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 35,
+              "final_agents": 35,
+              "max_generation": 115,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 65,
+              "final_agents": 65,
+              "max_generation": 55,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 49,
+              "final_agents": 49,
+              "max_generation": 61,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 22,
+              "final_agents": 22,
+              "max_generation": 98,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 31,
+              "final_agents": 31,
+              "max_generation": 86,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 46,
+              "final_agents": 46,
+              "max_generation": 55,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 72,
+              "final_agents": 72,
+              "max_generation": 50,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 87,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 44,
+              "final_agents": 44,
+              "max_generation": 116,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 42,
+              "final_agents": 43,
+              "max_generation": 190,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 60,
+              "final_agents": 60,
+              "max_generation": 217,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 26,
+              "final_agents": 26,
+              "max_generation": 215,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 53,
+              "final_agents": 53,
+              "max_generation": 191,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 44,
+              "final_agents": 44,
+              "max_generation": 208,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 68,
+              "final_agents": 68,
+              "max_generation": 138,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 60,
+              "final_agents": 60,
+              "max_generation": 153,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 49,
+              "final_agents": 49,
+              "max_generation": 168,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 102,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 48,
+              "final_agents": 48,
+              "max_generation": 193,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 83,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 44,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 77,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 44,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 78,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 54,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 45,
+              "final_agents": 45,
+              "max_generation": 90,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 40,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 60,
+              "final_agents": 60,
+              "max_generation": 96,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 55,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 2
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 66,
+              "final_agents": 66,
+              "max_generation": 48,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 42,
+              "final_agents": 42,
+              "max_generation": 65,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 37,
+              "final_agents": 37,
+              "max_generation": 89,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 42,
+              "final_agents": 42,
+              "max_generation": 82,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 41,
+              "final_agents": 41,
+              "max_generation": 89,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 24,
+              "final_agents": 24,
+              "max_generation": 65,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 63,
+              "final_agents": 63,
+              "max_generation": 102,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 50,
+              "final_agents": 50,
+              "max_generation": 55,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 41,
+              "final_agents": 41,
+              "max_generation": 72,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 50,
+              "final_agents": 50,
+              "max_generation": 111,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 32,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 28,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 36,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 46,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 29,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 46,
+              "final_agents": 46,
+              "max_generation": 31,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 29,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 50,
+              "final_agents": 50,
+              "max_generation": 29,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 58,
+              "final_agents": 59,
+              "max_generation": 36,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 41,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 14,
+              "final_agents": 14,
+              "max_generation": 31,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 19,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 50,
+              "final_agents": 50,
+              "max_generation": 34,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 41,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 25,
+              "final_agents": 26,
+              "max_generation": 31,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 27,
+              "final_agents": 27,
+              "max_generation": 31,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 20,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 9,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 55,
+              "final_agents": 55,
+              "max_generation": 28,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 10,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 32,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 28,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 36,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 46,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 29,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 46,
+              "final_agents": 46,
+              "max_generation": 31,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 29,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 50,
+              "final_agents": 50,
+              "max_generation": 29,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 58,
+              "final_agents": 59,
+              "max_generation": 36,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 51,
+              "final_agents": 51,
+              "max_generation": 41,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 66,
+              "final_agents": 66,
+              "max_generation": 136,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 50,
+              "final_agents": 50,
+              "max_generation": 198,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 22,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 5,
+              "final_agents": 5,
+              "max_generation": 181,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 51,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 48,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 134,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 23,
+              "final_agents": 23,
+              "max_generation": 32,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 11,
+              "final_agents": 11,
+              "max_generation": 107,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 115,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 6
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 44,
+              "final_agents": 44,
+              "max_generation": 55,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 32,
+              "final_agents": 32,
+              "max_generation": 60,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 24,
+              "final_agents": 24,
+              "max_generation": 64,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 17,
+              "final_agents": 17,
+              "max_generation": 99,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 47,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 61,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 50,
+              "final_agents": 50,
+              "max_generation": 99,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 33,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 73,
+              "final_agents": 73,
+              "max_generation": 31,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 85,
+              "final_agents": 85,
+              "max_generation": 113,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 7
+        },
+        {
+          "condition": "stable",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 57,
+              "final_agents": 57,
+              "max_generation": 142,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 44,
+              "final_agents": 44,
+              "max_generation": 202,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 76,
+              "final_agents": 76,
+              "max_generation": 54,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 53,
+              "final_agents": 53,
+              "max_generation": 211,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 52,
+              "final_agents": 52,
+              "max_generation": 167,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 123,
+              "final_agents": 123,
+              "max_generation": 24,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 63,
+              "final_agents": 63,
+              "max_generation": 152,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 30,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 45,
+              "final_agents": 45,
+              "max_generation": 128,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 37,
+              "final_agents": 37,
+              "max_generation": 168,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "stable_drift",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 68,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 77,
+              "final_agents": 77,
+              "max_generation": 54,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 47,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 67,
+              "final_agents": 67,
+              "max_generation": 115,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 49,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 38,
+              "final_agents": 38,
+              "max_generation": 99,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 45,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 47,
+              "final_agents": 47,
+              "max_generation": 66,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 97,
+              "final_agents": 97,
+              "max_generation": 40,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 44,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "no_learning",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 63,
+              "final_agents": 63,
+              "max_generation": 140,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 57,
+              "final_agents": 57,
+              "max_generation": 167,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 26,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 121,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 51,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 48,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 69,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 23,
+              "final_agents": 23,
+              "max_generation": 32,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 11,
+              "final_agents": 11,
+              "max_generation": 107,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 115,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 65,
+              "final_agents": 65,
+              "max_generation": 113,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 23,
+              "final_agents": 23,
+              "max_generation": 80,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 82,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 31,
+              "final_agents": 31,
+              "max_generation": 102,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 44,
+              "final_agents": 44,
+              "max_generation": 58,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 41,
+              "final_agents": 41,
+              "max_generation": 116,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 26,
+              "final_agents": 26,
+              "max_generation": 77,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 65,
+              "final_agents": 65,
+              "max_generation": 58,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 52,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 43,
+              "final_agents": 43,
+              "max_generation": 122,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        }
+      ],
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 80,
+      "viable": false
+    },
+    {
+      "conditions": [
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 93,
+              "final_agents": 93,
+              "max_generation": 123,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 115,
+              "final_agents": 115,
+              "max_generation": 193,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 85,
+              "final_agents": 85,
+              "max_generation": 231,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 90,
+              "final_agents": 90,
+              "max_generation": 222,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 108,
+              "final_agents": 108,
+              "max_generation": 119,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 109,
+              "final_agents": 109,
+              "max_generation": 202,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 107,
+              "final_agents": 107,
+              "max_generation": 164,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 75,
+              "final_agents": 75,
+              "max_generation": 194,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 108,
+              "final_agents": 108,
+              "max_generation": 118,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 83,
+              "final_agents": 83,
+              "max_generation": 228,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 12,
+              "seed": 0,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 54,
+              "final_agents": 54,
+              "max_generation": 91,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 12,
+              "seed": 2,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 92,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 122,
+              "final_agents": 122,
+              "max_generation": 81,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 5,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 41,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 42,
+              "final_agents": 42,
+              "max_generation": 87,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 74,
+              "final_agents": 74,
+              "max_generation": 77,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 1,
+              "final_agents": 1,
+              "max_generation": 49,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "no_predation",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 0,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 1,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 14,
+              "seed": 2,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 14,
+              "seed": 3,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 12,
+              "seed": 4,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 11,
+              "seed": 5,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 11,
+              "seed": 6,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 7,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 9,
+              "seed": 8,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 12,
+              "seed": 9,
+              "termination": "alive",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 0
+        },
+        {
+          "condition": "no_predation_drift",
+          "decides": true,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 12,
+              "seed": 0,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 14,
+              "seed": 1,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 2,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 15,
+              "seed": 3,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 18,
+              "seed": 4,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 5,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 6,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 15,
+              "seed": 7,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 15,
+              "seed": 8,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 15,
+              "seed": 9,
+              "termination": "alive",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 0
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25a",
+          "runs": [
+            {
+              "final_active_agents": 93,
+              "final_agents": 93,
+              "max_generation": 118,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 70,
+              "final_agents": 70,
+              "max_generation": 114,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 74,
+              "final_agents": 74,
+              "max_generation": 130,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 44,
+              "final_agents": 44,
+              "max_generation": 169,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 157,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 69,
+              "final_agents": 69,
+              "max_generation": 120,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 82,
+              "final_agents": 82,
+              "max_generation": 96,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 59,
+              "final_agents": 59,
+              "max_generation": 136,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 45,
+              "final_agents": 45,
+              "max_generation": 144,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 71,
+              "final_agents": 71,
+              "max_generation": 121,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 75,
+              "final_agents": 75,
+              "max_generation": 234,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 84,
+              "final_agents": 84,
+              "max_generation": 214,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 27,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 71,
+              "final_agents": 71,
+              "max_generation": 213,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 59,
+              "final_agents": 59,
+              "max_generation": 211,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 117,
+              "final_agents": 117,
+              "max_generation": 195,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 80,
+              "final_agents": 80,
+              "max_generation": 221,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 69,
+              "final_agents": 69,
+              "max_generation": 218,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 24,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 93,
+              "final_agents": 93,
+              "max_generation": 161,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 38,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 41,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 43,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 42,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 111,
+              "final_agents": 111,
+              "max_generation": 59,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 159,
+              "final_agents": 160,
+              "max_generation": 66,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 35,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 115,
+              "final_agents": 115,
+              "max_generation": 77,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 50,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 51,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25b",
+          "runs": [
+            {
+              "final_active_agents": 81,
+              "final_agents": 81,
+              "max_generation": 74,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 91,
+              "final_agents": 91,
+              "max_generation": 107,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 49,
+              "final_agents": 49,
+              "max_generation": 106,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 82,
+              "final_agents": 82,
+              "max_generation": 114,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 65,
+              "final_agents": 65,
+              "max_generation": 119,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 46,
+              "final_agents": 46,
+              "max_generation": 134,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 71,
+              "final_agents": 71,
+              "max_generation": 119,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 78,
+              "final_agents": 78,
+              "max_generation": 144,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 89,
+              "final_agents": 89,
+              "max_generation": 108,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 85,
+              "final_agents": 85,
+              "max_generation": 140,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 49,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 1,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 2,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 94,
+              "final_agents": 94,
+              "max_generation": 31,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 22,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 10,
+              "seed": 5,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 107,
+              "final_agents": 107,
+              "max_generation": 24,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 62,
+              "final_agents": 62,
+              "max_generation": 60,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 17,
+              "seed": 8,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 9,
+              "termination": "alive",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 10,
+              "seed": 0,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 1,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 62,
+              "final_agents": 62,
+              "max_generation": 27,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 12,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 15,
+              "seed": 4,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 26,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 21,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 15,
+              "seed": 7,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 31,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 19,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 3
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25c",
+          "runs": [
+            {
+              "final_active_agents": 61,
+              "final_agents": 61,
+              "max_generation": 49,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 1,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 16,
+              "seed": 2,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 94,
+              "final_agents": 94,
+              "max_generation": 31,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 22,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 10,
+              "seed": 5,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 107,
+              "final_agents": 107,
+              "max_generation": 24,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 78,
+              "final_agents": 78,
+              "max_generation": 63,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 17,
+              "seed": 8,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 9,
+              "termination": "alive",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "full",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 0,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 165,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 120,
+              "final_agents": 120,
+              "max_generation": 107,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 153,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 60,
+              "final_agents": 60,
+              "max_generation": 140,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 103,
+              "final_agents": 103,
+              "max_generation": 179,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 163,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 125,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 51,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 19,
+              "final_agents": 19,
+              "max_generation": 184,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 6
+        },
+        {
+          "condition": "drift",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 25,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 51,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 37,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 64,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 64,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 5,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 31,
+              "final_agents": 31,
+              "max_generation": 44,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 51,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 44,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 37,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "stable",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 93,
+              "final_agents": 93,
+              "max_generation": 123,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 115,
+              "final_agents": 115,
+              "max_generation": 193,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 85,
+              "final_agents": 85,
+              "max_generation": 231,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 90,
+              "final_agents": 90,
+              "max_generation": 222,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 108,
+              "final_agents": 108,
+              "max_generation": 119,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 109,
+              "final_agents": 109,
+              "max_generation": 202,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 107,
+              "final_agents": 107,
+              "max_generation": 164,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 75,
+              "final_agents": 75,
+              "max_generation": 194,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 108,
+              "final_agents": 108,
+              "max_generation": 118,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 83,
+              "final_agents": 83,
+              "max_generation": 228,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 10
+        },
+        {
+          "condition": "stable_drift",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 12,
+              "seed": 0,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 54,
+              "final_agents": 54,
+              "max_generation": 91,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 12,
+              "seed": 2,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 92,
+              "seed": 3,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 122,
+              "final_agents": 122,
+              "max_generation": 81,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 160,
+              "final_agents": 160,
+              "max_generation": 13,
+              "seed": 5,
+              "termination": "alive",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 41,
+              "seed": 6,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 42,
+              "final_agents": 42,
+              "max_generation": 87,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 74,
+              "final_agents": 74,
+              "max_generation": 77,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 1,
+              "final_agents": 1,
+              "max_generation": 49,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 5
+        },
+        {
+          "condition": "no_learning",
+          "decides": true,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 105,
+              "final_agents": 105,
+              "max_generation": 164,
+              "seed": 0,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 40,
+              "final_agents": 40,
+              "max_generation": 165,
+              "seed": 1,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 128,
+              "final_agents": 128,
+              "max_generation": 143,
+              "seed": 2,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 98,
+              "final_agents": 99,
+              "max_generation": 223,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 62,
+              "final_agents": 62,
+              "max_generation": 148,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 108,
+              "seed": 5,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 19,
+              "final_agents": 19,
+              "max_generation": 170,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 125,
+              "seed": 7,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 51,
+              "seed": 8,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 26,
+              "final_agents": 26,
+              "max_generation": 188,
+              "seed": 9,
+              "termination": "alive",
+              "viable": true
+            }
+          ],
+          "viable_seeds": 7
+        },
+        {
+          "condition": "null_content",
+          "decides": false,
+          "protocol": "25d",
+          "runs": [
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 49,
+              "seed": 0,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 39,
+              "seed": 1,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 67,
+              "seed": 2,
+              "termination": "extinct",
+              "viable": false
+            },
+            {
+              "final_active_agents": 49,
+              "final_agents": 49,
+              "max_generation": 94,
+              "seed": 3,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 57,
+              "final_agents": 57,
+              "max_generation": 160,
+              "seed": 4,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 70,
+              "final_agents": 70,
+              "max_generation": 49,
+              "seed": 5,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 91,
+              "final_agents": 91,
+              "max_generation": 86,
+              "seed": 6,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 71,
+              "final_agents": 71,
+              "max_generation": 111,
+              "seed": 7,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 46,
+              "final_agents": 46,
+              "max_generation": 124,
+              "seed": 8,
+              "termination": "alive",
+              "viable": true
+            },
+            {
+              "final_active_agents": 0,
+              "final_agents": 0,
+              "max_generation": 65,
+              "seed": 9,
+              "termination": "extinct",
+              "viable": false
+            }
+          ],
+          "viable_seeds": 6
+        }
+      ],
+      "resource_regen_delay": 10,
+      "resources_per_pattern": 80,
+      "viable": false
+    }
+  ],
+  "deciding_viable_seeds": [
+    {
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 20,
+      "viable_seeds": 0
+    },
+    {
+      "resource_regen_delay": 10,
+      "resources_per_pattern": 20,
+      "viable_seeds": 23
+    },
+    {
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 30,
+      "viable_seeds": 27
+    },
+    {
+      "resource_regen_delay": 10,
+      "resources_per_pattern": 30,
+      "viable_seeds": 67
+    },
+    {
+      "resource_regen_delay": 40,
+      "resources_per_pattern": 40,
+      "viable_seeds": 0
+    },
+    {
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 40,
+      "viable_seeds": 71
+    },
+    {
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 60,
+      "viable_seeds": 80
+    },
+    {
+      "resource_regen_delay": 10,
+      "resources_per_pattern": 60,
+      "viable_seeds": 84
+    },
+    {
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 80,
+      "viable_seeds": 95
+    },
+    {
+      "resource_regen_delay": 10,
+      "resources_per_pattern": 80,
+      "viable_seeds": 71
+    }
+  ],
+  "fallback": true,
+  "grid": [
+    [
+      60,
+      20
+    ],
+    [
+      60,
+      10
+    ],
+    [
+      80,
+      20
+    ],
+    [
+      80,
+      10
+    ]
+  ],
+  "min_generation": 20,
+  "min_viable_seeds": 9,
+  "note": null,
+  "null_content_viable_seeds": {
+    "25a": 10,
+    "25b": 10,
+    "25c": 10,
+    "25d": 10
+  },
+  "original_grid": [
+    [
+      20,
+      20
+    ],
+    [
+      20,
+      10
+    ],
+    [
+      30,
+      20
+    ],
+    [
+      30,
+      10
+    ],
+    [
+      40,
+      40
+    ],
+    [
+      40,
+      20
+    ]
+  ],
+  "preregistered": true,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "total_ticks": 5000
+}

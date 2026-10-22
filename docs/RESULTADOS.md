@@ -230,6 +230,25 @@ Observaciones demográficas (exploratorias, no son afirmaciones):
 - El entorno cambiante de `25d` es muy letal: `full` 3/10 frente a `stable` 8/10 con la misma abundancia.
 - Sin comunicación de partida (`25c`), con poca abundancia la población muere en las primeras generaciones (generación máxima 1 a 5).
 
+## Fase II-B: Enmienda 2 de la compuerta de viabilidad (D55.7, tarea 23.5)
+
+Corrida el 2026-10-22 con `python -m ide.experiments.phase25_viability --amendment2 --out registros/phase25_viability_enmienda2.json`, con el mismo perfil (5000 ticks), las mismas semillas (0 a 9) y el mismo criterio, sobre la grilla extendida (60, 20), (60, 10), (80, 20) y (80, 10). Salida completa en `registros/phase25_viability_enmienda2.json` y `registros/phase25_viability_enmienda2_consola.txt`. Sólo demografía: ninguna métrica de afirmación.
+
+**Resultado (tal cual): ninguna configuración de la grilla extendida es viable. Rige la salida de respaldo fijada de antemano: (80, 20)**, la de más semillas viables sumadas sobre las condiciones que deciden (95 de 130; le siguen (60, 10) con 84 y (60, 20) con 80). Las afirmaciones con menos de 20 pares válidos quedarán `NOT_OBSERVED` con `evaluable = False` (precisión 45). `null_content` es viable en 10 de 10 semillas en los cuatro protocolos, así que E4 es interpretable.
+
+Semillas viables (de 10) con (80, 20):
+
+| Protocolo | Condiciones que deciden |
+| :--- | :--- |
+| `25a` | full 10, drift 5, no_predation 10, no_predation_drift 10 |
+| `25b` | full 10, drift 2 |
+| `25c` | full 10, drift 5 |
+| `25d` | full 6, drift 7, stable 10, stable_drift 5, no_learning 5 |
+
+Observaciones demográficas (exploratorias, no son afirmaciones):
+- Lo que limita la viabilidad es siempre la reproducción neutral (`drift`, 2 a 7 de 10) y el entorno cambiante de `25d`; con selección y entorno estable, la población sobrevive en 10 de 10.
+- Con abundancia alta y reposición rápida (retardo 10), muchas corridas terminan con hojas vivas pero menos de 20 generaciones (por ejemplo, `25a` no_predation con (80, 10): 10/10 vivas y 0/10 viables): sin escasez casi no hay recambio generacional, el mismo "Tapón de Matusalén" que diagnosticó la tarea 0.1 en la Fase II.
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.

@@ -536,10 +536,11 @@ _PHASE25_ECOLOGY_FLAGS: dict[str, Any] = {
     "dna_max_length": 64,  # D62.2
 }
 
-# `(resources_per_pattern, resource_regen_delay)` de los cuatro protocolos. PROVISIONAL hasta que
-# la compuerta de viabilidad (D55, tarea 23.4) fije la configuración elegida en un commit propio:
-# mientras tanto son los heredados de 002a y 003a, que coinciden con el primer punto de la grilla.
-PHASE25_ABUNDANCE: tuple[int, int] = (20, 20)
+# `(resources_per_pattern, resource_regen_delay)` de los cuatro protocolos, fijado por la compuerta
+# de viabilidad (tareas 23.4 y 23.5): ninguna configuración de la grilla de D55 ni de la grilla
+# extendida de la Enmienda 2 (D55.7) fue viable, y rige la salida de respaldo pre-registrada, la de
+# más semillas viables en las condiciones que deciden (registros/phase25_viability_enmienda2.json).
+PHASE25_ABUNDANCE: tuple[int, int] = (80, 20)
 
 
 def phase25_protocol_configs(
@@ -674,9 +675,9 @@ PHASE25_CLAIMS: tuple[Phase25Claim, ...] = (
 )
 
 # Viabilidad de `null_content` por protocolo en las semillas de viabilidad, con la configuración
-# elegida por la compuerta. PROVISIONAL: vacío hasta que la tarea 23.4 registre la compuerta; sin
-# dato, E4 se declara no interpretable (D56).
-PHASE25_NULL_CONTENT_VIABLE_SEEDS: dict[str, int] = {}
+# fijada por la compuerta (Enmienda 2 de D55, registros/phase25_viability_enmienda2.json). Con 9 o
+# más de 10, E4 es interpretable en ese protocolo (D56).
+PHASE25_NULL_CONTENT_VIABLE_SEEDS: dict[str, int] = {"25a": 10, "25b": 10, "25c": 10, "25d": 10}
 
 
 @dataclass(frozen=True)
