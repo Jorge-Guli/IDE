@@ -5,16 +5,25 @@ más nodos de cualquier nivel. Ninguna función recibe el entorno: las distancia
 adyacentes llegan ya calculados por el motor. El motor decide también cuándo invocar BOND
 (`enable_holonic_hierarchy`) y R17 (`enable_holon_reproduction`); `should_split_holon` y
 `apply_downward_causation` respetan su propia bandera porque la decisión es parte de la regla.
+
+Fase II-B: `assign_epigenetic_roles` ($R_{25}$, D36 y D50.1) calcula la señal posicional de las
+hojas y `should_lock_holon` ($R_{31}$, D50.3) decide el sello por compromiso simbiótico; los dos
+respetan su condición efectiva (`epigenetic_roles_active` y `symbiotic_ratchet_active`).
 """
 
+from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from typing import Protocol, runtime_checkable
 
 from ide.agent.epistemology import is_known
 from ide.agent.micro_agent import MicroAgent
-from ide.config import SimulationConfig
+from ide.config import SimulationConfig, epigenetic_roles_active, symbiotic_ratchet_active
 from ide.domain.extensions import compute_epistemic_synergy
-from ide.domain.types import KnowledgeUnit, Pattern
+from ide.domain.types import EpigeneticRole, KnowledgeUnit, Pattern
+
+# Compromiso simbiótico expresado medio de las hojas a partir del cual un holón raíz se suelda
+# (R31, D50.3).
+LOCK_COMMITMENT_THRESHOLD = 0.5
 
 
 @runtime_checkable
@@ -76,6 +85,8 @@ class CompositeAgent:
         self.cooperative_completions = 0
         self.formed_by_bond = formed_by_bond
         self.formation_knowledge: tuple[tuple[int, frozenset[Pattern]], ...] = ()
+        # Sello de R31 (D40, D50.3): permanente; lo pone el motor con `should_lock_holon`.
+        self.is_locked = False
 
     @property
     def children(self) -> tuple[AgentNode, ...]:
@@ -189,11 +200,98 @@ def evaluate_bond_candidates(
 
 
 def should_split_holon(holon: CompositeAgent, config: SimulationConfig) -> bool:
-    """SPLIT (R16, D24.2): paciencia sin superávit agotada o energía bajo el mínimo por hoja."""
+    """SPLIT (R16, D24.2): paciencia sin superávit agotada o energía bajo el mínimo por hoja.
+
+    Con $R_{31}$ efectivamente activa, un holón soldado nunca se parte (D40, D50.3).
+    """
     if not config.enable_holon_splitting:
+        return False
+    if holon.is_locked and symbiotic_ratchet_active(config):
         return False
     starving = holon.total_energy < len(holon.leaf_agents) * config.holon_min_energy_per_leaf
     return holon.ticks_without_surplus >= config.holon_split_patience or starving
+
+
+def should_lock_holon(holon: CompositeAgent, config: SimulationConfig) -> bool:
+    """Sello de R31 (D50.3): el holón no soldado se suelda si sus hojas se comprometen.
+
+    Devuelve `True` si y sólo si $R_{31}$ está efectivamente activa, el holón no está soldado y
+    la media del `symbiotic_commitment` expresado de todas sus hojas es >= 0.5. El motor lo
+    evalúa sólo sobre las raíces, en el paso de coordinación de la Fase 5 y antes de cobrar el
+    costo y de evaluar `SPLIT` (precisión 19). No modifica el holón.
+    """
+    if holon.is_locked or not symbiotic_ratchet_active(config):
+        return False
+    leaves = holon.leaf_agents
+    mean = sum(leaf.phenotype.symbiotic_commitment for leaf in leaves) / len(leaves)
+    return mean >= LOCK_COMMITMENT_THRESHOLD
+
+
+def _validated_reach(
+    holon: CompositeAgent, local_reach: Mapping[int, Sequence[int]]
+) -> dict[int, list[int]]:
+    """Valida `local_reach` (contrato de D25.1) y devuelve, por hoja, sus cercanas con ella.
+
+    Raises:
+        ValueError: si `local_reach` no tiene exactamente una clave por hoja o da, para alguna
+            hoja, agentes que no son hojas del holón.
+    """
+    leaf_ids = {leaf.agent_id for leaf in holon.leaf_agents}
+    if set(local_reach.keys()) != leaf_ids:
+        raise ValueError(
+            f"local_reach debe tener exactamente una clave por hoja: {sorted(leaf_ids)}"
+        )
+    nearby_ids: dict[int, list[int]] = {}
+    for aid in sorted(leaf_ids):
+        if not set(local_reach[aid]) <= leaf_ids:
+            raise ValueError(f"local_reach debe dar, para la hoja {aid}, sólo hojas del holón")
+        nearby_ids[aid] = sorted({*local_reach[aid], aid})
+    return nearby_ids
+
+
+def assign_epigenetic_roles(
+    holon: CompositeAgent, local_reach: Mapping[int, Sequence[int]], config: SimulationConfig
+) -> dict[int, EpigeneticRole]:
+    """Señal posicional de R25 (D36, D50.1): un rol por hoja, ordenado por `agent_id`.
+
+    `local_reach` sigue el contrato de D25.1 y se valida aun con la regla apagada. Con $R_{25}$
+    inerte, todas las hojas reciben `NONE`. Con la regla activa, con K los patrones de
+    la memoria de la hoja con `confidence >= decision_conf_threshold`, `unique` lo que sólo ella
+    sabe en el holón y `deg` sus cercanas sin contarse a sí misma:
+    1. `LIBRARIAN` maximiza `(unique, |K|, -agent_id)`;
+    2. `EXPLORER` maximiza, entre las restantes, `(-deg, -agent_id)`;
+    3. `NERVE` maximiza, si quedan hojas, `(deg, -agent_id)` entre las restantes;
+    4. las demás quedan en `NONE`.
+    Es pura: lee las memorias como R18, no conoce coordenadas y no escribe roles.
+    """
+    nearby_ids = _validated_reach(holon, local_reach)
+    leaves = holon.leaf_agents
+    roles = {leaf.agent_id: EpigeneticRole.NONE for leaf in leaves}
+    if not epigenetic_roles_active(config):
+        return roles
+    threshold = config.decision_conf_threshold
+    known = {
+        leaf.agent_id: frozenset(
+            u.pattern for u in leaf.memory.all_units() if u.confidence >= threshold
+        )
+        for leaf in leaves
+    }
+    holders = Counter(pattern for patterns in known.values() for pattern in patterns)
+    unique = {
+        aid: sum(1 for pattern in patterns if holders[pattern] == 1)
+        for aid, patterns in known.items()
+    }
+    degree = {aid: len(nearby) - 1 for aid, nearby in nearby_ids.items()}  # sin la propia hoja
+    remaining = sorted(roles)
+    librarian = max(remaining, key=lambda aid: (unique[aid], len(known[aid]), -aid))
+    remaining.remove(librarian)
+    explorer = max(remaining, key=lambda aid: (-degree[aid], -aid))
+    remaining.remove(explorer)
+    roles[librarian] = EpigeneticRole.LIBRARIAN
+    roles[explorer] = EpigeneticRole.EXPLORER
+    if remaining:
+        roles[max(remaining, key=lambda aid: (degree[aid], -aid))] = EpigeneticRole.NERVE
+    return roles
 
 
 def apply_downward_causation(
@@ -207,14 +305,8 @@ def apply_downward_causation(
     """
     leaves = holon.leaf_agents
     by_id = {leaf.agent_id: leaf for leaf in leaves}
-    nearby_ids: dict[int, list[int]] = {}
     # Se valida aun con la regla apagada, para que la ablación no oculte un error del motor.
-    if local_reach.keys() != by_id.keys():
-        raise ValueError(f"local_reach debe tener exactamente una clave por hoja: {sorted(by_id)}")
-    for aid in by_id:
-        if not set(local_reach[aid]) <= by_id.keys():
-            raise ValueError(f"local_reach debe dar, para la hoja {aid}, sólo hojas del holón")
-        nearby_ids[aid] = sorted({*local_reach[aid], aid})
+    nearby_ids = _validated_reach(holon, local_reach)
     if not config.enable_downward_causation:
         for leaf in leaves:
             leaf.memory.set_redundant_patterns(frozenset(), 1.0)

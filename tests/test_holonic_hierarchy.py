@@ -14,14 +14,16 @@ from ide.agent.holon import (
     AgentNode,
     CompositeAgent,
     apply_downward_causation,
+    assign_epigenetic_roles,
     evaluate_bond_candidates,
     prune_dead_leaves,
     reproduce_holon,
+    should_lock_holon,
     should_split_holon,
 )
 from ide.agent.micro_agent import MicroAgent
-from ide.config import SimulationConfig
-from ide.domain.types import KnowledgeUnit, Pattern
+from ide.config import SimulationConfig, epigenetic_roles_active, symbiotic_ratchet_active
+from ide.domain.types import EpigeneticRole, KnowledgeUnit, Pattern
 
 CFG = SimulationConfig()
 
@@ -485,3 +487,205 @@ def test_propiedad_reproduccion_replica_la_forma(tree: object, order: list[int])
     composites = all_composites(child)
     assert [n.node_id for n in composites] == list(range(-50, -50 - len(composites), -1))
     assert all(not n.formed_by_bond and n.formation_tick == 7 for n in composites)
+
+
+# --- Fase II-B: señal posicional (R25, design D36 y D50.1) ------------------------------------
+
+ROLES = SimulationConfig(
+    enable_evolution=True,
+    enable_compact_dna=True,
+    enable_holonic_hierarchy=True,
+    enable_epigenetic_roles=True,
+)
+NONE, EXPLORER, LIBRARIAN, NERVE = (
+    EpigeneticRole.NONE,
+    EpigeneticRole.EXPLORER,
+    EpigeneticRole.LIBRARIAN,
+    EpigeneticRole.NERVE,
+)
+
+
+def full_reach(*aids: int) -> dict[int, list[int]]:
+    return {aid: list(aids) for aid in aids}
+
+
+def test_condicion_efectiva_de_r25() -> None:
+    assert epigenetic_roles_active(ROLES)
+    assert not epigenetic_roles_active(SimulationConfig())
+    for flag in ("enable_compact_dna", "enable_holonic_hierarchy", "enable_epigenetic_roles"):
+        assert not epigenetic_roles_active(replace(ROLES, **{flag: False}))
+
+
+@pytest.mark.parametrize(
+    "overrides", [{"enable_compact_dna": False}, {"enable_epigenetic_roles": False}]
+)
+def test_roles_con_la_regla_apagada(overrides: dict[str, bool]) -> None:
+    u = holon(-2, leaf(1, ku(0)), leaf(2, ku(1)), leaf(3, ku(2)))
+    roles = assign_epigenetic_roles(u, full_reach(1, 2, 3), replace(ROLES, **overrides))
+    assert roles == {1: NONE, 2: NONE, 3: NONE}
+
+
+def test_roles_validan_el_alcance_local_aun_con_la_regla_apagada() -> None:
+    u = holon(-2, leaf(1, ku(0)), leaf(2, ku(1)))
+    off = replace(ROLES, enable_epigenetic_roles=False)
+    for config in (ROLES, off):
+        with pytest.raises(ValueError, match="local_reach"):
+            assign_epigenetic_roles(u, {1: [1, 2]}, config)  # falta la hoja 2
+        with pytest.raises(ValueError, match="local_reach"):
+            assign_epigenetic_roles(u, {1: [1], 2: [2, 7]}, config)  # 7 no es hoja del holón
+
+
+def test_librarian_desempata_por_conocimiento_total_y_por_identificador() -> None:
+    # unique(1) = 1, unique(2) = unique(3) = 2 y |K(2)| = |K(3)| = 4: gana la hoja 2.
+    a1 = leaf(1, ku(0), ku(30), capacity=5)
+    a2 = leaf(2, ku(0), ku(1), ku(10), ku(11), capacity=5)
+    a3 = leaf(3, ku(0), ku(1), ku(20), ku(21), capacity=5)
+    roles = assign_epigenetic_roles(holon(-2, a1, a2, a3), full_reach(1, 2, 3), ROLES)
+    assert roles[2] is LIBRARIAN
+
+
+def test_librarian_prefiere_mas_conocimiento_unico() -> None:
+    a1 = leaf(1, ku(0), ku(1), ku(2), capacity=5)  # unique 1, |K| 3
+    a2 = leaf(2, ku(1), ku(2), capacity=5)  # unique 0
+    a3 = leaf(3, ku(5), ku(6), capacity=5)  # unique 2, |K| 2
+    roles = assign_epigenetic_roles(holon(-2, a1, a2, a3), full_reach(1, 2, 3), ROLES)
+    assert roles[3] is LIBRARIAN
+
+
+def test_k_solo_cuenta_creencias_sobre_el_umbral_de_decision() -> None:
+    low = ROLES.decision_conf_threshold - 0.01
+    a1 = leaf(1, ku(0, conf=low), ku(1, conf=low), ku(2, conf=low), capacity=5)
+    a2 = leaf(2, ku(5), capacity=5)
+    roles = assign_epigenetic_roles(holon(-2, a1, a2), full_reach(1, 2), ROLES)
+    assert roles == {1: EXPLORER, 2: LIBRARIAN}
+
+
+def test_explorer_y_nerve_por_grado_interno() -> None:
+    a1 = leaf(1, ku(0))  # único con conocimiento propio: LIBRARIAN
+    others = [leaf(aid) for aid in (2, 3, 4)]
+    reach = {1: [3], 2: [3], 3: [1, 2, 4], 4: [3]}  # grados de 2, 3 y 4: 1, 3 y 1
+    roles = assign_epigenetic_roles(holon(-2, a1, *others), reach, ROLES)
+    assert roles == {1: LIBRARIAN, 2: EXPLORER, 3: NERVE, 4: NONE}
+
+
+def test_el_grado_no_cuenta_a_la_propia_hoja() -> None:
+    a1 = leaf(1, ku(0))
+    # La hoja 2 se lista a sí misma: su grado sigue siendo 1, igual que el de la hoja 3.
+    reach = {1: [2, 3], 2: [1, 2], 3: [1]}
+    roles = assign_epigenetic_roles(holon(-2, a1, leaf(2), leaf(3)), reach, ROLES)
+    assert roles == {1: LIBRARIAN, 2: EXPLORER, 3: NERVE}
+
+
+def test_holon_de_dos_hojas_sin_nerve() -> None:
+    roles = assign_epigenetic_roles(holon(-2, leaf(5), leaf(9)), full_reach(5, 9), ROLES)
+    assert sorted(roles.values(), key=lambda r: r.value) == [EXPLORER, LIBRARIAN]
+    assert NERVE not in roles.values()
+
+
+def test_asignacion_pura_sin_escribir_roles() -> None:
+    a1, a2 = leaf(1, ku(0)), leaf(2)
+    roles = assign_epigenetic_roles(holon(-2, a1, a2), full_reach(1, 2), ROLES)
+    assert roles == {1: LIBRARIAN, 2: EXPLORER}
+    assert a1.epigenetic_role is NONE and a2.epigenetic_role is NONE
+
+
+@given(_trees, st.permutations(range(10)), st.data())
+def test_propiedad_una_casta_de_cada_tipo(
+    tree: object, order: list[int], data: st.DataObject
+) -> None:
+    root = build(tree, iter(order), count(-2, -1))
+    if not isinstance(root, CompositeAgent):
+        return
+    aids = [a.agent_id for a in root.leaf_agents]
+    reach = {aid: data.draw(st.lists(st.sampled_from(aids), max_size=4)) for aid in aids}
+    roles = assign_epigenetic_roles(root, reach, ROLES)
+    assert list(roles) == aids
+    values = list(roles.values())
+    assert values.count(LIBRARIAN) == 1 and values.count(EXPLORER) == 1
+    assert values.count(NERVE) == (1 if len(aids) >= 3 else 0)
+    shuffled = {aid: list(reversed(reach[aid])) for aid in reversed(aids)}
+    assert assign_epigenetic_roles(root, shuffled, ROLES) == roles
+
+
+# --- Fase II-B: compromiso simbiótico (R31, design D40 y D50.3) -------------------------------
+
+RATCHET = SimulationConfig(
+    enable_evolution=True,
+    enable_compact_dna=True,
+    enable_holonic_hierarchy=True,
+    enable_symbiotic_ratchet=True,
+    lock_coord_discount=0.5,
+)
+
+
+def committed(aid: int, commitment: float, energy: float = 1.5) -> MicroAgent:
+    """Hoja sin ADN que expresa `commitment` como base de su configuración (D46.7)."""
+    config = replace(CFG, symbiotic_commitment_base=commitment)
+    agent = MicroAgent.from_lineage(aid, config, genome_from_config(config), energy, 0, None)
+    assert agent.phenotype.symbiotic_commitment == commitment
+    return agent
+
+
+def test_condicion_efectiva_de_r31() -> None:
+    assert symbiotic_ratchet_active(RATCHET)
+    assert not symbiotic_ratchet_active(SimulationConfig())
+    for flag in ("enable_compact_dna", "enable_holonic_hierarchy", "enable_symbiotic_ratchet"):
+        assert not symbiotic_ratchet_active(replace(RATCHET, **{flag: False}))
+
+
+def test_holon_nace_sin_soldar() -> None:
+    assert holon(-2, leaf(1), leaf(2)).is_locked is False
+
+
+def test_sello_por_compromiso_medio() -> None:
+    assert should_lock_holon(holon(-2, committed(1, 0.25), committed(2, 0.75)), RATCHET)
+    assert not should_lock_holon(holon(-2, committed(1, 0.25), committed(2, 0.5)), RATCHET)
+
+
+def test_sello_promedia_todas_las_hojas_del_arbol() -> None:
+    inner = holon(-3, committed(2, 0.9), committed(3, 0.9))
+    assert should_lock_holon(holon(-2, committed(1, 0.0), inner), RATCHET)  # media 0.6
+    inner = holon(-3, committed(2, 0.6), committed(3, 0.6))
+    assert not should_lock_holon(holon(-2, committed(1, 0.0), inner), RATCHET)  # media 0.4
+
+
+def test_sin_sello_con_r31_inerte() -> None:
+    u = holon(-2, committed(1, 0.8), committed(2, 0.8))
+    for flag in ("enable_compact_dna", "enable_holonic_hierarchy", "enable_symbiotic_ratchet"):
+        assert not should_lock_holon(u, replace(RATCHET, **{flag: False}))
+
+
+def test_un_holon_ya_soldado_no_se_vuelve_a_sellar() -> None:
+    u = holon(-2, committed(1, 0.8), committed(2, 0.8))
+    u.is_locked = True
+    assert not should_lock_holon(u, RATCHET)  # el sello es permanente: no hay nada que decidir
+    assert u.is_locked
+
+
+def test_holon_soldado_deficitario_no_se_parte() -> None:
+    cfg = replace(RATCHET, holon_min_energy_per_leaf=1.0)
+    u = holon(-2, leaf(1, energy=0.0), leaf(2, energy=0.0), leaf(3, energy=0.0))
+    u.ticks_without_surplus = cfg.holon_split_patience
+    assert should_split_holon(u, cfg) is True
+    u.is_locked = True
+    assert should_split_holon(u, cfg) is False
+    # Con R31 inerte el sello no tiene efecto (D30.3, precisión 32).
+    assert should_split_holon(u, replace(cfg, enable_compact_dna=False)) is True
+    assert should_split_holon(u, replace(cfg, enable_symbiotic_ratchet=False)) is True
+
+
+def test_poda_de_un_holon_soldado() -> None:
+    a1, a2, a3 = leaf(1), leaf(2), leaf(3)
+    u = holon(-2, a1, a2, a3)
+    u.is_locked = True
+    pruned = prune_dead_leaves(u, {1, 2})
+    assert pruned is u and u.is_locked and ids(u) == [1, 2]
+    assert prune_dead_leaves(u, {1}) is a1  # colapsa como en la Fase II
+
+
+def test_sello_conservado_al_quedar_expuesto_como_raiz() -> None:
+    inner = holon(-3, leaf(1), leaf(2))
+    inner.is_locked = True
+    outer = holon(-4, inner, leaf(3))
+    assert outer.is_locked is False
+    assert outer.children[0] is inner and inner.is_locked  # tras un SPLIT de `outer`

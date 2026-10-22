@@ -26,7 +26,12 @@ import numpy as np
 from ide.agent.dna import internal_state_active, signals_active
 from ide.agent.evolution import sos_mutation_active
 from ide.agent.holon import CompositeAgent
-from ide.config import SimulationConfig, genetic_policy_active, sporulation_active
+from ide.config import (
+    SimulationConfig,
+    epigenetic_roles_active,
+    genetic_policy_active,
+    sporulation_active,
+)
 from ide.domain.extensions import CompositeRule
 from ide.domain.ports import EcologicalEnvironmentPort
 from ide.domain.types import (
@@ -922,6 +927,18 @@ class DownwardCausationSystem(BaseSystem):
         engine._apply_downward_causation()
 
 
+class EpigeneticRoleSystem(BaseSystem):
+    """(vii) Asignación de roles de R25 (D36), después de R18 y antes de `env.step_dynamics`.
+
+    Sólo está en la lista con $R_{25}$ efectivamente activa (`epigenetic_roles_active`).
+    """
+
+    name = "epigenetic_roles"
+
+    def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
+        engine._assign_epigenetic_roles()
+
+
 class EnvironmentDynamicsSystem(BaseSystem):
     """(viii) Dinámica del entorno: reposición de recursos y decaimiento de los rastros."""
 
@@ -1039,6 +1056,8 @@ def build_systems(config: SimulationConfig) -> tuple[EngineSystem, ...]:
         systems.append(ReproductionSystem())
     if holonic:
         systems.append(DownwardCausationSystem())
+    if epigenetic_roles_active(config):
+        systems.append(EpigeneticRoleSystem())
     systems.append(EnvironmentDynamicsSystem())
     # Final de la Fase 5: eventos del tick para la política genética (D58.5, precisión 87).
     if genetic_policy_active(config):

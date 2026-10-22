@@ -18,9 +18,9 @@ import pytest
 from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
-from ide.agent.dna import encode_codon, mutate_dna, transcribe_phenotype
+from ide.agent.dna import encode_codon, founder_dna, mutate_dna, transcribe_phenotype
 from ide.agent.evolution import compute_dna_cost, compute_metabolic_cost
-from ide.agent.holon import CompositeAgent
+from ide.agent.holon import CompositeAgent, composite_nodes
 from ide.agent.memory import BoundedMemory
 from ide.agent.micro_agent import MicroAgent
 from ide.config import SimulationConfig
@@ -1918,3 +1918,435 @@ def phase2_digest(config: SimulationConfig, ticks: int = 100) -> str:
 @pytest.mark.parametrize("name", sorted(PHASE2_CASES))
 def test_protocolos_de_fase_ii_identicos_con_las_banderas_por_defecto(name: str) -> None:
     assert phase2_digest(PHASE2_CASES[name]) == PHASE2_GOLDEN[name]
+
+
+# --- Fase II-B: señal posicional (R25, design D36 y D50.1; bloque 18) -------------------------
+
+
+def roles_config(**overrides: Any) -> SimulationConfig:
+    """`dna_config` con holones y R25, sin BOND ni comunicación salvo que se pidan."""
+    base: dict[str, Any] = {
+        "enable_holonic_hierarchy": True,
+        "enable_epigenetic_roles": True,
+        "holon_bond_threshold": 1.0,
+        "comm_enabled": False,
+    }
+    return dna_config(**{**base, **overrides})
+
+
+def roles_of(engine: SimulationEngine) -> dict[int, EpigeneticRole]:
+    return {aid: engine.agents[aid].epigenetic_role for aid in sorted(engine.agents)}
+
+
+def count_assignments(monkeypatch: pytest.MonkeyPatch) -> list[int]:
+    """Espía `assign_epigenetic_roles` en el motor: registra el `node_id` de cada llamada."""
+    calls: list[int] = []
+    original = engine_module.assign_epigenetic_roles
+
+    def spy(holon: CompositeAgent, *args: Any) -> dict[int, EpigeneticRole]:
+        calls.append(holon.node_id)
+        return original(holon, *args)
+
+    monkeypatch.setattr(engine_module, "assign_epigenetic_roles", spy)
+    return calls
+
+
+R_NONE, R_EXPLORER, R_LIBRARIAN, R_NERVE = (
+    EpigeneticRole.NONE,
+    EpigeneticRole.EXPLORER,
+    EpigeneticRole.LIBRARIAN,
+    EpigeneticRole.NERVE,
+)
+
+
+def test_rol_sin_efecto_en_el_adn_fundador() -> None:
+    config = roles_config()
+    dna = founder_dna(config)
+    phenotypes = {
+        transcribe_phenotype(dna, EpigeneticContext(1, role, 0.6), config)
+        for role in EpigeneticRole
+    }
+    assert len(phenotypes) == 1
+
+
+def test_sistema_de_roles_solo_con_r25_efectiva() -> None:
+    names = [s.name for s in SimulationEngine(roles_config()).systems]
+    assert names.index("downward_causation") < names.index("epigenetic_roles")
+    assert names.index("epigenetic_roles") < names.index("environment_dynamics")
+    for flag in ("enable_compact_dna", "enable_epigenetic_roles", "enable_holonic_hierarchy"):
+        config = (
+            roles_config(**{flag: False})
+            if flag != "enable_compact_dna"
+            else quiet(
+                enable_evolution=True, enable_holonic_hierarchy=True, enable_epigenetic_roles=True
+            )
+        )
+        assert "epigenetic_roles" not in [s.name for s in SimulationEngine(config).systems]
+
+
+def test_asignacion_por_el_motor_en_la_fase_5(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(roles_config(num_agents=4))
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    holon = make_holon(engine, [1, 2])
+    act(monkeypatch, engine)
+    engine.step()
+    assert roles_of(engine) == {0: R_NONE, 1: R_LIBRARIAN, 2: R_EXPLORER, 3: R_NONE}
+    assert engine._role_leaf_sets == {holon.node_id: frozenset({1, 2})}  # pyright: ignore[reportPrivateUsage]
+
+
+def test_composicion_estable_no_reasigna(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(roles_config(num_agents=4))
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    holon = make_holon(engine, [1, 2])
+    calls = count_assignments(monkeypatch)
+    act(monkeypatch, engine)
+    engine.step()
+    assert calls == [holon.node_id]
+    # La hoja 2 pasa a saber más que la 1: no importa mientras la composición no cambie.
+    for i in range(1, 4):
+        engine.agents[2].memory.upsert(direct(pat(i), 1.0), engine.next_tick)
+    engine.run(10)
+    assert calls == [holon.node_id]
+    assert roles_of(engine)[1] is R_LIBRARIAN and roles_of(engine)[2] is R_EXPLORER
+
+
+def test_composicion_nueva_reasigna(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(roles_config(num_agents=4))
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    first = make_holon(engine, [1, 2])
+    calls = count_assignments(monkeypatch)
+    act(monkeypatch, engine)
+    engine.step()
+    engine.agents[3].memory.upsert(direct(pat(5), 1.0), 1)
+    engine.agents[3].memory.upsert(direct(pat(6), 1.0), 1)
+    merged = make_holon(engine, [1, 3])  # como un BOND: raíz nueva con una hoja más
+    engine.step()
+    assert calls == [first.node_id, merged.node_id]
+    assert engine._role_leaf_sets == {merged.node_id: frozenset({1, 2, 3})}  # pyright: ignore[reportPrivateUsage]
+    assert roles_of(engine)[3] is R_LIBRARIAN
+
+
+def test_poda_cambia_la_composicion_y_reasigna(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Sin SPLIT: la energía negativa de la hoja 3 partiría el holón por hambre antes de la muerte.
+    engine = SimulationEngine(roles_config(num_agents=4, enable_holon_splitting=False))
+    engine.agents[3].memory.upsert(direct(pat(0), 1.0), 0)
+    holon = make_holon(engine, [1, 2, 3])
+    calls = count_assignments(monkeypatch)
+    act(monkeypatch, engine)
+    engine.step()
+    assert roles_of(engine)[3] is R_LIBRARIAN
+    engine.agents[3].apply_energy_delta(-100.0)  # muere en la Fase 5: el holón queda con 2
+    engine.step()
+    assert calls == [holon.node_id, holon.node_id]
+    assert engine._role_leaf_sets == {holon.node_id: frozenset({1, 2})}  # pyright: ignore[reportPrivateUsage]
+    assert {roles_of(engine)[1], roles_of(engine)[2]} == {R_LIBRARIAN, R_EXPLORER}
+
+
+def test_split_devuelve_a_none_y_limpia_el_registro(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(roles_config(num_agents=4))
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    holon = make_holon(engine, [1, 2, 3])
+    act(monkeypatch, engine)
+    engine.step()
+    assert set(roles_of(engine).values()) == {R_NONE, R_LIBRARIAN, R_EXPLORER, R_NERVE}
+    holon.ticks_without_surplus = engine.config.holon_split_patience
+    engine.step()
+    assert holon.node_id not in engine.root_nodes
+    assert set(roles_of(engine).values()) == {R_NONE}
+    assert engine._role_leaf_sets == {}  # pyright: ignore[reportPrivateUsage]
+
+
+def test_impronta_en_la_reproduccion_holonica(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        roles_config(num_agents=4, enable_holon_reproduction=True, reproduction_threshold=2.0)
+    )
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    holon = make_holon(engine, [1, 2, 3])
+    calls = count_assignments(monkeypatch)
+    act(monkeypatch, engine)
+    engine.step()
+    parents = {aid: engine.agents[aid].epigenetic_role for aid in (1, 2, 3)}
+    assert set(parents.values()) == {R_LIBRARIAN, R_EXPLORER, R_NERVE}
+    for aid in (1, 2, 3):
+        engine.agents[aid].apply_energy_delta(10.0)
+    engine.step()
+    replica = engine.root_nodes[engine.agent_to_root[4]]
+    assert isinstance(replica, CompositeAgent) and replica is not holon
+    for child in replica.leaf_agents:
+        assert child.parent_id is not None
+        assert child.epigenetic_role is parents[child.parent_id]
+    leaf_sets = engine._role_leaf_sets  # pyright: ignore[reportPrivateUsage]
+    assert leaf_sets[replica.node_id] == frozenset(c.agent_id for c in replica.leaf_agents)
+    assert calls == [holon.node_id]  # la réplica no se recalculó
+    act(monkeypatch, engine)  # los hijos también quedan quietos
+    for child in replica.leaf_agents:
+        child.memory.upsert(direct(pat(7), 1.0), engine.next_tick)
+    engine.step()
+    assert calls == [holon.node_id]
+    assert all(c.epigenetic_role is parents[cast(int, c.parent_id)] for c in replica.leaf_agents)
+
+
+def test_sin_r17_el_hijo_nace_solo_y_sin_rol(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(roles_config(num_agents=3, reproduction_threshold=2.0))
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    make_holon(engine, [1, 2])
+    act(monkeypatch, engine)
+    engine.step()
+    assert engine.agents[1].epigenetic_role is R_LIBRARIAN
+    engine.agents[1].apply_energy_delta(10.0)
+    engine.step()
+    child = engine.agents[3]
+    assert child.parent_id == 1 and engine.root_nodes[3] is child
+    assert child.epigenetic_role is R_NONE
+
+
+def test_fase_0_lee_el_rol_asignado(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(roles_config(num_agents=3))
+    engine.agents[1].memory.upsert(direct(pat(0), 1.0), 0)
+    make_holon(engine, [1, 2])
+    act(monkeypatch, engine)
+    engine.step()
+    seen: list[EpigeneticContext] = []
+    original = engine.agents[1].express
+
+    def spy(context: EpigeneticContext, tick: int) -> bool:
+        seen.append(context)
+        return original(context, tick)
+
+    monkeypatch.setattr(engine.agents[1], "express", spy)
+    engine.step()
+    assert seen[0].role is R_LIBRARIAN and seen[0].holon_level == 1
+
+
+# --- Fase II-B: compromiso simbiótico (R31, design D40 y D50.3; bloque 18) --------------------
+
+COMMITTED = encode_codon(0x00, 0x0A, 0, 0, 127)  # 0.6 * 127 / 128 = 0.5953125 sobre base 0
+
+
+def ratchet_config(**overrides: Any) -> SimulationConfig:
+    """`dna_config` con holones y R31, sin BOND ni comunicación salvo que se pidan."""
+    base: dict[str, Any] = {
+        "enable_holonic_hierarchy": True,
+        "enable_symbiotic_ratchet": True,
+        "lock_coord_discount": 0.5,
+        "holon_coord_cost": 0.01,
+        "holon_bond_threshold": 1.0,
+        "comm_enabled": False,
+    }
+    return dna_config(**{**base, **overrides})
+
+
+def commit(engine: SimulationEngine, *aids: int) -> None:
+    """Agrega al ADN de `aids` un codón que expresa compromiso simbiótico >= 0.5."""
+    for aid in aids:
+        agent = engine.agents[aid]
+        assert agent.dna is not None
+        agent.set_dna(CompactDNA((*agent.dna.chromosome, COMMITTED)))
+
+
+def all_holons(engine: SimulationEngine) -> list[CompositeAgent]:
+    return [c for nid in sorted(engine.root_nodes) for c in composite_nodes(engine.root_nodes[nid])]
+
+
+def test_sello_antes_del_costo_y_de_split(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(ratchet_config(num_agents=3, symbiotic_commitment_base=0.5))
+    holon = make_holon(engine, [1, 2])
+    holon.ticks_without_surplus = engine.config.holon_split_patience  # se partiría este tick
+    act(monkeypatch, engine)
+    engine.step()
+    assert engine.root_nodes[holon.node_id] is holon and holon.is_locked
+    cost = engine.agents[0].energy - engine.agents[1].energy
+    assert cost == pytest.approx(0.5 * 0.01 * 1, abs=1e-9)  # descuento desde el mismo tick
+
+
+def test_sello_por_el_compromiso_expresado_del_adn(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(ratchet_config(num_agents=4))
+    loose, tight = make_holon(engine, [0, 1]), make_holon(engine, [2, 3])
+    commit(engine, 0, 2, 3)  # media de `loose`: 0.30; de `tight`: 0.595
+    act(monkeypatch, engine)
+    engine.step()
+    assert engine.agents[2].phenotype.symbiotic_commitment == pytest.approx(0.5953125, abs=1e-9)
+    assert not loose.is_locked and tight.is_locked
+
+
+def test_sin_adn_no_hay_sello(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = quiet(
+        num_agents=3,
+        enable_evolution=True,
+        enable_holonic_hierarchy=True,
+        enable_symbiotic_ratchet=True,
+        symbiotic_commitment_base=0.8,
+        holon_bond_threshold=1.0,
+        comm_enabled=False,
+    )
+    engine = SimulationEngine(config)
+    holon = make_holon(engine, [1, 2])
+    act(monkeypatch, engine)
+    engine.step()
+    assert not holon.is_locked
+    holon.ticks_without_surplus = config.holon_split_patience
+    engine.step()
+    assert holon.node_id not in engine.root_nodes  # sin efectos: se parte como en la Fase II
+
+
+def test_sello_permanente(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(ratchet_config(num_agents=3, symbiotic_commitment_base=0.0))
+    holon = make_holon(engine, [1, 2])
+    holon.is_locked = True  # sus hojas expresan compromiso 0.0
+    act(monkeypatch, engine)
+    engine.run(5)
+    assert holon.is_locked and engine.root_nodes[holon.node_id] is holon
+
+
+def test_holon_soldado_deficitario(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(ratchet_config(num_agents=4, holon_min_energy_per_leaf=10.0))
+    holon = make_holon(engine, [1, 2, 3])
+    holon.is_locked = True
+    holon.ticks_without_surplus = engine.config.holon_split_patience
+    act(monkeypatch, engine)
+    engine.step()
+    assert engine.root_nodes[holon.node_id] is holon
+    total = sum(engine.agents[0].energy - engine.agents[a].energy for a in (1, 2, 3))
+    assert total == pytest.approx(0.5 * 0.01 * 3 * 1, abs=1e-9)
+
+
+def test_descuento_solo_en_la_raiz_soldada(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(ratchet_config(num_agents=5))
+    inner = make_holon(engine, [0, 1])
+    inner.is_locked = True
+    make_holon(engine, [2, 3])
+    root = make_holon(engine, [0, 2])
+    assert root.holon_level == 2 and len(root.leaf_agents) == 4
+    act(monkeypatch, engine)
+    engine.step()
+    assert not root.is_locked
+    for aid in (0, 1, 2, 3):
+        cost = engine.agents[4].energy - engine.agents[aid].energy
+        assert cost == pytest.approx(0.01 * 2, abs=1e-9)  # total: 0.01 * 4 * 2, sin descuento
+    root.is_locked = True
+    before = {aid: engine.agents[aid].energy for aid in range(5)}
+    engine.step()
+    for aid in (0, 1, 2, 3):
+        cost = (before[aid] - engine.agents[aid].energy) - (before[4] - engine.agents[4].energy)
+        assert cost == pytest.approx(0.5 * 0.01 * 2, abs=1e-9)
+
+
+def test_poda_de_un_holon_soldado_en_el_motor(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(ratchet_config(num_agents=4))
+    holon = make_holon(engine, [1, 2, 3])
+    holon.is_locked = True
+    act(monkeypatch, engine)
+    engine.agents[3].apply_energy_delta(-100.0)
+    engine.step()
+    assert engine.root_nodes[holon.node_id] is holon and holon.is_locked
+    assert [leaf.agent_id for leaf in holon.leaf_agents] == [1, 2]
+    engine.agents[2].apply_energy_delta(-100.0)
+    engine.step()
+    assert holon.node_id not in engine.root_nodes
+    assert engine.root_nodes[1] is engine.agents[1]
+
+
+def test_sello_conservado_tras_fusion_y_split(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(ratchet_config(num_agents=4))
+    inner = make_holon(engine, [0, 1])
+    inner.is_locked = True
+    outer = make_holon(engine, [0, 2])
+    outer.ticks_without_surplus = engine.config.holon_split_patience
+    act(monkeypatch, engine)
+    engine.step()
+    assert outer.node_id not in engine.root_nodes and not outer.is_locked
+    assert engine.root_nodes[inner.node_id] is inner and inner.is_locked
+
+
+def test_fundadores_sin_compromiso_no_se_sueldan(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = SimulationEngine(
+        ratchet_config(num_agents=3, enable_holon_reproduction=True, reproduction_threshold=2.0)
+    )
+    holon = make_holon(engine, [0, 1])
+    holon.cooperative_completions = 5
+    for aid in (0, 1):
+        engine.agents[aid].apply_energy_delta(10.0)
+    act(monkeypatch, engine)
+    engine.step()
+    replica = engine.root_nodes[engine.agent_to_root[3]]
+    assert isinstance(replica, CompositeAgent) and replica is not holon
+    engine.step()
+    assert not holon.is_locked and not replica.is_locked
+
+
+def _phase_ii_b_holonic(**overrides: Any) -> SimulationConfig:
+    """`003a` con ADN, R25 y R31 (bloque 18)."""
+    return replace(
+        PHASE2_PROTOCOL_CONFIGS["003a"],
+        enable_compact_dna=True,
+        enable_epigenetic_roles=True,
+        enable_symbiotic_ratchet=True,
+        **overrides,
+    )
+
+
+def test_adn_fundador_sin_compromiso_ningun_holon_se_suelda() -> None:
+    engine = SimulationEngine(_phase_ii_b_holonic(seed=5))
+    assert engine.config.symbiotic_commitment_base == 0.0
+    holons_seen = 0
+    for _ in range(80):
+        engine.step()
+        holons = all_holons(engine)
+        holons_seen += len(holons)
+        assert not any(h.is_locked for h in holons)
+    assert holons_seen > 0  # hubo holones que podrían haberse soldado
+
+
+def test_r25_y_r31_independientes_del_hash() -> None:
+    script = textwrap.dedent(
+        """
+        from dataclasses import replace
+        from ide.agent.dna import encode_codon
+        from ide.agent.holon import composite_nodes
+        from ide.domain.types import CompactDNA
+        from ide.experiments.attribution import PHASE2_PROTOCOL_CONFIGS
+        from ide.simulation.engine import SimulationEngine
+
+        config = replace(
+            PHASE2_PROTOCOL_CONFIGS["003a"], seed=7, enable_compact_dna=True,
+            enable_epigenetic_roles=True, enable_symbiotic_ratchet=True,
+        )
+        engine = SimulationEngine(config)
+        codon = encode_codon(0x00, 0x0A, 0, 0, 127)
+        for aid in sorted(engine.agents):
+            dna = engine.agents[aid].dna
+            engine.agents[aid].set_dna(CompactDNA((*dna.chromosome, codon)))
+        engine.run(60)
+        holons = [
+            c for nid in sorted(engine.root_nodes) for c in composite_nodes(engine.root_nodes[nid])
+        ]
+        print(sum(h.is_locked for h in holons))
+        print(sum(engine.agents[a].epigenetic_role.value != "NONE" for a in engine.agents))
+        print(engine.history)
+        print(engine.evolutionary_history)
+        print(sorted(engine.root_nodes), sorted(engine._role_leaf_sets.items()))
+        print([(h.node_id, h.is_locked) for h in holons])
+        print([(a, engine.agents[a].epigenetic_role, engine.agents[a].energy)
+               for a in sorted(engine.agents)])
+        print([engine.agents[a].dna for a in sorted(engine.agents)])
+        print(engine.rng.bit_generator.state, engine.evo_rng.bit_generator.state)
+        """
+    )
+    outputs: list[str] = []
+    for hash_seed in ("0", "123"):
+        path = os.pathsep.join(
+            filter(None, [str(ROOT / "src"), str(ROOT), os.environ.get("PYTHONPATH")])
+        )
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed, "PYTHONPATH": path}
+        done = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=True,
+            cwd=ROOT,
+        )
+        outputs.append(done.stdout)
+    assert outputs[0] == outputs[1]
+    locked, with_role = (int(x) for x in outputs[0].splitlines()[:2])
+    assert locked > 0 and with_role > 0  # se sueldan holones y se asignan roles de verdad

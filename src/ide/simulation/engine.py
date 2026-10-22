@@ -20,20 +20,24 @@ from ide.agent.holon import (
     AgentNode,
     CompositeAgent,
     apply_downward_causation,
+    assign_epigenetic_roles,
     best_beliefs,
     composite_nodes,
     evaluate_bond_candidates,
     prune_dead_leaves,
     reproduce_holon,
+    should_lock_holon,
     should_split_holon,
 )
 from ide.agent.micro_agent import MicroAgent
 from ide.agent.policy import GeneticPolicy
 from ide.config import (
     SimulationConfig,
+    epigenetic_roles_active,
     genetic_policy_active,
     sporulation_active,
     stress_energy_limit,
+    symbiotic_ratchet_active,
 )
 from ide.domain.extensions import CompositeRule, TrustStrategyPort
 from ide.domain.ports import (
@@ -43,6 +47,7 @@ from ide.domain.ports import (
 )
 from ide.domain.types import (
     EpigeneticContext,
+    EpigeneticRole,
     KnowledgeUnit,
     Message,
     Pattern,
@@ -252,6 +257,12 @@ class SimulationEngine:
         self.next_holon_id: int = -2
         self.next_agent_id: int = max(self.agents) + 1 if self.agents else 0
         self.composite_completions: int = 0
+        # R25 y R31 efectivamente activas (D36, D50.3): la asignación de roles de la Fase 5 y la
+        # impronta; el sello, la protección contra SPLIT y el descuento de coordinación.
+        self.epigenetic_roles_active = epigenetic_roles_active(config)
+        self.symbiotic_ratchet_active = symbiotic_ratchet_active(config)
+        # R25 (D36): de cada raíz, el conjunto de hojas que tenía en su última asignación.
+        self._role_leaf_sets: dict[int, frozenset[int]] = {}
         self.evo_collector = EvolutionaryMetricsCollector(config)
         self.evolutionary_history: list[EvolutionaryTickMetrics] = []
         self._composite_rules: dict[Pattern, CompositeRule] = (
@@ -503,16 +514,26 @@ class SimulationEngine:
     # --- Fase II: Fase 5 holónica (R15, R16, R18, R23) -----------------------------------------
 
     def _coordinate_and_split(self, tick: int, surplus: set[int]) -> None:
-        """Costo de coordinación, superávit y SPLIT de cada holón raíz, por `node_id` (D24.2)."""
+        """Costo de coordinación, superávit y SPLIT de cada holón raíz, por `node_id` (D24.2).
+
+        Con $R_{31}$ (D50.3, precisiones 8 y 19), antes del costo y de `SPLIT` la raíz no
+        soldada se suelda si sus hojas se comprometen (`should_lock_holon`); el costo de una raíz
+        soldada se multiplica por `lock_coord_discount`, y `should_split_holon` no la parte.
+        """
         config = self.config
+        ratchet = self.symbiotic_ratchet_active
         reach = self._local_reach()
         for nid in sorted(self.root_nodes):
             node = self.root_nodes[nid]
             if not isinstance(node, CompositeAgent):
                 continue
+            if ratchet and should_lock_holon(node, config):
+                node.is_locked = True
             leaves = node.leaf_agents
             if config.enable_evolution:
                 share = config.holon_coord_cost * node.holon_level  # c_coord(U) / |U|
+                if ratchet and node.is_locked:  # sólo la raíz da descuento (precisión 8)
+                    share *= config.lock_coord_discount
                 for leaf in leaves:
                     leaf.apply_energy_delta(-share)
             if nid in surplus or self._has_knowledge_surplus(node, reach):
@@ -604,6 +625,36 @@ class SimulationEngine:
                 apply_downward_causation(node, local, self.config)
             else:
                 cast(MicroAgent, node).memory.set_redundant_patterns(frozenset(), 1.0)
+
+    def _assign_epigenetic_roles(self) -> None:
+        """R25 (D36): roles de las raíces cuya composición cambió, tras R18 en la Fase 5.
+
+        Recorre las raíces por `node_id`: un holón sin entrada en `_role_leaf_sets` o con otro
+        conjunto de hojas recibe roles nuevos (`assign_epigenetic_roles`, con el alcance local
+        de D25.1); las hojas que son su propia raíz vuelven a `NONE`; las entradas de raíces que
+        ya no existen se descartan. Los roles se escriben después de calcularlos todos. No
+        consume generadores.
+        """
+        reach: dict[int, list[int]] | None = None
+        roles: dict[int, EpigeneticRole] = {}
+        leaf_sets: dict[int, frozenset[int]] = {}
+        for nid in sorted(self.root_nodes):
+            node = self.root_nodes[nid]
+            if not isinstance(node, CompositeAgent):
+                roles[nid] = EpigeneticRole.NONE
+                continue
+            leaves = node.leaf_agents
+            current = frozenset(leaf.agent_id for leaf in leaves)
+            leaf_sets[nid] = current
+            if self._role_leaf_sets.get(nid) == current:
+                continue
+            if reach is None:  # sólo si alguna raíz cambió
+                reach = self._local_reach()
+            local = {leaf.agent_id: reach[leaf.agent_id] for leaf in leaves}
+            roles.update(assign_epigenetic_roles(node, local, self.config))
+        self._role_leaf_sets = leaf_sets
+        for aid in sorted(roles):
+            self.agents[aid].set_epigenetic_role(roles[aid])
 
     def _set_root(self, node: AgentNode) -> None:
         self.root_nodes[node.node_id] = node
@@ -750,6 +801,12 @@ class SimulationEngine:
                 for replica in composite_nodes(child):
                     replica.formation_knowledge = self._formation_knowledge(replica, world)
                 self._set_root(child)
+                if self.epigenetic_roles_active:  # impronta de R25 (D36, precisión 11)
+                    for leaf in leaves:
+                        offspring[leaf.agent_id].set_epigenetic_role(leaf.epigenetic_role)
+                    self._role_leaf_sets[child.node_id] = frozenset(
+                        c.agent_id for c in offspring.values()
+                    )
                 reproduced.update(offspring)
                 reproduced.update(c.agent_id for c in offspring.values())
                 births += len(offspring)

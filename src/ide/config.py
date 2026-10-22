@@ -481,6 +481,37 @@ def sporulation_active(config: SimulationConfig) -> bool:
     return config.enable_evolution and config.enable_sporulation
 
 
+def epigenetic_roles_active(config: SimulationConfig) -> bool:
+    """R25 efectivamente activa: `enable_epigenetic_roles` con ADN y holones (D30.3, D36).
+
+    Es la única definición de la condición: la usan `assign_epigenetic_roles`, `build_systems`
+    (que agrega la asignación de roles de la Fase 5) y la impronta de la reproducción holónica,
+    que el motor lee de `engine.epigenetic_roles_active`. Sin ADN o sin holones la bandera es
+    inerte: todas las hojas conservan `NONE`.
+    """
+    return (
+        config.enable_compact_dna
+        and config.enable_holonic_hierarchy
+        and config.enable_epigenetic_roles
+    )
+
+
+def symbiotic_ratchet_active(config: SimulationConfig) -> bool:
+    """R31 efectivamente activa: `enable_symbiotic_ratchet` con ADN y holones (D50.3, D52.3).
+
+    Es la única definición de la condición: la usan el sello (`should_lock_holon`), la
+    protección contra `SPLIT` (`should_split_holon`) y el descuento de coordinación, que el
+    motor lee de `engine.symbiotic_ratchet_active`. Sin ADN la bandera es inerte aunque
+    `symbiotic_commitment_base >= 0.5` (precisión 32): el compromiso es siempre un rasgo
+    heredable, nunca un decreto de la configuración.
+    """
+    return (
+        config.enable_compact_dna
+        and config.enable_holonic_hierarchy
+        and config.enable_symbiotic_ratchet
+    )
+
+
 def stress_energy_limit(config: SimulationConfig) -> float:
     """Límite de energía del estrés (D39, precisión 93): hay estrés si `energy` es menor.
 
