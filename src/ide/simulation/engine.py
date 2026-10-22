@@ -114,10 +114,7 @@ class TickMetricsObserver:
         env = engine.env
         reachable, intents = frame.composite_reachable, frame.composite_intents
         opportunities = correct = 0
-        dormant = frame.dormant
-        for aid in frame.order:
-            if aid in dormant:  # R28 (D38): no decide, no hay oportunidad
-                continue
+        for aid in frame.active_order:  # R28 (D38): una dormida no decide, no hay oportunidad
             truth = env.get_reachable_true_values(aid)
             composite = reachable.get(aid)
             if composite:
@@ -389,8 +386,17 @@ class SimulationEngine:
                         reach[b.agent_id].append(a.agent_id)
         return reach
 
-    def _sync_holon_view(self, reach: Mapping[int, list[int]], from_memory: bool) -> None:
-        """Vista del holón (R22, D25.2): primero calcula todas las vistas, después inyecta."""
+    def _sync_holon_view(
+        self,
+        reach: Mapping[int, list[int]],
+        from_memory: bool,
+        inactive: frozenset[int] = frozenset(),
+    ) -> None:
+        """Vista del holón (R22, D25.2): primero calcula todas las vistas, después inyecta.
+
+        Las hojas de `inactive` (endosporas inactivas, R28, D38) no aportan creencias ni reciben
+        vista, así que tampoco consumen `null_rng` por ella; su vista anterior se borra igual.
+        """
         beliefs = {
             aid: (
                 self.agents[aid].collective_memory()
@@ -398,10 +404,12 @@ class SimulationEngine:
                 else self.agents[aid].own_beliefs()
             )
             for aid in reach
+            if aid not in inactive
         }
         views = {
-            aid: best_beliefs({other: beliefs[other] for other in others})
+            aid: best_beliefs({other: beliefs[other] for other in others if other not in inactive})
             for aid, others in reach.items()
+            if aid not in inactive
         }
         null = self.config.comm_content_null
         for aid in sorted(self.agents):
@@ -433,11 +441,24 @@ class SimulationEngine:
     # --- Fase II: recursos compuestos (D25.3, D27.2) -------------------------------------------
 
     def _composite_context(
-        self, aid: int, rule: CompositeRule, reach: Mapping[int, list[int]]
+        self,
+        aid: int,
+        rule: CompositeRule,
+        reach: Mapping[int, list[int]],
+        dormant: frozenset[int] = frozenset(),
     ) -> CompositeContext:
+        """Éxito, hojas que reciben la ganancia y holón raíz de una resolución compuesta (D27).
+
+        Las endosporas dormidas del tick (`dormant`, R28, D38) no cuentan: ni su conocimiento
+        resuelve el compuesto ni reciben parte de la ganancia.
+        """
         root = self.root_nodes[self.agent_to_root[aid]]
         holon = root if isinstance(root, CompositeAgent) else None
-        local = sorted([aid, *reach[aid]]) if holon is not None else [aid]
+        local = (
+            sorted(leaf for leaf in (aid, *reach[aid]) if leaf not in dormant)
+            if holon is not None
+            else [aid]
+        )
         config = self.config
         known = {
             pattern
@@ -541,25 +562,32 @@ class SimulationEngine:
         collective = frozenset[Pattern]().union(*(known[aid] for aid in largest))
         return len(collective) > max(len(k) for k in known.values())
 
-    def _bond(self, tick: int) -> None:
-        """BOND (R15, D24.3) entre nodos raíz con hojas a distancia <= 1."""
+    def _bond(self, tick: int, dormant: frozenset[int] = frozenset()) -> None:
+        """BOND (R15, D24.3) entre nodos raíz con hojas activas a distancia <= 1.
+
+        Una endospora dormida del tick (`dormant`, R28, D38) no forma holones nuevos: no cuenta
+        como hoja adyacente. Sigue en su holón, que puede unirse por la adyacencia de otras hojas.
+        """
         roots = [self.root_nodes[nid] for nid in sorted(self.root_nodes)]
-        for a, b in evaluate_bond_candidates(roots, self._adjacent_root_pairs(), self.config):
+        pairs = self._adjacent_root_pairs(dormant)
+        for a, b in evaluate_bond_candidates(roots, pairs, self.config):
             children = (self.root_nodes.pop(a), self.root_nodes.pop(b))
             holon = CompositeAgent(self._take_holon_id(), children, tick, True)
             holon.formation_knowledge = self._formation_knowledge(holon)
             self._set_root(holon)
 
-    def _adjacent_root_pairs(self) -> list[tuple[int, int]]:
+    def _adjacent_root_pairs(self, dormant: frozenset[int] = frozenset()) -> list[tuple[int, int]]:
         env = self._evo
         pairs: set[tuple[int, int]] = set()
-        everyone = sorted(self.agents)
+        everyone = [aid for aid in sorted(self.agents) if aid not in dormant]
         for a in everyone:
             root_a = self.agent_to_root[a]
             # Con radio de comunicación >= 1, los vecinos incluyen a todos los de distancia 1.
             radius = self.agents[a].genome.comm_radius
             candidates = env.get_communication_neighbors(a) if radius >= 1 else everyone
             for b in candidates:
+                if b in dormant:
+                    continue
                 root_b = self.agent_to_root[b]
                 pair = (min(root_a, root_b), max(root_a, root_b))
                 if root_a != root_b and pair not in pairs and env.get_agent_distance(a, b) <= 1:
@@ -617,9 +645,9 @@ class SimulationEngine:
         Con ADN (design D34.5), el costo basal se calcula sobre el genoma expresado en la Fase 0
         del tick y se le suma el costo del ADN; sin la bandera, la suma no se hace. Con $R_{37}$
         (D49.2), suma `attack_cost` por cada intento de ataque del tick en `attacks`, con éxito o
-        sin él; sin intentos, la suma no se hace. Con $R_{41}$ (D60.3), suma `signal_cost` por
-        cada símbolo emitido en el tick (`signals`: emisor -> máscara); sin emisión, la suma no
-        se hace.
+        sin él; sin intentos, la suma no se hace. Con $R_{41}$ (D60.3), suma siempre
+        `signal_cost` por cada símbolo emitido en el tick (`signals`: emisor -> máscara); sin
+        emisión suma 0.0, que no cambia el costo en un bit.
         """
         config = self.config
         dna = config.enable_compact_dna

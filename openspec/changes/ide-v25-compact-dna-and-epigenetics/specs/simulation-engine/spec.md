@@ -195,14 +195,14 @@ Con $R_{40}$ efectivamente activa, en la Fase 4, inmediatamente después de ejec
 - **THEN** su recompensa es 0 y su peso no cambia.
 
 ### Requirement: Emisión de Señales en la Fase 3
-Con $R_{41}$ efectivamente activa, cada agente que decide en la Fase 3 SHALL emitir los símbolos de `emitted` de su evaluación de conducta, a la vez que actúa y sin ocupar su acción; una endospora no decide y SHALL NOT emitir. Cada símbolo emitido SHALL costar `signal_cost`, que se cobra en el metabolismo de la Fase 5; sin $R_{41}$ no hay emisión ni costo (design D60.2, D60.3 y D60.7).
+Con $R_{41}$ efectivamente activa, cada agente que decide en la Fase 3 SHALL emitir los símbolos de `emitted` de su evaluación de conducta, a la vez que actúa y sin ocupar su acción; una endospora dormida del tick (`frame.dormant`) no decide y SHALL NOT emitir (design precisión 98). Cada símbolo emitido SHALL costar `signal_cost`, que se cobra en el metabolismo de la Fase 5; sin $R_{41}$ no hay emisión ni costo (design D60.2, D60.3 y D60.7).
 
 #### Scenario: Costo de dos símbolos
 - **WHEN** con `signal_cost = 0.002` un agente emite los símbolos 1 y 4 en el tick y ejecuta `MOVE`
 - **THEN** su acción es `MOVE` y su metabolismo de la Fase 5 cobra `0.004` más que el de un agente igual que no emite (con tolerancia `1e-9`).
 
 ### Requirement: Percepción de Señales en el Tick Siguiente
-Los símbolos emitidos en la Fase 3 del tick $t$ SHALL percibirlos, en la Fase 1 del tick $t + 1$, los agentes que eran vecinos de comunicación del emisor en el tick $t$ (los `neighbor_ids` de su observación) y siguen vivos y sin ser endospora; la máscara percibida de cada uno SHALL ser el OR de las recibidas, y nadie SHALL percibir una señal del mismo tick (design D60.4).
+Los símbolos emitidos en la Fase 3 del tick $t$ SHALL percibirlos, en la Fase 1 del tick $t + 1$, los agentes que eran vecinos de comunicación del emisor en el tick $t$ (los `neighbor_ids` de su observación) y siguen vivos y sin ser endosporas dormidas del tick $t + 1$ (`frame.dormant`, después de la germinación; design precisiones 97, 98 y 100); la máscara percibida de cada uno SHALL ser el OR de las recibidas, y nadie SHALL percibir una señal del mismo tick (design D60.4).
 
 #### Scenario: Recepción en el tick siguiente
 - **WHEN** el agente 2 emite el símbolo 3 en el tick 10, los `neighbor_ids` de su observación del tick 10 son `(5, 7)`, el agente 7 muere en la Fase 5 del tick 10 y el agente 9 se acerca al 2 en la Fase 4 del tick 10

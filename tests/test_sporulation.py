@@ -566,20 +566,21 @@ def test_quien_esporula_en_el_tick_paga_el_costo_completo(monkeypatch: pytest.Mo
     assert expected > 0.0005 + 1e-6
 
 
-def test_quien_germina_en_el_tick_paga_el_costo_completo() -> None:
+def test_quien_germina_en_el_tick_paga_el_costo_completo(monkeypatch: pytest.MonkeyPatch) -> None:
     config = cfg(metabolic_base_cost=0.01)
     engine = SimulationEngine(config)
     clear_resources(engine)
     place_resource(engine, 1)
+    idle_all(monkeypatch, engine)  # sin consumir, moverse ni emitir: sólo el costo metabólico
     agent = engine.agents[1]
     agent.set_endospore(True)
     expected = compute_metabolic_cost(agent.genome, config) + compute_dna_cost(agent.dna, config)
     before = agent.energy
     engine.step()
     assert not agent.is_endospore
-    # Sin movimiento ni mensajes en el tick, paga el costo completo (y no el de la endospora).
-    assert before - agent.energy >= expected - 1e-9
-    assert before - agent.energy > 0.0005 + 1e-6
+    # Paga el costo completo exacto, y no el de la endospora.
+    assert before - agent.energy == pytest.approx(expected, abs=1e-9)
+    assert expected > 0.0005 + 1e-6
 
 
 def test_endospora_no_asimila_estigmergia(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -649,9 +650,10 @@ def test_prop_una_endospora_no_consume_rng_ni_suma_m2(dormant_ids: set[int]) -> 
     st.floats(0.0, 1.0),
     st.booleans(),
     st.booleans(),
+    st.floats(0.001, 0.05),
 )
 def test_prop_costo_de_la_endospora_dormida_todo_el_tick(
-    base: float, fraction: float, rate: float, holon: bool, null: bool
+    base: float, fraction: float, rate: float, holon: bool, null: bool, coord: float
 ) -> None:
     config = cfg(
         num_agents=4,
@@ -665,7 +667,7 @@ def test_prop_costo_de_la_endospora_dormida_todo_el_tick(
         message_cost=0.3,
         comm_content_null=null,
         enable_holonic_hierarchy=holon,
-        holon_coord_cost=0.0,
+        holon_coord_cost=coord,
         initial_energy=50.0,
     )
     engine = SimulationEngine(config)
@@ -685,5 +687,143 @@ def test_prop_costo_de_la_endospora_dormida_todo_el_tick(
     before = engine.agents[1].energy
     engine.step()
     assert engine.agents[1].is_endospore
-    expected = fraction * base + rate * 1e-3 * 10**2
+    # En su holón (nivel 1) paga además su alícuota de coordinación, `holon_coord_cost * 1`.
+    expected = fraction * base + rate * 1e-3 * 10**2 + (coord if holon else 0.0)
     assert before - engine.agents[1].energy == pytest.approx(expected, abs=1e-9)
+
+
+# --- Endospora inactiva en las Fases 1 a 3 y en su holón (precisión 106) --------------------------
+
+P0, P1 = Pattern((("id", "p_0"),)), Pattern((("id", "p_1"),))
+
+
+def make_holon(engine: SimulationEngine, ids: tuple[int, ...]) -> Any:
+    from ide.agent.holon import CompositeAgent
+
+    children = tuple(engine.root_nodes.pop(engine.agent_to_root[a]) for a in ids)
+    node = CompositeAgent(engine.next_holon_id, children, 0, True)
+    engine.next_holon_id -= 1
+    engine.root_nodes[node.node_id] = node
+    for leaf in node.leaf_agents:
+        engine.agent_to_root[leaf.agent_id] = node.node_id
+    return node
+
+
+def known(pattern: Pattern) -> KnowledgeUnit:
+    return KnowledgeUnit(pattern, 1.0, 0.95, 1, 0, True)
+
+
+def test_active_order_sin_las_dormidas() -> None:
+    frame = TickFrame(0, order=[3, 1, 2])
+    assert frame.active_order is frame.order
+    frame.dormant = frozenset({1})
+    assert frame.active_order == [3, 2]
+    assert frame.order == [3, 1, 2]
+
+
+def test_la_germinacion_acumula_las_dormidas() -> None:
+    engine = SimulationEngine(cfg())
+    clear_resources(engine)
+    for aid, cell in ((1, (0, 0)), (2, (5, 5)), (4, (0, 5))):
+        put(engine, aid, cell)
+    place_resource(engine, 2)
+    for aid in (1, 2, 4):
+        engine.agents[aid].set_endospore(True)
+    frame = phase1(engine)
+    assert frame.dormant == frozenset({1, 4})
+    assert frame.active_order == [a for a in frame.order if a not in (1, 4)]
+
+
+def test_la_decision_no_lee_la_observacion_de_una_dormida() -> None:
+    engine = SimulationEngine(cfg())
+    order = sorted(engine.agents)
+    frame = TickFrame(0, order=order, dormant=frozenset({2}))
+    for aid in order:
+        if aid != 2:  # la dormida no tiene observación: no debe leerse
+            frame.observations[aid] = engine.env.get_observation(aid, 0)
+    DecisionSystem().run(engine, frame)
+    assert frame.actions[2] == IDLE
+
+
+@pytest.mark.parametrize("null", [False, True])
+def test_vista_del_holon_sin_la_dormida(null: bool) -> None:
+    config = cfg(enable_holonic_hierarchy=True, enable_holon_view=True, comm_content_null=null)
+    engine = SimulationEngine(config)
+    crowd(engine)
+    make_holon(engine, (0, 1))
+    reach = engine._local_reach()  # pyright: ignore[reportPrivateUsage]
+    engine.agents[0].memory.upsert(known(P0), 0)
+    engine.agents[1].memory.upsert(known(P1), 0)
+    engine.agents[1].inject_ephemeral_belief(known(P0))  # vista vieja: se borra
+    state = engine.null_rng.bit_generator.state
+    engine._sync_holon_view(reach, False, frozenset({1}))  # pyright: ignore[reportPrivateUsage]
+    assert engine.agents[0].get_effective_belief(P1) is None  # la dormida no aporta
+    assert engine.agents[1].get_effective_belief(P0) is None  # ni recibe
+    assert engine.null_rng.bit_generator.state == state  # sin extracciones por ella
+    engine._sync_holon_view(reach, False)  # pyright: ignore[reportPrivateUsage]
+    assert engine.agents[0].get_effective_belief(P1) is not None
+    assert engine.agents[1].get_effective_belief(P0) is not None
+    assert (engine.null_rng.bit_generator.state != state) is null
+
+
+@pytest.mark.parametrize("sporulation", [True, False])
+def test_vista_del_tiempo_1_sin_las_endosporas_al_empezar_el_tick(sporulation: bool) -> None:
+    config = cfg(
+        enable_holonic_hierarchy=True, enable_holon_view=True, enable_sporulation=sporulation
+    )
+    engine = SimulationEngine(config)
+    crowd(engine)
+    make_holon(engine, (0, 1))
+    engine.agents[0].memory.upsert(known(P0), 0)
+    engine.agents[1].set_endospore(True)
+    view = next(s for s in engine.systems if s.name == "holon_view_memory")
+    view.run(engine, TickFrame(0, reach=engine._local_reach()))  # pyright: ignore[reportPrivateUsage]
+    # Sin R28 efectiva una endospora puesta a mano no es inactiva (precisión 100).
+    assert (engine.agents[1].get_effective_belief(P0) is None) is sporulation
+
+
+def test_la_dormida_no_cuenta_para_el_compuesto() -> None:
+    from ide.domain.extensions import CompositeRule
+
+    engine = SimulationEngine(cfg(enable_holonic_hierarchy=True))
+    crowd(engine)
+    make_holon(engine, (0, 1))
+    engine.agents[0].memory.upsert(known(P0), 0)
+    engine.agents[1].memory.upsert(known(P1), 0)
+    rule = CompositeRule((P0, P1), 5.0)
+    reach = engine._local_reach()  # pyright: ignore[reportPrivateUsage]
+    success, local, holon = engine._composite_context(0, rule, reach)  # pyright: ignore[reportPrivateUsage]
+    assert success and local == [0, 1] and holon is not None
+    success, local, _ = engine._composite_context(  # pyright: ignore[reportPrivateUsage]
+        0, rule, reach, frozenset({1})
+    )
+    assert not success and local == [0]
+
+
+def test_la_dormida_no_forma_holones_por_bond() -> None:
+    engine = SimulationEngine(cfg(enable_holonic_hierarchy=True))
+    crowd(engine)
+    pairs = engine._adjacent_root_pairs()  # pyright: ignore[reportPrivateUsage]
+    assert (0, 1) in pairs
+    without = engine._adjacent_root_pairs(frozenset({1}))  # pyright: ignore[reportPrivateUsage]
+    assert without and all(1 not in pair for pair in without)
+    # Su holón puede unirse por la adyacencia de otra hoja activa.
+    node = make_holon(engine, (1, 2))
+    pairs = engine._adjacent_root_pairs(frozenset({1}))  # pyright: ignore[reportPrivateUsage]
+    assert any(node.node_id in pair for pair in pairs)
+    engine2 = SimulationEngine(cfg(enable_holonic_hierarchy=True))
+    crowd(engine2)
+    lone = make_holon(engine2, (1, 2))
+    pairs = engine2._adjacent_root_pairs(frozenset({1, 2}))  # pyright: ignore[reportPrivateUsage]
+    assert all(lone.node_id not in pair for pair in pairs)
+
+
+def test_bond_del_tick_ignora_a_la_dormida(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = cfg(enable_holonic_hierarchy=True, num_agents=2, holon_bond_threshold=0.0)
+    engine = SimulationEngine(config)
+    crowd(engine)
+    clear_resources(engine)
+    idle_all(monkeypatch, engine)
+    engine.agents[1].set_endospore(True)
+    engine.step()
+    assert all(not hasattr(n, "children") for n in engine.root_nodes.values())

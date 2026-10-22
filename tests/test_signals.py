@@ -58,6 +58,7 @@ from ide.simulation.pipeline import (
     SignalPerceptionSystem,
     TickFrame,
     build_systems,
+    validate_systems,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -953,3 +954,49 @@ def test_historiales_iguales_con_distinto_pythonhashseed() -> None:
         # La corrida emite y percibe de verdad: no es una igualdad trivial.
         emitted, heard = (int(n) for n in outputs[0].splitlines()[-1].split())
         assert emitted > 0 and heard > 0
+
+
+# --- Ronda final de la revisión (precisión 107) -------------------------------------------------
+
+
+def test_la_marca_debe_estar_en_la_emision_de_senales() -> None:
+    systems = list(build_systems(small()))
+    for system in systems:
+        system.notifies_decisions = isinstance(system, DecisionSystem)
+    with pytest.raises(ValueError, match="SignalEmissionSystem"):
+        validate_systems(tuple(systems))
+    for system in systems:
+        system.notifies_decisions = isinstance(system, SignalEmissionSystem)
+    assert validate_systems(tuple(systems)) == tuple(systems)
+
+
+def test_un_receptor_dormido_vuelve_a_cero() -> None:
+    engine = SimulationEngine(small(enable_sporulation=True))
+    engine.pending_signals = {4: 0b1, 6: 0b10}
+    SignalPerceptionSystem().run(engine, TickFrame(1))
+    assert engine.signal_receivers == (4, 6)
+    engine.pending_signals = {4: 0b100}
+    SignalPerceptionSystem().run(engine, TickFrame(2, dormant=frozenset({4})))
+    assert engine.agents[4].perceived_symbols == 0  # dormido: no recibe y vuelve a 0
+    assert engine.agents[6].perceived_symbols == 0  # no recibe: vuelve a 0
+    assert engine.signal_receivers == ()
+
+
+def test_lo_que_oye_el_adn_se_calcula_de_forma_perezosa() -> None:
+    hear = encode_codon(0x39, WANDER, 0, 0, 64)
+    off = agent_with(hear, config=NO_R41)
+    off.set_perceived_symbols(0xFF)
+    off.evaluate_behavior(signals())
+    assert off._heard is None  # pyright: ignore[reportPrivateUsage]  # sin R41 no se calcula
+    on = agent_with(hear)
+    on.evaluate_behavior(signals())
+    assert on._heard is None  # pyright: ignore[reportPrivateUsage]  # máscara nula: no hace falta
+    on.set_perceived_symbols(0b10)
+    assert on.evaluate_behavior(signals()).drives[3] == pytest.approx(0.5)
+    heard = on._heard  # pyright: ignore[reportPrivateUsage]
+    assert heard is not None and heard[0] is on.dna and heard[1] == 0b10
+    on.set_dna(CompactDNA(chromosome=(*FOUNDER_TRAITS, encode_codon(0x3A, WANDER, 0, 0, 64))))
+    on.set_perceived_symbols(0b100)
+    assert on.evaluate_behavior(signals()).drives[3] == pytest.approx(0.5)
+    heard = on._heard  # pyright: ignore[reportPrivateUsage]
+    assert heard is not None and heard[0] is on.dna and heard[1] == 0b100

@@ -112,7 +112,8 @@ _PROM_SENSE_FIRST = 0x20
 _PROM_SENSE_LAST = 0x3F
 _PROM_HEARD_FIRST = 0x38  # `HEARD_0`; `HEARD_k` es `0x38 + k` (D60.4)
 _STATE_BITS = 8  # `internal_state` tiene 8 bits (D58.1)
-SYMBOL_MASK = 0xFF  # ocho símbolos de señal, `channel & 0x07` (D60.2)
+_SYMBOL_BITS = 8  # ocho símbolos de señal, `channel & 0x07` (D60.2)
+SYMBOL_MASK = (1 << _SYMBOL_BITS) - 1  # cota de la máscara de símbolos (precisión 105)
 _NO_PLASTIC: tuple[tuple[int, ...], ...] = ((),) * len(Behavior)
 _PROM_TF_FIRST = 0x80
 _PROM_TF_LAST = 0xBF
@@ -291,14 +292,14 @@ def heard_symbols(dna: CompactDNA) -> int:
     mask = 0
     for codon in dna.chromosome + dna.plasmids:
         promoter = decode_codon(codon).promoter
-        if _PROM_HEARD_FIRST <= promoter <= _PROM_SENSE_LAST:
+        if _PROM_HEARD_FIRST <= promoter < _PROM_HEARD_FIRST + _SYMBOL_BITS:
             mask |= 1 << (promoter - _PROM_HEARD_FIRST)
     return mask
 
 
-def _bits(mask: int) -> tuple[bool, ...]:
-    """Los 8 bits de `mask`, del 0 al 7."""
-    return tuple(bool(mask >> k & 1) for k in range(_STATE_BITS))
+def _bits(mask: int, count: int) -> tuple[bool, ...]:
+    """Los `count` bits menos significativos de `mask`, del 0 en adelante."""
+    return tuple(bool(mask >> k & 1) for k in range(count))
 
 
 def _behavior_promoters(
@@ -313,8 +314,8 @@ def _behavior_promoters(
     - `0x38`-`0x3F`: los bits de `perceived`, la máscara de símbolos percibidos;
       `perceived=None` (sin $R_{41}$) los deja inactivos (D60.4, D60.7).
     """
-    state_bits = (False,) * _STATE_BITS if state is None else _bits(state)
-    heard_bits = (False,) * _STATE_BITS if perceived is None else _bits(perceived)
+    state_bits = (False,) * _STATE_BITS if state is None else _bits(state, _STATE_BITS)
+    heard_bits = (False,) * _SYMBOL_BITS if perceived is None else _bits(perceived, _SYMBOL_BITS)
     return (
         signals.known_good,
         signals.unknown,

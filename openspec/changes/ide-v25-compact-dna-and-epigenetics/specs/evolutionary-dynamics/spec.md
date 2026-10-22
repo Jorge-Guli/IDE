@@ -92,6 +92,13 @@ Una endospora SHALL NOT llamar a `perceive_and_emit_messages`, asimilar estigmer
 - **WHEN** una endospora con energía mayor que `reproduction_threshold` y un vecino que emite atraviesa un tick sin germinar
 - **THEN** su acción es `IDLE`, no recibe mensajes, no emite, no se reproduce, el estado de `self.rng` no cambia, su memoria decae y sigue en su holón.
 
+### Requirement: Endospora Inactiva en su Holón
+Con $R_{28}$ efectivamente activa, una endospora inactiva SHALL NOT aportar ni recibir la vista del holón ($R_{22}$; en el tiempo 1, las endosporas al empezar el tick, y en el tiempo 2, las dormidas del tick), ni contar para resolver un compuesto ni recibir su ganancia, ni formar holones nuevos por `BOND`; SHALL seguir en su holón y pagar su alícuota del costo de coordinación (design D38 y precisión 106).
+
+#### Scenario: Hoja dormida en un holón
+- **WHEN** un holón de dos hojas tiene una endospora que no germina en el tick, con `enable_holon_view` y `holon_coord_cost > 0`
+- **THEN** la endospora no recibe la vista del holón ni aporta sus creencias a la de la otra hoja, no cuenta como hoja local de un compuesto, no es hoja adyacente para `BOND`, y paga `holon_coord_cost * holon_level`.
+
 ### Requirement: Costo de la Endospora
 Una endospora SHALL pagar por tick `spore_cost_fraction * metabolic_base_cost`, más la senescencia de $R_{29}$, en lugar del costo basal, el del ADN, el de movimiento y el de mensajes, si lo fue todo el tick; quien esporula o germina en el tick paga el costo completo. $R_{28}$ sólo da el estado de bajo gasto: su uso lo decide el ADN.
 

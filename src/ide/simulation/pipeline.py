@@ -89,7 +89,9 @@ class TickFrame:
     Al final, `dormant` (R28, precisiones 98 y 103): las endosporas que lo siguen siendo después de
     la germinación, es decir, las que estuvieron en endospora todo el tick. Lo calcula una vez
     `GerminationSystem`; sin $R_{28}$ efectiva queda vacío y nadie es "dormido". Quien esporula
-    en la Fase 4 no está en él: actuó en el tick.
+    en la Fase 4 no está en él: actuó en el tick. Es la única fuente de esa condición; de ella sale
+    `active_order`, el orden del tick sin las dormidas, que recorren los sistemas de las Fases 1
+    a 3 (precisión 98).
     """
 
     tick: int
@@ -124,6 +126,17 @@ class TickFrame:
     received: set[int] = field(default_factory=set[int])
     signals: dict[int, int] = field(default_factory=dict[int, int])
     dormant: frozenset[int] = frozenset()
+
+    @property
+    def active_order(self) -> list[int]:
+        """El orden del tick sin las endosporas dormidas (`dormant`, D38, precisión 98).
+
+        Sin dormidas es `order` mismo; si no, una lista nueva en el mismo orden.
+        """
+        dormant = self.dormant
+        if not dormant:
+            return self.order
+        return [aid for aid in self.order if aid not in dormant]
 
 
 @runtime_checkable
@@ -199,13 +212,25 @@ def telomere_senescence_active(config: SimulationConfig) -> bool:
 def validate_systems(systems: tuple[EngineSystem, ...]) -> tuple[EngineSystem, ...]:
     """Devuelve `systems` si exactamente uno tiene la marca `notifies_decisions`.
 
+    Con $R_{41}$ (un `SignalEmissionSystem` en la lista), la marca debe estar en él: es el último
+    sistema del núcleo de la Fase 3, y `on_decisions` llega después de la emisión (D53.1,
+    precisión 97).
+
     Raises:
-        ValueError: si ningún sistema o más de uno tiene la marca.
+        ValueError: si ningún sistema o más de uno tiene la marca, o si hay emisión de señales y
+            la marca no está en ella.
     """
-    marked = [system.name for system in systems if system.notifies_decisions]
+    marked = [system for system in systems if system.notifies_decisions]
     if len(marked) != 1:
+        names = [system.name for system in marked]
         raise ValueError(
-            f"exactamente un sistema debe marcar notifies_decisions; marcados: {marked}"
+            f"exactamente un sistema debe marcar notifies_decisions; marcados: {names}"
+        )
+    emission = [system for system in systems if isinstance(system, SignalEmissionSystem)]
+    if emission and marked[0] is not emission[-1]:
+        raise ValueError(
+            "con emisión de señales, notifies_decisions debe marcar a SignalEmissionSystem; "
+            f"marcado: {marked[0].name}"
         )
     return systems
 
@@ -267,14 +292,28 @@ class LocalReachSystem(BaseSystem):
 
 
 class HolonViewSystem(BaseSystem):
-    """Vista del holón (R22, D25.2): desde la memoria (tiempo 1) o desde lo propio (tiempo 2)."""
+    """Vista del holón (R22, D25.2): desde la memoria (tiempo 1) o desde lo propio (tiempo 2).
+
+    Con $R_{28}$ efectiva, una endospora inactiva no aporta ni recibe la vista (D38, precisión
+    106): en el tiempo 2 son las dormidas del tick
+    (`frame.dormant`); en el tiempo 1, que corre antes de la percepción y de la germinación, son
+    las endosporas al empezar el tick, porque todavía ninguna germinó.
+    """
 
     def __init__(self, name: str, from_memory: bool) -> None:
         self.name = name
         self.from_memory = from_memory
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        engine._sync_holon_view(frame.reach, from_memory=self.from_memory)
+        inactive: frozenset[int]
+        if not self.from_memory:
+            inactive = frame.dormant
+        elif engine.sporulation_active:
+            agents = engine.agents
+            inactive = frozenset(aid for aid in agents if agents[aid].is_endospore)
+        else:
+            inactive = frozenset[int]()
+        engine._sync_holon_view(frame.reach, self.from_memory, inactive)
 
 
 class PerceptionSystem(BaseSystem):
@@ -307,6 +346,7 @@ class GerminationSystem(BaseSystem):
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, observations = engine.agents, frame.observations
         trails = engine.config.enable_stigmergy
+        dormant: list[int] = []
         for aid in frame.order:
             agent = agents[aid]
             if not agent.is_endospore:
@@ -315,7 +355,9 @@ class GerminationSystem(BaseSystem):
                 trails and any(t.sign_value > 0 for t in engine._evo.get_cell_stigmergy(aid))
             ):
                 agent.set_endospore(False)
-        frame.dormant = frozenset(aid for aid in frame.order if agents[aid].is_endospore)
+            else:
+                dormant.append(aid)
+        frame.dormant = frozenset(dormant)
 
 
 class SocialPerceptionSystem(BaseSystem):
@@ -347,11 +389,11 @@ class SocialPerceptionSystem(BaseSystem):
         energy = {aid: agent.energy for aid, agent in agents.items()}
         frame.start_energy = energy
         crowding = engine.config.crowding_threshold
-        dormant = frame.dormant
-        for aid in frame.order:
-            if aid in dormant:
-                continue
+        for aid in frame.active_order:
             own = energy[aid]
+            # "Activo" excluye a las endosporas (D47.3). Con R28 efectiva, después de la
+            # germinación, son exactamente `frame.dormant`; sin R28, D47.3 sigue valiendo para
+            # una endospora puesta a mano, que igual decide (precisión 100).
             active = [v for v in env.get_visible_agents(aid) if not agents[v.agent_id].is_endospore]
             adjacent = tuple(sorted(v.agent_id for v in active if v.distance <= 1))
             weakest = min(adjacent, key=lambda other: (energy[other], other)) if adjacent else None
@@ -372,13 +414,15 @@ class SignalPerceptionSystem(BaseSystem):
     """Percepción de las señales del tick anterior ($R_{41}$, D60.4, D60.5, precisiones 64 y 65).
 
     Va después de la germinación y de la percepción social, y antes de la emisión de mensajes.
-    Recalcula `perceived_symbols` sin recorrer a toda la población: pone en 0 a los receptores
-    del tick anterior (`engine.signal_receivers`) y asigna, en orden de `agent_id`, la máscara
-    pendiente de `engine.pending_signals` (el OR de los símbolos que emitieron en la Fase 3 del
-    tick anterior los emisores de los que era vecino de comunicación) a cada receptor que sigue
-    vivo y no es una endospora dormida (`frame.dormant`, precisión 98). Con
-    `comm_content_null`, cada máscara no vacía se reemplaza en ese orden por
-    `int(null_rng.integers(1, 256))`: la señal conserva su presencia y pierde su contenido.
+    Recalcula `perceived_symbols` sin recorrer a toda la población:
+    - pone en 0 a los receptores del tick anterior (`engine.signal_receivers`), que son todos los
+      agentes con máscara no nula, porque este sistema es el único que la escribe en el motor;
+    - asigna, en orden de `agent_id`, la máscara pendiente de `engine.pending_signals` (el OR de
+      los símbolos que emitieron en la Fase 3 del tick anterior los emisores de los que era
+      vecino de comunicación) a cada receptor que sigue vivo y no es una endospora dormida
+      (`frame.dormant`, precisión 98);
+    - con `comm_content_null`, cada máscara no vacía se reemplaza en ese orden por
+      `int(null_rng.integers(1, 256))`: la señal conserva su presencia y pierde su contenido.
     Vacía `pending_signals`: nadie percibe una señal dos veces. Las señales no son `Message` ni
     creencias: no pasan por el protocolo ni por la memoria (D60.6), y no dependen de
     `comm_enabled` (precisión 104). Sólo está en la lista con $R_{41}$ efectivamente activa, y
@@ -418,10 +462,7 @@ class EmissionSystem(BaseSystem):
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         agents, tick = engine.agents, frame.tick
         observations, emitted = frame.observations, frame.emitted
-        dormant = frame.dormant
-        for aid in frame.order:
-            if aid in dormant:
-                continue  # R28 (D38): una endospora no emite
+        for aid in frame.active_order:  # R28 (D38): una endospora dormida no emite
             emitted += agents[aid].perceive_and_emit_messages(observations[aid], tick)
 
 
@@ -443,7 +484,8 @@ class SocialExchangeSystem(BaseSystem):
     name = "social_exchange"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        agents, tick, order = engine.agents, frame.tick, frame.order
+        # R28 (D38): las endosporas dormidas no emiten, no responden ni tienen bandeja.
+        agents, tick, order = engine.agents, frame.tick, frame.active_order
         # Nadie se mueve entre las fases 1 y 2: los vecinos de la observación son los del ruteo,
         # sin volver a recorrer la vecindad (Decisión 18).
         neighbors = {aid: frame.observations[aid].neighbor_ids for aid in order}
@@ -480,12 +522,12 @@ class DecisionSystem(BaseSystem):
         social = frame.social
         dormant = frame.dormant
         for aid in frame.order:
-            observation = frame.observations[aid]
-            agent, perception = agents[aid], social.get(aid)
             if aid in dormant:
                 # R28 (D38): `IDLE` sin decidir, sin consumir el generador y sin compuestos.
                 actions[aid] = AgentAction(ActionType.IDLE)
                 continue
+            observation = frame.observations[aid]
+            agent, perception = agents[aid], social.get(aid)
             # Sin percepción social se conserva la llamada de la Fase I (`social` es `None`):
             # hay tests de la Fase II que parchean `decide_action` con sólo tres parámetros.
             if perception is None:
@@ -506,7 +548,7 @@ class DecisionSystem(BaseSystem):
                 if action.action_type is ActionType.INTERACT and target in composite:
                     intents[aid] = composite[cast(int, target)]
         frame.composite_contexts = {
-            aid: engine._composite_context(aid, rules[pattern], frame.reach)
+            aid: engine._composite_context(aid, rules[pattern], frame.reach, dormant)
             for aid, pattern in intents.items()
         }
 
@@ -790,7 +832,7 @@ class HolonCoordinationSystem(BaseSystem):
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
         engine._coordinate_and_split(frame.tick, frame.surplus)
-        engine._bond(frame.tick)
+        engine._bond(frame.tick, frame.dormant)
 
 
 class MetabolismSystem(BaseSystem):

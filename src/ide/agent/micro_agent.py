@@ -17,6 +17,7 @@ from ide.agent.dna import (
     heard_symbols,
     mutate_dna,
     phenotype_from_genome,
+    signals_active,
     transcribe_phenotype,
 )
 from ide.agent.epistemology import (
@@ -117,7 +118,6 @@ class MicroAgent:
         if config.enable_compact_dna:
             # El ADN fundador expresa exactamente la base (design D32): `_genome` no cambia.
             self._dna = founder_dna(config)
-            self._heard_mask = heard_symbols(self._dna)
             self._phenotype = self._transcribe(self._last_context)
         else:
             self._phenotype = phenotype_from_genome(self._genome, config)
@@ -173,9 +173,10 @@ class MicroAgent:
         # Máscara de símbolos percibidos: 0 al nacer, no se hereda y la recalcula el motor en cada
         # Fase 1. Es un canal sensorial: nunca se escribe en la memoria (D60.6).
         self._perceived_symbols = 0
-        # Símbolos que el ADN puede oír (`heard_symbols`): se calcula al fijar el ADN y acota la
-        # máscara percibida en la clave del caché de la evaluación (precisión 105).
-        self._heard_mask = 0
+        # Símbolos que oye el ADN vigente (`heard_symbols`), calculados de forma perezosa y
+        # guardados junto a esa instancia de ADN: acotan la máscara percibida en la clave del
+        # caché de la evaluación (precisión 105).
+        self._heard: tuple[CompactDNA, int] | None = None
         self._dna: CompactDNA | None = None
         self._phenotype: ExpressedPhenotype
         self._last_context: EpigeneticContext
@@ -277,8 +278,6 @@ class MicroAgent:
         agent._parent_id = parent_id
         agent._base_config = base
         agent._dna = dna
-        if dna is not None:
-            agent._heard_mask = heard_symbols(dna)
         agent._phenotype = phenotype
         agent._last_context = _birth_context(energy, base) if context is None else context
         if dna is not None:
@@ -446,7 +445,6 @@ class MicroAgent:
         if not self._base_config.enable_compact_dna:
             raise ValueError("set_dna exige base_config.enable_compact_dna=True")
         self._dna = dna
-        self._heard_mask = heard_symbols(dna)
         self._expression_cache.clear()
         self._evaluation_cache.clear()
         self._decision = None  # la decisión registrada era la de otro ADN
@@ -532,12 +530,14 @@ class MicroAgent:
         dna = self._dna
         if dna is None:
             raise ValueError("la evaluación de conducta exige un agente con ADN")
-        # Sólo los bits que algún `HEARD_k` del ADN lee cambian la evaluación (precisión 105).
-        context, state, perceived = (
-            self._last_context,
-            self._internal_state,
-            self._perceived_symbols & self._heard_mask,
-        )
+        # Sólo con R41 y sólo los bits que algún `HEARD_k` del ADN lee cambian la evaluación
+        # (precisión 105); sin R41 la máscara es inerte y la clave usa 0.
+        context, state = self._last_context, self._internal_state
+        perceived = self._perceived_symbols
+        if perceived and signals_active(self._base_config):
+            perceived &= self._heard_mask(dna)
+        else:
+            perceived = 0
         key = (self._expression_key(context), signals, state, perceived)
         terms = self._evaluation_cache.get(key)
         if terms is None:
@@ -546,6 +546,14 @@ class MicroAgent:
                 self._evaluation_cache.clear()
             self._evaluation_cache[key] = terms
         return apply_plastic_weights(terms, self._plastic_weights)
+
+    def _heard_mask(self, dna: CompactDNA) -> int:
+        """`heard_symbols(dna)`, calculada una vez por instancia de ADN (precisión 105)."""
+        heard = self._heard
+        if heard is None or heard[0] is not dna:
+            heard = (dna, heard_symbols(dna))
+            self._heard = heard
+        return heard[1]
 
     def evaluate_for_decision(self, signals: SensorySignals, tick: int) -> BehaviorEvaluation:
         """`evaluate_behavior` de la decisión de `tick`, registrada para el motor (D58.3).
