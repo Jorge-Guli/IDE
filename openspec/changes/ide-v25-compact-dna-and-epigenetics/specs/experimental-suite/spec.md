@@ -334,7 +334,7 @@ Antes de la compuerta de viabilidad SHALL medirse el costo de un tick con todas 
 - **THEN** la versión optimizada produce historiales idénticos a la anterior para las mismas semillas.
 
 ### Requirement: Compuerta de Viabilidad de la Fase II-B
-`src/ide/experiments/phase25_viability.py` SHALL definir `PHASE25_VIABILITY_SEEDS = tuple(range(0, 10))`, disjuntas de `PHASE25_SEEDS`, y una CLI que corre cada configuración durante el perfil `phase25` (5000 ticks) y registra por corrida sólo su población final y su generación máxima, sin calcular ninguna métrica de afirmación.
+`src/ide/experiments/phase25_viability.py` SHALL reexportar `PHASE25_VIABILITY_SEEDS = tuple(range(0, 10))`, que define `attribution.py` (disjuntas de `PHASE25_SEEDS`), y SHALL definir una CLI que corre cada configuración durante el perfil `phase25` (5000 ticks) y registra por corrida sólo su población final y su generación máxima, sin calcular ninguna métrica de afirmación.
 
 #### Scenario: Sólo demografía
 - **WHEN** se corre la compuerta sobre una configuración de la grilla

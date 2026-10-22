@@ -203,17 +203,17 @@ La métrica de cada afirmación de `PHASE25_CLAIMS` SHALL ser la media de su cam
 - **THEN** la ventana es de los 45 registros y de los últimos 1000, respectivamente.
 
 ### Requirement: Clasificación No Programada de C13 a C19
-Como su canal es vacío, `is_by_construction` SHALL ser falso para `C13`..`C19`, y ninguna SHALL clasificarse programada por construcción.
+Como su canal es vacío, `_phase25_by_construction` SHALL ser falso para `C13`..`C19`, y ninguna SHALL clasificarse programada por construcción.
 
 #### Scenario: Canal vacío
-- **WHEN** se evalúa `is_by_construction` sobre `C13`..`C19` con sus configuraciones de `PHASE25_PROTOCOL_CONFIGS`
+- **WHEN** se evalúa `_phase25_by_construction` sobre `C13`..`C19`
 - **THEN** es falso para las siete, y las afirmaciones de las Fases I y II conservan su clasificación previa.
 
 ### Requirement: C20 Programada por Construcción y Fuera de Holm
-Como su canal `("R39", "R40")` coincide con su $R_C$, `C20` SHALL clasificarse programada por construcción (`is_by_construction` verdadero) y SHALL NOT entrar en la corrección de Holm–Bonferroni; su evaluación se informa sin presentarse como resultado genuino (design D56).
+Como su canal `("R39", "R40")` coincide con su $R_C$, `C20` SHALL clasificarse programada por construcción (`_phase25_by_construction` verdadero) y SHALL NOT entrar en la corrección de Holm–Bonferroni; su evaluación se informa sin presentarse como resultado genuino (design D56).
 
 #### Scenario: Clasificación de C20
-- **WHEN** se evalúa `is_by_construction` sobre `C20` con la configuración de `25d`
+- **WHEN** se evalúa `_phase25_by_construction` sobre `C20`
 - **THEN** es verdadero.
 
 #### Scenario: Holm sin C20
@@ -283,10 +283,10 @@ La `demography` de cada `Phase25ClaimEvaluation`, de tipo `dict[str, dict[int, d
 - **THEN** `effective_parents == 0.0`.
 
 ### Requirement: Nacimientos, Muertes y Longevidad de la Demografía
-En `demography`, `cumulative_births` y `cumulative_deaths` SHALL ser las sumas, desde el tick 0 hasta el final de la corrida, de `births` y `deaths` de `evolutionary_history` (nacimientos individuales y holónicos; muertes por hambre y por depredación), sin contar las perturbaciones, y `mean_age_at_death` SHALL ser el del último registro de `genetic_history` (design precisión 49).
+En `demography`, `cumulative_births` y `cumulative_deaths` SHALL ser las sumas, desde el tick 0 hasta el final de la corrida, de `births_this_tick` y `deaths_this_tick` de `evolutionary_history` (nacimientos individuales y holónicos; muertes por hambre y por depredación), sin contar las perturbaciones, y `mean_age_at_death` SHALL ser el del último registro de `genetic_history` (design precisión 49).
 
 #### Scenario: Sumas de la historia evolutiva
-- **WHEN** una corrida de 3 ticks registra `births` 2, 0 y 3 y `deaths` 1, 1 y 0 en `evolutionary_history`
+- **WHEN** una corrida de 3 ticks registra `births_this_tick` 2, 0 y 3 y `deaths_this_tick` 1, 1 y 0 en `evolutionary_history`
 - **THEN** su `demography` tiene `cumulative_births == 5` y `cumulative_deaths == 2`.
 
 ### Requirement: Sesgos Residuales de la Reproducción Neutral

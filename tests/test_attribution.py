@@ -1380,9 +1380,9 @@ def test_estado_observed_solo_agrega_un_miembro() -> None:
 
 def test_clasificacion_de_c13_a_c20() -> None:
     """C13-C19 con canal vacío no son programadas; C20 sí (canal contenido en R_C)."""
+    by_construction = attribution._phase25_by_construction  # pyright: ignore[reportPrivateUsage]
     for claim in PHASE25_CLAIMS:
-        config = PHASE25_PROTOCOL_CONFIGS[claim.protocol]
-        assert is_by_construction(claim, config) is (claim.claim_id == "C20"), claim.claim_id
+        assert by_construction(claim) is (claim.claim_id == "C20"), claim.claim_id
     for claim in EXP002_CLAIMS + EXP003_CLAIMS:
         assert is_by_construction(claim, PHASE2_PROTOCOL_CONFIGS[claim.protocol])
     assert [is_by_construction(c, CFG) for c in EXP001_CLAIMS] == [True, True, False, True]
@@ -2053,3 +2053,132 @@ def test_reportes_de_c1_a_c8_sin_cambios(monkeypatch: pytest.MonkeyPatch) -> Non
     assert hashlib.sha256(repr(report_phase2).encode()).hexdigest() == GOLDEN_PHASE2
     assert all(e.status is not ClaimStatus.OBSERVED for e in report_001d.evaluations)
     assert all(e.status is not ClaimStatus.OBSERVED for e in report_phase2.evaluations)
+
+
+# --- Fase II-B: correcciones de la revisión de código del bloque 22 -----------------------------
+
+
+def test_empate_con_tolerancia_en_la_diferencia_de_diferencias() -> None:
+    """(0.3 − 0.1) − (0.5 − 0.3) es -2.8e-17 en flotante: es un empate y se descarta (A1)."""
+    seeds = SEEDS30[:21]
+    values = {
+        ("C19", "full"): [0.3] * 20 + [1.0],
+        ("C19", "drift"): [0.1] * 20 + [0.0],
+        ("C19", "stable"): [0.5] * 20 + [0.0],
+        ("C19", "stable_drift"): [0.3] * 20 + [0.0],
+    }
+    evaluation = _evaluate([CLAIMS25["C19"]], values, seeds=seeds)["C19"]
+    assert evaluation.p_value == pytest.approx(0.5, abs=1e-12)  # n = 1, una positiva
+    assert attribution.phase25_sign_test([-2.7755575615628914e-17, 1.0]) == 0.5
+
+
+def test_mediana_que_alcanza_el_umbral_con_tolerancia() -> None:
+    """Una mediana de 0.9999999999999998 alcanza δ_min = 1.0 en C17 (A1)."""
+    values = {
+        ("C17", "full"): [0.0] * 30,
+        ("C17", "drift"): [0.0] * 30,
+        ("C17", "no_predation"): [1.3] * 30,
+        ("C17", "no_predation_drift"): [2.3] * 30,
+    }
+    evaluation = _evaluate([CLAIMS25["C17"]], values)["C17"]
+    assert evaluation.median_difference == 0.9999999999999998
+    assert evaluation.status is ClaimStatus.OBSERVED
+    below = phase25_status(
+        by_construction=False,
+        evaluable=True,
+        p_value=0.001,
+        p_adjusted=0.001,
+        median_difference=1.0 - 2e-9,
+        threshold=1.0,
+    )
+    assert below is ClaimStatus.NOT_OBSERVED
+
+
+def test_umbral_relativo_en_la_diferencia_de_diferencias() -> None:
+    """En una diferencia de diferencias, M es la mediana de `comparison_values` (A8)."""
+    relative = dataclasses.replace(CLAIMS25["C17"], delta_min=0.0, delta_relative=1.0)
+    values = {
+        ("C17", "full"): [10.0] * 30,
+        ("C17", "drift"): [5.0] * 30,
+        ("C17", "no_predation"): [100.0] * 30,
+        ("C17", "no_predation_drift"): [98.0] * 30,
+    }
+    # d = 5 − 2 = 3; M = 2 (no 100): el umbral es 2 y la afirmación alcanza el efecto.
+    evaluation = _evaluate([relative], values)["C17"]
+    assert evaluation.median_difference == pytest.approx(3.0, abs=1e-9)
+    assert evaluation.status is ClaimStatus.OBSERVED
+
+
+def test_actividad_del_ultimo_tick_con_historial_vacio() -> None:
+    assert phase25_metric_value("new_activity_per_birth", [], [], 0) == 0.0
+    assert phase25_metric_value("policy_divergence", [], [], 0) == 0.0
+
+
+def test_exactitud_tras_los_cambios_con_ventanas_por_indice() -> None:
+    """Con un historial que empieza en el tick 1, las ventanas se ubican por el tick."""
+    ecology = _ecology_with_shifts(2500)[1:]
+    assert post_shift_accuracy(ecology, 1000) == pytest.approx(0.6, abs=1e-9)
+    assert post_shift_accuracy([], 1000) == 0.0
+
+
+def test_e4_depende_de_la_abundancia_corrida(
+    fake_phase25: list[SimulationConfig], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """E4 sólo es interpretable con la abundancia elegida por la compuerta (A2)."""
+    monkeypatch.setattr(attribution, "PHASE25_NULL_CONTENT_VIABLE_SEEDS", {"25a": 10, "25b": 8})
+    claims = [CLAIMS25["C13"], CLAIMS25["C18"]]
+    chosen = run_phase25_attribution(seeds=(42,), claims=claims, rule_effect_seeds=())
+    assert [e.e4_interpretable for e in chosen.evaluations] == [True, False]
+    other = run_phase25_attribution(
+        seeds=(42,), claims=claims, configs=phase25_protocol_configs(30, 10), rule_effect_seeds=()
+    )
+    assert [e.e4_interpretable for e in other.evaluations] == [False, False]
+
+
+@pytest.mark.parametrize(
+    ("protocol", "overrides"),
+    [
+        ("25d", {"world_shift_period": 0}),
+        ("25a", {"world_shift_period": 1000}),
+        ("25c", {"comm_propensity_base": 1.0}),
+        ("25a", {"comm_propensity_base": 0.0}),
+        ("25b", {"enable_holonic_hierarchy": False}),
+        ("25a", {"enable_holonic_hierarchy": True}),
+        ("25a", {"enable_predation": False}),
+        ("25d", {"enable_plasticity": False}),
+        ("25a", {"enable_genetic_policy": False}),
+    ],
+)
+def test_atribucion_valida_la_configuracion_de_cada_protocolo(
+    fake_phase25: list[SimulationConfig], protocol: str, overrides: dict[str, Any]
+) -> None:
+    configs = dict(PHASE25_PROTOCOL_CONFIGS)
+    configs[protocol] = dataclasses.replace(configs[protocol], **overrides)
+    claim = next(c for c in PHASE25_CLAIMS if c.protocol == protocol)
+    with pytest.raises(ValueError, match=f"{protocol} no respeta su protocolo"):
+        run_phase25_attribution(seeds=(42,), claims=[claim], configs=configs)
+    assert fake_phase25 == []
+
+
+def test_cada_corrida_calcula_solo_las_metricas_de_sus_protocolos(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`stable` de 25d es `full` de 25a: una sola corrida con las métricas de los dos (A10)."""
+    jobs: list[Job] = []
+
+    def execute(job: Job) -> Phase25RunRecord:
+        jobs.append(job)
+        return _fake_record(job)
+
+    monkeypatch.setitem(PROFILES, "phase25", Profile(40, 0, 1, 1))
+    monkeypatch.setattr(attribution, "_execute_phase25_run", execute)
+    claims = [CLAIMS25["C13"], CLAIMS25["C18"], CLAIMS25["C19"]]
+    run_phase25_attribution(seeds=(42,), claims=claims, rule_effect_seeds=())
+    metrics = {job[0]: job[2] for job in jobs}
+    assert len(metrics) == len(jobs)  # sin corridas repetidas
+    full_a = dataclasses.replace(PHASE25_PROTOCOL_CONFIGS["25a"], seed=42)
+    full_b = dataclasses.replace(PHASE25_PROTOCOL_CONFIGS["25b"], seed=42)
+    full_d = dataclasses.replace(PHASE25_PROTOCOL_CONFIGS["25d"], seed=42)
+    assert metrics[full_a] == ("mean_conditional_codons", "mean_learning_codons")
+    assert metrics[full_b] == ("share_rate",)
+    assert metrics[full_d] == ("mean_learning_codons",)

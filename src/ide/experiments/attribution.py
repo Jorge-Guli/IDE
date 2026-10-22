@@ -27,6 +27,7 @@ from ide.experiments.exp001_runner import (
     sign_test_p_value,
     validate_seeds,
 )
+from ide.experiments.metrics import windowed_accuracy
 from ide.simulation.engine import SimulationEngine
 
 
@@ -508,6 +509,7 @@ PHASE25_VIABILITY_SEEDS: tuple[int, ...] = tuple(range(0, 10))  # compuerta de v
 PHASE25_FINAL_WINDOW = 1000  # un ciclo estacional con `season_length = 500` (precisión 4)
 PHASE25_POST_SHIFT_WINDOW = 200  # ticks de `post_shift_accuracy` tras cada cambio (precisión 63)
 PHASE25_ALPHA = 0.05
+PHASE25_FLOAT_TOLERANCE = 1e-9  # empates y umbral con la tolerancia de `CLAUDE.md` (A1)
 PHASE25_MIN_VALID_PAIRS = 20  # menos pares válidos: no evaluable (precisión 45)
 PHASE25_HOLM_M = 7  # Holm-Bonferroni sobre las genuinas C13-C19 (D56)
 PHASE25_MIN_VIABLE_NULL_SEEDS = 9  # de las 10 de viabilidad, para interpretar E4 (D56)
@@ -933,15 +935,13 @@ def _execute_run(run: _Run) -> Any:
     return _run(*run)
 
 
-def is_by_construction(claim: EmergenceClaim | Phase25Claim, config: SimulationConfig) -> bool:
+def is_by_construction(claim: EmergenceClaim, config: SimulationConfig) -> bool:
     """E3 sería una tautología: quitar `R_c` elimina lo que se pone a prueba.
 
     En Fase I, quitar `R_c` deja a la población sin canal de emisión. En Fase II (criterio
-    ampliado, D29) y en la Fase II-B (D56), el canal de la afirmación no es vacío y está
-    contenido en `R_c`: C13-C19 tienen canal vacío y C20 es programada por construcción.
+    ampliado, D29), el canal de la afirmación no es vacío y está contenido en `R_c`. Las
+    afirmaciones de la Fase II-B se clasifican con `_phase25_by_construction`.
     """
-    if isinstance(claim, Phase25Claim):
-        return _phase25_by_construction(claim)
     if is_phase2_claim(claim):
         channel = PHASE2_CLAIM_CHANNELS.get(claim.claim_id, ())
         return bool(channel) and set(channel) <= set(claim.purpose_rules)
@@ -949,7 +949,10 @@ def is_by_construction(claim: EmergenceClaim | Phase25Claim, config: SimulationC
 
 
 def _phase25_by_construction(claim: Phase25Claim) -> bool:
-    """Canal no vacío contenido en `R_C` (D56): sólo C20 entre C13-C20."""
+    """Programada por construcción (D56): canal no vacío contenido en `R_C`.
+
+    C13-C19 tienen canal vacío y no lo son; C20 sí, y queda fuera de Holm.
+    """
     return bool(claim.channel) and set(claim.channel) <= set(claim.rule_ids)
 
 
@@ -1142,16 +1145,16 @@ def post_shift_accuracy(ecology_history: Sequence[Any], world_shift_period: int)
     Los cambios ocurren en los ticks `t > 0` múltiplos de `world_shift_period` (precisión 56); la
     suma recorre todos los cambios de la corrida. 0.0 sin cambios o sin oportunidades.
     """
-    if world_shift_period <= 0:
+    if world_shift_period <= 0 or not ecology_history:
         return 0.0
-    shifts = [m.tick for m in ecology_history if m.tick > 0 and m.tick % world_shift_period == 0]
-    opportunities = correct = 0
-    for shift in shifts:
-        for m in ecology_history:
-            if shift <= m.tick < shift + PHASE25_POST_SHIFT_WINDOW:
-                opportunities += m.decision_opportunities
-                correct += m.correct_decisions
-    return correct / opportunities if opportunities else 0.0
+    first = ecology_history[0].tick  # el historial registra un tick por posición
+    last = ecology_history[-1].tick
+    windows: list[Any] = []
+    for shift in range(world_shift_period, last + 1, world_shift_period):
+        start = shift - first
+        if start >= 0:
+            windows.extend(ecology_history[start : start + PHASE25_POST_SHIFT_WINDOW])
+    return windowed_accuracy(windows)
 
 
 def phase25_metric_value(
@@ -1168,7 +1171,7 @@ def phase25_metric_value(
         raise ValueError(f"métrica desconocida de la Fase II-B: {metric}")
     history = genetic_history if source == "genetic" else ecology_history
     if metric in _PHASE25_LAST_TICK_METRICS:
-        return float(getattr(history[-1], metric))
+        return float(getattr(history[-1], metric)) if history else 0.0
     return _window_mean(history, metric)
 
 
@@ -1272,7 +1275,11 @@ def holm_bonferroni(p_values: Sequence[float], m: int | None = None) -> list[flo
 
 
 def effect_threshold(claim: Phase25Claim, comparison_median: float) -> float:
-    """`max(δ_min, delta_relative · M)`, con `M` la mediana de la condición de comparación."""
+    """`max(δ_min, delta_relative · M)`, con `M` la mediana de `comparison_values` (D56).
+
+    En una diferencia simple `M` es la mediana de la condición de comparación; en C17 y C19, la de
+    `comp − comp_drift` (precisión 69, A8). Sólo C16 tiene `delta_relative` distinto de cero.
+    """
     return max(claim.delta_min, claim.delta_relative * comparison_median)
 
 
@@ -1297,8 +1304,14 @@ def phase25_status(
         raise ValueError("una afirmación genuina exige su p-valor ajustado")
     else:
         p = p_adjusted
-    observed = evaluable and p < alpha and median_difference >= threshold
+    reaches = median_difference >= threshold - PHASE25_FLOAT_TOLERANCE  # A1
+    observed = evaluable and p < alpha and reaches
     return ClaimStatus.OBSERVED if observed else ClaimStatus.NOT_OBSERVED
+
+
+def phase25_sign_test(differences: Sequence[float]) -> float:
+    """Prueba de signo unilateral con `|d| <= 1e-9` como empate, que se descarta (A1)."""
+    return sign_test_p_value([0.0 if abs(d) <= PHASE25_FLOAT_TOLERANCE else d for d in differences])
 
 
 def e4_interpretable(viable_null_seeds: int | None) -> bool:
@@ -1353,18 +1366,18 @@ def _evaluate_one(
     valid_set = set(valid)
     excluded = tuple(s for s in seeds if s not in valid_set)
     differences = [values[s] - comparison_values[s] for s in valid]
-    comparison_median = median([value(claim.comparison, s) for s in valid]) if valid else 0.0
+    comparison_median = median([comparison_values[s] for s in valid]) if valid else 0.0
     e4_valid = [s for s in seeds if _active(runs["full"][s]) and _active(runs[NULL_CONTENT][s])]
     evaluation = Phase25ClaimEvaluation(
         claim_id=claim.claim_id,
         status=ClaimStatus.NOT_OBSERVED,  # se decide después de Holm
-        p_value=sign_test_p_value(differences),
+        p_value=phase25_sign_test(differences),
         p_adjusted=None,
         median_difference=median(differences) if differences else 0.0,
         values=values,
         comparison_values=comparison_values,
         demography={c: {s: runs[c][s].demography() for s in seeds} for c in conditions},
-        e4_p_value=sign_test_p_value([value("full", s) - value(NULL_CONTENT, s) for s in e4_valid]),
+        e4_p_value=phase25_sign_test([value("full", s) - value(NULL_CONTENT, s) for s in e4_valid]),
         e4_interpretable=e4_ok,
         excluded_seeds=excluded,
         excluded_pairs=len(excluded),
@@ -1436,6 +1449,48 @@ def phase25_rule_effect(
 # --- Fase II-B: atribución (design D56, precisiones 66 y 67) -----------------------------------
 
 
+def _check_phase25_protocol(protocol: str, config: SimulationConfig) -> None:
+    """La configuración `full` debe respetar los rasgos que definen su protocolo (D56)."""
+    holonic = config.enable_holonic_hierarchy
+    problems = [
+        name
+        for name, ok in (
+            ("enable_evolution", config.enable_evolution),
+            ("enable_compact_dna", config.enable_compact_dna),
+            ("enable_genetic_policy", config.enable_genetic_policy),
+            ("enable_holonic_hierarchy", holonic if protocol == "25b" else not holonic),
+            ("enable_predation", config.enable_predation or protocol != "25a"),
+            (
+                "comm_propensity_base",
+                (config.comm_propensity_base == 0.0) is (protocol == "25c"),
+            ),
+            (
+                "world_shift_period",
+                (config.world_shift_period > 0) is (protocol == "25d"),
+            ),
+            (
+                "enable_internal_state/enable_plasticity",
+                protocol != "25d" or (config.enable_internal_state and config.enable_plasticity),
+            ),
+        )
+        if not ok
+    ]
+    if problems:
+        raise ValueError(f"la configuración de {protocol} no respeta su protocolo: {problems}")
+
+
+def _phase25_e4_flags(configs: Mapping[str, SimulationConfig]) -> dict[str, bool]:
+    """E4 se interpreta sólo con la abundancia elegida por la compuerta y su `null_content` viable.
+
+    Con otra abundancia la viabilidad registrada no aplica y E4 no es interpretable (A2).
+    """
+    return {
+        protocol: (config.resources_per_pattern, config.resource_regen_delay) == PHASE25_ABUNDANCE
+        and e4_interpretable(PHASE25_NULL_CONTENT_VIABLE_SEEDS.get(protocol))
+        for protocol, config in configs.items()
+    }
+
+
 def _phase25_effect_rules(protocol: str) -> list[str]:
     """Reglas que reciben variante: las ablacionables, salvo las inactivas del protocolo."""
     inactive = set(PHASE25_INACTIVE_RULES[protocol])
@@ -1472,13 +1527,15 @@ def run_phase25_attribution(
     unknown = sorted({c.protocol for c in claims if c.protocol not in chosen})
     if unknown:
         raise ValueError(f"protocolos desconocidos de la Fase II-B: {unknown}")
+    protocols = list(dict.fromkeys(c.protocol for c in claims))
+    for protocol in protocols:
+        _check_phase25_protocol(protocol, chosen[protocol])
     for seed in (*seeds, *rule_effect_seeds):  # la regla `seed >= 0` de `SimulationConfig`
         SimulationConfig(seed=seed)
     total_ticks = PROFILES[PHASE25_ATTRIBUTION_PROFILE].total_ticks
-    metrics = tuple(sorted({c.metric for c in claims}))
 
     plan: dict[tuple[str, str, int], SimulationConfig] = {}  # (protocolo, variante, semilla)
-    for protocol in dict.fromkeys(c.protocol for c in claims):
+    for protocol in protocols:
         base = chosen[protocol]
         needed = dict.fromkeys(
             name
@@ -1498,17 +1555,23 @@ def run_phase25_attribution(
             for rule_id in _phase25_effect_rules(protocol):
                 plan[(protocol, rule_id, seed)] = ablate(seeded, [rule_id])
 
-    jobs_list = list(dict.fromkeys((config, total_ticks, metrics) for config in plan.values()))
-    results = dict(zip(jobs_list, map_in_order(_execute_phase25_run, jobs_list, jobs), strict=True))
+    # Cada configuración se corre una vez y calcula sólo las métricas de las afirmaciones de los
+    # protocolos que la usan (una configuración puede repetirse entre protocolos).
+    metrics_of: dict[SimulationConfig, set[str]] = {}
+    for (protocol, _, _), config in plan.items():
+        metrics_of.setdefault(config, set()).update(
+            c.metric for c in claims if c.protocol == protocol
+        )
+    jobs_list: list[_Phase25Job] = [
+        (config, total_ticks, tuple(sorted(names))) for config, names in metrics_of.items()
+    ]
+    outcomes = map_in_order(_execute_phase25_run, jobs_list, jobs)
+    results = {job[0]: outcome for job, outcome in zip(jobs_list, outcomes, strict=True)}
     records: dict[str, dict[str, dict[int, Phase25RunRecord]]] = {}
     for (protocol, variant, seed), config in plan.items():
-        per_variant = records.setdefault(protocol, {}).setdefault(variant, {})
-        per_variant[seed] = results[(config, total_ticks, metrics)]
+        records.setdefault(protocol, {}).setdefault(variant, {})[seed] = results[config]
 
-    flags = {
-        protocol: e4_interpretable(PHASE25_NULL_CONTENT_VIABLE_SEEDS.get(protocol))
-        for protocol in records
-    }
+    flags = _phase25_e4_flags({protocol: chosen[protocol] for protocol in protocols})
     evaluations = evaluate_phase25_claims(claims, records, seeds, flags)
     rule_effects: dict[str, dict[str, float | None]] = {}
     for claim in claims:
