@@ -73,6 +73,9 @@ _BAND_STRESS, _BAND_NORMAL, _BAND_SURPLUS = 0, 1, 2
 # Los promotores de nivel distinguen hasta `IN_HOLON_L9` (0x0A, design D32).
 _MAX_DISTINCT_LEVEL = 9
 
+# R38 (D51.1, precisión 127): propensión expresada mínima para buscar pareja y para ser candidata.
+MATE_PROPENSITY_THRESHOLD = 0.5
+
 
 def _phenotype_config(base: SimulationConfig, genome: AgentGenome) -> SimulationConfig:
     """Configuración fenotípica: la base con los 6 rasgos del genoma (design D22 y D34.2).
@@ -338,6 +341,14 @@ class MicroAgent:
     def last_context(self) -> EpigeneticContext:
         """Contexto de la última expresión: el de la Fase 0 o el del nacimiento (precisión 23)."""
         return self._last_context
+
+    def seeks_mate(self) -> bool:
+        """R38 (D51.1): `recombination_propensity` expresada `>= 0.5`, sin tolerancia.
+
+        Es la única definición de la condición de propensión: la usan el progenitor que busca
+        pareja y el filtro de las candidatas. Lee el fenotipo de la última expresión.
+        """
+        return self._phenotype.recombination_propensity >= MATE_PROPENSITY_THRESHOLD
 
     @property
     def communicates(self) -> bool:

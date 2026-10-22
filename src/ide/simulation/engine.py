@@ -88,9 +88,6 @@ from ide.simulation.pipeline import (
 # Emisor sintético de los testimonios estigmérgicos (D27); los holones usan IDs <= -2 (D23).
 STIGMERGY_SENDER_ID = -1
 
-# R38 (D51.1): propensión expresada mínima para buscar pareja y para ser candidata.
-MATE_PROPENSITY_THRESHOLD = 0.5
-
 
 def _needs_evolutionary_env(config: SimulationConfig) -> bool:
     return (
@@ -807,15 +804,16 @@ class SimulationEngine:
             self._remove(dead, tick)
         return dead
 
-    def _reproduce(self, tick: int, events: Counter[str] | None = None) -> int:
+    def _reproduce(self, tick: int, events: Counter[str]) -> int:
         """R17 y luego R12 (o su ablación neutral), a lo sumo un evento por agente (D26).
 
         Con ADN y reproducción neutral, cada hoja progenitora de R17 recibe, en el orden de
         `leaf_agents`, un donante sorteado con `donor_rng` entre los mismos donantes que la
-        reproducción individual (precisión 41); sin ADN, R17 no extrae de `donor_rng`. Con R38
-        efectiva (D51), la reproducción individual cruza el primer ADN (el del progenitor o,
-        en neutral, el del donante) con el de una pareja; R17 no recombina. Cada cruce suma el
-        evento `recombinations` de `events` (precisión 20).
+        reproducción individual (precisión 41); los donantes de todas las hojas se validan
+        antes de crear ningún hijo. Sin ADN, R17 no extrae de `donor_rng`. Con R38 efectiva
+        (D51), la reproducción individual cruza el primer ADN (el del progenitor o, en neutral,
+        el del donante) con el de una pareja; R17 no recombina. Cada cruce suma el evento
+        `recombinations` de `events` (precisión 20).
         """
         config = self.config
         reproduced: set[int] = set()
@@ -831,8 +829,12 @@ class SimulationEngine:
             if neutral
             else []
         )
-        # R38 (D51.1, precisión 13): las candidatas se fijan al empezar el paso de reproducción.
-        pool = self._mating_pool() if self.recombination_active else []
+        # R38 (D51.1, precisión 13): las candidatas son las del comienzo del paso, es decir, con
+        # ID menor que `first_newborn`. El conjunto se arma recién con el primer progenitor que
+        # busca pareja: nada de lo que filtra cambia durante el paso.
+        recombination = self.recombination_active
+        first_newborn = self.next_agent_id
+        pool: list[MicroAgent] | None = None
         births = 0
         if config.enable_holonic_hierarchy and config.enable_holon_reproduction:
             for nid in sorted(self.root_nodes):
@@ -849,12 +851,14 @@ class SimulationEngine:
                 if len(self.agents) + len(leaves) > config.max_population:
                     continue
                 if neutral and config.enable_compact_dna:
-                    # Precisión 41: un donante por hoja, en el orden de `leaf_agents`.
+                    # Precisión 41: un donante por hoja, en el orden de `leaf_agents`, todos
+                    # validados antes de crear ningún hijo.
+                    leaf_donors = [self._draw_donor(donors) for _ in leaves]
+                    for leaf, donor in zip(leaves, leaf_donors, strict=True):
+                        self._check_donor(leaf, donor)
                     offspring = {
-                        leaf.agent_id: self._give_birth(
-                            leaf, tick, donors[int(self.donor_rng.integers(len(donors)))]
-                        )
-                        for leaf in leaves
+                        leaf.agent_id: self._give_birth(leaf, tick, donor)
+                        for leaf, donor in zip(leaves, leaf_donors, strict=True)
                     }
                 else:
                     offspring = {leaf.agent_id: self._give_birth(leaf, tick) for leaf in leaves}
@@ -885,30 +889,56 @@ class SimulationEngine:
                 continue  # R28 (D38): una endospora no se reproduce
             if len(self.agents) >= config.max_population:
                 break
-            donor = donors[int(self.donor_rng.integers(len(donors)))] if neutral else None
-            crossed = self._cross(agent, donor, pool) if pool else None
-            if crossed is not None and events is not None:
-                events["recombinations"] += 1
+            donor = self._draw_donor(donors) if neutral else None
+            if donor is not None:
+                self._check_donor(agent, donor)  # D34.7: antes del cruce, haya pareja o no
+            crossed = None
+            if recombination and agent.seeks_mate():
+                if pool is None:
+                    pool = self._mating_pool(first_newborn)
+                crossed = self._cross(agent, donor, pool)
+                if crossed is not None:
+                    events["recombinations"] += 1
             child = self._give_birth(agent, tick, donor, crossed)
             self._set_root(child)
             reproduced.update((aid, child.agent_id))
             births += 1
         return births
 
-    def _mating_pool(self) -> list[MicroAgent]:
-        """Posibles parejas de R38 (D51.1), fijadas al empezar el paso de reproducción.
+    def _draw_donor(self, donors: list[MicroAgent]) -> MicroAgent:
+        """Donante de la reproducción neutral (D19), sorteado con `donor_rng` (R12 y R17)."""
+        return donors[int(self.donor_rng.integers(len(donors)))]
 
-        Son, por `agent_id`, las hojas vivas con ADN que no son endospora en ese momento (como
-        las de la conjugación, precisión 124) y con `recombination_propensity` expresada en la
-        Fase 0 del tick `>= 0.5`. Los nacidos en el mismo paso no cuentan (precisión 13).
+    @staticmethod
+    def _check_donor(parent: MicroAgent, donor: MicroAgent) -> None:
+        """Rechaza una población mixta en la reproducción neutral (D34.7).
+
+        Una población mixta no la produce el motor: heredar en silencio el ADN propio o el
+        genoma expresado del donante falsearía la deriva neutral.
+        """
+        if (parent.dna is None) != (donor.dna is None):
+            raise ValueError(
+                f"población mixta en la reproducción neutral: el progenitor {parent.agent_id} "
+                f"y el donante {donor.agent_id} deben tener ADN los dos o ninguno"
+            )
+
+    def _mating_pool(self, first_newborn: int | None = None) -> list[MicroAgent]:
+        """Posibles parejas de R38 (D51.1), las del comienzo del paso de reproducción.
+
+        Son, por `agent_id`, las hojas vivas con ADN que no son endospora (como las de la
+        conjugación, precisión 124) y que buscan pareja (`seeks_mate`, con el fenotipo de la
+        Fase 0 del tick). Los nacidos en el mismo paso, con ID `>= first_newborn`, no cuentan
+        (precisión 13); `None` toma todos los vivos.
         """
         agents = self.agents
+        limit = self.next_agent_id if first_newborn is None else first_newborn
         return [
             agents[aid]
             for aid in sorted(agents)
-            if agents[aid].dna is not None
+            if aid < limit
+            and agents[aid].dna is not None
             and not agents[aid].is_endospore
-            and agents[aid].phenotype.recombination_propensity >= MATE_PROPENSITY_THRESHOLD
+            and agents[aid].seeks_mate()
         ]
 
     def _mate_candidates(self, parent: MicroAgent, pool: list[MicroAgent]) -> list[MicroAgent]:
@@ -928,7 +958,7 @@ class SimulationEngine:
         `evo_rng`, en este orden, la pareja, `a` y `b`, y devuelve `recombine_dna`, con los
         plásmidos y la `crispr_memory` del primer ADN (precisión 35). La pareja no cede energía.
         """
-        if parent.phenotype.recombination_propensity < MATE_PROPENSITY_THRESHOLD:
+        if not parent.seeks_mate():
             return None
         candidates = self._mate_candidates(parent, pool)
         if not candidates:
@@ -962,19 +992,14 @@ class SimulationEngine:
         """
         rng = self.evo_rng
         scale = compute_sos_scale(parent.energy, parent.last_stress_tick, tick, self.config)
+        if donor is not None:
+            self._check_donor(parent, donor)  # D34.7: también con `crossed`
         if crossed is not None:
             child = parent.create_offspring(
                 self.next_agent_id, tick, rng, dna_source=crossed, mutation_scale=scale
             )
         elif donor is None:
             child = parent.create_offspring(self.next_agent_id, tick, rng, mutation_scale=scale)
-        elif (parent.dna is None) != (donor.dna is None):
-            # Una población mixta no la produce el motor: heredar en silencio el ADN propio o el
-            # genoma expresado del donante falsearía la deriva neutral.
-            raise ValueError(
-                f"población mixta en la reproducción neutral: el progenitor {parent.agent_id} "
-                f"y el donante {donor.agent_id} deben tener ADN los dos o ninguno"
-            )
         elif parent.dna is None:  # la misma fuente de verdad que valida `create_offspring`
             child = parent.create_offspring(
                 self.next_agent_id, tick, rng, donor.genome, mutation_scale=scale

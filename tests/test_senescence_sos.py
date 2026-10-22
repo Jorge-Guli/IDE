@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import textwrap
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -436,7 +437,7 @@ def test_el_motor_decide_las_tres_escalas_antes_de_partir_la_energia(
     engine.agents[0].record_stress(100)
     engine.agents[1].record_stress(80)
     scales = spy_scales(monkeypatch)
-    births = engine._reproduce(140)  # pyright: ignore[reportPrivateUsage]
+    births = engine._reproduce(140, Counter())  # pyright: ignore[reportPrivateUsage]
     assert births == 3
     # Con 3.4 el progenitor pasa a 1.7 al partir: la alta fidelidad se decide antes.
     assert scales == {0: 4.0, 1: 0.25, 2: 1.0}
@@ -448,7 +449,7 @@ def test_escala_uno_en_el_motor_con_la_regla_apagada(monkeypatch: pytest.MonkeyP
         set_energy(engine, aid, energy)
     engine.agents[0].record_stress(139)
     scales = spy_scales(monkeypatch)
-    engine._reproduce(140)  # pyright: ignore[reportPrivateUsage]
+    engine._reproduce(140, Counter())  # pyright: ignore[reportPrivateUsage]
     assert scales == {0: 1.0, 1: 1.0}
 
 
@@ -465,7 +466,7 @@ def test_escala_por_hoja_en_la_reproduccion_holonica(monkeypatch: pytest.MonkeyP
     set_energy(engine, 2, 3.0)  # sin estrés, energía intermedia (2.2 <= 3.0 < 3.3)
     engine.agents[1].record_stress(50)
     scales = spy_scales(monkeypatch)
-    births = engine._reproduce(60)  # pyright: ignore[reportPrivateUsage]
+    births = engine._reproduce(60, Counter())  # pyright: ignore[reportPrivateUsage]
     assert births == 2
     assert scales == {1: config.sos_hypermutation_factor, 2: 1.0}
 
@@ -484,7 +485,7 @@ def test_la_escala_cambia_la_mutacion_del_adn() -> None:
     set_energy(engine, 0, 2.5)
     set_energy(engine, 1, 3.4)
     engine.agents[0].record_stress(139)
-    engine._reproduce(140)  # pyright: ignore[reportPrivateUsage]
+    engine._reproduce(140, Counter())  # pyright: ignore[reportPrivateUsage]
     parent_dna = founder_dna(config).chromosome
     child_of = {a.parent_id: a for a in engine.agents.values() if a.parent_id is not None}
     hyper_dna, faithful_dna = child_of[0].dna, child_of[1].dna

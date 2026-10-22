@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import textwrap
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -368,7 +369,7 @@ def test_holon_con_una_endospora_no_se_reproduce() -> None:
     for aid in ids:
         set_energy(engine, aid, 2.5)
     engine.agents[1].set_endospore(True)
-    births = engine._reproduce(0)  # pyright: ignore[reportPrivateUsage]
+    births = engine._reproduce(0, Counter())  # pyright: ignore[reportPrivateUsage]
     # Ningún holón se reproduce por R17; sólo las hojas activas con energía suficiente (R12).
     assert not any(
         isinstance(n, CompositeAgent) and n is not holon for n in engine.root_nodes.values()
@@ -393,7 +394,7 @@ def test_donantes_neutrales_sin_endosporas() -> None:
             return 0
 
     engine.donor_rng = Stub()  # type: ignore[assignment]
-    engine._reproduce(0)  # pyright: ignore[reportPrivateUsage]
+    engine._reproduce(0, Counter())  # pyright: ignore[reportPrivateUsage]
     assert sizes == [2]  # donantes: los agentes 0 y 2; el 1 y los 3 a 5 están en endospora
 
 

@@ -32,7 +32,7 @@
 >
 > **Pre-registro.** Es design D56, **aprobado** el 2026-10-21 en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
-> **Etapa actual:** las etapas A, R, B y L están completas (y los bloques 16 y 17 de la etapa M); el pre-registro D56 está aprobado. Sigue la etapa M (bloques 18 a 20).
+> **Etapa actual:** las etapas A, R, B, L y M están completas y el bloque 22 implementado; el pre-registro D56 está aprobado. Sigue la etapa C (bloque 21 en curso, después 23 a 25).
 
 ## 0. Decisiones y pre-registro
 
@@ -336,14 +336,14 @@
 >
 > Punto de control: fin de la etapa M. Mostrar, para $R_{25}$–$R_{31}$ y $R_{38}$, que cada ablación deja la regla inerte y que los historiales son iguales entre procesos con distinto `PYTHONHASHSEED`.
 
-- [ ] 20.1 **[RED]** Tests para:
+- [x] 20.1 **[RED]** Tests para:
   - la búsqueda de pareja con la propensión expresada de los dos, sin endosporas y a distancia $\le 1$;
   - la secuencia exacta de extracciones de `evo_rng` de D51.2 y su ausencia sin candidatas o con la regla apagada;
   - la reproducción asexual sin pareja, la herencia de plásmidos y firmas del progenitor y la mutación posterior;
   - la reproducción neutral: el ADN del donante en la recombinación (precisiones 14 y 35) y la reproducción holónica neutral con ADN, con el orden de sorteo de `donor_rng` y sin cambios sin ADN (precisión 41);
   - que la pareja no cede energía y que $R_{17}$ no recombina.
-- [ ] 20.2 **[GREEN]** Implementar D51 y la precisión 41 en el sistema de reproducción.
-- [ ] 20.3 **[REFACTOR]** Verificación del bloque.
+- [x] 20.2 **[GREEN]** Implementar D51 y la precisión 41 en el sistema de reproducción.
+- [x] 20.3 **[REFACTOR]** Verificación del bloque. (1825 tests, cobertura 99 %; precisiones 127 a 129. Punto de control de la etapa M: cada ablación de R25–R31 y R38 deja su regla inerte y los historiales son iguales con `PYTHONHASHSEED` 0 y 123, en `test_holonic_hierarchy.py`, `test_simulation_engine.py`, `test_plasmids.py`, `test_sporulation.py`, `test_senescence_sos.py` y `test_recombination.py`.)
 
 ## 21. Telemetría de evolución abierta (`experimental-suite`)
 

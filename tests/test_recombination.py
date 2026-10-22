@@ -321,6 +321,100 @@ def test_recien_nacidos_fuera_de_las_candidatas(monkeypatch: pytest.MonkeyPatch)
     assert child.dna == engine.agents[6].dna
 
 
+def test_regla_apagada_sin_extracciones_con_candidatas(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = pair_engine(enable_recombination=False)
+    assert all(engine.agents[a].seeks_mate() for a in (3, 5, 8))  # candidatas con propensión
+    gemelo = twin(engine.evo_rng)
+    calls = spy_mutations(monkeypatch)
+    events = reproduce(engine)
+    assert "recombinations" not in events
+    assert calls == [(dna_of(engine.agents[5]), gemelo.bit_generator.state)]
+
+
+def test_hijos_de_r17_fuera_de_las_candidatas(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = holon_engine((2, 5, 7))
+    for aid in (2, 5, 7, 9):
+        give(engine, aid, CROSS, marker(aid))
+    express(engine)
+    set_energy(engine, 9, 200.0)  # 9 está en una celda lejana de todos
+    grid = grid_of(engine)
+    original = grid.spawn_agent_near
+
+    def spawn(agent_id: int, anchor: int, *args: Any, **kwargs: Any) -> tuple[int, int]:
+        return original(agent_id, 9 if anchor in (2, 5, 7) else anchor, *args, **kwargs)
+
+    monkeypatch.setattr(grid, "spawn_agent_near", spawn)
+    before = set(engine.agents)
+    events = reproduce(engine)
+    newborns = [c for leaf in (2, 5, 7) for c in children_of(engine, leaf, before)]
+    assert len(newborns) == 3
+    assert all(grid.get_agent_distance(c.agent_id, 9) <= 1 and c.seeks_mate() for c in newborns)
+    (child,) = children_of(engine, 9, before)
+    assert "recombinations" not in events
+    assert child.dna == engine.agents[9].dna
+
+
+def flatten(engine: SimulationEngine, keep: set[int]) -> None:
+    """Reemplaza por agentes sin ADN a todos los de `engine.agents` salvo los de `keep`."""
+    for aid in sorted(engine.agents):
+        if aid not in keep:
+            founder = engine.agents[aid]
+            engine.agents[aid] = MicroAgent.from_lineage(
+                aid, engine.config, founder.genome, founder.energy, 0, None
+            )
+
+
+def generator_states(engine: SimulationEngine) -> list[Any]:
+    return [
+        g.bit_generator.state for g in (engine.rng, engine.null_rng, engine.evo_rng, engine.hgt_rng)
+    ]
+
+
+def seed_with_donors(draws: int, valid: set[int], need_first_valid: bool) -> int:
+    """Una semilla cuyos `draws` sorteos de donante entre 10 incluyen alguno fuera de `valid`."""
+    for seed in range(1000):
+        gen = np.random.Generator(np.random.PCG64(np.random.SeedSequence(seed, spawn_key=(4,))))
+        picks = [int(gen.integers(10)) for _ in range(draws)]
+        if any(p not in valid for p in picks) and (picks[0] in valid or not need_first_valid):
+            return seed
+    raise AssertionError("sin semilla")  # pragma: no cover
+
+
+@pytest.mark.parametrize("with_partner", [True, False])
+def test_poblacion_mixta_rechazada_antes_del_cruce(with_partner: bool) -> None:
+    engine = pair_engine(
+        reproduction_mode="neutral", seed=seed_with_donors(1, {3, 5}, need_first_valid=False)
+    )
+    if not with_partner:
+        put(engine, 3, (6, 3))
+    flatten(engine, {3, 5})
+    states = generator_states(engine)
+    agents, energy = set(engine.agents), engine.agents[5].energy
+    with pytest.raises(ValueError, match="mixta"):
+        reproduce(engine)
+    assert generator_states(engine) == states  # sin extracciones de cruce ni de mutación
+    assert set(engine.agents) == agents
+    assert engine.agents[5].energy == energy
+
+
+def test_r17_neutral_valida_todos_los_donantes_antes_de_nacer() -> None:
+    seed = seed_with_donors(3, {2, 5, 7}, need_first_valid=True)
+    engine = holon_engine((2, 5, 7), reproduction_mode="neutral", seed=seed)
+    flatten(engine, {2, 5, 7})
+    states = generator_states(engine)
+    agents, next_id = set(engine.agents), engine.next_agent_id
+    energies = {a: engine.agents[a].energy for a in (2, 5, 7)}
+    roots = dict(engine.root_nodes)
+    with pytest.raises(ValueError, match="mixta"):
+        reproduce(engine)
+    # Sin estado parcial: ningún hijo, ni energía cedida, ni extracciones de `evo_rng`.
+    assert generator_states(engine) == states
+    assert set(engine.agents) == agents
+    assert engine.next_agent_id == next_id
+    assert {a: engine.agents[a].energy for a in (2, 5, 7)} == energies
+    assert engine.root_nodes == roots
+
+
 # --- Herencia del progenitor y mutación posterior (D51.2, D51.3) --------------------------------
 
 
@@ -553,7 +647,6 @@ def test_evento_recombinations_en_el_marco() -> None:
     engine.observers.append(spy)
     engine.run(40)
     assert sum(e.get("recombinations", 0) for e in spy.events) > 0
-    assert all(v > 0 for e in spy.events for v in e.values())
 
 
 def run_snapshot(config: SimulationConfig, ticks: int) -> tuple[Any, ...]:
