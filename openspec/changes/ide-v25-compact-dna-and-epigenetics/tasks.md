@@ -299,12 +299,12 @@
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 17.1 **[RED]** Tests para:
+- [x] 17.1 **[RED]** Tests para:
   - la entrada en endospora sólo por `SPORULATE` (D50.2), con su factibilidad y su inercia sin la política genética;
   - la germinación en la Fase 1;
   - la física de la endospora de D38: sin emisión ni recepción de mensajes, `IDLE` sin decidir ni consumir `rng`, sin oportunidad de decisión en M2, sin reproducción, sin ser objetivo de `SHARE` ni de `ATTACK`, y el costo `spore_cost_fraction * metabolic_base_cost`.
-- [ ] 17.2 **[GREEN]** Implementar D38 con la entrada de D50.2.
-- [ ] 17.3 **[REFACTOR]** Verificación del bloque.
+- [x] 17.2 **[GREEN]** Implementar D38 con la entrada de D50.2.
+- [x] 17.3 **[REFACTOR]** Verificación del bloque. (Integrado con el bloque 15: 1598 tests, cobertura 99 %; `frame.dormant` es la única fuente de las endosporas dormidas y el costo reducido rige sólo para quien estuvo en endospora todo el tick; precisiones 98 a 103.)
 
 ## 18. Señal posicional (R25) y compromiso simbiótico (R31) (`holonic-hierarchy`, `simulation-engine`)
 

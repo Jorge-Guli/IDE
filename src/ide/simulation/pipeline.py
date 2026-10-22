@@ -86,7 +86,7 @@ class TickFrame:
     alguno ($R_{41}$, D60.3, precisión 97), que escribe `SignalEmissionSystem` y lee el
     metabolismo para cobrar `signal_cost` por símbolo. Sin $R_{41}$ queda vacío.
 
-    Al final, `dormant` (R28, precisión E1 y E6): las endosporas que lo siguen siendo después de
+    Al final, `dormant` (R28, precisiones 98 y 103): las endosporas que lo siguen siendo después de
     la germinación, es decir, las que estuvieron en endospora todo el tick. Lo calcula una vez
     `GerminationSystem`; sin $R_{28}$ efectiva queda vacío y nadie es "dormido". Quien esporula
     en la Fase 4 no está en él: actuó en el tick.
@@ -298,7 +298,7 @@ class GerminationSystem(BaseSystem):
 
     Una endospora germina (`set_endospore(False)`) si su observación tiene algún recurso visible
     o, con $R_{19}$, su celda tiene un rastro con `sign_value > 0`. Germina antes de la
-    percepción social y de la emisión, y actúa normalmente en ese tick (precisión E1). No consume
+    percepción social y de la emisión, y actúa normalmente en ese tick (precisión 98). No consume
     generadores. Sólo está en la lista con $R_{28}$ efectivamente activa.
     """
 
@@ -323,7 +323,7 @@ class SocialPerceptionSystem(BaseSystem):
 
     Sólo está en la lista con la política genética efectivamente activa. Construye la
     percepción de los agentes que pueden decidir: con $R_{28}$ una endospora no se percibe
-    socialmente, porque no decide (D38, precisión E1). Usa
+    socialmente, porque no decide (D38, precisión 98). Usa
     `get_visible_agents` y la instantánea de energías al empezar el sistema, antes de cualquier
     acción del tick (percepción sincrónica):
     - "activo" excluye a las endosporas;
@@ -727,7 +727,7 @@ def _execute_action(
         return
     sharing = flags.transfer and kind is ActionType.SHARE
     if sharing or (flags.predation and kind is ActionType.ATTACK):
-        if not engine.agents[aid].is_endospore:  # sólo una endospora puesta a mano, sin R28 (E3)
+        if not engine.agents[aid].is_endospore:  # endospora a mano, sin R28 (precisión 100)
             execute = _execute_share if sharing else _execute_attack
             execute(engine, aid, action.target, frame)
         return

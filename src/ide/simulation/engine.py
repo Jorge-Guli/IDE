@@ -606,7 +606,7 @@ class SimulationEngine:
     ) -> None:
         """Cobra el costo basal, de movimiento y de mensajes a cada agente, por `agent_id`.
 
-        Con $R_{28}$ (D38, precisión E6), una endospora dormida todo el tick (`dormant`) paga sólo
+        Con $R_{28}$ (D38, precisión 103), una endospora dormida todo el tick (`dormant`) paga sólo
         `spore_cost_fraction * metabolic_base_cost`, en lugar del basal, del ADN, del movimiento y
         de los mensajes. Quien esporuló en la Fase 4 o germinó en la Fase 1 actuó en el tick y paga
         el costo completo.

@@ -166,7 +166,7 @@ def test_tick_frame_tiene_los_campos_de_d44_y_es_mutable() -> None:
         "received",
         # Símbolos emitidos por emisor en la Fase 3 (R41, D60.3, precisión 97).
         "signals",
-        # Endosporas dormidas todo el tick (R28, precisión E1).
+        # Endosporas dormidas todo el tick (R28, precisión 98).
         "dormant",
     ]
     frame = TickFrame(7)

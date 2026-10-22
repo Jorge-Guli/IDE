@@ -469,7 +469,7 @@ def test_sin_r28_la_endospora_manual_paga_el_costo_completo() -> None:
     assert before - engine.agents[2].energy > 0.0005 + 1e-6
 
 
-# --- Estado interno en la germinación (precisión E1) -------------------------------------------
+# --- Estado interno en la germinación (precisión 98) -------------------------------------------
 
 
 def test_estado_interno_germinacion_y_endospora(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -546,7 +546,7 @@ def test_endosporas_independientes_del_hash() -> None:
     assert seen > 0 and germinations > 0  # esporula y germina de verdad
 
 
-# --- Costo en el tick de transición (precisión E6) y estigmergia ------------------------------
+# --- Costo en el tick de transición (precisión 103) y estigmergia ------------------------------
 
 
 def test_quien_esporula_en_el_tick_paga_el_costo_completo(monkeypatch: pytest.MonkeyPatch) -> None:

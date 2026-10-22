@@ -258,7 +258,7 @@ def test_endospora_senescente_paga_su_costo_mas_la_senescencia() -> None:
     engine.agents[2].set_endospore(True)
     before = engine.agents[2].energy
     frame = TickFrame(15)
-    frame.dormant = frozenset({2})  # dormida todo el tick: no germinó (precisión E6)
+    frame.dormant = frozenset({2})  # dormida todo el tick: no germinó (precisión 103)
     MetabolismSystem().run(engine, frame)
     SenescenceSystem().run(engine, frame)
     assert before - engine.agents[2].energy == pytest.approx(0.0015, abs=1e-9)
