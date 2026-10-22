@@ -208,6 +208,28 @@ Valores por semilla (42..51), población completa / variante aislada:
   - **Los holones (`003a`) dan algo más de recambio,** pero el congelamiento domina igual.
   - **Alcance.** Es una observación demográfica con el genoma plano de la Fase II, no una medición de ninguna afirmación. No dice nada sobre el efecto de la senescencia, que es lo que pondrá a prueba C10.
 
+## Fase II-B: compuerta de viabilidad (D55, tarea 23.4)
+
+Corrida el 2026-10-22 con `python -m ide.experiments.phase25_viability --out registros/phase25_viability.json`, el perfil pre-registrado `phase25` (5000 ticks) y las semillas de viabilidad 0 a 9. La salida completa está en `registros/phase25_viability.json` y `registros/phase25_viability_consola.txt`. Es sólo demografía: no se calculó ni se miró ninguna métrica de afirmación.
+
+**Resultado (tal cual): ninguna configuración de la grilla declarada es viable.** Según D55.5, decide el responsable del proyecto; no se prueba nada fuera de la grilla sin una enmienda.
+
+Semillas viables (de 10) por condición que decide, en las dos configuraciones más abundantes:
+
+| Protocolo y condición | (30, 10) | (40, 20) |
+| :--- | ---: | ---: |
+| `25a` full / drift | 7 / 5 | 8 / 4 |
+| `25a` no_predation / no_predation_drift | 10 / 9 | 10 / 9 |
+| `25b` full / drift | 6 / 7 | 7 / 6 |
+| `25c` full / drift | 0 / 4 | 7 / 1 |
+| `25d` full / drift / stable / stable_drift / no_learning | 3 / 2 / 7 / 5 / 2 | 3 / 1 / 8 / 4 / 3 |
+
+Observaciones demográficas (exploratorias, no son afirmaciones):
+- La viabilidad crece con la abundancia en todos los protocolos; con (20, 20) se extinguen todas las corridas.
+- Las condiciones con reproducción neutral (`drift`) sobreviven mucho menos que las de selección (en `25c`, 7 frente a 1 con (40, 20)): sin selección la población no se sostiene.
+- El entorno cambiante de `25d` es muy letal: `full` 3/10 frente a `stable` 8/10 con la misma abundancia.
+- Sin comunicación de partida (`25c`), con poca abundancia la población muere en las primeras generaciones (generación máxima 1 a 5).
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.

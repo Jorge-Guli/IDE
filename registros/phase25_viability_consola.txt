@@ -1,0 +1,109 @@
+(resources_per_pattern, resource_regen_delay) = (20, 20):
+  25a full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 9 9 11 8 21 10 11 8 7
+  25a drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 8 27 8 7 12 6 35 7 6 7
+  25a no_predation: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 8 9 9 9 8 21 10 26 8 7
+  25a no_predation_drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 8 9 7 12 7 8 7 6 7
+  25a null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 2 4 4 5 7 3 4 8 5 7
+  25b full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 15 8 5 6 7 8 8 7 9
+  25b drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 5 10 6 23 7 7 6 19 8 6
+  25b null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 5 6 4 1 7 3 3 5 3 4
+  25c full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 4 2 1 2 2 2 1 2 1 2
+  25c drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 3 2 1 2 1 4 1 2 2 2
+  25c null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 4 2 1 2 2 2 1 2 1 2
+  25d full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 9 9 20 8 15 10 11 29 7
+  25d drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 8 8 7 7 12 6 28 7 6 7
+  25d stable: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 9 9 11 8 21 10 11 8 7
+  25d stable_drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 8 27 8 7 12 6 35 7 6 7
+  25d no_learning: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 9 9 20 8 15 10 11 29 7
+  25d null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 2 4 4 5 7 3 4 8 5 7
+(resources_per_pattern, resource_regen_delay) = (20, 10):
+  25a full: viables 4/10, con hojas activas 4/10, generación máxima por semilla: 39 51 47 38 48 51 23 40 17 22
+  25a drift: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 9 11 10 46 27 10 27 13 19 17
+  25a no_predation: viables 7/10, con hojas activas 7/10, generación máxima por semilla: 23 40 46 38 51 40 23 43 43 21
+  25a no_predation_drift: viables 3/10, con hojas activas 3/10, generación máxima por semilla: 37 18 17 25 50 8 43 43 17 20
+  25a null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 5 10 7 6 14 9 9 8 3
+  25b full: viables 2/10, con hojas activas 2/10, generación máxima por semilla: 21 12 19 16 52 12 38 44 44 41
+  25b drift: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 18 27 45 10 6 59 16 12 37 13
+  25b null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 5 8 15 9 12 8 5 4 7 5
+  25c full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 2 2 2 5 2 3 4 2 2 3
+  25c drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 3 2 3 2 2 2 5 4 2 2
+  25c null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 2 2 2 5 2 3 4 2 2 3
+  25d full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 37 21 18 20 14 16 13 13 13 20
+  25d drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 11 10 13 30 10 11 13 21 19
+  25d stable: viables 4/10, con hojas activas 4/10, generación máxima por semilla: 39 51 47 38 48 51 23 40 17 22
+  25d stable_drift: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 9 11 10 46 27 10 27 13 19 17
+  25d no_learning: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 40 21 18 20 14 16 13 13 11 20
+  25d null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 5 10 7 6 23 9 9 8 3
+(resources_per_pattern, resource_regen_delay) = (30, 20):
+  25a full: viables 4/10, con hojas activas 4/10, generación máxima por semilla: 48 45 51 31 21 45 23 22 38 47
+  25a drift: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 20 60 31 25 42 25 17 20 48 29
+  25a no_predation: viables 6/10, con hojas activas 6/10, generación máxima por semilla: 48 17 50 47 21 19 51 50 38 48
+  25a no_predation_drift: viables 4/10, con hojas activas 4/10, generación máxima por semilla: 20 46 31 43 52 25 28 12 44 21
+  25a null_content (no decide): viables 1/10, con hojas activas 1/10, generación máxima por semilla: 52 10 8 7 10 20 8 9 10 6
+  25b full: viables 3/10, con hojas activas 3/10, generación máxima por semilla: 42 44 11 51 10 55 33 32 12 32
+  25b drift: viables 2/10, con hojas activas 2/10, generación máxima por semilla: 9 23 18 26 17 52 34 22 52 27
+  25b null_content (no decide): viables 1/10, con hojas activas 1/10, generación máxima por semilla: 8 22 10 29 7 8 9 10 7 7
+  25c full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 4 3 6 5 6 5 7 5 8 5
+  25c drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 3 10 5 6 4 4 5 6 4 3
+  25c null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 4 3 6 5 6 5 7 5 8 5
+  25d full: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 44 54 18 32 45 19 38 30 56 14
+  25d drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 10 12 13 33 40 16 9 44 16 11
+  25d stable: viables 4/10, con hojas activas 4/10, generación máxima por semilla: 48 45 51 31 21 45 23 22 38 47
+  25d stable_drift: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 20 60 31 25 42 25 17 20 48 29
+  25d no_learning: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 44 54 18 32 50 19 38 30 56 14
+  25d null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 34 10 8 7 10 6 8 31 10 6
+(resources_per_pattern, resource_regen_delay) = (30, 10):
+  25a full: viables 7/10, con hojas activas 7/10, generación máxima por semilla: 126 44 89 57 107 53 46 48 131 80
+  25a drift: viables 5/10, con hojas activas 5/10, generación máxima por semilla: 42 51 45 37 21 47 46 22 43 38
+  25a no_predation: viables 10/10, con hojas activas 10/10, generación máxima por semilla: 35 44 40 36 41 44 53 54 38 40
+  25a no_predation_drift: viables 9/10, con hojas activas 9/10, generación máxima por semilla: 33 43 39 43 34 36 33 44 43 40
+  25a null_content (no decide): viables 9/10, con hojas activas 9/10, generación máxima por semilla: 54 38 56 46 28 36 42 43 46 61
+  25b full: viables 6/10, con hojas activas 6/10, generación máxima por semilla: 47 83 29 66 51 43 125 101 85 54
+  25b drift: viables 7/10, con hojas activas 7/10, generación máxima por semilla: 40 53 37 15 59 46 10 52 52 54
+  25b null_content (no decide): viables 6/10, con hojas activas 6/10, generación máxima por semilla: 50 19 47 14 22 37 63 23 38 53
+  25c full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 20 9 5 7 7 22 6 7 6
+  25c drift: viables 4/10, con hojas activas 4/10, generación máxima por semilla: 8 8 23 28 5 8 19 20 22 10
+  25c null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 20 9 5 7 7 22 6 7 6
+  25d full: viables 3/10, con hojas activas 3/10, generación máxima por semilla: 32 49 38 34 41 39 47 35 117 56
+  25d drift: viables 2/10, con hojas activas 2/10, generación máxima por semilla: 25 55 43 26 29 39 35 12 32 37
+  25d stable: viables 7/10, con hojas activas 7/10, generación máxima por semilla: 126 44 89 57 107 53 46 48 131 80
+  25d stable_drift: viables 5/10, con hojas activas 5/10, generación máxima por semilla: 42 51 45 37 21 47 46 22 43 38
+  25d no_learning: viables 2/10, con hojas activas 2/10, generación máxima por semilla: 40 44 38 34 41 39 47 35 117 46
+  25d null_content (no decide): viables 2/10, con hojas activas 2/10, generación máxima por semilla: 47 12 28 26 37 18 48 47 14 36
+(resources_per_pattern, resource_regen_delay) = (40, 40):
+  25a full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 10 10 7 18 8 9 11 10 10 36
+  25a drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 12 8 11 8 8 9 21 15 8
+  25a no_predation: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 10 10 7 9 8 9 11 10 10 8
+  25a no_predation_drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 12 17 9 9 8 9 21 9 14
+  25a null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 8 11 11 10 22 11 11 9 7 15
+  25b full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 8 12 9 11 21 12 11 21 9 16
+  25b drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 9 11 10 18 11 21 21 10 12 11
+  25b null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 10 32 7 7 17 12 8 33 17 9
+  25c full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 14 7 5 5 5 5 6 5 6
+  25c drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 5 4 5 7 23 6 4 3 6 5
+  25c null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 14 7 5 5 5 5 6 5 6
+  25d full: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 10 10 7 18 8 9 11 10 10 14
+  25d drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 12 8 11 8 16 9 18 15 8
+  25d stable: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 10 10 7 18 8 9 11 10 10 36
+  25d stable_drift: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 7 12 8 11 8 8 9 21 15 8
+  25d no_learning: viables 0/10, con hojas activas 0/10, generación máxima por semilla: 10 10 7 18 8 9 11 10 10 14
+  25d null_content (no decide): viables 0/10, con hojas activas 0/10, generación máxima por semilla: 8 11 11 13 11 11 11 9 7 8
+(resources_per_pattern, resource_regen_delay) = (40, 20):
+  25a full: viables 8/10, con hojas activas 8/10, generación máxima por semilla: 24 42 71 123 41 53 57 73 40 50
+  25a drift: viables 4/10, con hojas activas 4/10, generación máxima por semilla: 37 27 42 59 48 39 28 53 39 26
+  25a no_predation: viables 10/10, con hojas activas 10/10, generación máxima por semilla: 49 42 52 36 45 43 44 46 49 41
+  25a no_predation_drift: viables 9/10, con hojas activas 9/10, generación máxima por semilla: 44 36 40 40 56 39 37 46 53 43
+  25a null_content (no decide): viables 6/10, con hojas activas 6/10, generación máxima por semilla: 35 51 19 27 51 44 39 12 36 46
+  25b full: viables 7/10, con hojas activas 7/10, generación máxima por semilla: 48 47 72 21 43 50 66 75 72 55
+  25b drift: viables 6/10, con hojas activas 6/10, generación máxima por semilla: 61 53 42 27 18 51 54 52 53 31
+  25b null_content (no decide): viables 3/10, con hojas activas 3/10, generación máxima por semilla: 44 10 10 41 10 50 25 46 27 24
+  25c full: viables 7/10, con hojas activas 7/10, generación máxima por semilla: 27 26 21 22 9 36 26 6 23 5
+  25c drift: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 9 10 16 12 15 6 20 5 4 7
+  25c null_content (no decide): viables 7/10, con hojas activas 7/10, generación máxima por semilla: 27 26 21 22 9 36 26 6 23 5
+  25d full: viables 3/10, con hojas activas 3/10, generación máxima por semilla: 24 51 58 42 19 24 51 41 38 27
+  25d drift: viables 1/10, con hojas activas 1/10, generación máxima por semilla: 27 24 38 20 21 16 20 40 17 37
+  25d stable: viables 8/10, con hojas activas 8/10, generación máxima por semilla: 24 42 71 123 41 53 57 73 40 50
+  25d stable_drift: viables 4/10, con hojas activas 4/10, generación máxima por semilla: 37 27 42 59 48 39 28 53 39 26
+  25d no_learning: viables 3/10, con hojas activas 3/10, generación máxima por semilla: 24 51 58 42 19 24 51 41 38 27
+  25d null_content (no decide): viables 2/10, con hojas activas 2/10, generación máxima por semilla: 42 48 19 22 56 15 30 12 48 17
+Resultado: ninguna configuración de la grilla es viable; decide el responsable.
