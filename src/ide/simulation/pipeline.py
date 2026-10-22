@@ -926,7 +926,7 @@ class ReproductionSystem(BaseSystem):
     name = "reproduction"
 
     def run(self, engine: "SimulationEngine", frame: TickFrame) -> None:
-        frame.births = engine._reproduce(frame.tick)
+        frame.births = engine._reproduce(frame.tick, frame.events)  # `recombinations` (R38)
 
 
 class ConjugationSystem(BaseSystem):

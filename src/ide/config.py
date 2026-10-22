@@ -512,6 +512,17 @@ def symbiotic_ratchet_active(config: SimulationConfig) -> bool:
     )
 
 
+def recombination_active(config: SimulationConfig) -> bool:
+    """R38 efectivamente activa: `enable_recombination` con ADN y evolución (D51, D52.3).
+
+    Es la única definición de la condición: con ella la reproducción individual (R12, también la
+    neutral) busca pareja y cruza los cromosomas con `evo_rng`; el motor la guarda en
+    `engine.recombination_active`. Sin ADN o sin evolución la bandera es inerte y no se extrae
+    nada. La reproducción holónica (R17) nunca recombina.
+    """
+    return config.enable_compact_dna and config.enable_evolution and config.enable_recombination
+
+
 def stress_energy_limit(config: SimulationConfig) -> float:
     """Límite de energía del estrés (D39, precisión 93): hay estrés si `energy` es menor.
 
