@@ -399,8 +399,8 @@
 
 > Ejecuta: implementador-delicado
 
-- [ ] 25.1 **[RED]** Crear `tests/test_exp25.py` con tests para la ejecución, la serialización JSON y la CLI de `25a`, `25b`, `25c` y `25d`, el `--jobs` por defecto con los núcleos detectados (D62.3), sus condiciones (incluidas `no_predation_drift` y `stable_drift`) y el resumen por condición, con los historiales genético y ecológico.
-- [ ] 25.2 **[GREEN]** Crear `src/ide/experiments/exp25_runner.py` con la infraestructura de `phase2_cli.py`.
+- [x] 25.1 **[RED]** Crear `tests/test_exp25.py` con tests para la ejecución, la serialización JSON y la CLI de `25a`, `25b`, `25c` y `25d`, el `--jobs` por defecto con los núcleos detectados (D62.3), sus condiciones (incluidas `no_predation_drift` y `stable_drift`) y el resumen por condición, con los historiales genético y ecológico.
+- [x] 25.2 **[GREEN]** Crear `src/ide/experiments/exp25_runner.py` con la infraestructura de `phase2_cli.py`.
 - [ ] 25.3 **[REFACTOR]** Verificación completa:
   - `ruff check`, `ruff format --check`, `pyright` y `python -m pytest --cov=ide` (cobertura $\ge 90\%$);
   - `python -m pytest -m slow`;

@@ -39,6 +39,7 @@ from ide.config import SimulationConfig
 from ide.experiments import attribution
 from ide.experiments.exp001_runner import (
     PROFILES,
+    default_jobs,
     map_in_order,
     positive_int,
     report_to_dict,
@@ -160,14 +161,22 @@ def run_calibration(
     return CalibrationReport(CALIBRATION_PARAMETER, ticks, grid, None, tuple(runs), fallback)
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_arg_parser() -> argparse.ArgumentParser:
+    """CLI de la calibración; `--jobs` usa por defecto los núcleos detectados (D62.3)."""
     parser = argparse.ArgumentParser(description="Calibración de viabilidad de la Fase II")
-    parser.add_argument("--jobs", type=positive_int, default=1)
+    parser.add_argument(
+        "--jobs", type=positive_int, default=default_jobs(), help="por defecto, los núcleos"
+    )
     parser.add_argument("--out", type=Path, default=Path("results/"))
     parser.add_argument("--ticks", type=positive_int, default=None, help="sólo para pruebas")
     parser.add_argument(
         "--refined", action="store_true", help="grilla refinada 25, 30, 35 (Enmienda 1b)"
     )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_arg_parser()
     args = parser.parse_args(argv)
     out: Path = args.out
     try:
