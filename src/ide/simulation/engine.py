@@ -9,7 +9,6 @@ import numpy as np
 
 from ide.agent.dna import (
     crispr_immunity_active,
-    plasmid_hgt_active,
     plasticity_active,
     purge_plasmid,
     receive_plasmid,
@@ -245,8 +244,8 @@ class SimulationEngine:
         self.sporulation_active = sporulation_active(config)
         # R40 efectivamente activa (D59): la Fase 4 aplica la regla de aprendizaje tras cada acción.
         self.plasticity_active = plasticity_active(config)
-        # R26 y R27 efectivamente activas (D30.3, D37): conjugación y ensayo CRISPR en la Fase 5.
-        self.plasmid_hgt_active = plasmid_hgt_active(config)
+        # R27 efectivamente activa (D30.3, D37): la conjugación abre ensayos CRISPR. La de R26 la
+        # lee sólo `build_systems` (`plasmid_hgt_active`).
         self.crispr_immunity_active = crispr_immunity_active(config)
         # R41 (D60.4): por receptor, el OR de los símbolos emitidos en la Fase 3 del tick anterior
         # por los emisores de los que era vecino de comunicación; lo consume la Fase 1.
@@ -990,14 +989,17 @@ class SimulationEngine:
         Para cada agente en orden de `agent_id` y cada ensayo en orden de codón, un ensayo
         vencido (`tick - t0 >= crispr_eval_ticks`) purga el codón con `purge_plasmid` si sigue en
         `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold`, y se cierra siempre; si
-        el plásmido se perdió (FIFO), se cierra sin purga. Cuenta `crispr_purges`.
+        el plásmido se perdió (FIFO), se cierra sin purga. `cedida` suma la energía de los hijos,
+        la cedida por `SHARE` propios y la robada por ataques sufridos en la ventana (P2). Salta
+        sin copiar ni ordenar a los agentes sin ensayos abiertos. Cuenta `crispr_purges`.
         """
         config = self.config
         window, limit = config.crispr_eval_ticks, -config.crispr_toxicity_threshold
         for aid in sorted(self.agents):
             agent = self.agents[aid]
-            trials = agent.plasmid_trials
-            for codon, (opened, entry_energy, ceded) in trials.items():
+            if not agent.has_plasmid_trials:
+                continue
+            for codon, (opened, entry_energy, ceded) in agent.plasmid_trials.items():
                 if tick - opened < window:
                     continue
                 dna = agent.dna

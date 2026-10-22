@@ -487,6 +487,24 @@ class MicroAgent:
         """Cierra el ensayo CRISPR del codón, si está abierto (precisión 4)."""
         self._plasmid_trials.pop(codon, None)
 
+    @property
+    def has_plasmid_trials(self) -> bool:
+        """Si hay algún ensayo CRISPR abierto, sin copiar ni ordenar los ensayos."""
+        return bool(self._plasmid_trials)
+
+    def credit_plasmid_trials(self, amount: float) -> None:
+        """Suma `amount` a la energía cedida de todos los ensayos CRISPR abiertos (D37, P2).
+
+        La energía cedida descuenta del balance del ensayo lo que el agente transfiere a otros
+        y no es un efecto metabólico del plásmido: la energía de cada hijo (`create_offspring`),
+        la que cede con un `SHARE` propio y la que le roban en un ataque sufrido. Sin ensayos
+        abiertos no hace nada.
+        """
+        trials = self._plasmid_trials
+        for codon in sorted(trials):
+            opened, entry_energy, ceded = trials[codon]
+            trials[codon] = (opened, entry_energy, ceded + amount)
+
     def _expression_key(self, context: EpigeneticContext) -> _ExpressionKey:
         """Clave del caché: el fenotipo sólo depende del nivel acotado, el rol y la banda."""
         base = self._base_config
@@ -707,9 +725,7 @@ class MicroAgent:
                 policy=self._policy,
             )
         child._birth_tick = tick
-        for codon in sorted(self._plasmid_trials):
-            opened, entry_energy, ceded = self._plasmid_trials[codon]
-            self._plasmid_trials[codon] = (opened, entry_energy, ceded + child_energy)
+        self.credit_plasmid_trials(child_energy)
         return child
 
     def _offspring_from_genome(

@@ -668,6 +668,7 @@ def _execute_share(
     config = engine.config
     amount = config.share_fraction * donor.energy
     donor.apply_energy_delta(-amount)
+    donor.credit_plasmid_trials(amount)  # R27: lo cedido no es toxicidad del plásmido (P2)
     received = config.share_efficiency * amount
     receiver.apply_energy_delta(received)
     if amount > 0:
@@ -698,6 +699,7 @@ def _execute_attack(
     config = engine.config
     stolen = min(config.attack_power, max(0.0, victim.energy))
     victim.apply_energy_delta(-stolen)
+    victim.credit_plasmid_trials(stolen)  # R27: lo robado no es toxicidad del plásmido (P2)
     attacker.apply_energy_delta(config.predation_efficiency * stolen)
     frame.events["successful_attacks"] += 1
     if stolen > 0:

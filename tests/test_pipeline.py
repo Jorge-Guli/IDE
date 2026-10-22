@@ -54,6 +54,9 @@ MECHANISM_SYSTEMS: dict[str, tuple[str, ...]] = {
     # Bloque 16: R29 y R30, sólo con su bandera (y la evolución).
     "enable_telomere_senescence": ("senescence",),
     "enable_sos_mutation": ("stress",),
+    # Bloque 19: R26 (conjugación) y R27 (ensayo CRISPR, que exige R26).
+    "enable_plasmid_hgt": ("conjugation", "crispr_trials"),
+    "enable_crispr_immunity": ("crispr_trials",),
 }
 
 # Orden de D53.1 reducido a los sistemas de la Fase II más los de la Fase II-B que se agregan
@@ -77,6 +80,8 @@ CORE_ORDER = (
     "death",  # (iv)
     "stress",  # (iv) registro del estrés de R30
     "reproduction",  # (v)
+    "conjugation",  # (vi) R26
+    "crispr_trials",  # (vi) R27
     "downward_causation",  # (vii)
     "environment_dynamics",  # (viii)
 )
@@ -85,7 +90,8 @@ CORE_ORDER = (
 def full_core_config() -> SimulationConfig:
     """Banderas de la Fase II más las de la Fase II-B que agregan sistemas a su orden.
 
-    Incluye ADN compacto, estigmergia, vista del holón, senescencia (R29) y SOS (R30).
+    Incluye ADN compacto, estigmergia, vista del holón, senescencia (R29), SOS (R30), plásmidos
+    (R26) e inmunidad CRISPR (R27).
     """
     return replace(
         PHASE2_PROTOCOL_CONFIGS["003a"],
@@ -94,6 +100,8 @@ def full_core_config() -> SimulationConfig:
         enable_holon_view=True,
         enable_telomere_senescence=True,
         enable_sos_mutation=True,
+        enable_plasmid_hgt=True,
+        enable_crispr_immunity=True,
     )
 
 

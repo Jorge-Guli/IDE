@@ -373,7 +373,7 @@ Después de sortear todas las transferencias, el motor SHALL aplicarlas con `rec
 - **THEN** el ADN del receptor no cambia, no se abre ensayo y se cuenta un rechazo CRISPR del tick.
 
 ### Requirement: Ensayo CRISPR (R27)
-Con `enable_crispr_immunity` activa, después de la conjugación, para cada agente en orden de `agent_id` y cada ensayo en orden de codón, un ensayo vencido (`tick - t0 >= crispr_eval_ticks`) SHALL purgar el codón con `purge_plasmid` si sigue en `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold` (`cedida`: energía dada a hijos en la ventana), y SHALL cerrarse siempre; un plásmido perdido por FIFO se cierra al vencer, sin purga.
+Con `enable_crispr_immunity` activa, después de la conjugación, para cada agente en orden de `agent_id` y cada ensayo en orden de codón, un ensayo vencido (`tick - t0 >= crispr_eval_ticks`) SHALL purgar el codón con `purge_plasmid` si sigue en `plasmids` y `energy - e0 + cedida < -crispr_toxicity_threshold` (`cedida`: lo dado a hijos, cedido por `SHARE` propios o robado por ataques sufridos en la ventana), y SHALL cerrarse siempre; un plásmido perdido por FIFO se cierra al vencer, sin purga.
 
 #### Scenario: Plásmido tóxico purgado
 - **WHEN** con `crispr_eval_ticks = 20` y `crispr_toxicity_threshold = 0.20` un ensayo abierto en el tick 30 con `e0 = 1.4` llega al tick 50 con `energy = 1.1` y el codón en `plasmids`
@@ -382,6 +382,14 @@ Con `enable_crispr_immunity` activa, después de la conjugación, para cada agen
 #### Scenario: Plásmido inocuo
 - **WHEN** el mismo ensayo llega al tick 50 con `energy = 1.3`
 - **THEN** el codón sigue en `plasmids` y el ensayo se cierra sin purga.
+
+#### Scenario: Cooperar no cuenta como toxicidad
+- **WHEN** el mismo ensayo llega al tick 50 con `energy = 1.05` después de que el agente cediera `0.35` con un `SHARE` dentro de la ventana
+- **THEN** el balance es `1.05 - 1.4 + 0.35 = 0`, el codón sigue en `plasmids` y el ensayo se cierra sin purga.
+
+#### Scenario: Ser depredado no cuenta como toxicidad
+- **WHEN** el mismo ensayo llega al tick 50 con `energy = 0.9` después de que otro agente le robara `0.5` con un `ATTACK` dentro de la ventana
+- **THEN** el balance es `0.9 - 1.4 + 0.5 = 0`, el codón sigue en `plasmids` y el ensayo se cierra sin purga.
 
 #### Scenario: La reproducción no cuenta como toxicidad
 - **WHEN** el mismo ensayo llega al tick 50 con `energy = 1.1` después de que el agente cediera `1.2` de energía a un hijo dentro de la ventana

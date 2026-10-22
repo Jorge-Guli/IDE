@@ -701,8 +701,9 @@ def mutate_dna(
     """Operadores de mutación del ADN al reproducirse (D35 y D37).
 
     Orden exacto de extracciones de `rng`: mutación puntual del cromosoma, mutación puntual de los
-    plásmidos, duplicación, deleción y, sólo con `enable_plasmid_hgt`, escisión a plásmido. Los
-    pasos 3 a 5 consumen siempre su `u`; el índice se extrae sólo si el operador se aplica.
+    plásmidos, duplicación, deleción y, sólo con $R_{26}$ efectiva (`plasmid_hgt_active`),
+    escisión a plásmido. Los pasos 3 a 5 consumen siempre su `u`; el índice se extrae sólo si el
+    operador se aplica.
     `crispr_memory` se hereda sin mutar.
     """
     if not (scale >= 0.0 and math.isfinite(scale)):
@@ -725,7 +726,7 @@ def mutate_dna(
         chromosome.insert(i + 1, chromosome[i])
     if float(rng.random()) < p_del and len(chromosome) > config.dna_min_length:
         del chromosome[int(rng.integers(len(chromosome)))]
-    if config.enable_plasmid_hgt and float(rng.random()) < p_exc:
+    if plasmid_hgt_active(config) and float(rng.random()) < p_exc:
         codon = chromosome[int(rng.integers(len(chromosome)))]
         if _admit_plasmid(plasmids, codon, dna.crispr_memory) and (
             len(plasmids) > config.max_plasmids
@@ -758,14 +759,12 @@ def recombine_dna(
 def receive_plasmid(dna: CompactDNA, codon: int, config: SimulationConfig) -> CompactDNA | None:
     """Recepción de un plásmido por conjugación (R26 y R27, design D37), pura.
 
-    Devuelve `None` si `config.enable_crispr_immunity` y `codon` está en `crispr_memory`: la
-    transferencia se bloquea. Devuelve el mismo `dna` (la misma instancia) si `codon` ya está en
-    `plasmids`. Si no, devuelve un ADN con `codon` al final de `plasmids`, descartando el primero
-    si se supera `max_plasmids` (FIFO). El motor sólo la invoca con $R_{26}$ efectivamente activa
-    (`plasmid_hgt_active`), así que leer aquí la bandera de $R_{27}$ equivale a leer
-    `crispr_immunity_active` (P1).
+    Devuelve `None` si $R_{27}$ está efectivamente activa (`crispr_immunity_active`) y `codon`
+    está en `crispr_memory`: la transferencia se bloquea. Devuelve el mismo `dna` (la misma
+    instancia) si `codon` ya está en `plasmids`. Si no, devuelve un ADN con `codon` al final de
+    `plasmids`, descartando el primero si se supera `max_plasmids` (FIFO).
     """
-    if config.enable_crispr_immunity and codon in dna.crispr_memory:
+    if crispr_immunity_active(config) and codon in dna.crispr_memory:
         return None
     if codon in dna.plasmids:
         return dna

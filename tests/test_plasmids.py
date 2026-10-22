@@ -40,6 +40,8 @@ from ide.simulation.pipeline import (
     EnvironmentDynamicsSystem,
     ReproductionSystem,
     TickFrame,
+    _execute_attack,  # pyright: ignore[reportPrivateUsage]
+    _execute_share,  # pyright: ignore[reportPrivateUsage]
     build_systems,
 )
 
@@ -226,7 +228,6 @@ def test_r27_sin_r26_es_inerte() -> None:
     assert "conjugation" not in names
     assert "crispr_trials" not in names
     engine = SimulationEngine(config)
-    assert not engine.plasmid_hgt_active
     assert not engine.crispr_immunity_active
 
 
@@ -700,3 +701,132 @@ def test_historiales_iguales_entre_procesos_con_r26_y_r27() -> None:
     transfers, purges, _ = (int(x) for x in outputs[0].strip().splitlines()[-1].split())
     assert transfers > 0
     assert purges > 0
+
+
+# --- P2: lo cedido por SHARE y lo robado no cuentan como toxicidad --------------------------------
+
+
+def test_credit_plasmid_trials_suma_a_todos_los_ensayos_abiertos() -> None:
+    engine = SimulationEngine(cfg(enable_crispr_immunity=True))
+    agent = engine.agents[2]
+    assert not agent.has_plasmid_trials
+    agent.credit_plasmid_trials(0.3)  # sin ensayos no hace nada
+    assert agent.plasmid_trials == {}
+    set_energy(engine, 2, 1.0)
+    engine._apply_conjugations([(2, 40)], 3, Counter())  # pyright: ignore[reportPrivateUsage]
+    engine._apply_conjugations([(2, 30)], 4, Counter())  # pyright: ignore[reportPrivateUsage]
+    assert agent.has_plasmid_trials
+    agent.credit_plasmid_trials(0.25)
+    assert agent.plasmid_trials == {30: (4, 1.0, 0.25), 40: (3, 1.0, 0.25)}
+
+
+def crispr_pair() -> SimulationEngine:
+    """Agente 2 con un ensayo abierto en el tick 30 con `e0 = 1.4`, adyacente al agente 3."""
+    engine = SimulationEngine(
+        cfg(
+            enable_crispr_immunity=True,
+            crispr_eval_ticks=20,
+            crispr_toxicity_threshold=0.20,
+            share_fraction=0.25,
+            attack_power=0.5,
+        )
+    )
+    scatter(engine)
+    put(engine, 2, (5, 5))
+    put(engine, 3, (5, 6))
+    set_energy(engine, 2, 1.4)
+    engine._apply_conjugations([(2, 33)], 30, Counter())  # pyright: ignore[reportPrivateUsage]
+    return engine
+
+
+def test_un_cooperador_que_cede_energia_no_purga_por_eso() -> None:
+    engine = crispr_pair()
+    _execute_share(engine, 2, 3, TickFrame(31))
+    assert engine.agents[2].energy == pytest.approx(1.05, abs=1e-9)
+    assert engine.agents[2].plasmid_trials[33][2] == pytest.approx(0.35, abs=1e-9)
+    events: Counter[str] = Counter()
+    engine._evaluate_crispr(50, events)  # pyright: ignore[reportPrivateUsage]
+    # Sin descontar lo cedido el balance sería -0.35 < -0.20; con P2 es 0.
+    assert plasmids_of(engine, 2) == (33,)
+    assert engine.agents[2].plasmid_trials == {}
+    assert events == Counter()
+
+
+def test_una_presa_no_purga_por_lo_que_le_roban() -> None:
+    engine = crispr_pair()
+    set_energy(engine, 3, 5.0)  # el atacante es más fuerte: el ataque tiene éxito
+    frame = TickFrame(31)
+    _execute_attack(engine, 3, 2, frame)
+    assert frame.predated == {2}
+    assert engine.agents[2].energy == pytest.approx(0.9, abs=1e-9)
+    assert engine.agents[2].plasmid_trials[33][2] == pytest.approx(0.5, abs=1e-9)
+    events: Counter[str] = Counter()
+    engine._evaluate_crispr(50, events)  # pyright: ignore[reportPrivateUsage]
+    assert plasmids_of(engine, 2) == (33,)
+    assert events == Counter()
+
+
+def test_lo_recibido_por_share_no_se_descuenta() -> None:
+    engine = crispr_pair()
+    set_energy(engine, 3, 1.0)
+    _execute_share(engine, 3, 2, TickFrame(31))  # el 2 recibe, no cede
+    assert engine.agents[2].plasmid_trials[33][2] == 0.0
+    assert engine.agents[3].plasmid_trials == {}
+
+
+def test_una_perdida_metabolica_sigue_purgando() -> None:
+    engine = crispr_pair()
+    _execute_share(engine, 2, 3, TickFrame(31))  # cede 0.35: balance 0
+    set_energy(engine, 2, 0.8)  # y además pierde 0.25 por metabolismo
+    events: Counter[str] = Counter()
+    engine._evaluate_crispr(50, events)  # pyright: ignore[reportPrivateUsage]
+    assert crispr_of(engine, 2) == (33,)
+    assert events == Counter({"crispr_purges": 1})
+
+
+# --- P3: set_dna en la Fase 5 descarta la decisión ya consumida del tick --------------------------
+
+
+class DecisionSpy:
+    """Registra en `on_decisions` la decisión y el ADN de cada agente y, al final del tick, el
+    estado de los que cambiaron de ADN por conjugación en la Fase 5."""
+
+    def __init__(self) -> None:
+        self.at_decision: dict[int, tuple[bool, CompactDNA | None]] = {}
+        self.receptors: list[tuple[bool, bool, int]] = []
+
+    def on_decisions(self, engine: SimulationEngine, frame: TickFrame) -> None:
+        self.at_decision = {
+            aid: (agent.decision_evaluation(frame.tick) is not None, agent.dna)
+            for aid, agent in sorted(engine.agents.items())
+        }
+
+    def on_tick_end(self, engine: SimulationEngine, frame: TickFrame) -> None:
+        for aid, (seen, dna) in sorted(self.at_decision.items()):
+            agent = engine.agents.get(aid)
+            if agent is None or agent.dna is dna:
+                continue
+            self.receptors.append(
+                (seen, agent.decision_evaluation(frame.tick) is None, len(agent.plastic_weights))
+            )
+
+
+def test_la_conjugacion_descarta_la_decision_ya_consumida() -> None:
+    config = cfg(
+        enable_genetic_policy=True,
+        hgt_energy_ratio=0.001,
+        num_agents=4,
+        max_plasmids=8,
+        initial_energy=5.0,
+    )
+    engine = SimulationEngine(config)
+    for aid in sorted(engine.agents):
+        put(engine, aid, (5, 5))
+    with_plasmids(engine, 0, (21, 22, 23, 24))
+    spy = DecisionSpy()
+    engine.observers.append(spy)
+    engine.run(3)
+    assert spy.receptors
+    # En `on_decisions` la decisión existía; tras `set_dna` en la Fase 5 queda descartada y los
+    # pesos plásticos vacíos (D59.2, precisiones 88 y 94; P3).
+    assert all(seen and dropped and weights == 0 for seen, dropped, weights in spy.receptors)

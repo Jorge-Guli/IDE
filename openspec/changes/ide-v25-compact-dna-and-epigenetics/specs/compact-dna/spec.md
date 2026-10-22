@@ -380,7 +380,7 @@ Después de la duplicación, `mutate_dna` SHALL extraer siempre `u = float(rng.r
 - **THEN** el cromosoma resultante conserva su único codón y no se extrae índice de deleción.
 
 ### Requirement: Escisión de un Codón a Plásmido
-Sólo con `enable_plasmid_hgt=True`, después de la deleción, `mutate_dna` SHALL extraer `u = float(rng.random())` y, si `u < p_exc`, extraer `i = int(rng.integers(len(chromosome)))` y agregar el codón `i` al final de `plasmids` si no está ya en `plasmids` ni en `crispr_memory`, descartando el primero si se supera `max_plasmids`.
+Sólo con $R_{26}$ efectivamente activa (`plasmid_hgt_active`: evolución, ADN y `enable_plasmid_hgt`), después de la deleción, `mutate_dna` SHALL extraer `u = float(rng.random())` y, si `u < p_exc`, extraer `i = int(rng.integers(len(chromosome)))` y agregar el codón `i` al final de `plasmids` si no está ya en `plasmids` ni en `crispr_memory`, descartando el primero si se supera `max_plasmids`.
 
 #### Scenario: Escisión con FIFO
 - **WHEN** se invoca `mutate_dna` con `enable_plasmid_hgt=True`, `dna_excision_rate = 1.0`, `max_plasmids = 2`, tasas de las demás mutaciones en `0.0` y `plasmids` con dos codones que no están en el cromosoma
@@ -402,10 +402,10 @@ Sólo con `enable_plasmid_hgt=True`, después de la deleción, `mutate_dna` SHAL
 - **THEN** el resultado tiene `crispr_memory == (7, 9)`.
 
 ### Requirement: Recepción de un Plásmido
-`receive_plasmid(dna, codon, config) -> CompactDNA | None` SHALL devolver `None` si `enable_crispr_immunity=True` y `codon` está en `crispr_memory`; el mismo ADN si `codon` ya está en `plasmids`; y si no, el ADN con `codon` agregado al final de `plasmids`, descartando el primero si se supera `max_plasmids`.
+`receive_plasmid(dna, codon, config) -> CompactDNA | None` SHALL devolver `None` si $R_{27}$ está efectivamente activa (`crispr_immunity_active`) y `codon` está en `crispr_memory`; el mismo ADN si `codon` ya está en `plasmids`; y si no, el ADN con `codon` agregado al final de `plasmids`, descartando el primero si se supera `max_plasmids`.
 
 #### Scenario: Bloqueo, duplicado y FIFO
-- **WHEN** con `max_plasmids = 2` y `enable_crispr_immunity=True` un ADN con `plasmids = (1, 2)` y `crispr_memory = (5,)` recibe los codones `5`, `2` y `3`
+- **WHEN** con ADN, `max_plasmids = 2`, `enable_plasmid_hgt=True` y `enable_crispr_immunity=True` un ADN con `plasmids = (1, 2)` y `crispr_memory = (5,)` recibe los codones `5`, `2` y `3`
 - **THEN** con `5` devuelve `None`, con `2` devuelve el mismo ADN, y con `3` devuelve un ADN con `plasmids == (2, 3)`.
 
 ### Requirement: Purga de un Plásmido
