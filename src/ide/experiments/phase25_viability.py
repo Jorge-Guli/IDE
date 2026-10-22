@@ -34,6 +34,7 @@ y `python -m ide.experiments.phase25_viability --amendment2 [--original archivo.
 """
 
 import argparse
+import hashlib
 import json
 import sys
 from collections import Counter
@@ -203,6 +204,7 @@ class ViabilityReport:
     chosen: tuple[int, int] | None  # primera configuración viable; None si ninguna lo es
     # Semillas viables de `null_content` por protocolo en la elegida (para E4); None sin elegida.
     null_content_viable_seeds: dict[str, int] | None
+    grid: tuple[tuple[int, int], ...] = VIABILITY_GRID  # la grilla recorrida, en su orden
 
     @property
     def preregistered(self) -> bool:
@@ -231,6 +233,7 @@ def run_viability(
     ticks = PREREGISTERED_TICKS if total_ticks is None else total_ticks
     seeds = tuple(PHASE25_VIABILITY_SEEDS if seeds is None else seeds)
     validate_seeds(seeds)  # una semilla repetida es la misma corrida e infla el conteo
+    grid = tuple(grid)
     if not grid or len(set(grid)) != len(grid):
         raise ValueError(f"la grilla debe ser no vacía y sin repetidos: {list(grid)}")
     evaluated: list[ConfigurationResult] = []
@@ -251,8 +254,9 @@ def run_viability(
         viable = is_viable_configuration(runs)
         evaluated.append(ConfigurationResult(abundance, viable, runs))
         if viable:
-            return ViabilityReport(ticks, seeds, tuple(evaluated), abundance, _null_seeds(runs))
-    return ViabilityReport(ticks, seeds, tuple(evaluated), None, None)
+            nulls = _null_seeds(runs)
+            return ViabilityReport(ticks, seeds, tuple(evaluated), abundance, nulls, grid)
+    return ViabilityReport(ticks, seeds, tuple(evaluated), None, None, grid)
 
 
 def _null_seeds(runs: Sequence[ViabilityRun]) -> dict[str, int]:
@@ -264,10 +268,15 @@ def _null_seeds(runs: Sequence[ViabilityRun]) -> dict[str, int]:
 def fallback_configuration(results: Sequence[ConfigurationResult]) -> tuple[int, int]:
     """Salida de respaldo de la Enmienda 2: la de más semillas viables en las condiciones que
     deciden; ante un empate, la primera de `results` (el orden de las grillas: menos abundancia)."""
-    if not results:
+    return _best_total({r.abundance: deciding_viable_seeds(r.runs) for r in results})
+
+
+def _best_total(totals: Mapping[tuple[int, int], int]) -> tuple[int, int]:
+    """La de mayor total; ante un empate, la primera en el orden de `totals`."""
+    if not totals:
         raise ValueError("la salida de respaldo necesita al menos una configuración evaluada")
-    best = max(deciding_viable_seeds(result.runs) for result in results)
-    return next(r.abundance for r in results if deciding_viable_seeds(r.runs) == best)
+    best = max(totals.values())
+    return next(abundance for abundance, total in totals.items() if total == best)
 
 
 @dataclass(frozen=True)
@@ -312,13 +321,20 @@ def run_amendment2(
     ticks = PREREGISTERED_TICKS if total_ticks is None else total_ticks
     seeds = tuple(PHASE25_VIABILITY_SEEDS if seeds is None else seeds)
     check_original(original, ticks, seeds)
+    return _extend(original, ticks, jobs, seeds)
+
+
+def _extend(
+    original: ViabilityReport, ticks: int, jobs: int, seeds: tuple[int, ...]
+) -> Amendment2Report:
+    """`run_amendment2` sobre una original ya validada con `check_original`."""
     extended = run_viability(ticks, jobs, seeds, AMENDMENT2_GRID)
     results = (*original.configurations, *extended.configurations)
-    totals = {r.abundance: deciding_viable_seeds(r.runs) for r in results}
+    totals = {r.abundance: deciding_viable_seeds(r.runs) for r in results}  # una sola vez
     if extended.chosen is not None:
         chosen, fallback = extended.chosen, False
     else:
-        chosen, fallback = fallback_configuration(results), True
+        chosen, fallback = _best_total(totals), True
     runs = next(r.runs for r in results if r.abundance == chosen)
     return Amendment2Report(original, extended, chosen, fallback, totals, _null_seeds(runs))
 
@@ -366,7 +382,7 @@ def report_to_json(report: ViabilityReport) -> dict[str, Any]:
         "note": None if report.preregistered else NOT_PREREGISTERED,
         "total_ticks": report.total_ticks,
         "seeds": list(report.seeds),
-        "grid": [list(point) for point in VIABILITY_GRID],
+        "grid": [list(point) for point in report.grid],
         "min_viable_seeds": MIN_VIABLE_SEEDS,
         "min_generation": MIN_GENERATION,
         "configurations": configurations,
@@ -375,18 +391,38 @@ def report_to_json(report: ViabilityReport) -> dict[str, Any]:
     }
 
 
+def _int(value: Any, what: str) -> int:
+    """Entero estricto del JSON: ni `bool`, ni `float`, ni texto."""
+    if type(value) is not int:
+        raise ValueError(f"{what} debe ser un entero, no {value!r}")
+    return value
+
+
+def _bool(value: Any, what: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{what} debe ser booleano, no {value!r}")
+    return value
+
+
 def _abundance(data: Mapping[str, Any]) -> tuple[int, int]:
-    return (int(data["resources_per_pattern"]), int(data["resource_regen_delay"]))
+    return (
+        _int(data["resources_per_pattern"], "resources_per_pattern"),
+        _int(data["resource_regen_delay"], "resource_regen_delay"),
+    )
 
 
 def report_from_json(data: Mapping[str, Any]) -> ViabilityReport:
-    """Reconstruye un reporte de `report_to_json` y verifica que sea coherente con el criterio:
-    los conteos y veredictos se recalculan desde las corridas, no se copian del JSON."""
-    if [tuple(point) for point in data["grid"]] != list(VIABILITY_GRID):
+    """Reconstruye un reporte de la grilla de D55.4 escrito por `report_to_json` y verifica que
+    sea coherente con el criterio: conteos, veredictos, terminación y elegida se recalculan desde
+    las corridas, no se copian del JSON, y los números deben ser enteros estrictos."""
+    grid = tuple((_int(a, "grid"), _int(b, "grid")) for a, b in data["grid"])
+    if grid != VIABILITY_GRID:
         raise ValueError(f"la grilla del JSON no es la de D55.4: {data['grid']}")
     if (data["min_viable_seeds"], data["min_generation"]) != (MIN_VIABLE_SEEDS, MIN_GENERATION):
         raise ValueError("el JSON no usa el criterio de D55.3")
-    seeds = tuple(int(seed) for seed in data["seeds"])
+    total_ticks = _int(data["total_ticks"], "total_ticks")
+    seeds = tuple(_int(seed, "seed") for seed in data["seeds"])
+    validate_seeds(seeds)  # no vacías y sin repetidas
     configurations: list[ConfigurationResult] = []
     for configuration in data["configurations"]:
         labels = [(c["protocol"], c["condition"]) for c in configuration["conditions"]]
@@ -394,45 +430,59 @@ def report_from_json(data: Mapping[str, Any]) -> ViabilityReport:
             raise ValueError(f"condiciones inesperadas en el JSON: {labels}")
         runs: list[ViabilityRun] = []
         for condition in configuration["conditions"]:
-            batch = [
-                ViabilityRun(
-                    condition["protocol"],
-                    condition["condition"],
-                    int(record["seed"]),
-                    int(record["final_agents"]),
-                    int(record["final_active_agents"]),
-                    int(record["max_generation"]),
+            label = (condition["protocol"], condition["condition"])
+            for record in condition["runs"]:
+                run = ViabilityRun(
+                    *label,
+                    _int(record["seed"], "seed"),
+                    _int(record["final_agents"], "final_agents"),
+                    _int(record["final_active_agents"], "final_active_agents"),
+                    _int(record["max_generation"], "max_generation"),
                 )
-                for record in condition["runs"]
-            ]
+                if _bool(record["viable"], "viable") is not run.viable:
+                    raise ValueError(f"el veredicto de una corrida de {label} no sigue el criterio")
+                if record["termination"] != run.termination:
+                    raise ValueError(f"la terminación de una corrida de {label} no es coherente")
+                runs.append(run)
+            batch = runs[len(runs) - len(condition["runs"]) :]
             if tuple(r.seed for r in batch) != seeds:
-                raise ValueError(f"semillas inesperadas en {labels[len(runs) // len(seeds)]}")
-            if [r.viable for r in batch] != [record["viable"] for record in condition["runs"]]:
-                raise ValueError("el veredicto de una corrida del JSON no sigue el criterio")
-            if sum(r.viable for r in batch) != condition["viable_seeds"]:
-                raise ValueError("las semillas viables del JSON no coinciden con sus corridas")
-            runs += batch
+                raise ValueError(f"semillas inesperadas en {label}")
+            if sum(r.viable for r in batch) != _int(condition["viable_seeds"], "viable_seeds"):
+                raise ValueError(f"las semillas viables de {label} no coinciden con sus corridas")
         viable = is_viable_configuration(runs)
-        if viable is not configuration["viable"]:
+        if _bool(configuration["viable"], "viable") is not viable:
             raise ValueError("el veredicto de una configuración del JSON no sigue el criterio")
         configurations.append(ConfigurationResult(_abundance(configuration), viable, tuple(runs)))
+    evaluated = tuple(c.abundance for c in configurations)
+    first = next((i for i, c in enumerate(configurations) if c.viable), None)
+    expected = grid if first is None else grid[: first + 1]  # en orden y hasta la primera viable
+    if evaluated != expected:
+        raise ValueError(f"configuraciones fuera del orden o del alcance de la grilla: {evaluated}")
     chosen = None if data["chosen"] is None else _abundance(data["chosen"])
-    expected = next((c.abundance for c in configurations if c.viable), None)
-    if chosen != expected:
+    if chosen != (None if first is None else evaluated[first]):
         raise ValueError("la configuración elegida del JSON no es la primera viable")
-    nulls = None
-    if chosen is not None:
-        nulls = _null_seeds(next(c.runs for c in configurations if c.abundance == chosen))
+    nulls = None if first is None else _null_seeds(configurations[first].runs)
     if data["null_content_viable_seeds"] != nulls:
         raise ValueError("la viabilidad de `null_content` del JSON no coincide con sus corridas")
-    return ViabilityReport(int(data["total_ticks"]), seeds, tuple(configurations), chosen, nulls)
+    report = ViabilityReport(total_ticks, seeds, tuple(configurations), chosen, nulls, grid)
+    if _bool(data["preregistered"], "preregistered") is not report.preregistered:
+        raise ValueError("`preregistered` del JSON no es coherente con sus ticks y semillas")
+    if data["note"] != (None if report.preregistered else NOT_PREREGISTERED):
+        raise ValueError("la nota del JSON no es coherente con `preregistered`")
+    return report
 
 
-def amendment2_to_json(report: Amendment2Report) -> dict[str, Any]:
-    """JSON de la Enmienda 2: la grilla extendida evaluada (sólo demografía) y la elegida."""
+def amendment2_to_json(
+    report: Amendment2Report, original_path: str, original_sha256: str
+) -> dict[str, Any]:
+    """JSON de la Enmienda 2: la grilla extendida evaluada (sólo demografía), la elegida, el
+    archivo de la original usada (ruta y sha256 de su contenido) y, si la elegida es de la grilla
+    original, su bloque de corridas por semilla."""
     extended = report.extended
+    from_original = [r for r in report.original.configurations if r.abundance == report.chosen]
     return {
         "amendment": 2,
+        "original": {"path": original_path, "sha256": original_sha256},
         "preregistered": report.preregistered,
         "note": None if report.preregistered else NOT_PREREGISTERED,
         "total_ticks": extended.total_ticks,
@@ -447,6 +497,9 @@ def amendment2_to_json(report: Amendment2Report) -> dict[str, Any]:
             for abundance, total in report.deciding_viable_seeds.items()
         ],
         "chosen": _abundance_dict(report.chosen),
+        "chosen_configuration": (
+            _configuration_to_json(from_original[0]) if from_original else None
+        ),
         "fallback": report.fallback,
         "null_content_viable_seeds": report.null_content_viable_seeds,
     }
@@ -537,15 +590,20 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(
             f"--ticks {ticks} {NOT_PREREGISTERED}: exige un --out distinto de {default_out}"
         )
+    out: Path = default_out if args.out is None else args.out
     original: ViabilityReport | None = None
+    source: Path = ORIGINAL_RECORD if args.original is None else args.original
+    digest = ""
     if args.amendment2:
-        source: Path = ORIGINAL_RECORD if args.original is None else args.original
+        if out.resolve() in {source.resolve(), ORIGINAL_RECORD.resolve()}:
+            parser.error(f"--out ({out}) no puede pisar la compuerta original")
         try:  # antes de calcular: una compuerta original ilegible o incomparable falla ya
-            original = report_from_json(json.loads(source.read_text(encoding="utf-8")))
+            content = source.read_bytes()
+            digest = hashlib.sha256(content).hexdigest()
+            original = report_from_json(json.loads(content.decode("utf-8")))
             check_original(original, ticks, seeds)
         except (OSError, ValueError, KeyError, TypeError) as error:
             parser.error(f"--original no sirve para la Enmienda 2 ({source}): {error}")
-    out: Path = default_out if args.out is None else args.out
     try:  # antes de calcular: un --out inválido falla ya
         out.parent.mkdir(parents=True, exist_ok=True)
     except OSError as error:
@@ -553,8 +611,8 @@ def main(argv: list[str] | None = None) -> int:
     if not preregistered:
         print(f"Aviso: --ticks {ticks}; {NOT_PREREGISTERED} ({PREREGISTERED_TICKS} ticks).")
     if original is not None:
-        amendment = run_amendment2(original, ticks, args.jobs, seeds)
-        write_json(out, amendment2_to_json(amendment))
+        amendment = _extend(original, ticks, args.jobs, seeds)  # ya pasó `check_original`
+        write_json(out, amendment2_to_json(amendment, str(source), digest))
         _print_amendment2(amendment)
         return 0
     report = run_viability(ticks, args.jobs, seeds)

@@ -2,6 +2,7 @@
 
 import ast
 import dataclasses
+import hashlib
 import inspect
 import json
 import os
@@ -903,3 +904,166 @@ def test_enmienda2_preregistrada_con_respaldo(
     printed = capsys.readouterr().out
     assert "configuración de respaldo" in printed and "(30, 10)" in printed
     assert NOT_PREREGISTERED not in printed
+
+
+# --- Correcciones de la revisión de código de la Enmienda 2 ------------------------------------
+
+
+def _write_original(path: Path, report: ViabilityReport) -> None:
+    path.write_text(json.dumps(report_to_json(report)), encoding="utf-8")
+
+
+def test_enmienda2_out_no_pisa_la_original(
+    small: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    original_path = tmp_path / "original.json"
+    _write_original(original_path, original_report(small, monkeypatch, ticks=6))
+    before = original_path.read_bytes()
+    base = ["--amendment2", "--original", str(original_path), "--jobs", "1", "--ticks", "6"]
+    with pytest.raises(SystemExit):
+        main([*base, "--out", str(original_path)])
+    with pytest.raises(SystemExit):
+        main([*base, "--out", str(tmp_path / "." / "original.json")])
+    with pytest.raises(SystemExit):
+        main([*base, "--out", str(ORIGINAL_RECORD)])
+    assert original_path.read_bytes() == before
+
+
+def test_enmienda2_registra_la_original_y_su_bloque(
+    small: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    original_path = tmp_path / "original.json"
+    _write_original(original_path, original_report(small, monkeypatch, ticks=6))
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography(set(), []))
+    out = tmp_path / "e.json"
+    argv = ["--amendment2", "--original", str(original_path), "--jobs", "1", "--ticks", "6"]
+    assert main([*argv, "--out", str(out)]) == 0
+    data = json.loads(out.read_text(encoding="utf-8"))
+    digest = hashlib.sha256(original_path.read_bytes()).hexdigest()
+    assert data["original"] == {"path": str(original_path), "sha256": digest}
+    block = data["chosen_configuration"]  # la de respaldo es de la grilla original
+    assert (block["resources_per_pattern"], block["resource_regen_delay"]) == (30, 10)
+    assert [(c["protocol"], c["condition"]) for c in block["conditions"]] == LABELS
+    assert block["conditions"][0]["runs"][0]["viable"] is True
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography({(60, 20)}, []))
+    assert main([*argv, "--out", str(out)]) == 0
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["chosen_configuration"] is None  # ya está en `configurations`
+
+
+def test_report_from_json_semillas_vacias_o_repetidas(
+    small: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = report_to_json(original_report(small, monkeypatch))
+    for seeds in ([], [0, 0]):
+        broken = json.loads(json.dumps(data))
+        broken["seeds"] = seeds
+        with pytest.raises(ValueError):
+            report_from_json(broken)
+
+
+def test_el_reporte_guarda_su_grilla(small: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography(set(), []))
+    report = run_viability(total_ticks=7, jobs=1, grid=AMENDMENT2_GRID)
+    assert report.grid == AMENDMENT2_GRID
+    assert report_to_json(report)["grid"] == [list(point) for point in AMENDMENT2_GRID]
+    assert run_viability(total_ticks=7, jobs=1).grid == VIABILITY_GRID
+
+
+def _corrupt_strict(data: dict[str, Any], change: str) -> dict[str, Any]:
+    broken = json.loads(json.dumps(data))
+    record = broken["configurations"][0]["conditions"][0]["runs"][0]
+    if change == "orden":
+        broken["configurations"][0], broken["configurations"][1] = (
+            broken["configurations"][1],
+            broken["configurations"][0],
+        )
+    elif change == "incompleta":
+        broken["configurations"].pop()
+    elif change == "preregistrada":
+        broken["preregistered"] = True
+    elif change == "nota":
+        broken["note"] = None
+    elif change == "bool":
+        record["final_agents"] = False
+    elif change == "float":
+        record["max_generation"] = 3.0
+    elif change == "texto":
+        record["seed"] = "0"
+    elif change == "veredicto_entero":
+        record["viable"] = 0
+    elif change == "terminacion":
+        record["termination"] = "alive"
+    elif change == "abundancia":
+        broken["configurations"][0]["resources_per_pattern"] = 20.0
+    elif change == "ticks":
+        broken["total_ticks"] = "7"
+    return broken
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "orden",
+        "incompleta",
+        "preregistrada",
+        "nota",
+        "bool",
+        "float",
+        "texto",
+        "veredicto_entero",
+        "terminacion",
+        "abundancia",
+        "ticks",
+    ],
+)
+def test_report_from_json_estricto(
+    small: None, monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    data = report_to_json(original_report(small, monkeypatch))
+    with pytest.raises(ValueError):
+        report_from_json(_corrupt_strict(data, change))
+
+
+def test_report_from_json_nada_despues_de_la_primera_viable(
+    small: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography({(20, 10)}, []))
+    data = report_to_json(run_viability(total_ticks=7, jobs=1))
+    broken = json.loads(json.dumps(data))
+    extra = json.loads(json.dumps(broken["configurations"][0]))
+    extra["resources_per_pattern"], extra["resource_regen_delay"] = 30, 20
+    broken["configurations"].append(extra)
+    with pytest.raises(ValueError):
+        report_from_json(broken)
+
+
+def test_report_from_json_preregistrado_coherente(
+    small: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    report = original_report(small, monkeypatch, ticks=PROFILES["phase25"].total_ticks)
+    data = json.loads(json.dumps(report_to_json(report)))
+    assert data["preregistered"] is True
+    assert report_from_json(data) == report
+    data["total_ticks"] = 7
+    with pytest.raises(ValueError):
+        report_from_json(data)
+
+
+def test_enmienda2_valida_la_original_una_sola_vez(
+    small: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    original_path = tmp_path / "original.json"
+    _write_original(original_path, original_report(small, monkeypatch, ticks=6))
+    monkeypatch.setattr(phase25_viability, "demography", fake_demography(set(), []))
+    calls: list[Any] = []
+    real = phase25_viability.check_original
+
+    def counting(*args: Any) -> None:
+        calls.append(args)
+        real(*args)
+
+    monkeypatch.setattr(phase25_viability, "check_original", counting)
+    argv = ["--amendment2", "--original", str(original_path), "--jobs", "1", "--ticks", "6"]
+    assert main([*argv, "--out", str(tmp_path / "e.json")]) == 0
+    assert len(calls) == 1
