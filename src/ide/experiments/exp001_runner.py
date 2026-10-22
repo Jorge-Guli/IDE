@@ -9,6 +9,7 @@ import csv
 import dataclasses
 import json
 import math
+import os
 import sys
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
@@ -389,6 +390,17 @@ def validate_seeds(seeds: Sequence[int]) -> None:
         raise ValueError("se necesita al menos una semilla")
     if len(set(seeds)) != len(seeds):
         raise ValueError(f"semillas repetidas: {list(seeds)}")
+
+
+def default_jobs() -> int:
+    """Procesos por defecto (design D62.3 y precisión 55): los núcleos detectados.
+
+    La afinidad del proceso (`os.sched_getaffinity(0)`) si existe; si no, `os.cpu_count()`;
+    mínimo 1. La salida es idéntica para cualquier `--jobs`.
+    """
+    affinity = getattr(os, "sched_getaffinity", None)
+    count = len(affinity(0)) if affinity is not None else os.cpu_count()
+    return max(1, count or 1)
 
 
 def map_in_order(function: Callable[[Any], Any], items: Sequence[Any], jobs: int) -> list[Any]:

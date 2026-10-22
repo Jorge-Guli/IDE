@@ -1213,6 +1213,19 @@ class Phase25RunRecord:
         }
 
 
+def final_demography(engine: Any) -> tuple[int, int, int]:
+    """(hojas vivas, hojas vivas que no están en endospora, generación máxima) de un motor ya
+    corrido. Es la demografía que comparten el registro de una corrida y la compuerta de
+    viabilidad (D55); los conteos no dependen del orden de `agents`.
+    """
+    agents = engine.agents.values()
+    return (
+        len(engine.agents),
+        sum(1 for agent in agents if not agent.is_endospore),
+        max((m.max_generation for m in engine.evolutionary_history), default=0),
+    )
+
+
 def phase25_run_record(
     engine: Any, metrics: Sequence[str], world_shift_period: int
 ) -> Phase25RunRecord:
@@ -1224,11 +1237,11 @@ def phase25_run_record(
     genetic = engine.genetic_history
     ecology = engine.ecology_history
     evolution = engine.evolutionary_history
-    agents = [engine.agents[agent_id] for agent_id in sorted(engine.agents)]
+    final_agents, final_active_agents, max_generation = final_demography(engine)
     return Phase25RunRecord(
-        final_agents=len(agents),
-        final_active_agents=sum(1 for agent in agents if not agent.is_endospore),
-        max_generation=max((m.max_generation for m in evolution), default=0),
+        final_agents=final_agents,
+        final_active_agents=final_active_agents,
+        max_generation=max_generation,
         cumulative_births=sum(m.births_this_tick for m in evolution),
         cumulative_deaths=sum(m.deaths_this_tick for m in evolution),
         mean_age_at_death=float(genetic[-1].mean_age_at_death) if genetic else 0.0,

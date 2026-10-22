@@ -382,9 +382,9 @@
 >
 > Punto de control: compuerta de viabilidad. Mostrar, por configuración de la grilla, protocolo y condición, las semillas viables, y la configuración elegida o la ausencia de una. Si ninguna es viable, decide el responsable del proyecto.
 
-- [ ] 23.1 Medir el costo de un tick con todas las reglas de `25b` activas (D54.3). Si una corrida de `phase25` supera los 5 minutos, optimizar con historiales idénticos antes de seguir.
-- [ ] 23.2 **[RED]** Tests de `phase25_viability.py`: el `--jobs` por defecto con los núcleos detectados y la salida idéntica para cualquier `--jobs` (D62.3), el criterio por corrida y por configuración (con `no_predation_drift` y `stable_drift`), el orden de la grilla, la detención en la primera viable y que no calcula ninguna métrica de afirmación.
-- [ ] 23.3 **[GREEN]** Crear `src/ide/experiments/phase25_viability.py` con su CLI (D55).
+- [x] 23.1 Medir el costo de un tick con todas las reglas de `25b` activas (D54.3). Si una corrida de `phase25` supera los 5 minutos, optimizar con historiales idénticos antes de seguir. (2026-10-22, contenedor de 4 núcleos, abundancia (40, 20): con todas las reglas de `25b`, unos 18 ms por tick con 70 a 85 agentes; la corrida más lenta de 5000 ticks tardó 58,5 s, así que no hace falta optimizar.)
+- [x] 23.2 **[RED]** Tests de `phase25_viability.py`: el `--jobs` por defecto con los núcleos detectados y la salida idéntica para cualquier `--jobs` (D62.3), el criterio por corrida y por configuración (con `no_predation_drift` y `stable_drift`), el orden de la grilla, la detención en la primera viable y que no calcula ninguna métrica de afirmación.
+- [x] 23.3 **[GREEN]** Crear `src/ide/experiments/phase25_viability.py` con su CLI (D55).
 - [ ] 23.4 Correr la compuerta con `PHASE25_VIABILITY_SEEDS` y registrar la salida en `registros/` y en `docs/RESULTADOS.md`. Fijar en `PHASE25_PROTOCOL_CONFIGS` la configuración elegida, en un commit propio.
 
 ## 24. Prueba de humo (`experimental-suite`)
