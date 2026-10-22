@@ -75,7 +75,7 @@ python -m ide.experiments.exp25_runner --attribution
 python -m ide.experiments.exp25_runner --attribution --rule-effect-seeds 42 43 44
 ```
 
-El paralelismo (`--jobs`) es sólo entre corridas independientes: el diseño exige salida idéntica para cualquier número de procesos y para cualquier `PYTHONHASHSEED`. Con la ampliación de la Fase II-B, todos los runners y CLI de calibración, también los de las Fases I y II, usarán por defecto tantos procesos como núcleos disponibles (design D62.3 y precisión 55, previsto); como la salida no depende de `--jobs`, ningún resultado registrado cambia. La suite lo comprueba con `--jobs 1` frente a `--jobs 2` y con `PYTHONHASHSEED` 0 frente a 1 (perfil `quick`). No se comparan historiales entre versiones distintas de Python o de NumPy: el determinismo vale dentro de un mismo entorno.
+El paralelismo (`--jobs`) es sólo entre corridas independientes: el diseño exige salida idéntica para cualquier número de procesos y para cualquier `PYTHONHASHSEED`. Desde la ampliación de la Fase II-B, todos los runners y CLI de calibración, también los de las Fases I y II, usan por defecto tantos procesos como núcleos disponibles (design D62.3 y precisión 55); como la salida no depende de `--jobs`, ningún resultado registrado cambia. La suite lo comprueba con `--jobs 1` frente a `--jobs 2` y con `PYTHONHASHSEED` 0 frente a 1 (perfil `quick`). No se comparan historiales entre versiones distintas de Python o de NumPy: el determinismo vale dentro de un mismo entorno.
 
 ## Estructura
 

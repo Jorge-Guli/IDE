@@ -1479,7 +1479,7 @@ def phase25_rule_effect(
 # --- Fase II-B: atribución (design D56, precisiones 66 y 67) -----------------------------------
 
 
-def _check_phase25_protocol(protocol: str, config: SimulationConfig) -> None:
+def check_phase25_protocol(protocol: str, config: SimulationConfig) -> None:
     """La configuración `full` debe respetar los rasgos que definen su protocolo (D56)."""
     holonic = config.enable_holonic_hierarchy
     problems = [
@@ -1527,20 +1527,16 @@ def _phase25_effect_rules(protocol: str) -> list[str]:
     return [r.rule_id for r in PHASE25_ALL_RULES if r.ablation and r.rule_id not in inactive]
 
 
-def run_phase25_attribution(
+def validate_phase25_attribution(
     seeds: Sequence[int] = PHASE25_SEEDS,
     claims: Sequence[Phase25Claim] = PHASE25_CLAIMS,
-    jobs: int = 1,
     configs: Mapping[str, SimulationConfig] | None = None,
     rule_effect_seeds: Sequence[int] = PHASE25_RULE_EFFECT_SEEDS,
-) -> Phase25Report:
-    """Pre-registro de la Fase II-B: cada afirmación sobre la configuración de su protocolo.
+) -> dict[str, SimulationConfig]:
+    """Comprobaciones previas de `run_phase25_attribution`, sin correr nada; `ValueError` si fallan.
 
-    Usa `configs[claim.protocol]` (por defecto `PHASE25_PROTOCOL_CONFIGS`) como condición `full`
-    y `PROFILES["phase25"]`. Cada corrida se identifica por (protocolo, variante, semilla) y se
-    ejecuta una sola vez (precisión 67); las configuraciones idénticas, aun con claves distintas,
-    también se ejecutan una sola vez. Las corridas se reparten en `jobs` procesos y se reúnen en
-    orden fijo, así que el reporte no depende de `jobs`.
+    Devuelve la configuración `full` de cada protocolo que miden las afirmaciones, en el orden en
+    que aparecen: son las que se validan y se corren. Una CLI la llama antes de crear directorios.
     """
     validate_seeds(seeds)
     if rule_effect_seeds:
@@ -1557,11 +1553,31 @@ def run_phase25_attribution(
     unknown = sorted({c.protocol for c in claims if c.protocol not in chosen})
     if unknown:
         raise ValueError(f"protocolos desconocidos de la Fase II-B: {unknown}")
-    protocols = list(dict.fromkeys(c.protocol for c in claims))
+    protocols = dict.fromkeys(c.protocol for c in claims)
     for protocol in protocols:
-        _check_phase25_protocol(protocol, chosen[protocol])
+        check_phase25_protocol(protocol, chosen[protocol])
     for seed in (*seeds, *rule_effect_seeds):  # la regla `seed >= 0` de `SimulationConfig`
         SimulationConfig(seed=seed)
+    return {protocol: chosen[protocol] for protocol in protocols}
+
+
+def run_phase25_attribution(
+    seeds: Sequence[int] = PHASE25_SEEDS,
+    claims: Sequence[Phase25Claim] = PHASE25_CLAIMS,
+    jobs: int = 1,
+    configs: Mapping[str, SimulationConfig] | None = None,
+    rule_effect_seeds: Sequence[int] = PHASE25_RULE_EFFECT_SEEDS,
+) -> Phase25Report:
+    """Pre-registro de la Fase II-B: cada afirmación sobre la configuración de su protocolo.
+
+    Usa `configs[claim.protocol]` (por defecto `PHASE25_PROTOCOL_CONFIGS`) como condición `full`
+    y `PROFILES["phase25"]`. Cada corrida se identifica por (protocolo, variante, semilla) y se
+    ejecuta una sola vez (precisión 67); las configuraciones idénticas, aun con claves distintas,
+    también se ejecutan una sola vez. Las corridas se reparten en `jobs` procesos y se reúnen en
+    orden fijo, así que el reporte no depende de `jobs`.
+    """
+    chosen = validate_phase25_attribution(seeds, claims, configs, rule_effect_seeds)
+    protocols = list(chosen)
     total_ticks = PROFILES[PHASE25_ATTRIBUTION_PROFILE].total_ticks
 
     plan: dict[tuple[str, str, int], SimulationConfig] = {}  # (protocolo, variante, semilla)

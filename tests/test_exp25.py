@@ -35,6 +35,7 @@ from ide.experiments.exp25_runner import (
     PHASE25_SPECS,
     Phase25ConditionSummary,
     Phase25ProtocolReport,
+    _BirthInvariant,
     build_arg_parser,
     main,
     run_phase25_condition,
@@ -43,6 +44,7 @@ from ide.experiments.exp25_runner import (
 )
 from ide.experiments.metrics import EcologyTickMetrics, GeneticTickMetrics
 from ide.simulation.engine import SimulationEngine
+from ide.simulation.pipeline import TickFrame
 from ide.simulation.telemetry import EcologyMetricsObserver, GeneticMetricsObserver
 
 SMALL = {"grid_width": 10, "grid_height": 10, "num_agents": 12}
@@ -67,7 +69,6 @@ SMOKE_KEYS = {
     "termination",
     "error",
     "final_agents",
-    "final_active_agents",
     "max_generation",
 }
 CLAIM_METRICS = sorted({claim.metric for claim in PHASE25_CLAIMS})
@@ -290,7 +291,7 @@ def test_opciones_que_no_aplican_al_modo(tmp_path: Path, argv: list[str]) -> Non
 def test_configuracion_que_no_respeta_su_protocolo(
     tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch, mode: list[str]
 ) -> None:
-    """`_check_phase25_protocol` rechaza la configuración antes de crear `--out` (código 2)."""
+    """`check_phase25_protocol` rechaza la configuración antes de crear `--out` (código 2)."""
     broken = dict(attribution.PHASE25_PROTOCOL_CONFIGS)
     broken["25a"] = dataclasses.replace(broken["25a"], enable_predation=False)
     monkeypatch.setattr(attribution, "PHASE25_PROTOCOL_CONFIGS", broken)
@@ -485,19 +486,20 @@ def test_prueba_de_humo(tmp_path: Path, tiny: str, capsys: pytest.CaptureFixture
         engine = SimulationEngine(condition)
         engine.telemetry_observers.clear()  # vetada por el fixture; no cambia la demografía
         engine.run(TINY_TICKS)
-        agents, active, generation = final_demography(engine)
+        agents, _, generation = final_demography(engine)
         assert (run["termination"], run["error"]) == ("finished", None)
-        assert (run["final_agents"], run["final_active_agents"]) == (agents, active)
-        assert run["max_generation"] == generation
+        assert (run["final_agents"], run["max_generation"]) == (agents, generation)
     output = capsys.readouterr().out
     assert "25a no_predation_drift" in output
     assert not any(metric in output for metric in CLAIM_METRICS)
+    assert "activas" not in output  # la demografía de hojas activas es de la compuerta (D55)
 
 
 def test_motores_de_la_prueba_de_humo_sin_telemetria(
     tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """En el mismo proceso: sin `telemetry_observers` ni historiales genético y ecológico."""
+    """En el mismo proceso: sin telemetría de evolución abierta ni historiales genético y
+    ecológico; sólo la comprobación de invariantes del motor."""
     engines: list[SimulationEngine] = []
 
     class Recording(SimulationEngine):
@@ -511,7 +513,7 @@ def test_motores_de_la_prueba_de_humo_sin_telemetria(
     assert len(engines) == len(LABELS) - 2  # las configuraciones idénticas corren una vez
     for engine in engines:
         assert engine.next_tick == TINY_TICKS
-        assert engine.telemetry_observers == []
+        assert [type(o) for o in engine.telemetry_observers] == [_BirthInvariant]
         assert engine.genetic_history == [] and engine.ecology_history == []
 
 
@@ -547,11 +549,130 @@ def test_prueba_de_humo_registra_las_fallas(
                 "message": "falla simulada en la semilla 8",
             }
             assert run["final_agents"] is None and run["max_generation"] is None
-            assert run["final_active_agents"] is None
         else:
             assert (run["termination"], run["error"]) == ("finished", None)
             assert isinstance(run["final_agents"], int)
     assert "RuntimeError" in capsys.readouterr().out
+
+
+def test_invariante_de_nacimientos() -> None:
+    """`_BirthInvariant` falla si un nacimiento contado no se anotó (precisión 68)."""
+    frame = TickFrame(3)
+    frame.births = 1
+    engine = SimulationEngine(protocol_config("25a"))
+    with pytest.raises(RuntimeError, match="nacimientos sin anotar en el tick 3"):
+        _BirthInvariant().on_tick_end(engine, frame)
+    frame.births = 0
+    _BirthInvariant().on_tick_end(engine, frame)
+
+
+def test_prueba_de_humo_conserva_el_invariante_de_nacimientos(
+    tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Un motor que cuenta un nacimiento de más termina en `error`, sin telemetría."""
+
+    class Miscounting(SimulationEngine):
+        def _reproduce(self, *args: Any, **kwargs: Any) -> Any:
+            births = super()._reproduce(*args, **kwargs)
+            return births + 1 if self.config.seed == 8 else births
+
+    monkeypatch.setattr(exp25_runner, "SimulationEngine", Miscounting)
+    argv = ["--smoke", "--profile", tiny, "--seeds", "7", "8", "--jobs", "1"]
+    assert main([*argv, "--out", str(tmp_path)]) == 1
+    data = json.loads((tmp_path / f"exp25_{tiny}_smoke.json").read_text())
+    for run in data["runs"]:
+        if run["seed"] == 8:
+            assert run["termination"] == "error"
+            assert run["error"]["type"] == "RuntimeError"
+            assert run["error"]["message"].startswith("nacimientos sin anotar en el tick 0")
+        else:
+            assert run["termination"] == "finished"
+
+
+@requires_fork
+def test_mensaje_de_error_determinista(
+    tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """El mensaje no lleva direcciones de memoria: el registro no depende del proceso."""
+
+    class Failing(SimulationEngine):
+        def run(self, num_ticks: int) -> Any:
+            raise ValueError(f"estado inválido {object()!r} y 0xABC")
+
+    monkeypatch.setattr(exp25_runner, "SimulationEngine", Failing)
+    outs = {jobs: tmp_path / f"jobs{jobs}" for jobs in ("1", "2")}
+    for jobs, out in outs.items():
+        argv = ["--smoke", "--profile", tiny, "--seeds", "7", "--jobs", jobs]
+        assert main([*argv, "--out", str(out)]) == 1
+    name = f"exp25_{tiny}_smoke.json"
+    assert (outs["1"] / name).read_bytes() == (outs["2"] / name).read_bytes()
+    data = json.loads((outs["1"] / name).read_text())
+    assert {json.dumps(run["error"], sort_keys=True) for run in data["runs"]} == {
+        json.dumps(
+            {"message": "estado inválido <object object at 0x?> y 0x?", "type": "ValueError"},
+            sort_keys=True,
+        )
+    }
+
+
+@requires_fork
+@pytest.mark.parametrize("jobs", ["1", "2"])
+def test_falla_al_escribir_historiales(
+    tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch, jobs: str
+) -> None:
+    """Un `OSError` al escribir los historiales de una corrida no aborta el lote."""
+    original = exp25_runner.write_json
+    broken = f"exp25_{tiny}_25b_full_seed7_histories.json"
+
+    def failing(path: Path, data: Any) -> None:
+        if path.name == broken:
+            raise OSError(28, "No space left on device")
+        original(path, data)
+
+    monkeypatch.setattr(exp25_runner, "write_json", failing)
+    argv = ["--profile", tiny, "--seeds", "7", "8", "--jobs", jobs, "--histories"]
+    assert main([*argv, "--out", str(tmp_path)]) == 1
+    names = {p.name for p in tmp_path.iterdir()}
+    assert set(condition_files(tiny)) <= names
+    assert broken not in names
+    assert f"exp25_{tiny}_25b_drift_seed7_histories.json" in names
+    for protocol, name in LABELS:
+        data = json.loads((tmp_path / f"exp25_{tiny}_{protocol}_{name}.json").read_text())
+        for run in data["runs"]:
+            assert run["summary"]["final_agents"] >= 0
+            if (protocol, name, run["seed"]) == ("25b", "full", 7):
+                assert run["error"] == {
+                    "type": "OSError",
+                    "message": "[Errno 28] No space left on device",
+                }
+            else:
+                assert run["error"] is None
+
+
+def test_solo_se_registran_las_configuraciones_corridas(
+    tmp_path: Path, tiny: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Una configuración de más no se exige, no se valida ni se registra."""
+    extra = dict(attribution.PHASE25_PROTOCOL_CONFIGS)
+    extra["25z"] = dataclasses.replace(extra["25a"], enable_predation=False)  # no respeta 25a
+    monkeypatch.setattr(attribution, "PHASE25_PROTOCOL_CONFIGS", extra)
+    argv = ["--smoke", "--profile", tiny, "--seeds", "7", "--jobs", "1"]
+    assert main([*argv, "--out", str(tmp_path / "humo")]) == 0
+    data = json.loads((tmp_path / "humo" / f"exp25_{tiny}_smoke.json").read_text())
+    assert sorted(data["configs"]) == list(PROTOCOLS)
+
+    def fake(seeds: Any, claims: Any, jobs: int, configs: Any, rule_effect_seeds: Any) -> Any:
+        assert sorted(configs) == list(PROTOCOLS)
+        return Phase25Report(
+            evaluations=tuple(fake_evaluation(c.claim_id, list(seeds)) for c in claims),
+            rule_effects={c.claim_id: {} for c in claims},
+        )
+
+    monkeypatch.setattr(exp25_runner, "run_phase25_attribution", fake)
+    out = tmp_path / "atribucion"
+    assert main(["--attribution", "--jobs", "1", "--out", str(out)]) == 0
+    data = json.loads((out / "exp25_phase25_attribution.json").read_text())
+    assert sorted(data["configs"]) == list(PROTOCOLS)
 
 
 # --- CLI: atribución ---------------------------------------------------------------------------
