@@ -29,8 +29,13 @@ antemano elige, entre las diez configuraciones (la grilla original, leída de su
 el empate lo gana la de menos abundancia, en el orden de las dos grillas. Sigue siendo sólo
 demografía.
 
-Uso: `python -m ide.experiments.phase25_viability [--jobs N] [--ticks T] [--out archivo.json]`
-y `python -m ide.experiments.phase25_viability --amendment2 [--original archivo.json] [...]`.
+Con `--cache [DIR]` (por defecto `.cache_viability` junto a `--out`; precisión 140) cada corrida
+guarda su demografía al terminar y relanzar el mismo comando tras un corte reanuda desde el caché,
+con la misma salida.
+
+Uso: `python -m ide.experiments.phase25_viability [--jobs N] [--ticks T] [--out archivo.json]
+[--cache [DIR]]` y `python -m ide.experiments.phase25_viability --amendment2 [--original
+archivo.json] [...]`.
 """
 
 import argparse
@@ -41,7 +46,7 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from ide.config import SimulationConfig
 from ide.experiments import attribution
@@ -60,6 +65,7 @@ from ide.experiments.exp001_runner import (
     validate_seeds,
     write_json,
 )
+from ide.experiments.run_cache import RunCache, map_with_cache, run_key
 from ide.simulation.engine import SimulationEngine
 
 __all__ = [
@@ -223,13 +229,52 @@ def demography(task: tuple[SimulationConfig, int]) -> tuple[int, int, int]:
     return final_demography(engine)
 
 
+_CACHE_KIND = "phase25_viability"  # modo de la clave del caché persistente (precisión 140)
+DEFAULT_CACHE_NAME = ".cache_viability"  # junto a `--out` cuando `--cache` no da directorio
+
+
+def _encode_demography(task: tuple[SimulationConfig, int], result: tuple[int, int, int]) -> Any:
+    return list(result)
+
+
+def _decode_demography(task: tuple[SimulationConfig, int], stored: Any) -> tuple[int, int, int]:
+    values = cast(list[Any], stored) if isinstance(stored, list) else []
+    if len(values) != 3 or not all(type(value) is int for value in values):
+        raise ValueError("demografía guardada inválida")
+    final_agents, active_agents, max_generation = values
+    return final_agents, active_agents, max_generation
+
+
+def _demographies(
+    tasks: Sequence[tuple[SimulationConfig, int]], jobs: int, cache_dir: Path | None
+) -> list[tuple[int, int, int]]:
+    """Corre `demography` sobre `tasks`; con `cache_dir`, reanudable (precisión 140)."""
+    if cache_dir is None:
+        return map_in_order(demography, tasks, jobs)
+    return map_with_cache(
+        demography,
+        tasks,
+        [run_key(_CACHE_KIND, config, ticks) for config, ticks in tasks],
+        jobs,
+        RunCache(cache_dir),
+        _encode_demography,
+        _decode_demography,
+        mapper=map_in_order,
+    )
+
+
 def run_viability(
     total_ticks: int | None = None,
     jobs: int = 1,
     seeds: Sequence[int] | None = None,
     grid: Sequence[tuple[int, int]] = VIABILITY_GRID,
+    cache_dir: Path | None = None,
 ) -> ViabilityReport:
-    """Evalúa `grid` (por defecto, `VIABILITY_GRID`) en orden y se detiene en la primera viable."""
+    """Evalúa `grid` (por defecto, `VIABILITY_GRID`) en orden y se detiene en la primera viable.
+
+    Con `cache_dir`, cada corrida guarda su demografía al terminar y las guardadas no se repiten
+    (precisión 140); el reporte es el mismo.
+    """
     ticks = PREREGISTERED_TICKS if total_ticks is None else total_ticks
     seeds = tuple(PHASE25_VIABILITY_SEEDS if seeds is None else seeds)
     validate_seeds(seeds)  # una semilla repetida es la misma corrida e infla el conteo
@@ -246,7 +291,7 @@ def run_viability(
         }
         # Configuraciones idénticas (p. ej., `stable` de 25d y `full` de 25a) corren una vez.
         tasks = list(dict.fromkeys((config, ticks) for config in planned.values()))
-        results = dict(zip(tasks, map_in_order(demography, tasks, jobs), strict=True))
+        results = dict(zip(tasks, _demographies(tasks, jobs, cache_dir), strict=True))
         runs = tuple(
             ViabilityRun(protocol, name, seed, *results[(config, ticks)])
             for (protocol, name, seed), config in planned.items()
@@ -316,19 +361,24 @@ def run_amendment2(
     total_ticks: int | None = None,
     jobs: int = 1,
     seeds: Sequence[int] | None = None,
+    cache_dir: Path | None = None,
 ) -> Amendment2Report:
     """Recorre `AMENDMENT2_GRID` y, si ninguna es viable, aplica la salida de respaldo."""
     ticks = PREREGISTERED_TICKS if total_ticks is None else total_ticks
     seeds = tuple(PHASE25_VIABILITY_SEEDS if seeds is None else seeds)
     check_original(original, ticks, seeds)
-    return _extend(original, ticks, jobs, seeds)
+    return _extend(original, ticks, jobs, seeds, cache_dir)
 
 
 def _extend(
-    original: ViabilityReport, ticks: int, jobs: int, seeds: tuple[int, ...]
+    original: ViabilityReport,
+    ticks: int,
+    jobs: int,
+    seeds: tuple[int, ...],
+    cache_dir: Path | None = None,
 ) -> Amendment2Report:
     """`run_amendment2` sobre una original ya validada con `check_original`."""
-    extended = run_viability(ticks, jobs, seeds, AMENDMENT2_GRID)
+    extended = run_viability(ticks, jobs, seeds, AMENDMENT2_GRID, cache_dir)
     results = (*original.configurations, *extended.configurations)
     totals = {r.abundance: deciding_viable_seeds(r.runs) for r in results}  # una sola vez
     if extended.chosen is not None:
@@ -534,6 +584,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help=f"sólo con --amendment2: JSON de la compuerta original (por defecto, "
         f"{ORIGINAL_RECORD})",
     )
+    parser.add_argument(
+        "--cache",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="DIR",
+        help=(
+            "caché persistente de corridas (precisión 140): al relanzar el mismo comando, las "
+            f"corridas guardadas no se repiten; sin DIR, {DEFAULT_CACHE_NAME} junto a --out"
+        ),
+    )
     return parser
 
 
@@ -608,14 +669,17 @@ def main(argv: list[str] | None = None) -> int:
         out.parent.mkdir(parents=True, exist_ok=True)
     except OSError as error:
         parser.error(f"--out no es una ruta utilizable ({out}): {error}")
+    cache: Path | None = None
+    if args.cache is not None:
+        cache = out.parent / DEFAULT_CACHE_NAME if args.cache == "" else Path(args.cache)
     if not preregistered:
         print(f"Aviso: --ticks {ticks}; {NOT_PREREGISTERED} ({PREREGISTERED_TICKS} ticks).")
     if original is not None:
-        amendment = _extend(original, ticks, args.jobs, seeds)  # ya pasó `check_original`
+        amendment = _extend(original, ticks, args.jobs, seeds, cache)  # ya pasó `check_original`
         write_json(out, amendment2_to_json(amendment, str(source), digest))
         _print_amendment2(amendment)
         return 0
-    report = run_viability(ticks, args.jobs, seeds)
+    report = run_viability(ticks, args.jobs, seeds, cache_dir=cache)
     write_json(out, report_to_json(report))
     _print_configurations(report.configurations)
     if not report.preregistered:

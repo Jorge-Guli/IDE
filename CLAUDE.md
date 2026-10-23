@@ -157,6 +157,8 @@ python -m ide.experiments.exp25_runner --histories          # además, historial
 python -m ide.experiments.exp25_runner --attribution        # atribución de C13–C20 (--rule-effect-seeds: rule_effects exploratorios)
 ```
 
+Con `--cache [DIR]` (por defecto `--out/.cache_exp25`; en `phase25_viability`, `.cache_viability` junto a `--out`; precisión 140) cada corrida se guarda al terminar: si se corta, relanzar el mismo comando reanuda desde el caché, con la misma salida. Cualquier cambio en `src/ide` invalida el caché.
+
 ## Integración continua
 
 `.github/workflows/ci.yml` corre en cada PR y en cada push a `main`: en Python 3.13 (job requerido `Calidad y tests`) `ruff check`, `ruff format --check`, `pyright`, `python -m pytest --cov=ide` (también con otro `PYTHONHASHSEED`) y `openspec validate --all --strict`. No ejecuta `slow` ni `empirical`. Un segundo job, `Compatibilidad` (Python 3.11 y 3.12), corre sólo la suite para respaldar el mínimo declarado. Si cambian los pasos de verificación de este documento, actualiza también el workflow. `/code-review` sigue siendo un paso manual.

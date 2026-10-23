@@ -14,6 +14,7 @@ from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from enum import Enum
+from pathlib import Path
 from statistics import median
 from typing import Any, TypeVar
 
@@ -22,12 +23,14 @@ from ide.experiments.exp001_runner import (
     PROFILES,
     Profile,
     map_in_order,
+    report_to_dict,
     run_protocol_001b_falsification,
     run_protocol_001c_resilience,
     sign_test_p_value,
     validate_seeds,
 )
 from ide.experiments.metrics import windowed_accuracy
+from ide.experiments.run_cache import RunCache, map_with_cache, run_key
 from ide.simulation.engine import SimulationEngine
 
 
@@ -1265,6 +1268,31 @@ def _execute_phase25_run(job: _Phase25Job) -> Phase25RunRecord:
     return phase25_run_record(engine, metrics, config.world_shift_period)
 
 
+_PHASE25_CACHE_KIND = "phase25_attribution"  # modo de la clave del caché persistente (prec. 140)
+
+
+def _phase25_cache_key(job: _Phase25Job) -> str:
+    config, total_ticks, metrics = job
+    return run_key(_PHASE25_CACHE_KIND, config, total_ticks, extra=list(metrics))
+
+
+def _encode_phase25_record(job: _Phase25Job, record: Phase25RunRecord) -> dict[str, Any]:
+    """Forma JSON de un registro para el caché persistente (precisión 140)."""
+    return report_to_dict(record)
+
+
+def _decode_phase25_record(job: _Phase25Job, stored: Any) -> Phase25RunRecord:
+    """Reconstruye el registro guardado; `ValueError` o `TypeError` si no corresponde a `job`.
+
+    JSON conserva la distinción entre `int` y `float`, así que el registro es idéntico al
+    original y la evaluación desde el caché da el mismo `Phase25Report`.
+    """
+    record = Phase25RunRecord(**stored)
+    if not isinstance(record.metrics, Mapping) or sorted(record.metrics) != sorted(job[2]):  # pyright: ignore[reportUnnecessaryIsInstance]
+        raise ValueError("el registro guardado no tiene las métricas pedidas")
+    return record
+
+
 # --- Fase II-B: prueba, corrección y estado (design D56, precisiones 45, 47, 48 y 53) ----------
 
 
@@ -1568,6 +1596,7 @@ def run_phase25_attribution(
     jobs: int = 1,
     configs: Mapping[str, SimulationConfig] | None = None,
     rule_effect_seeds: Sequence[int] = PHASE25_RULE_EFFECT_SEEDS,
+    cache_dir: Path | None = None,
 ) -> Phase25Report:
     """Pre-registro de la Fase II-B: cada afirmación sobre la configuración de su protocolo.
 
@@ -1575,7 +1604,9 @@ def run_phase25_attribution(
     y `PROFILES["phase25"]`. Cada corrida se identifica por (protocolo, variante, semilla) y se
     ejecuta una sola vez (precisión 67); las configuraciones idénticas, aun con claves distintas,
     también se ejecutan una sola vez. Las corridas se reparten en `jobs` procesos y se reúnen en
-    orden fijo, así que el reporte no depende de `jobs`.
+    orden fijo, así que el reporte no depende de `jobs`. Con `cache_dir`, cada corrida guarda su
+    `Phase25RunRecord` en disco al terminar y las ya guardadas se cargan en lugar de correrse
+    (precisión 140): el reporte es el mismo.
     """
     chosen = validate_phase25_attribution(seeds, claims, configs, rule_effect_seeds)
     protocols = list(chosen)
@@ -1612,7 +1643,19 @@ def run_phase25_attribution(
     jobs_list: list[_Phase25Job] = [
         (config, total_ticks, tuple(sorted(names))) for config, names in metrics_of.items()
     ]
-    outcomes = map_in_order(_execute_phase25_run, jobs_list, jobs)
+    if cache_dir is None:
+        outcomes = map_in_order(_execute_phase25_run, jobs_list, jobs)
+    else:
+        outcomes = map_with_cache(
+            _execute_phase25_run,
+            jobs_list,
+            [_phase25_cache_key(job) for job in jobs_list],
+            jobs,
+            RunCache(cache_dir),
+            _encode_phase25_record,
+            _decode_phase25_record,
+            mapper=map_in_order,
+        )
     results = {job[0]: outcome for job, outcome in zip(jobs_list, outcomes, strict=True)}
     records: dict[str, dict[str, dict[int, Phase25RunRecord]]] = {}
     for (protocol, variant, seed), config in plan.items():

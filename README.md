@@ -73,6 +73,10 @@ python -m ide.experiments.exp25_runner --histories
 # Atribución de C13-C20 con el perfil pre-registrado y los rule_effects exploratorios
 python -m ide.experiments.exp25_runner --attribution
 python -m ide.experiments.exp25_runner --attribution --rule-effect-seeds 42 43 44
+# Reanudables (precisión 140): con --cache [DIR] (por defecto --out/.cache_exp25) cada corrida se
+# guarda al terminar; si se corta, relanzar el mismo comando reanuda desde el caché, con la misma salida
+python -m ide.experiments.exp25_runner --smoke --cache
+python -m ide.experiments.exp25_runner --attribution --cache
 ```
 
 El paralelismo (`--jobs`) es sólo entre corridas independientes: el diseño exige salida idéntica para cualquier número de procesos y para cualquier `PYTHONHASHSEED`. Desde la ampliación de la Fase II-B, todos los runners y CLI de calibración, también los de las Fases I y II, usan por defecto tantos procesos como núcleos disponibles (design D62.3 y precisión 55); como la salida no depende de `--jobs`, ningún resultado registrado cambia. La suite lo comprueba con `--jobs 1` frente a `--jobs 2` y con `PYTHONHASHSEED` 0 frente a 1 (perfil `quick`). No se comparan historiales entre versiones distintas de Python o de NumPy: el determinismo vale dentro de un mismo entorno.
