@@ -80,11 +80,18 @@ Según el pre-registro aprobado en la tarea 0.5 (design D56), `PHASE25_PROTOCOL_
 - **THEN** son exactamente esos once, `delta_relative` vale 0.0 y `baseline_drift` y `comparison_drift` valen `None` por defecto, y asignar uno lanza `dataclasses.FrozenInstanceError`.
 
 ### Requirement: Tipos de Evaluación y Reporte de la Fase II-B
-`Phase25ClaimEvaluation` SHALL ser `frozen` con `claim_id`, `status`, `p_value`, `p_adjusted`, `median_difference`, `values`, `comparison_values`, `demography`, `e4_p_value`, `e4_interpretable` y, al final y en este orden, `excluded_seeds: tuple[int, ...]`, `excluded_pairs: int` y `evaluable: bool` (design precisiones 45 y 47); `Phase25Report` SHALL ser `frozen` con `profile = "phase25"`, `rules = PHASE25_ALL_RULES`, `evaluations` y `rule_effects`.
+`Phase25ClaimEvaluation` SHALL ser `frozen` con `claim_id`, `status`, `p_value`, `p_adjusted`, `median_difference`, `values`, `comparison_values`, `demography`, `e4_p_value`, `e4_interpretable` y, al final y en este orden, `excluded_seeds: tuple[int, ...]`, `excluded_pairs: int`, `evaluable: bool` y `joint_median` (design precisiones 45 y 47, D72.2); `Phase25Report` SHALL ser `frozen` con `profile = "phase25"`, `rules = PHASE25_ALL_RULES`, `evaluations` y `rule_effects`.
 
 #### Scenario: Campos de la evaluación y del reporte
 - **WHEN** se inspeccionan los campos de `Phase25ClaimEvaluation` y de `Phase25Report`
 - **THEN** son exactamente los enumerados, en ese orden, y los dos tipos son inmutables.
+
+### Requirement: Campo joint_median de la Evaluación
+El último campo de `Phase25ClaimEvaluation` SHALL ser `joint_median: float | None = None`: SHALL valer `None` en toda evaluación de `PHASE25_CLAIMS` y en las de `PHASE25_SHADOW_CLAIMS` sin `joint_real_comparison`, y SHALL NOT cambiar ningún otro valor de la atribución de D56 (design D72.2).
+
+#### Scenario: D56 con joint_median nulo
+- **WHEN** se corre `run_phase25_attribution` con un perfil corto y dos semillas
+- **THEN** `joint_median` vale `None` en todas las evaluaciones y los demás campos son los de antes del cambio.
 
 ### Requirement: Ejecución de la Atribución de la Fase II-B
 `run_phase25_attribution(seeds=PHASE25_SEEDS, claims=PHASE25_CLAIMS, jobs=1, configs=None, rule_effect_seeds=PHASE25_RULE_EFFECT_SEEDS)` SHALL devolver un `Phase25Report` con `PROFILES["phase25"]`, una evaluación por afirmación y, con `configs`, SHALL usar `configs[claim.protocol]` como condición `full`.
@@ -426,10 +433,17 @@ La reformulación del control (design D64) SHALL NOT modificar `PHASE25_CLAIMS`,
 - **THEN** las evaluaciones y los `rule_effects` son idénticos, y ninguna configuración de `PHASE25_PROTOCOL_CONFIGS` activa la sombra.
 
 ### Requirement: Tipo Phase25ShadowClaim
-`Phase25ShadowClaim` SHALL ser `frozen` con `claim_id`, `statement`, `protocol`, `metric`, `shadow_metric: str | None`, `comparison: str | None`, `rule_ids`, `channel`, `delta_min` y `delta_relative: float = 0.0`. `shadow_metric is None` SHALL implicar `comparison == "no_learning"` (afirmación funcional), y `comparison` SHALL valer `None`, `"no_predation"`, `"stable"` o `"no_learning"` (design D72.2).
+`Phase25ShadowClaim` SHALL ser `frozen` con `claim_id`, `statement`, `protocol`, `metric`, `shadow_metric: str | None`, `comparison: str | None`, `rule_ids`, `channel`, `delta_min`, `delta_relative: float = 0.0`, `exploratory: bool = False` y `joint_real_comparison: bool = False`. `shadow_metric is None` SHALL implicar `comparison == "no_learning"`, y `comparison` SHALL valer `None`, `"no_predation"`, `"stable"` o `"no_learning"` (design D72.2).
 
 #### Scenario: Funcional sin sombra
 - **WHEN** se construye un `Phase25ShadowClaim` con `shadow_metric=None` y `comparison="no_predation"`
+- **THEN** se lanza `ValueError`.
+
+### Requirement: Validación de la Condición Conjunta
+`Phase25ShadowClaim` con `joint_real_comparison=True` SHALL lanzar `ValueError` si no es una diferencia de diferencias, es decir, si `shadow_metric is None` o `comparison is None` (design D72.2).
+
+#### Scenario: Condición conjunta sin diferencia de diferencias
+- **WHEN** se construye un `Phase25ShadowClaim` con `shadow_metric` definido, `comparison=None` y `joint_real_comparison=True`
 - **THEN** se lanza `ValueError`.
 
 ### Requirement: Diferencia contra la Sombra
@@ -458,11 +472,11 @@ La evaluación SHALL reutilizar `Phase25ClaimEvaluation` con `values` igual a $\
 - **THEN** tienen esos protocolos, métricas, `shadow_metric` igual a `"shadow_" + metric`, $R_C$, canales, $\delta_{\min}$ y `delta_relative` (0.0 salvo en `C24`).
 
 ### Requirement: Afirmaciones con Sombra C25 a C27
-`PHASE25_SHADOW_CLAIMS` SHALL contener, crecientes y con canal `()`: `C25` (`25a`, `mean_expressible_nonattack_codons`, `comparison="no_predation"`, $R_C$ `("R37",)`, $1.0$), `C26` (`25b`, `innate_share_choice`, `comparison=None`, `("R12",)`, $0.01$) y `C27` (`25d`, `mean_learning_codons`, `comparison="stable"`, `()`, $1.0$), con su métrica `shadow_` homóloga y `delta_relative = 0.0` (design D72.3).
+`PHASE25_SHADOW_CLAIMS` SHALL contener, crecientes, con canal `()` y su métrica `shadow_` homóloga: `C25` (`25a`, `mean_expressible_nonattack_codons`, `"no_predation"`, `("R37",)`, $1.0$, `joint_real_comparison=True`), `C26` (`25b`, `innate_share_choice`, `None`, `("R12",)`, $0.01$, `delta_relative = 0.25`) y `C27` (`25d`, `mean_learning_codons`, `"stable"`, `()`, $1.0$, `exploratory=True`) (design D72.3).
 
 #### Scenario: Registro de C25 a C27
 - **WHEN** se inspeccionan `C25`, `C26` y `C27`
-- **THEN** tienen esos protocolos, métricas, `shadow_metric`, comparaciones, $R_C$, canales y $\delta_{\min}$.
+- **THEN** tienen esos protocolos, métricas, `shadow_metric`, comparaciones, $R_C$, canales, $\delta_{\min}$ y `delta_relative`, sólo `C27` tiene `exploratory=True` y sólo `C25` tiene `joint_real_comparison=True` entre `C21`..`C28`.
 
 #### Scenario: Enunciados iguales a los de D56
 - **WHEN** se comparan los `statement` de `C21`..`C23` y `C25`..`C28` con los de `C13`..`C15` y `C17`..`C20`
@@ -476,7 +490,7 @@ La evaluación SHALL reutilizar `Phase25ClaimEvaluation` con `values` igual a $\
 - **THEN** contiene exactamente `C21`..`C28`, y `C28` es programada por construcción, sin `p_adjusted` (`None`).
 
 ### Requirement: Pares Válidos con Sombra
-Una semilla SHALL ser válida si terminan con al menos una hoja activa todas las corridas de su diferencia: `full` en la sombra simple, `full` y `comp` en la diferencia de diferencias y `full` y `no_learning` en `C28`. Con menos de 20 pares válidos la afirmación SHALL ser `NOT_OBSERVED` con `evaluable = False` y SHALL seguir contando en Holm (design D72.5).
+Una semilla SHALL ser válida si terminan con al menos una hoja activa todas las corridas de su diferencia: `full` en la sombra simple, `full` y `comp` en la diferencia de diferencias y `full` y `no_learning` en `C28`. Con menos de 20 pares válidos la afirmación SHALL ser `NOT_OBSERVED` con `evaluable = False` y, si es confirmatoria (`C21`..`C26`), SHALL seguir contando en Holm (design D72.5).
 
 #### Scenario: Sombra simple con full viva
 - **WHEN** `full` de `25a` termina con hojas activas en 25 de 30 semillas
@@ -487,18 +501,48 @@ Una semilla SHALL ser válida si terminan con al menos una hoja activa todas las
 - **THEN** esa semilla no es par válido de `C27`.
 
 ### Requirement: Prueba, Holm y Estado con Sombra
-Las afirmaciones con sombra SHALL usar la prueba de signo unilateral sobre los pares válidos (empates con $|d| \le 10^{-9}$ descartados, p-valor 1.0 sin diferencias distintas de cero), Holm–Bonferroni sobre `C21`..`C27` con $m = \max(7, \text{genuinas evaluadas})$ y $\alpha = 0.05$, y el estado de la precisión 112 sobre la mediana de todas las diferencias (design D72.5).
+Las afirmaciones con sombra SHALL usar la prueba de signo unilateral sobre los pares válidos (empates con $|d| \le 10^{-9}$ descartados, p-valor 1.0 sin diferencias distintas de cero), Holm–Bonferroni sólo sobre las confirmatorias `C21`..`C26` con $m = \max(6, \text{confirmatorias evaluadas})$ y $\alpha = 0.05$, y el estado de la precisión 112 sobre la mediana de todas las diferencias (design D72.5).
 
 #### Scenario: Familia de Holm propia
 - **WHEN** se evalúa `PHASE25_SHADOW_CLAIMS`
-- **THEN** la corrección usa sólo `C21`..`C27`, con $m = 7$, y no incluye ninguna afirmación de `PHASE25_CLAIMS`.
+- **THEN** la corrección usa sólo `C21`..`C26`, con $m = 6$, y no incluye `C27`, `C28` ni ninguna afirmación de `PHASE25_CLAIMS`.
 
-### Requirement: Umbral Relativo de C24
-El umbral de efecto de `C24` SHALL ser $\max(0.001,\ 0.25 \cdot M)$, con $M$ la mediana de `comparison_values` (la sombra) sobre los pares válidos; los demás umbrales SHALL ser su $\delta_{\min}$ (design D72.4, precisión 119).
+#### Scenario: Holm con un subconjunto
+- **WHEN** se evalúan sólo `C21` y `C27` de `PHASE25_SHADOW_CLAIMS`
+- **THEN** `C21` se corrige con $m = 6$ y `C27` tiene `p_adjusted` igual a `None`.
+
+### Requirement: Umbrales Relativos de C24 y C26
+El umbral de efecto SHALL ser $\max(0.001,\ 0.25 \cdot M)$ en `C24` y $\max(0.01,\ 0.25 \cdot M)$ en `C26`, con $M$ la mediana de `comparison_values` (la sombra) sobre los pares válidos; los demás umbrales SHALL ser su $\delta_{\min}$ (design D72.4, precisión 119).
 
 #### Scenario: Umbral de C24
 - **WHEN** la mediana de `shadow_new_activity_per_birth` sobre los pares válidos es 0.02
 - **THEN** el umbral de `C24` es `pytest.approx(0.005, abs=1e-9)`.
+
+#### Scenario: Umbral de C26
+- **WHEN** la mediana de `shadow_innate_share_choice` sobre los pares válidos es 0.02 en una evaluación y 0.12 en otra
+- **THEN** el umbral de `C26` es `pytest.approx(0.01, abs=1e-9)` en la primera y `pytest.approx(0.03, abs=1e-9)` en la segunda.
+
+### Requirement: Condición Conjunta de C25
+`C25` SHALL ser `OBSERVED` sólo si, además del p-valor ajustado y la mediana, `joint_median`, la mediana sobre sus pares válidos de $\text{real}_{full}(s) - \text{real}_{no\_predation}(s)$, es mayor que $10^{-9}$. Es un requisito de dirección, no una prueba: SHALL NOT cambiar ningún p-valor ni $m$ (design D72.3).
+
+#### Scenario: Mantenimiento sin construcción
+- **WHEN** `C25` tiene p-valor ajustado 0.01, mediana de diferencias 1.5 y `joint_median` igual a -0.5
+- **THEN** su estado es `NOT_OBSERVED`, y su p-valor ajustado y los de `C21`..`C26` son los mismos que con `joint_median` positiva.
+
+#### Scenario: Condición conjunta cumplida
+- **WHEN** `C25` tiene p-valor ajustado 0.01, mediana de diferencias 1.5 y `joint_median` igual a 2.0
+- **THEN** su estado es `OBSERVED`.
+
+#### Scenario: joint_median fuera de C25
+- **WHEN** se evalúan `PHASE25_SHADOW_CLAIMS` y `PHASE25_CLAIMS`
+- **THEN** `joint_median` es un número en `C25` y `None` en todas las demás evaluaciones.
+
+### Requirement: C27 Exploratoria
+`C27` SHALL computarse e informarse como las demás, con `p_adjusted = None` y su estado por el p-valor crudo y el umbral, y SHALL NOT entrar en Holm; su estado SHALL informarse como exploratorio, sin valor confirmatorio (design D72.5).
+
+#### Scenario: C27 fuera de Holm
+- **WHEN** `C27` tiene p-valor crudo 0.01 y mediana de diferencias 1.5 con 20 pares válidos
+- **THEN** su estado es `OBSERVED` con `p_adjusted` igual a `None`, y la corrección de `C21`..`C26` es la misma que sin `C27`.
 
 ### Requirement: E4 con Sombra
 E4 SHALL compararse contra `null_content`: en `C21`..`C27`, $[\text{real} - \text{sombra}]_{full}(s) - [\text{real} - \text{sombra}]_{null\_content}(s)$ en la métrica simple, también en `C25` y `C27`; en `C28`, $\text{full}(s) - \text{null\_content}(s)$. SHALL usar pares con las dos corridas con hojas activas y la interpretabilidad de la precisión 113 (design D72.7).

@@ -536,6 +536,13 @@ Con la sombra efectiva y sin hojas vivas, todos los campos de `ShadowTickMetrics
 - **WHEN** se interpreta `--shadow --smoke` sin `--seeds`
 - **THEN** las semillas son `PHASE25_SHADOW_SEEDS` y ninguna condición tiene reproducción neutral.
 
+### Requirement: Registro de la Atribución con Sombra
+`exp25_shadow_attribution.json` SHALL marcar, por afirmación, si es confirmatoria (`C21`..`C26`), exploratoria (`C27`) o programada por construcción (`C28`), y SHALL incluir `joint_median` de `C25` (design D72.3 y D72.5).
+
+#### Scenario: Marcas del registro
+- **WHEN** se escribe `exp25_shadow_attribution.json`
+- **THEN** `C27` figura como exploratoria con `p_adjusted` nulo, `C28` como programada por construcción y `C25` con su `joint_median`.
+
 ### Requirement: Prueba de Humo con Sombra y Semillas Nuevas
 Antes de la atribución con sombra, la prueba de humo SHALL registrar, por protocolo, condición de `PHASE25_SHADOW_PROTOCOL_CONFIGS` y semilla de `PHASE25_SHADOW_SEEDS`, sólo la terminación, la generación máxima y la población final, sin calcular ninguna métrica de `C21`..`C28` (design D72.10).
 

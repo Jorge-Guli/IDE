@@ -33,7 +33,7 @@
 >
 > **Pre-registro.** Es design D56, **aprobado** el 2026-10-21 en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
-> **Etapa actual:** las etapas A a C están completas, y la atribución de D56 (tarea 26.1) se corrió y se registró: C13–C20 quedaron no evaluables porque el control de reproducción neutral se extingue (`docs/RESULTADOS.md`). El 2026-10-23 el responsable del proyecto decidió reformular el control con una sombra neutral (design D64–D74, **borrador**). Sigue la revisión cruzada y la aprobación del pre-registro D72 (tareas 0.7 y 0.8); después, la etapa S (bloques 27 a 32). Las tareas 26.2 y 26.3 (documentos y cierre) se hacen después del bloque 32.
+> **Etapa actual:** las etapas A a C están completas, y la atribución de D56 (tarea 26.1) se corrió y se registró: C13–C20 quedaron no evaluables porque el control de reproducción neutral se extingue (`docs/RESULTADOS.md`). El 2026-10-23 el responsable del proyecto decidió reformular el control con una sombra neutral (design D64–D74). La revisión cruzada (tarea 0.7) y la aprobación del pre-registro D72 (tarea 0.8, 2026-10-23, con la condición conjunta de C25, C27 exploratoria con Holm sobre C21–C26 y C26 endurecida) están hechas. Sigue la etapa S (bloques 27 a 32). Las tareas 26.2 y 26.3 (documentos y cierre) se hacen después del bloque 32.
 
 ## 0. Decisiones y pre-registro
 
@@ -67,14 +67,14 @@
   - los valores por defecto de D52.
   - Registrar las decisiones con fecha en `proposal.md` y commitear.
 
-- [ ] 0.7 **Reformular el control con una sombra neutral** (2026-10-23, decisión del responsable del proyecto): design D64–D74, specs delta (`simulation-engine`, `evolutionary-dynamics`, `micro-agent`, `domain-contracts`, `experimental-suite` y `emergence-attribution`), `proposal.md`, este `tasks.md` y los documentos raíz, con `openspec validate --all --strict` y **revisión cruzada independiente** (cambio grande). Declarar `shadow_rng` (`spawn_key=(6,)`) en `CLAUDE.md`, sección Determinismo. Hecho como borrador; falta la revisión cruzada.
-- [ ] 0.8 **Aprobar el pre-registro con sombra D72** con el responsable del proyecto, **antes** del bloque 27 y sin correr ninguna corrida con sombra:
-  - las afirmaciones C21–C27 (genuinas) y C28 (funcional), sus métricas real y de sombra, comparaciones, $R_C$, canales y $\delta_{\min}$ (iguales a los de D56);
-  - la regla de pares válidos sin condiciones neutrales, la prueba de signo, Holm sobre C21–C27 ($m = 7$), E4 sobre el exceso de la sombra y los efectos de regla exploratorios;
+- [x] 0.7 **Reformular el control con una sombra neutral** (2026-10-23, decisión del responsable del proyecto): design D64–D74, specs delta (`simulation-engine`, `evolutionary-dynamics`, `micro-agent`, `domain-contracts`, `experimental-suite` y `emergence-attribution`), `proposal.md`, este `tasks.md` y los documentos raíz, con `openspec validate --all --strict` y **revisión cruzada independiente** (cambio grande). Declarar `shadow_rng` (`spawn_key=(6,)`) en `CLAUDE.md`, sección Determinismo. Hecho: borrador en el commit `5f09e29`, primera ronda de la revisión cruzada en `39c1baa` y segunda ronda el 2026-10-23 (condición conjunta de C25, sesgo de mantenimiento por afirmación, C27 exploratoria y lista de grados de libertad post hoc con C26 endurecida; D64.4, D71.3 y D72). La declaración de `shadow_rng` en `CLAUDE.md` se agrega en el commit de esta aprobación.
+- [x] 0.8 **Aprobar el pre-registro con sombra D72** con el responsable del proyecto, **antes** del bloque 27 y sin correr ninguna corrida con sombra:
+  - las afirmaciones C21–C26 (genuinas y confirmatorias), C27 (genuina y exploratoria) y C28 (funcional), sus métricas real y de sombra, comparaciones, $R_C$, canales y $\delta_{\min}$ (los de D56, salvo C26, endurecida a $\max(0.01,\ 0.25 \cdot M)$), y la condición conjunta de C25;
+  - la regla de pares válidos sin condiciones neutrales, la prueba de signo, Holm sobre C21–C26 ($m = 6$), E4 sobre el exceso de la sombra y los efectos de regla exploratorios;
   - las semillas nuevas 72–101 (`PHASE25_SHADOW_SEEDS`) y 72–81 para los efectos de regla, el perfil `phase25` y la abundancia (80, 20), sin compuerta nueva (D72.10);
-  - los puntos abiertos P-S1 (potencia de `25d`) y P-S2 (E4 y efectos de regla);
-  - los sesgos declarados de D71.
-  - Registrar la decisión con fecha en `proposal.md` y commitear antes del bloque 27.
+  - los puntos P-S1 (potencia de `25d`: C27 exploratoria) y P-S2 (E4 y efectos de regla exploratorios), cerrados en D72.12;
+  - los sesgos declarados de D71, con el sesgo de mantenimiento por afirmación, y los grados de libertad post hoc de D64.4.
+  - Registrar la decisión con fecha en `proposal.md` y commitear antes del bloque 27. Hecho: aprobado el 2026-10-23 por delegación del responsable del proyecto (`proposal.md`).
 
 ## 1. Contratos de dominio y configuración (`domain-contracts`)
 
@@ -482,8 +482,8 @@
 > Ejecuta: implementador-delicado
 
 - [ ] 30.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
-  - `Phase25ShadowClaim` y su validación, `PHASE25_SHADOW_CLAIMS` (C21–C28) con métricas, `shadow_metric`, comparaciones, $R_C$, canales, $\delta_{\min}$ y enunciados (D72.2, D72.3);
-  - las tres formas de diferencia, `values` y `comparison_values`, los pares válidos sin condiciones neutrales, la prueba de signo, Holm sobre C21–C27, C28 fuera de Holm y el umbral relativo de C24 (D72.2, D72.5);
+  - `Phase25ShadowClaim` y su validación (incluidos `exploratory` y `joint_real_comparison`), `PHASE25_SHADOW_CLAIMS` (C21–C28) con métricas, `shadow_metric`, comparaciones, $R_C$, canales, $\delta_{\min}$ y enunciados (D72.2, D72.3);
+  - las tres formas de diferencia, `values` y `comparison_values`, los pares válidos sin condiciones neutrales, la prueba de signo, Holm sobre C21–C26 ($m = 6$), C27 exploratoria y C28 fuera de Holm (`p_adjusted = None`), los umbrales relativos de C24 y C26, y la condición conjunta de C25 con `joint_median` (`None` en las demás y en D56) (D72.2–D72.5);
   - E4 sobre el exceso de la sombra y los efectos de regla con las semillas 72–81 (D72.7, D72.8), con `None` sin correr la variante para $R_{12}$, $R_{13}$ y $R_{24}$ en todas las afirmaciones y para $R_{32}$ en C22 y C26;
   - `PHASE25_SHADOW_PROTOCOL_CONFIGS`, sus condiciones y `PHASE25_SHADOW_SEEDS` disjuntas de las anteriores (D72.6);
   - `run_phase25_shadow_attribution`, su validación de configuraciones (sólo las base; no las variantes ablacionadas, como la de $R_{32}$) y la salida idéntica para cualquier `jobs` (D72.11);

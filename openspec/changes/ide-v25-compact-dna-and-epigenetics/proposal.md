@@ -223,21 +223,21 @@ Una revisión cruzada independiente del borrador D56 encontró problemas antes d
 - **Qué no cambia:** ninguna afirmación, métrica ni umbral de C13–C20 (D56), ni el criterio de viabilidad de D55.3.
 - **Cuándo.** Antes de correr la grilla extendida y sin mirar ninguna métrica de afirmación; la prueba de humo y los protocolos todavía no se corrieron.
 
-## Reformulación del control (2026-10-23, design D64–D74, BORRADOR)
+## Reformulación del control (2026-10-23, design D64–D74, aprobada el 2026-10-23)
 
 ### Decisión del responsable del proyecto
 - **Quién y cuándo:** el responsable del proyecto, el 2026-10-23, después de ver la atribución pre-registrada de D56 (tarea 26.1).
-- **Qué decidió:** reemplazar el control que colapsa (la reproducción neutral, `drift`) por uno que no dependa de la supervivencia de una población sin selección. El agente principal propuso una **sombra neutral** al estilo Bedau–Packard (Bedau, Snyder y Packard 1998; Channon 2003), y este borrador la desarrolla.
+- **Qué decidió:** reemplazar el control que colapsa (la reproducción neutral, `drift`) por uno que no dependa de la supervivencia de una población sin selección. El agente principal propuso una **sombra neutral** al estilo Bedau–Packard (Bedau, Snyder y Packard 1998; Channon 2003), y D64–D74 la desarrollan.
 
 ### Por qué
 - **Resultado de D56.** Las ocho afirmaciones C13–C20 quedaron `NOT_OBSERVED` y **no evaluables** (`registros/exp25_phase25_attribution.json`, `docs/RESULTADOS.md`): la condición `drift` se extingue en la mayoría de las semillas (7 a 19 de 30, según el protocolo) y `25d` `full` también (19 de 30). Sin selección la población no se sostiene, probablemente por acumulación de mutaciones dañinas.
 - **Dos defectos de base del control.** Sin una población neutral viva no hay comparación (potencia), y los pares que quedan son las semillas en que la población neutral sobrevivió, que no son una muestra al azar (sesgo de supervivencia).
 - **Un tercer defecto ya declarado.** La precisión 44 reconocía que la reproducción neutral con donante "no es una sombra neutral de Bedau–Packard" y que en C16 su sesgo era anticonservador por el autostop de contenido neutro en los linajes exitosos.
 
-### Qué cambia (borrador)
+### Qué cambia
 - **Instrumento de medición, no regla del agente.** Bandera `enable_neutral_shadow` (por defecto `False`); cada hoja con ADN porta un `shadow_dna` que se hereda por la misma genealogía (misma fuente genética, misma pareja y cortes de recombinación proporcionales a su largo, conjugación espejo) y muta con los mismos operadores, tasas y escala SOS, con un generador propio `shadow_rng` (`spawn_key=(6,)`), pero nunca se expresa ni afecta nada (D64–D67).
 - **Evaluación y telemetría.** La sombra se evalúa en la situación real del agente, sin actuar ni aprender (D68), y `ShadowTickMetrics` registra sus métricas en `engine.shadow_history` (D69).
-- **Pre-registro nuevo D72 (`PHASE25_SHADOW_CLAIMS`).** C21–C27 (genuinas) y C28 (funcional) hacen las mismas preguntas que C13–C20, comparando el ADN real con su sombra dentro de la misma corrida. C22 y C26 usan versiones innatas de la divergencia de la conducta y de la elección de `SHARE`, porque la sombra no actúa ni aprende (D70). Los umbrales $\delta_{\min}$ son los de D56, sin cambio. Semillas nuevas 72–101, nunca usadas. Las condiciones neutrales no se corren.
+- **Pre-registro nuevo D72 (`PHASE25_SHADOW_CLAIMS`).** C21–C27 (genuinas; C27 exploratoria desde la aprobación) y C28 (funcional) hacen las mismas preguntas que C13–C20, comparando el ADN real con su sombra dentro de la misma corrida. C22 y C26 usan versiones innatas de la divergencia de la conducta y de la elección de `SHARE`, porque la sombra no actúa ni aprende (D70). Los umbrales $\delta_{\min}$ son los de D56, salvo el de C26, endurecido en la aprobación. Semillas nuevas 72–101, nunca usadas. Las condiciones neutrales no se corren.
 - **Sesgos declarados** (D71), **compatibilidad y aceptación del instrumento** (D73: inercia sobre la dinámica real e identidad sin mutación, con $R_{13}$, $R_{26}$ y $R_{27}$ ablacionadas) y **costo** (D74).
 - **Etapa S en `tasks.md`:** bloques 27 a 32.
 
@@ -246,7 +246,18 @@ Una revisión cruzada independiente del borrador D56 encontró problemas antes d
 - Las reglas $R_{24}$–$R_{41}$, los protocolos, las condiciones con selección y la abundancia (80, 20) de la Enmienda 2 de D55. No hay compuerta nueva: la sombra no cambia la dinámica (D72.10).
 
 ### Riesgo declarado de antemano
-- `25d` probablemente siga sin potencia: C27 espera unos 19 pares válidos y C28 unos 13 (D72.10). Queda como punto abierto P-S1 para el responsable del proyecto.
+- `25d` probablemente siga sin potencia: C27 espera unos 19 pares válidos y C28 unos 13 (D72.10). P-S1 se cerró en la aprobación: C27 pasa a exploratoria.
 
 ### Estado
-- **Borrador para revisión cruzada.** Se aprueba en la tarea 0.8, antes de implementar la etapa S y sin correr ninguna corrida con sombra.
+- **Aprobado el 2026-10-23** (tarea 0.8), antes de implementar la etapa S y sin correr ninguna corrida con sombra. Ver la sección siguiente.
+
+## Aprobación del pre-registro con sombra D72 (2026-10-23, tarea 0.8)
+
+- **Quién decidió:** el responsable del proyecto tomó las tres decisiones de abajo después de una revisión cruzada independiente, y delegó la aprobación del pre-registro en el agente principal.
+- **Cuándo:** el 2026-10-23, después de ver la atribución de D56 (por eso se declaran los grados de libertad post hoc, D64.4) y **antes** de implementar ningún bloque de la etapa S y de correr ninguna corrida con sombra.
+- **Revisión cruzada (tarea 0.7):** borrador en el commit `5f09e29`, primera ronda aplicada en `39c1baa` y segunda ronda en esta aprobación.
+- **Decisión 1, C25 y sesgo de mantenimiento.** El fundador ya tiene codones expresables no ofensivos: la sombra los pierde por mutación mientras la selección purificadora los conserva en el ADN real, así que real − sombra > 0 puede medir sólo mantenimiento, y el recambio reentra por el término de la sombra. C25 se observa sólo si, además, la mediana pareada de $\text{real}_{\text{full}} - \text{real}_{\text{no\_predation}}$ sobre los mismos pares válidos es mayor que 0: un requisito adicional de dirección, sin p-valor, fuera de Holm y sin cambiar $m$ (D72.3, `joint_real_comparison`, `joint_median`). D71.3 declara el sesgo por afirmación: C21, C23, C24, C26 y C27 tienen fundador 0 en su métrica (sin sesgo de mantenimiento), en C22 el mantenimiento actúa en contra, y C25 puede tenerlo a favor. Se elimina la afirmación general de que el control es conservador.
+- **Decisión 2, potencia de `25d` (P-S1).** C27 pasa a **exploratoria**: se computa y se informa con su p-valor crudo, fuera de Holm. La familia confirmatoria es C21–C26, con $m = \max(6, \text{confirmatorias evaluadas})$. C28 sigue funcional y fuera de Holm. P-S2 se cierra conservando E4 y los efectos de regla como exploratorios, con los `None` ya declarados (D72.12). D56 y su familia (C13–C19, $m = 7$) no cambian.
+- **Decisión 3, grados de libertad post hoc y C26.** D64.4 lista todas las elecciones tomadas con los resultados de D56 a la vista (δ conservados, métricas innatas de C22 y C26, diferencia de diferencias con sombra de C25 y C27, condición conjunta de C25, E4 sobre el exceso de la sombra, familia de Holm separada, C27 exploratoria, cortes proporcionales y el umbral de C26) y cita esos resultados (C13: p 0.00026, ajustado 0.0018, mediana 0.67 frente a 1.0; C17: mediana −6.3; C18: mediana de las diferencias $1.9 \cdot 10^{-5}$). El umbral de C26 pasa de 0.01 a $\max(0.01,\ 0.25 \cdot M)$, con $M$ la mediana de la sombra: `innate_share_choice` cuenta elecciones, que acotan por arriba a las cesiones ejecutadas en un factor que la definición no fija, y el umbral relativo ya pre-registrado para C24 reescala el mínimo a la escala de la propia métrica sin usar datos (D72.4).
+- **Relajación declarada.** Bajar $m$ de 7 a 6 hace algo menos estricta la corrección de C21–C26; es la única elección que relaja un criterio respecto de D56 (D64.4).
+- A partir de aquí, cambiar D72 exige un commit que lo justifique.
