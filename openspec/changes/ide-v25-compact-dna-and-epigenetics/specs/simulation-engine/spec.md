@@ -470,6 +470,10 @@ Por cada transferencia real sorteada (par donante–receptor), en el orden de ap
 - **WHEN** hay una transferencia real y la sombra del donante no tiene plásmidos
 - **THEN** la sombra del receptor no cambia y `shadow_rng` no se consume en esa transferencia.
 
+#### Scenario: Sombra del donante al empezar el paso
+- **WHEN** un agente es receptor de una transferencia aplicada antes en el orden de aplicación y después es donante de otra
+- **THEN** el codón de su transferencia espejo se sortea entre los plásmidos de su sombra al empezar el paso, sin el recibido en ese mismo paso.
+
 ### Requirement: Sombra sin Inmunidad CRISPR
 La sombra SHALL NOT abrir ensayos ni purgar plásmidos: su `crispr_memory` SHALL quedar igual a la del fundador, y sus plásmidos SHALL perderse sólo por FIFO (design D67.6).
 
@@ -478,11 +482,15 @@ La sombra SHALL NOT abrir ensayos ni purgar plásmidos: su `crispr_memory` SHALL
 - **THEN** la sombra conserva ese plásmido y su `crispr_memory` sigue vacía.
 
 ### Requirement: Evaluación Innata de la Sombra en la Situación Real
-Con la sombra efectiva y $R_{32}$ efectiva, `ShadowEvaluationSystem` SHALL correr como último sistema del núcleo de la Fase 3 y, por agente que decidió con la política genética y en orden de `agent_id`, registrar en el marco la elección innata real, la de la sombra y las máscaras de estado de la sombra, con el `DecisionTrace`, el `last_context` y los símbolos percibidos del agente, sin consumir generadores (design D68).
+Con la sombra y $R_{32}$ efectivas, `ShadowEvaluationSystem` SHALL correr inmediatamente después del núcleo de la Fase 3, sin la marca `notifies_decisions`, y por agente que decidió con la política genética, en orden de `agent_id`, registrar en `frame.shadow_decisions` las elecciones innatas del fundador, del ADN real y de la sombra y las máscaras de la sombra, con su `DecisionTrace`, `last_context` y símbolos percibidos, sin consumir generadores (design D68).
 
-#### Scenario: Antes de on_decisions
-- **WHEN** se arma `build_systems` de `25a` con la sombra activa
-- **THEN** `ShadowEvaluationSystem` va después de la decisión y de la emisión de señales, lleva la marca `notifies_decisions` y va antes de `InternalStateSystem`.
+#### Scenario: Después del núcleo y sin la marca
+- **WHEN** se arma `build_systems` de `25a` con la sombra activa, con y sin $R_{41}$
+- **THEN** `ShadowEvaluationSystem` va después de la decisión y de la emisión de señales y antes de `InternalStateSystem`, no lleva la marca `notifies_decisions`, la marca sigue en el último sistema del núcleo y `validate_systems` acepta la lista.
+
+#### Scenario: Lectura en on_tick_end
+- **WHEN** termina un tick de `25a` con la sombra activa
+- **THEN** `ShadowMetricsObserver` arma su registro en `on_tick_end` a partir de `frame.shadow_decisions`.
 
 #### Scenario: Endospora sin evaluación
 - **WHEN** un agente está en endospora en la Fase 3

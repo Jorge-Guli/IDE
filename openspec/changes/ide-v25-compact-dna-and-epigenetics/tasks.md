@@ -448,18 +448,19 @@
 
 > Ejecuta: implementador-delicado
 >
-> Punto de control: compuerta del instrumento. Mostrar las pruebas de inercia (D73.2) y de identidad sin mutación (D73.3) en los cuatro protocolos, con `drift` y $R_{17}$, y el test AST de accesos (D73.4). Sin ellas no se corre ninguna corrida con sombra.
+> Punto de control: compuerta del instrumento. Mostrar las pruebas de inercia (D73.2) en los cuatro protocolos, con `drift` y $R_{17}$, la de identidad sin mutación (D73.3, con $R_{13}$, $R_{26}$ y $R_{27}$ ablacionadas), los tests dirigidos de la conjugación espejo y de la sombra sin CRISPR, y el test AST de accesos (D73.4). Sin ellas no se corre ninguna corrida con sombra.
 
 - [ ] 28.1 **[RED]** Tests para:
   - la herencia por la fuente genética, con selección, en la reproducción neutral y en $R_{17}$ (D67.1, D67.4);
   - la mutación de la sombra con `shadow_rng`, los mismos operadores y la misma escala SOS, sin consumo con $R_{13}$ ablacionada (D67.3);
-  - la recombinación de la sombra con la misma pareja y los cortes acotados, sin generadores (D67.2);
-  - la conjugación espejo, también cuando CRISPR bloquea la transferencia real, y sin extracción si la sombra del donante no tiene plásmidos (D67.5); la sombra sin ensayos ni purgas CRISPR (D67.6);
+  - la recombinación de la sombra con la misma pareja (no otra candidata) y los cortes proporcionales `round(a·L_s/L_r)` y `round(b·L_s/L_r)` acotados a `[0, L_s]`, iguales a los reales con largos iguales, sin generadores (D67.2);
+  - la sombra recombinada que cae por debajo de `dna_min_length` (y usa la sombra de la fuente) mientras el ADN real recombinado no (D67.2, precisión 28);
+  - la conjugación espejo con transferencias fijadas a mano: también cuando CRISPR bloquea la transferencia real, sin extracción si la sombra del donante no tiene plásmidos, y con la sombra del donante tomada al empezar el paso cuando el donante fue receptor antes en el orden de aplicación (D67.5); la sombra sin ensayos ni purgas CRISPR (D67.6);
   - `Birth.shadow_dna` (D67.7);
   - la inercia: historiales reales y estado de todos los generadores salvo `shadow_rng` idénticos con la sombra activa y apagada, y con la sombra reemplazada a mitad de corrida (D73.2);
-  - la identidad sin mutación en `25a` y `25b`, con $R_{26}$, $R_{27}$, $R_{38}$ y $R_{17}$ activas (D73.3);
+  - la identidad sin mutación en `25a` y `25b`, con $R_{13}$, $R_{26}$ y $R_{27}$ ablacionadas y $R_{38}$ y $R_{17}$ activas (D73.3);
   - el test AST de accesos (D73.4) y la igualdad entre procesos con distinto `PYTHONHASHSEED` (D73.5).
-- [ ] 28.2 **[GREEN]** Implementar la herencia en `_give_birth` (con la pareja del cruce), la conjugación espejo y la sombra sin CRISPR.
+- [ ] 28.2 **[GREEN]** Implementar la herencia en `_give_birth` (con la pareja del cruce y los cortes proporcionales), la conjugación espejo y la sombra sin CRISPR. Ampliar la firma interna de `_draw_conjugations` para que devuelva también el donante (`(donante, receptor, codón)`), y copiar las sombras al empezar el paso de conjugación (D67.5).
 - [ ] 28.3 **[REFACTOR]** Verificación del bloque.
 
 ## 29. Evaluación y telemetría de la sombra (`simulation-engine`, `experimental-suite`)
@@ -467,9 +468,9 @@
 > Ejecuta: implementador-delicado
 
 - [ ] 29.1 **[RED]** Tests para:
-  - `ShadowEvaluationSystem` (último del núcleo de la Fase 3, con la marca `notifies_decisions`), la elección innata real y de la sombra sin generadores y sin pesos plásticos, y `ShadowStateSystem` con $R_{39}$ (D68);
+  - `ShadowEvaluationSystem` inmediatamente después del núcleo de la Fase 3 y antes de `InternalStateSystem`, **sin** la marca `notifies_decisions` (que sigue en el último sistema del núcleo, con `validate_systems` en verde, con y sin $R_{41}$), las elecciones innatas del fundador, real y de la sombra sin generadores y sin pesos plásticos, la lectura de `frame.shadow_decisions` en `on_tick_end`, y `ShadowStateSystem` con $R_{39}$ (D68.5, D68.6);
   - `ShadowTickMetrics` con sus campos en orden, `engine.shadow_history`, la población vacía y los nombres únicos (D69);
-  - cada campo de sombra, incluidas `shadow_communicating_fraction` con el fenotipo de la sombra en `last_context`, `innate_share_choice` frente a `share_rate` y la actividad de la sombra con el mismo denominador (D69.2, D70);
+  - cada campo de sombra, incluidas `shadow_communicating_fraction` con el fenotipo de la sombra en `last_context`, `innate_share_choice` frente a `share_rate` y la actividad de la sombra con el mismo denominador (D69.2, D70). Al implementar la actividad de la sombra (y cualquier conjunto de codones o de agentes de la sombra), iterar los conjuntos con `sorted(...)`, como exige `CLAUDE.md` (Determinismo);
   - que la caché de la transcripción y de la evaluación de la sombra coincide con el cálculo directo;
   - que `GeneticTickMetrics`, `EcologyTickMetrics`, `TickMetrics` y `EvolutionaryTickMetrics` no cambian.
   - Exploratorio, marcado `empirical` (no bloquea): con `dna_codon_cost` alto, `mean_chromosome_length` real queda por debajo de `shadow_mean_chromosome_length` (control positivo del instrumento).
@@ -483,9 +484,9 @@
 - [ ] 30.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
   - `Phase25ShadowClaim` y su validación, `PHASE25_SHADOW_CLAIMS` (C21–C28) con métricas, `shadow_metric`, comparaciones, $R_C$, canales, $\delta_{\min}$ y enunciados (D72.2, D72.3);
   - las tres formas de diferencia, `values` y `comparison_values`, los pares válidos sin condiciones neutrales, la prueba de signo, Holm sobre C21–C27, C28 fuera de Holm y el umbral relativo de C24 (D72.2, D72.5);
-  - E4 sobre el exceso de la sombra y los efectos de regla con las semillas 72–81 (D72.7, D72.8);
+  - E4 sobre el exceso de la sombra y los efectos de regla con las semillas 72–81 (D72.7, D72.8), con `None` sin correr la variante para $R_{12}$, $R_{13}$ y $R_{24}$ en todas las afirmaciones y para $R_{32}$ en C22 y C26;
   - `PHASE25_SHADOW_PROTOCOL_CONFIGS`, sus condiciones y `PHASE25_SHADOW_SEEDS` disjuntas de las anteriores (D72.6);
-  - `run_phase25_shadow_attribution`, su validación de configuraciones y la salida idéntica para cualquier `jobs` (D72.11);
+  - `run_phase25_shadow_attribution`, su validación de configuraciones (sólo las base; no las variantes ablacionadas, como la de $R_{32}$) y la salida idéntica para cualquier `jobs` (D72.11);
   - que `PHASE25_CLAIMS` y la atribución de D56 no cambian.
 - [ ] 30.2 **[GREEN]** Implementar en `attribution.py` el pre-registro aprobado en 0.8. Las constantes deben coincidir exactamente con design D72.
 - [ ] 30.3 **[REFACTOR]** Verificación del bloque.

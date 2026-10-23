@@ -514,6 +514,17 @@ Los `rule_effects` de la atribución con sombra SHALL ser exploratorios, con `PH
 - **WHEN** con una regla ablacionada $D$ vale 1.0 en `full` y 0.25 en la variante en las únicas dos semillas válidas
 - **THEN** el efecto de esa regla es `pytest.approx(0.75, abs=1e-9)`.
 
+### Requirement: Efectos de Regla no Definidos con Sombra
+En la atribución con sombra, el efecto de regla SHALL valer `None`, sin correr su variante, para $R_{12}$ (su ablación es la reproducción neutral), $R_{13}$ ($D \equiv 0$ por construcción) y $R_{24}$ (sombra inerte) en todas las afirmaciones, y para $R_{32}$ en `C22` y `C26` (sin decisiones genéticas) (design D72.8).
+
+#### Scenario: Reglas sin efecto definido
+- **WHEN** se calculan los `rule_effects` de la atribución con sombra
+- **THEN** los de `R12`, `R13` y `R24` valen `None` en `C21`..`C28`, el de `R32` vale `None` en `C22` y `C26`, y ninguna corrida tiene `reproduction_mode == "neutral"`.
+
+#### Scenario: Efecto de R32 definido fuera de C22 y C26
+- **WHEN** `R32` está activa en `25a` y hay semillas válidas con `full` y la variante
+- **THEN** el efecto de `R32` en `C21` es un número, no `None`.
+
 ### Requirement: Protocolos y Condiciones con Sombra
 `PHASE25_SHADOW_PROTOCOL_CONFIGS` SHALL ser `PHASE25_PROTOCOL_CONFIGS` con `enable_neutral_shadow=True`, y sus condiciones SHALL ser `full`, `no_predation` (`25a`), `stable` y `no_learning` (`25d`) y `null_content`, todas con la sombra activa; las condiciones con reproducción neutral SHALL NOT correrse (design D72.6).
 
@@ -529,11 +540,15 @@ La atribución con sombra SHALL usar `PHASE25_SHADOW_SEEDS = tuple(range(72, 102
 - **THEN** tiene 30 semillas, de 72 a 101, y su intersección con `PHASE25_SEEDS`, `PHASE2_SEEDS` y `PHASE25_VIABILITY_SEEDS` es vacía.
 
 ### Requirement: Ejecución de la Atribución con Sombra
-`run_phase25_shadow_attribution(seeds=PHASE25_SHADOW_SEEDS, claims=PHASE25_SHADOW_CLAIMS, jobs=1, configs=None, rule_effect_seeds=PHASE25_SHADOW_RULE_EFFECT_SEEDS)` SHALL devolver un `Phase25Report` con `profile == "phase25"`, y SHALL rechazar con `ValueError` un `configs[protocolo]` sin la sombra efectiva o que no respete su protocolo (precisión 121) (design D72.11).
+`run_phase25_shadow_attribution(seeds=PHASE25_SHADOW_SEEDS, claims=PHASE25_SHADOW_CLAIMS, jobs=1, configs=None, rule_effect_seeds=PHASE25_SHADOW_RULE_EFFECT_SEEDS)` SHALL devolver un `Phase25Report` con `profile == "phase25"`, y SHALL rechazar con `ValueError` un `configs[protocolo]` sin la sombra efectiva o que no respete su protocolo (precisión 121); la validación SHALL aplicarse sólo a las configuraciones base, no a las variantes ablacionadas (design D72.11).
 
 #### Scenario: Configuración sin sombra
 - **WHEN** se llama con `configs["25a"]` igual a `PHASE25_PROTOCOL_CONFIGS["25a"]`
 - **THEN** se lanza `ValueError`.
+
+#### Scenario: Variante ablacionada fuera de la validación
+- **WHEN** las configuraciones base son válidas y la variante de `R32` de `25a` (sin `enable_genetic_policy`) no cumpliría la validación de su protocolo
+- **THEN** no se lanza `ValueError`, y la variante se corre para los efectos de regla en que está definida.
 
 #### Scenario: Salida idéntica para cualquier jobs
 - **WHEN** se corre con un perfil corto, dos semillas y `jobs` 1 y 3

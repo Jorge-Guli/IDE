@@ -179,18 +179,30 @@ La sombra del hijo SHALL mutarse con `mutate_dna(base, parent.base_config, shado
 - **WHEN** un progenitor estresado se reproduce con $R_{30}$ activa
 - **THEN** la sombra del hijo se muta con `sos_hypermutation_factor`, como su ADN real.
 
-### Requirement: Recombinación de la Sombra con la Misma Pareja y los Mismos Cortes
-Si el ADN real del hijo se recombina con cortes `a` y `b`, su sombra SHALL ser `recombine_dna(sombra_fuente, sombra_pareja, min(a, len_fuente), min(b, len_pareja - 1), config)`, con los largos de los cromosomas de las sombras y la misma pareja, sin extraer de ningún generador; sin cruce real, SHALL NOT recombinarse (design D67.2).
+### Requirement: Recombinación de la Sombra con la Misma Pareja y Cortes Proporcionales
+Si el ADN real del hijo se recombina con cortes `a` y `b`, su sombra SHALL ser `recombine_dna(sombra_fuente, sombra_pareja, a_s, b_s, config)` con la misma pareja, `a_s = round(a·L_s/L_r)` y `b_s = round(b·L_s/L_r)` (largos de los cromosomas de la sombra y real de la fuente y de la pareja, respectivamente) acotados a `[0, L_s]`, sin extraer de ningún generador; sin cruce real, SHALL NOT recombinarse (design D67.2).
 
-#### Scenario: Corte acotado
-- **WHEN** el cruce real usa `a = 10` y la sombra de la fuente tiene 7 codones
-- **THEN** la sombra usa `a_s = 7`.
+#### Scenario: Corte proporcional
+- **WHEN** el cruce real usa `a = 10` con un cromosoma real de la fuente de 20 codones y su sombra tiene 8
+- **THEN** la sombra usa `a_s = 4`.
+
+#### Scenario: Largos iguales
+- **WHEN** la sombra de la fuente y la de la pareja tienen el mismo largo que sus cromosomas reales
+- **THEN** `a_s == a` y `b_s == b`.
+
+#### Scenario: Misma pareja
+- **WHEN** el ADN real del hijo se recombina con la pareja `p`
+- **THEN** su sombra se recombina con la sombra de `p`, no con la de otra candidata.
+
+#### Scenario: Sombra recombinada bajo el mínimo
+- **WHEN** la sombra recombinada queda más corta que `dna_min_length` y el ADN real recombinado no
+- **THEN** la sombra del hijo usa el cromosoma de la sombra de la fuente y el ADN real conserva el recombinado.
 
 ### Requirement: Identidad de la Sombra sin Mutación
-Con $R_{13}$ ablacionada y la sombra efectiva, `shadow_dna` SHALL ser igual a `dna` en todo agente y todo tick, y cada campo de sombra de `ShadowTickMetrics` SHALL igualar a su homólogo real, también con $R_{26}$, $R_{27}$, $R_{38}$ y $R_{17}$ activas (design D73.3).
+Con $R_{13}$, $R_{26}$ y $R_{27}$ ablacionadas y la sombra efectiva, `shadow_dna` SHALL ser igual a `dna` en todo agente y todo tick, y cada campo de sombra de `ShadowTickMetrics` SHALL igualar a su homólogo real, con $R_{38}$ y $R_{17}$ activas. La conjugación espejo y la sombra sin CRISPR SHALL verificarse con tests dirigidos con transferencias fijas (design D73.3).
 
 #### Scenario: Identidad en 25a y 25b
-- **WHEN** se corren 300 ticks de `25a` y de `25b` con `mutation_rate = 0.0`, `discrete_mutation_prob = 0.0` y la sombra activa
+- **WHEN** se corren 300 ticks de `25a` y de `25b` con `mutation_rate = 0.0`, `discrete_mutation_prob = 0.0`, `enable_plasmid_hgt=False`, `enable_crispr_immunity=False` y la sombra activa
 - **THEN** en cada tick `shadow_dna == dna` en todo agente, `shadow_mean_conditional_codons == mean_conditional_codons` y `shadow_innate_policy_divergence == innate_policy_divergence`.
 
 ## MODIFIED Requirements

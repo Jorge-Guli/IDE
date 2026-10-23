@@ -235,10 +235,10 @@ Una revisión cruzada independiente del borrador D56 encontró problemas antes d
 - **Un tercer defecto ya declarado.** La precisión 44 reconocía que la reproducción neutral con donante "no es una sombra neutral de Bedau–Packard" y que en C16 su sesgo era anticonservador por el autostop de contenido neutro en los linajes exitosos.
 
 ### Qué cambia (borrador)
-- **Instrumento de medición, no regla del agente.** Bandera `enable_neutral_shadow` (por defecto `False`); cada hoja con ADN porta un `shadow_dna` que se hereda por la misma genealogía (misma fuente genética, misma pareja y cortes de recombinación, conjugación espejo) y muta con los mismos operadores, tasas y escala SOS, con un generador propio `shadow_rng` (`spawn_key=(6,)`), pero nunca se expresa ni afecta nada (D64–D67).
+- **Instrumento de medición, no regla del agente.** Bandera `enable_neutral_shadow` (por defecto `False`); cada hoja con ADN porta un `shadow_dna` que se hereda por la misma genealogía (misma fuente genética, misma pareja y cortes de recombinación proporcionales a su largo, conjugación espejo) y muta con los mismos operadores, tasas y escala SOS, con un generador propio `shadow_rng` (`spawn_key=(6,)`), pero nunca se expresa ni afecta nada (D64–D67).
 - **Evaluación y telemetría.** La sombra se evalúa en la situación real del agente, sin actuar ni aprender (D68), y `ShadowTickMetrics` registra sus métricas en `engine.shadow_history` (D69).
 - **Pre-registro nuevo D72 (`PHASE25_SHADOW_CLAIMS`).** C21–C27 (genuinas) y C28 (funcional) hacen las mismas preguntas que C13–C20, comparando el ADN real con su sombra dentro de la misma corrida. C22 y C26 usan versiones innatas de la divergencia de la conducta y de la elección de `SHARE`, porque la sombra no actúa ni aprende (D70). Los umbrales $\delta_{\min}$ son los de D56, sin cambio. Semillas nuevas 72–101, nunca usadas. Las condiciones neutrales no se corren.
-- **Sesgos declarados** (D71), **compatibilidad y aceptación del instrumento** (D73: inercia sobre la dinámica real e identidad sin mutación) y **costo** (D74).
+- **Sesgos declarados** (D71), **compatibilidad y aceptación del instrumento** (D73: inercia sobre la dinámica real e identidad sin mutación, con $R_{13}$, $R_{26}$ y $R_{27}$ ablacionadas) y **costo** (D74).
 - **Etapa S en `tasks.md`:** bloques 27 a 32.
 
 ### Qué no cambia
