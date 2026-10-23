@@ -42,6 +42,7 @@ from ide.config import (
     SimulationConfig,
     epigenetic_roles_active,
     genetic_policy_active,
+    neutral_shadow_active,
     recombination_active,
     sporulation_active,
     stress_energy_limit,
@@ -227,6 +228,12 @@ class SimulationEngine:
         self.hgt_rng = np.random.Generator(
             np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(5,)))
         )
+        # Sombra neutral (D66): instrumento de medición. Sus únicos usos, declarados y del bloque
+        # 28, son la mutación de la sombra de cada hijo y el codón de la conjugación espejo; sólo
+        # se consume con la sombra efectiva. Construirlo no consume nada.
+        self.shadow_rng = np.random.Generator(
+            np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(6,)))
+        )
         self.env: EnvironmentPort = env if env is not None else ToroidalGrid2D(config, self.rng)
         self._evo_env: EvolutionaryEnvironmentPort | None = (
             self.env if isinstance(self.env, EvolutionaryEnvironmentPort) else None
@@ -268,6 +275,14 @@ class SimulationEngine:
             aid: MicroAgent(aid, config, trust_strategy, policy=policy)
             for aid in self.env.get_active_agent_ids()
         }
+        # Sombra neutral efectiva (D65.1): cada fundador parte con la sombra igual a su ADN y el
+        # estado de sombra en 0 (D65.3); no consume generadores.
+        self.neutral_shadow_active = neutral_shadow_active(config)
+        if self.neutral_shadow_active:
+            for founder in self.agents.values():
+                if founder.dna is None:
+                    raise ValueError("la sombra neutral efectiva exige ADN en cada fundador")
+                founder.set_shadow_dna(founder.dna)
         self.direct_discoverers: dict[Pattern, set[int]] = defaultdict(set)
         self.collector = MetricsCollector(config)
         self.history: list[TickMetrics] = []

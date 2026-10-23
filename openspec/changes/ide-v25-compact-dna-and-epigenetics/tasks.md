@@ -435,14 +435,14 @@
 
 > Ejecuta: implementador-mecanico
 
-- [ ] 27.1 **[RED]** Tests para:
+- [x] 27.1 **[RED]** Tests para:
   - `enable_neutral_shadow: bool = False` como último campo de `SimulationConfig`, y el escenario de los campos de la ampliación actualizado (D65.1);
   - `MicroAgent.shadow_dna`, `shadow_internal_state`, `set_shadow_dna` y `set_shadow_internal_state` (con `ValueError` fuera de $[0, 255]$), y que `create_offspring`, `express` y `decide_action` no los usan (D65.2);
   - `shadow_rng` con `spawn_key=(6,)`, sin consumo con la sombra apagada o inerte, y los escenarios de generadores del motor con `shadow_rng` (D66, D73.6);
   - la sombra inerte sin `enable_compact_dna` o sin `enable_evolution`, sin error (D65.1);
   - los fundadores con `shadow_dna == dna` y estado de sombra 0 (D65.3).
-- [ ] 27.2 **[GREEN]** Implementar la bandera, el estado del agente, el generador y la sombra de los fundadores.
-- [ ] 27.3 **[REFACTOR]** Verificación del bloque, con los hashes dorados, las huellas de la Fase II y los historiales de la Fase II-B intactos con la sombra apagada.
+- [x] 27.2 **[GREEN]** Implementar la bandera, el estado del agente, el generador y la sombra de los fundadores.
+- [x] 27.3 **[REFACTOR]** Verificación del bloque, con los hashes dorados, las huellas de la Fase II y los historiales de la Fase II-B intactos con la sombra apagada. Suite: 2136 pasan, cobertura 99 %.
 
 ## 28. Herencia, mutación y conjugación de la sombra (`evolutionary-dynamics`, `simulation-engine`, `experimental-suite`)
 

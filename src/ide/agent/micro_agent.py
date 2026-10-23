@@ -184,6 +184,11 @@ class MicroAgent:
         # guardados junto a esa instancia de ADN: acotan la máscara percibida en la clave del
         # caché de la evaluación (precisión 105).
         self._heard: tuple[CompactDNA, int] | None = None
+        # --- Sombra neutral (design D65.2) ---
+        # Sólo se guarda y se devuelve: el motor la asigna y nunca la leen `express`,
+        # `decide_action`, la política ni `create_offspring` (D65.4). No se hereda aquí.
+        self._shadow_dna: CompactDNA | None = None
+        self._shadow_internal_state = 0
         self._dna: CompactDNA | None = None
         self._phenotype: ExpressedPhenotype
         self._last_context: EpigeneticContext
@@ -472,6 +477,37 @@ class MicroAgent:
         self._evaluation_cache.clear()
         self._decision = None  # la decisión registrada era la de otro ADN
         self._plastic_weights.clear()  # las posiciones cambian (D59.2); la vista sigue viva
+
+    @property
+    def shadow_dna(self) -> CompactDNA | None:
+        """ADN de la sombra neutral (D65.2): `None` sin sombra efectiva. Nunca se expresa."""
+        return self._shadow_dna
+
+    @property
+    def shadow_internal_state(self) -> int:
+        """Estado interno de 8 bits de la sombra (D65.2): 0 al nacer y no se hereda."""
+        return self._shadow_internal_state
+
+    def set_shadow_dna(self, dna: CompactDNA) -> None:
+        """Asigna la sombra; no toca el ADN real, las cachés ni el fenotipo (D65.2, D65.4).
+
+        El invariante "`None` sin sombra efectiva" lo garantiza el motor, que es el único que la
+        asigna: las métricas deciden con `engine.neutral_shadow_active`, no con `shadow_dna`.
+        """
+        self._shadow_dna = dna
+
+    def set_shadow_internal_state(self, state: int) -> None:
+        """Asigna el estado interno de la sombra.
+
+        Raises:
+            TypeError: si `state` no es un `int` de Python (los `bool` no cuentan).
+            ValueError: si `state` está fuera de $[0, 255]$.
+        """
+        if type(state) is not int:
+            raise TypeError(f"shadow_internal_state debe ser int, recibido {type(state).__name__}")
+        if not 0 <= state <= _STATE_MASK:
+            raise ValueError(f"shadow_internal_state debe estar en [0, 255], recibido {state}")
+        self._shadow_internal_state = state
 
     def set_endospore(self, flag: bool) -> None:
         """Entrada en endospora o germinación (R28, design D38).

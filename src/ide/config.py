@@ -280,6 +280,9 @@ class SimulationConfig:
     world_shift_period: int = 0  # 0 = sin cambios del entorno (D62.1)
     world_shift_fraction: float = 0.5
 
+    # --- Sombra neutral (D64-D65): instrumento de medición, no una regla del agente ---
+    enable_neutral_shadow: bool = False
+
     def __post_init__(self) -> None:
         if self.memory_capacity < 1:
             raise ValueError(f"memory_capacity debe ser >= 1, recibido {self.memory_capacity}")
@@ -468,6 +471,18 @@ def genetic_policy_active(config: SimulationConfig) -> bool:
     escrita a mano.
     """
     return config.enable_compact_dna and config.enable_genetic_policy
+
+
+def neutral_shadow_active(config: SimulationConfig) -> bool:
+    """Sombra neutral efectiva: `enable_neutral_shadow` con evolución y ADN compacto (D65.1).
+
+    Es el instrumento de medición del control de deriva, no una regla del agente. Sin evolución o
+    sin ADN compacto la bandera es inerte y no lanza error (D30.3). Es la única definición de la
+    condición; el motor la guarda en `engine.neutral_shadow_active`. El término de evolución es
+    redundante a propósito: hoy `SimulationConfig` ya exige evolución con ADN compacto, pero D65.1
+    enuncia la condición completa.
+    """
+    return config.enable_evolution and config.enable_compact_dna and config.enable_neutral_shadow
 
 
 def sporulation_active(config: SimulationConfig) -> bool:

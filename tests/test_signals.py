@@ -693,7 +693,7 @@ def test_generadores_con_la_ampliacion_activa() -> None:
         name for name, value in vars(engine).items() if isinstance(value, np.random.Generator)
     }
     assert {"rng", "null_rng", "evo_rng", "donor_rng"} <= generators
-    assert generators <= {"rng", "null_rng", "evo_rng", "donor_rng", "hgt_rng"}
+    assert generators <= {"rng", "null_rng", "evo_rng", "donor_rng", "hgt_rng", "shadow_rng"}
 
 
 # --- (e) fuera del protocolo y de la memoria (D60.6) -------------------------------------------

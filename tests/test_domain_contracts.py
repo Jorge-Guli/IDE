@@ -981,7 +981,10 @@ def test_config_reformulacion_campos_al_final_en_orden() -> None:
     inicio = names.index("enable_genetic_policy")
     assert names[inicio - 1] == "lock_coord_discount"
     assert names[inicio : inicio + len(_REFORM_FIELD_ORDER)] == _REFORM_FIELD_ORDER
-    assert names[inicio + len(_REFORM_FIELD_ORDER) :] == _AMPLIACION_FIELD_ORDER
+    assert names[inicio + len(_REFORM_FIELD_ORDER) :] == [
+        *_AMPLIACION_FIELD_ORDER,
+        "enable_neutral_shadow",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -1058,7 +1061,8 @@ def test_config_ampliacion_valores_y_orden() -> None:
     assert cfg.world_shift_fraction == 0.5
     assert cfg.dna_max_length == 32
     names = [f.name for f in fields(SimulationConfig)]
-    assert names[-7:] == _AMPLIACION_FIELD_ORDER
+    assert names[-8:-1] == _AMPLIACION_FIELD_ORDER
+    assert names[-1] == "enable_neutral_shadow"
 
 
 @pytest.mark.parametrize(
