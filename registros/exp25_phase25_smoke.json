@@ -1,0 +1,5174 @@
+{
+  "configs": {
+    "25a": {
+      "activity_threshold": 10,
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "attack_cost": 0.01,
+      "attack_power": 0.5,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "carcass_lifetime": 50,
+      "carcass_value": 0.6,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_propensity_base": 1.0,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 2,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "crispr_eval_ticks": 20,
+      "crispr_memory_size": 4,
+      "crispr_toxicity_threshold": 0.2,
+      "crowding_threshold": 3,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "dna_codon_cost": 0.0002,
+      "dna_deletion_rate": 0.02,
+      "dna_duplication_rate": 0.02,
+      "dna_excision_rate": 0.02,
+      "dna_max_length": 64,
+      "dna_min_length": 1,
+      "dna_point_mutation_rate": 0.05,
+      "enable_carcasses": true,
+      "enable_compact_dna": true,
+      "enable_crispr_immunity": true,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_energy_transfer": true,
+      "enable_epigenetic_roles": false,
+      "enable_evolution": true,
+      "enable_genetic_policy": true,
+      "enable_heterogeneity": true,
+      "enable_holon_reproduction": false,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": false,
+      "enable_internal_state": true,
+      "enable_navigation": true,
+      "enable_plasmid_hgt": true,
+      "enable_plasticity": true,
+      "enable_predation": true,
+      "enable_recombination": true,
+      "enable_resource_depletion": true,
+      "enable_signals": true,
+      "enable_sos_mutation": true,
+      "enable_specialization": false,
+      "enable_sporulation": true,
+      "enable_stigmergy": false,
+      "enable_symbiotic_ratchet": false,
+      "enable_telomere_senescence": true,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "hgt_energy_ratio": 0.85,
+      "hgt_rate": 0.05,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "lock_coord_discount": 0.5,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_plasmids": 4,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 0,
+      "num_regions": 3,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "plasticity_rate_base": 0.0,
+      "predation_efficiency": 0.6,
+      "recombination_base": 0.0,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 80,
+      "season_length": 500,
+      "seed": 42,
+      "senescence_cost_rate": 1e-05,
+      "sensory_radius_cost": 0.0005,
+      "share_efficiency": 0.9,
+      "share_fraction": 0.25,
+      "signal_cost": 0.002,
+      "sos_high_fidelity_energy_ratio": 1.5,
+      "sos_high_fidelity_factor": 0.25,
+      "sos_hypermutation_factor": 4.0,
+      "sos_window": 50,
+      "spore_cost_fraction": 0.05,
+      "spore_energy_threshold": 0.3,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "stress_energy_ratio": 0.35,
+      "surplus_energy_ratio": 0.85,
+      "symbiotic_commitment_base": 0.0,
+      "tau_policy": "validation",
+      "telomere_base_lifespan": 600,
+      "telomere_max_lifespan": 1200,
+      "telomere_min_lifespan": 150,
+      "update_scheme": "synchronous",
+      "winter_regen_factor": 3.0,
+      "world_shift_fraction": 0.5,
+      "world_shift_period": 0
+    },
+    "25b": {
+      "activity_threshold": 10,
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "attack_cost": 0.01,
+      "attack_power": 0.5,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "carcass_lifetime": 50,
+      "carcass_value": 0.6,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_propensity_base": 1.0,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 4,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "crispr_eval_ticks": 20,
+      "crispr_memory_size": 4,
+      "crispr_toxicity_threshold": 0.2,
+      "crowding_threshold": 3,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "dna_codon_cost": 0.0002,
+      "dna_deletion_rate": 0.02,
+      "dna_duplication_rate": 0.02,
+      "dna_excision_rate": 0.02,
+      "dna_max_length": 64,
+      "dna_min_length": 1,
+      "dna_point_mutation_rate": 0.05,
+      "enable_carcasses": true,
+      "enable_compact_dna": true,
+      "enable_crispr_immunity": true,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_energy_transfer": true,
+      "enable_epigenetic_roles": true,
+      "enable_evolution": true,
+      "enable_genetic_policy": true,
+      "enable_heterogeneity": true,
+      "enable_holon_reproduction": true,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": true,
+      "enable_internal_state": true,
+      "enable_navigation": true,
+      "enable_plasmid_hgt": true,
+      "enable_plasticity": true,
+      "enable_predation": true,
+      "enable_recombination": true,
+      "enable_resource_depletion": true,
+      "enable_signals": true,
+      "enable_sos_mutation": true,
+      "enable_specialization": false,
+      "enable_sporulation": true,
+      "enable_stigmergy": false,
+      "enable_symbiotic_ratchet": true,
+      "enable_telomere_senescence": true,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "hgt_energy_ratio": 0.85,
+      "hgt_rate": 0.05,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "lock_coord_discount": 0.5,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_plasmids": 4,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 3,
+      "num_regions": 3,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "plasticity_rate_base": 0.0,
+      "predation_efficiency": 0.6,
+      "recombination_base": 0.0,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 80,
+      "season_length": 500,
+      "seed": 42,
+      "senescence_cost_rate": 1e-05,
+      "sensory_radius_cost": 0.0005,
+      "share_efficiency": 0.9,
+      "share_fraction": 0.25,
+      "signal_cost": 0.002,
+      "sos_high_fidelity_energy_ratio": 1.5,
+      "sos_high_fidelity_factor": 0.25,
+      "sos_hypermutation_factor": 4.0,
+      "sos_window": 50,
+      "spore_cost_fraction": 0.05,
+      "spore_energy_threshold": 0.3,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "stress_energy_ratio": 0.35,
+      "surplus_energy_ratio": 0.85,
+      "symbiotic_commitment_base": 0.0,
+      "tau_policy": "validation",
+      "telomere_base_lifespan": 600,
+      "telomere_max_lifespan": 1200,
+      "telomere_min_lifespan": 150,
+      "update_scheme": "synchronous",
+      "winter_regen_factor": 3.0,
+      "world_shift_fraction": 0.5,
+      "world_shift_period": 0
+    },
+    "25c": {
+      "activity_threshold": 10,
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "attack_cost": 0.01,
+      "attack_power": 0.5,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "carcass_lifetime": 50,
+      "carcass_value": 0.6,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_propensity_base": 0.0,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 2,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "crispr_eval_ticks": 20,
+      "crispr_memory_size": 4,
+      "crispr_toxicity_threshold": 0.2,
+      "crowding_threshold": 3,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "dna_codon_cost": 0.0002,
+      "dna_deletion_rate": 0.02,
+      "dna_duplication_rate": 0.02,
+      "dna_excision_rate": 0.02,
+      "dna_max_length": 64,
+      "dna_min_length": 1,
+      "dna_point_mutation_rate": 0.05,
+      "enable_carcasses": true,
+      "enable_compact_dna": true,
+      "enable_crispr_immunity": true,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_energy_transfer": true,
+      "enable_epigenetic_roles": false,
+      "enable_evolution": true,
+      "enable_genetic_policy": true,
+      "enable_heterogeneity": true,
+      "enable_holon_reproduction": false,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": false,
+      "enable_internal_state": true,
+      "enable_navigation": true,
+      "enable_plasmid_hgt": true,
+      "enable_plasticity": true,
+      "enable_predation": true,
+      "enable_recombination": true,
+      "enable_resource_depletion": true,
+      "enable_signals": true,
+      "enable_sos_mutation": true,
+      "enable_specialization": false,
+      "enable_sporulation": true,
+      "enable_stigmergy": false,
+      "enable_symbiotic_ratchet": false,
+      "enable_telomere_senescence": true,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "hgt_energy_ratio": 0.85,
+      "hgt_rate": 0.05,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "lock_coord_discount": 0.5,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_plasmids": 4,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 0,
+      "num_regions": 3,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "plasticity_rate_base": 0.0,
+      "predation_efficiency": 0.6,
+      "recombination_base": 0.0,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 80,
+      "season_length": 500,
+      "seed": 42,
+      "senescence_cost_rate": 1e-05,
+      "sensory_radius_cost": 0.0005,
+      "share_efficiency": 0.9,
+      "share_fraction": 0.25,
+      "signal_cost": 0.002,
+      "sos_high_fidelity_energy_ratio": 1.5,
+      "sos_high_fidelity_factor": 0.25,
+      "sos_hypermutation_factor": 4.0,
+      "sos_window": 50,
+      "spore_cost_fraction": 0.05,
+      "spore_energy_threshold": 0.3,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "stress_energy_ratio": 0.35,
+      "surplus_energy_ratio": 0.85,
+      "symbiotic_commitment_base": 0.0,
+      "tau_policy": "validation",
+      "telomere_base_lifespan": 600,
+      "telomere_max_lifespan": 1200,
+      "telomere_min_lifespan": 150,
+      "update_scheme": "synchronous",
+      "winter_regen_factor": 3.0,
+      "world_shift_fraction": 0.5,
+      "world_shift_period": 0
+    },
+    "25d": {
+      "activity_threshold": 10,
+      "alpha_learning": 0.4,
+      "anti_echo_enabled": true,
+      "attack_cost": 0.01,
+      "attack_power": 0.5,
+      "beta_punish": 0.6,
+      "beta_reinforce": 0.3,
+      "carcass_lifetime": 50,
+      "carcass_value": 0.6,
+      "comm_content_null": false,
+      "comm_enabled": true,
+      "comm_propensity_base": 1.0,
+      "comm_radius": 2,
+      "composite_failure_penalty": 0.2,
+      "composite_order": 2,
+      "composite_resources_per_pattern": 4,
+      "composite_reward_exponent": 1.5,
+      "crispr_eval_ticks": 20,
+      "crispr_memory_size": 4,
+      "crispr_toxicity_threshold": 0.2,
+      "crowding_threshold": 3,
+      "decision_conf_threshold": 0.35,
+      "discrete_mutation_prob": 0.1,
+      "dna_codon_cost": 0.0002,
+      "dna_deletion_rate": 0.02,
+      "dna_duplication_rate": 0.02,
+      "dna_excision_rate": 0.02,
+      "dna_max_length": 64,
+      "dna_min_length": 1,
+      "dna_point_mutation_rate": 0.05,
+      "enable_carcasses": true,
+      "enable_compact_dna": true,
+      "enable_crispr_immunity": true,
+      "enable_cultural_inheritance": false,
+      "enable_downward_causation": false,
+      "enable_energy_transfer": true,
+      "enable_epigenetic_roles": false,
+      "enable_evolution": true,
+      "enable_genetic_policy": true,
+      "enable_heterogeneity": true,
+      "enable_holon_reproduction": false,
+      "enable_holon_splitting": true,
+      "enable_holon_view": true,
+      "enable_holonic_hierarchy": false,
+      "enable_internal_state": true,
+      "enable_navigation": true,
+      "enable_plasmid_hgt": true,
+      "enable_plasticity": true,
+      "enable_predation": true,
+      "enable_recombination": true,
+      "enable_resource_depletion": true,
+      "enable_signals": true,
+      "enable_sos_mutation": true,
+      "enable_specialization": false,
+      "enable_sporulation": true,
+      "enable_stigmergy": false,
+      "enable_symbiotic_ratchet": false,
+      "enable_telomere_senescence": true,
+      "energy_gain_scale": 0.45,
+      "enforce_memory_constraint": true,
+      "epsilon_explore": 0.15,
+      "epsilon_recheck": 0.0,
+      "eta_consensus": 0.15,
+      "eta_doubt": 0.2,
+      "gamma_social_discount": 0.75,
+      "grid_height": 40,
+      "grid_width": 40,
+      "hgt_energy_ratio": 0.85,
+      "hgt_rate": 0.05,
+      "holon_bond_threshold": 0.35,
+      "holon_coord_cost": 0.002,
+      "holon_energy_sharing": true,
+      "holon_min_energy_per_leaf": 0.3,
+      "holon_split_patience": 25,
+      "inheritance_discount": 0.65,
+      "initial_bond_affinity": 0.6,
+      "initial_direct_confidence": 0.85,
+      "initial_energy": 1.5,
+      "lambda_decay": 0.005,
+      "lock_coord_discount": 0.5,
+      "max_broadcast_per_tick": 1,
+      "max_genome_memory_capacity": 6,
+      "max_holon_leaves": 8,
+      "max_plasmids": 4,
+      "max_population": 160,
+      "max_queries_per_tick": 2,
+      "memory_capacity": 3,
+      "memory_capacity_cost": 0.002,
+      "message_cost": 0.001,
+      "metabolic_base_cost": 0.01,
+      "min_confidence": 0.05,
+      "move_cost": 0.005,
+      "mutation_rate": 0.05,
+      "num_agents": 80,
+      "num_composite_patterns": 0,
+      "num_regions": 3,
+      "num_world_patterns": 12,
+      "offspring_energy_share": 0.5,
+      "passive_conf_decay": 0.002,
+      "perception_radius": 2,
+      "plasticity_rate_base": 0.0,
+      "predation_efficiency": 0.6,
+      "recombination_base": 0.0,
+      "redundancy_penalty": 0.25,
+      "reproduction_mode": "energy",
+      "reproduction_threshold": 2.2,
+      "resource_regen_delay": 20,
+      "resources_per_pattern": 80,
+      "season_length": 500,
+      "seed": 42,
+      "senescence_cost_rate": 1e-05,
+      "sensory_radius_cost": 0.0005,
+      "share_efficiency": 0.9,
+      "share_fraction": 0.25,
+      "signal_cost": 0.002,
+      "sos_high_fidelity_energy_ratio": 1.5,
+      "sos_high_fidelity_factor": 0.25,
+      "sos_hypermutation_factor": 4.0,
+      "sos_window": 50,
+      "spore_cost_fraction": 0.05,
+      "spore_energy_threshold": 0.3,
+      "stigmergy_decay": 0.02,
+      "stigmergy_deposit_rate": 0.5,
+      "stress_energy_ratio": 0.35,
+      "surplus_energy_ratio": 0.85,
+      "symbiotic_commitment_base": 0.0,
+      "tau_policy": "validation",
+      "telomere_base_lifespan": 600,
+      "telomere_max_lifespan": 1200,
+      "telomere_min_lifespan": 150,
+      "update_scheme": "synchronous",
+      "winter_regen_factor": 3.0,
+      "world_shift_fraction": 0.5,
+      "world_shift_period": 1000
+    }
+  },
+  "profile": "phase25",
+  "runs": [
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 66,
+      "max_generation": 144,
+      "protocol": "25a",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 26,
+      "max_generation": 186,
+      "protocol": "25a",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 61,
+      "max_generation": 141,
+      "protocol": "25a",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 208,
+      "protocol": "25a",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 192,
+      "protocol": "25a",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 48,
+      "max_generation": 173,
+      "protocol": "25a",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 80,
+      "max_generation": 131,
+      "protocol": "25a",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 70,
+      "max_generation": 155,
+      "protocol": "25a",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 184,
+      "protocol": "25a",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 67,
+      "max_generation": 138,
+      "protocol": "25a",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 73,
+      "max_generation": 145,
+      "protocol": "25a",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 44,
+      "max_generation": 211,
+      "protocol": "25a",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 166,
+      "protocol": "25a",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 191,
+      "protocol": "25a",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 187,
+      "protocol": "25a",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 104,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 181,
+      "protocol": "25a",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 191,
+      "protocol": "25a",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 188,
+      "protocol": "25a",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 178,
+      "protocol": "25a",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 51,
+      "max_generation": 176,
+      "protocol": "25a",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 192,
+      "protocol": "25a",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 188,
+      "protocol": "25a",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 60,
+      "max_generation": 194,
+      "protocol": "25a",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 173,
+      "protocol": "25a",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 62,
+      "max_generation": 145,
+      "protocol": "25a",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 31,
+      "protocol": "25a",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 26,
+      "protocol": "25a",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 66,
+      "max_generation": 173,
+      "protocol": "25a",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 37,
+      "max_generation": 186,
+      "protocol": "25a",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 114,
+      "max_generation": 31,
+      "protocol": "25a",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 42,
+      "protocol": "25a",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 8,
+      "max_generation": 114,
+      "protocol": "25a",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 39,
+      "protocol": "25a",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 27,
+      "protocol": "25a",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 50,
+      "protocol": "25a",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 38,
+      "protocol": "25a",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 105,
+      "max_generation": 31,
+      "protocol": "25a",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 66,
+      "protocol": "25a",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 39,
+      "max_generation": 71,
+      "protocol": "25a",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 39,
+      "protocol": "25a",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 41,
+      "protocol": "25a",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 27,
+      "protocol": "25a",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 80,
+      "protocol": "25a",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 72,
+      "max_generation": 80,
+      "protocol": "25a",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 41,
+      "protocol": "25a",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 44,
+      "protocol": "25a",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 29,
+      "protocol": "25a",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 59,
+      "max_generation": 82,
+      "protocol": "25a",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 142,
+      "max_generation": 24,
+      "protocol": "25a",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 98,
+      "max_generation": 22,
+      "protocol": "25a",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 50,
+      "protocol": "25a",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 45,
+      "protocol": "25a",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 48,
+      "protocol": "25a",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 69,
+      "max_generation": 63,
+      "protocol": "25a",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 45,
+      "protocol": "25a",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 79,
+      "max_generation": 94,
+      "protocol": "25a",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 157,
+      "max_generation": 20,
+      "protocol": "25a",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 14,
+      "protocol": "25a",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 30,
+      "protocol": "25a",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 93,
+      "max_generation": 24,
+      "protocol": "25a",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 26,
+      "protocol": "25a",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 121,
+      "max_generation": 27,
+      "protocol": "25a",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 33,
+      "protocol": "25a",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 69,
+      "max_generation": 35,
+      "protocol": "25a",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 126,
+      "max_generation": 24,
+      "protocol": "25a",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 147,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 41,
+      "max_generation": 23,
+      "protocol": "25a",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 116,
+      "max_generation": 27,
+      "protocol": "25a",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 102,
+      "max_generation": 23,
+      "protocol": "25a",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 86,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 24,
+      "max_generation": 26,
+      "protocol": "25a",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 131,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 96,
+      "max_generation": 37,
+      "protocol": "25a",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 62,
+      "max_generation": 29,
+      "protocol": "25a",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 95,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 136,
+      "max_generation": 23,
+      "protocol": "25a",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 111,
+      "max_generation": 33,
+      "protocol": "25a",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 100,
+      "max_generation": 34,
+      "protocol": "25a",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 44,
+      "max_generation": 28,
+      "protocol": "25a",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 123,
+      "max_generation": 26,
+      "protocol": "25a",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 78,
+      "max_generation": 39,
+      "protocol": "25a",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 26,
+      "protocol": "25a",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 76,
+      "max_generation": 23,
+      "protocol": "25a",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 104,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "25a",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 26,
+      "protocol": "25a",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 158,
+      "max_generation": 24,
+      "protocol": "25a",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "25a",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 32,
+      "protocol": "25a",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 37,
+      "protocol": "25a",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 106,
+      "max_generation": 32,
+      "protocol": "25a",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 149,
+      "max_generation": 24,
+      "protocol": "25a",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 150,
+      "max_generation": 23,
+      "protocol": "25a",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 96,
+      "max_generation": 37,
+      "protocol": "25a",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 123,
+      "max_generation": 33,
+      "protocol": "25a",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 114,
+      "max_generation": 34,
+      "protocol": "25a",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 70,
+      "max_generation": 34,
+      "protocol": "25a",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 132,
+      "max_generation": 28,
+      "protocol": "25a",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 158,
+      "max_generation": 29,
+      "protocol": "25a",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 29,
+      "protocol": "25a",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 76,
+      "max_generation": 44,
+      "protocol": "25a",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 79,
+      "max_generation": 32,
+      "protocol": "25a",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 101,
+      "max_generation": 24,
+      "protocol": "25a",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 94,
+      "max_generation": 36,
+      "protocol": "25a",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 133,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 111,
+      "max_generation": 28,
+      "protocol": "25a",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 150,
+      "max_generation": 22,
+      "protocol": "25a",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 23,
+      "protocol": "25a",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 21,
+      "protocol": "25a",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 118,
+      "max_generation": 27,
+      "protocol": "25a",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 118,
+      "max_generation": 25,
+      "protocol": "25a",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 147,
+      "max_generation": 22,
+      "protocol": "25a",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 90,
+      "max_generation": 32,
+      "protocol": "25a",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 131,
+      "max_generation": 28,
+      "protocol": "25a",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 88,
+      "max_generation": 26,
+      "protocol": "25a",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 18,
+      "protocol": "25a",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_predation_drift",
+      "error": null,
+      "final_agents": 116,
+      "max_generation": 28,
+      "protocol": "25a",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 46,
+      "max_generation": 68,
+      "protocol": "25a",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 95,
+      "protocol": "25a",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 48,
+      "max_generation": 64,
+      "protocol": "25a",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 36,
+      "max_generation": 58,
+      "protocol": "25a",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 31,
+      "max_generation": 125,
+      "protocol": "25a",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 37,
+      "max_generation": 119,
+      "protocol": "25a",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 57,
+      "protocol": "25a",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 48,
+      "max_generation": 57,
+      "protocol": "25a",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 59,
+      "protocol": "25a",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 57,
+      "max_generation": 91,
+      "protocol": "25a",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 68,
+      "protocol": "25a",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 65,
+      "max_generation": 56,
+      "protocol": "25a",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 24,
+      "max_generation": 70,
+      "protocol": "25a",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 62,
+      "protocol": "25a",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 74,
+      "protocol": "25a",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 66,
+      "max_generation": 114,
+      "protocol": "25a",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 40,
+      "protocol": "25a",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 62,
+      "max_generation": 86,
+      "protocol": "25a",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 50,
+      "max_generation": 82,
+      "protocol": "25a",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 67,
+      "max_generation": 66,
+      "protocol": "25a",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 105,
+      "protocol": "25a",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 29,
+      "max_generation": 76,
+      "protocol": "25a",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 66,
+      "max_generation": 51,
+      "protocol": "25a",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 64,
+      "max_generation": 81,
+      "protocol": "25a",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 85,
+      "protocol": "25a",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 63,
+      "protocol": "25a",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 44,
+      "max_generation": 50,
+      "protocol": "25a",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 83,
+      "protocol": "25a",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 60,
+      "protocol": "25a",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 64,
+      "max_generation": 86,
+      "protocol": "25a",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 59,
+      "max_generation": 164,
+      "protocol": "25b",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 178,
+      "protocol": "25b",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 51,
+      "max_generation": 152,
+      "protocol": "25b",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 48,
+      "max_generation": 181,
+      "protocol": "25b",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 69,
+      "protocol": "25b",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 62,
+      "max_generation": 139,
+      "protocol": "25b",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 69,
+      "max_generation": 34,
+      "protocol": "25b",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 196,
+      "protocol": "25b",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 48,
+      "max_generation": 184,
+      "protocol": "25b",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 45,
+      "protocol": "25b",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 184,
+      "protocol": "25b",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 42,
+      "max_generation": 185,
+      "protocol": "25b",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 182,
+      "protocol": "25b",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 187,
+      "protocol": "25b",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 124,
+      "protocol": "25b",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 216,
+      "protocol": "25b",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 188,
+      "protocol": "25b",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 194,
+      "protocol": "25b",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 35,
+      "max_generation": 176,
+      "protocol": "25b",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 143,
+      "protocol": "25b",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 45,
+      "max_generation": 171,
+      "protocol": "25b",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 183,
+      "protocol": "25b",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 36,
+      "max_generation": 209,
+      "protocol": "25b",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 76,
+      "max_generation": 46,
+      "protocol": "25b",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 51,
+      "max_generation": 155,
+      "protocol": "25b",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 192,
+      "protocol": "25b",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 38,
+      "max_generation": 172,
+      "protocol": "25b",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 196,
+      "protocol": "25b",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 170,
+      "protocol": "25b",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 46,
+      "max_generation": 170,
+      "protocol": "25b",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 76,
+      "protocol": "25b",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 44,
+      "protocol": "25b",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 18,
+      "max_generation": 106,
+      "protocol": "25b",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 92,
+      "protocol": "25b",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 60,
+      "protocol": "25b",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 38,
+      "max_generation": 76,
+      "protocol": "25b",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 131,
+      "protocol": "25b",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 67,
+      "protocol": "25b",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 42,
+      "protocol": "25b",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 103,
+      "protocol": "25b",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 41,
+      "max_generation": 84,
+      "protocol": "25b",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 59,
+      "max_generation": 53,
+      "protocol": "25b",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 47,
+      "protocol": "25b",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 22,
+      "protocol": "25b",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 74,
+      "max_generation": 78,
+      "protocol": "25b",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 57,
+      "max_generation": 90,
+      "protocol": "25b",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 108,
+      "protocol": "25b",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 9,
+      "max_generation": 62,
+      "protocol": "25b",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 73,
+      "protocol": "25b",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 39,
+      "protocol": "25b",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 112,
+      "protocol": "25b",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 69,
+      "max_generation": 79,
+      "protocol": "25b",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 48,
+      "max_generation": 99,
+      "protocol": "25b",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 111,
+      "max_generation": 66,
+      "protocol": "25b",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 71,
+      "max_generation": 82,
+      "protocol": "25b",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 17,
+      "max_generation": 108,
+      "protocol": "25b",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 58,
+      "max_generation": 104,
+      "protocol": "25b",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 85,
+      "protocol": "25b",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 46,
+      "max_generation": 82,
+      "protocol": "25b",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 107,
+      "protocol": "25b",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 20,
+      "max_generation": 57,
+      "protocol": "25b",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 46,
+      "max_generation": 76,
+      "protocol": "25b",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 33,
+      "max_generation": 88,
+      "protocol": "25b",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 68,
+      "max_generation": 51,
+      "protocol": "25b",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 113,
+      "protocol": "25b",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 33,
+      "max_generation": 63,
+      "protocol": "25b",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 56,
+      "protocol": "25b",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 68,
+      "max_generation": 64,
+      "protocol": "25b",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 66,
+      "protocol": "25b",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 30,
+      "max_generation": 69,
+      "protocol": "25b",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 36,
+      "max_generation": 117,
+      "protocol": "25b",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 53,
+      "protocol": "25b",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 21,
+      "max_generation": 93,
+      "protocol": "25b",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 50,
+      "max_generation": 58,
+      "protocol": "25b",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 39,
+      "max_generation": 66,
+      "protocol": "25b",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 67,
+      "protocol": "25b",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 30,
+      "max_generation": 64,
+      "protocol": "25b",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 41,
+      "max_generation": 68,
+      "protocol": "25b",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 45,
+      "max_generation": 63,
+      "protocol": "25b",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 59,
+      "protocol": "25b",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 45,
+      "max_generation": 47,
+      "protocol": "25b",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 33,
+      "max_generation": 91,
+      "protocol": "25b",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 17,
+      "max_generation": 105,
+      "protocol": "25b",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 45,
+      "max_generation": 49,
+      "protocol": "25b",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 79,
+      "protocol": "25b",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 37,
+      "max_generation": 72,
+      "protocol": "25b",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 36,
+      "max_generation": 93,
+      "protocol": "25b",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 29,
+      "max_generation": 71,
+      "protocol": "25b",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 30,
+      "max_generation": 63,
+      "protocol": "25b",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 44,
+      "max_generation": 46,
+      "protocol": "25b",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 27,
+      "protocol": "25c",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 46,
+      "max_generation": 62,
+      "protocol": "25c",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 35,
+      "protocol": "25c",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 58,
+      "max_generation": 39,
+      "protocol": "25c",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 27,
+      "protocol": "25c",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 33,
+      "protocol": "25c",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 61,
+      "protocol": "25c",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 66,
+      "max_generation": 35,
+      "protocol": "25c",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 45,
+      "max_generation": 33,
+      "protocol": "25c",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 58,
+      "max_generation": 32,
+      "protocol": "25c",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 61,
+      "max_generation": 36,
+      "protocol": "25c",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 28,
+      "protocol": "25c",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 32,
+      "protocol": "25c",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 64,
+      "max_generation": 29,
+      "protocol": "25c",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 57,
+      "max_generation": 36,
+      "protocol": "25c",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 50,
+      "max_generation": 26,
+      "protocol": "25c",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 60,
+      "max_generation": 29,
+      "protocol": "25c",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 57,
+      "max_generation": 36,
+      "protocol": "25c",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 37,
+      "protocol": "25c",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 72,
+      "max_generation": 31,
+      "protocol": "25c",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 58,
+      "max_generation": 39,
+      "protocol": "25c",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 38,
+      "max_generation": 32,
+      "protocol": "25c",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 67,
+      "max_generation": 30,
+      "protocol": "25c",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 51,
+      "max_generation": 28,
+      "protocol": "25c",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 23,
+      "protocol": "25c",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 20,
+      "protocol": "25c",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 50,
+      "max_generation": 35,
+      "protocol": "25c",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 31,
+      "protocol": "25c",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 28,
+      "protocol": "25c",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 25,
+      "protocol": "25c",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 60,
+      "max_generation": 30,
+      "protocol": "25c",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 15,
+      "protocol": "25c",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 13,
+      "protocol": "25c",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 13,
+      "protocol": "25c",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 8,
+      "protocol": "25c",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 14,
+      "protocol": "25c",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 23,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 13,
+      "max_generation": 40,
+      "protocol": "25c",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 7,
+      "protocol": "25c",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 9,
+      "protocol": "25c",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 41,
+      "max_generation": 33,
+      "protocol": "25c",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 27,
+      "protocol": "25c",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 19,
+      "protocol": "25c",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 25,
+      "protocol": "25c",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 24,
+      "protocol": "25c",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 21,
+      "protocol": "25c",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 14,
+      "protocol": "25c",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 12,
+      "protocol": "25c",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 14,
+      "protocol": "25c",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 13,
+      "protocol": "25c",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 12,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 19,
+      "protocol": "25c",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 31,
+      "protocol": "25c",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 7,
+      "max_generation": 31,
+      "protocol": "25c",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 10,
+      "protocol": "25c",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 27,
+      "protocol": "25c",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 46,
+      "max_generation": 62,
+      "protocol": "25c",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 35,
+      "protocol": "25c",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 58,
+      "max_generation": 39,
+      "protocol": "25c",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 27,
+      "protocol": "25c",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 33,
+      "protocol": "25c",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 61,
+      "protocol": "25c",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 66,
+      "max_generation": 35,
+      "protocol": "25c",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 45,
+      "max_generation": 33,
+      "protocol": "25c",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 58,
+      "max_generation": 32,
+      "protocol": "25c",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 61,
+      "max_generation": 36,
+      "protocol": "25c",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 28,
+      "protocol": "25c",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 32,
+      "protocol": "25c",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 64,
+      "max_generation": 29,
+      "protocol": "25c",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 57,
+      "max_generation": 36,
+      "protocol": "25c",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 50,
+      "max_generation": 26,
+      "protocol": "25c",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 60,
+      "max_generation": 29,
+      "protocol": "25c",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 57,
+      "max_generation": 36,
+      "protocol": "25c",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 37,
+      "protocol": "25c",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 72,
+      "max_generation": 31,
+      "protocol": "25c",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 58,
+      "max_generation": 39,
+      "protocol": "25c",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 38,
+      "max_generation": 32,
+      "protocol": "25c",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 67,
+      "max_generation": 30,
+      "protocol": "25c",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 51,
+      "max_generation": 28,
+      "protocol": "25c",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 34,
+      "protocol": "25c",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 23,
+      "protocol": "25c",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 63,
+      "protocol": "25d",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 158,
+      "protocol": "25d",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 11,
+      "max_generation": 145,
+      "protocol": "25d",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 13,
+      "max_generation": 195,
+      "protocol": "25d",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 75,
+      "max_generation": 148,
+      "protocol": "25d",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 67,
+      "protocol": "25d",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 42,
+      "max_generation": 139,
+      "protocol": "25d",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 100,
+      "protocol": "25d",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 68,
+      "max_generation": 189,
+      "protocol": "25d",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 128,
+      "protocol": "25d",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 136,
+      "protocol": "25d",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 70,
+      "max_generation": 166,
+      "protocol": "25d",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 64,
+      "protocol": "25d",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 5,
+      "max_generation": 192,
+      "protocol": "25d",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 114,
+      "protocol": "25d",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 15,
+      "max_generation": 113,
+      "protocol": "25d",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 18,
+      "max_generation": 145,
+      "protocol": "25d",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 50,
+      "max_generation": 185,
+      "protocol": "25d",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 20,
+      "max_generation": 188,
+      "protocol": "25d",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 60,
+      "max_generation": 175,
+      "protocol": "25d",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 23,
+      "max_generation": 103,
+      "protocol": "25d",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 24,
+      "max_generation": 181,
+      "protocol": "25d",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 94,
+      "protocol": "25d",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 127,
+      "protocol": "25d",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 68,
+      "protocol": "25d",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 26,
+      "max_generation": 157,
+      "protocol": "25d",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 23,
+      "max_generation": 61,
+      "protocol": "25d",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 44,
+      "protocol": "25d",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 22,
+      "max_generation": 165,
+      "protocol": "25d",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "full",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 172,
+      "protocol": "25d",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 100,
+      "max_generation": 41,
+      "protocol": "25d",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 35,
+      "protocol": "25d",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 67,
+      "protocol": "25d",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 61,
+      "protocol": "25d",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 32,
+      "protocol": "25d",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 53,
+      "protocol": "25d",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 29,
+      "protocol": "25d",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 45,
+      "protocol": "25d",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 72,
+      "protocol": "25d",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 66,
+      "protocol": "25d",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 58,
+      "protocol": "25d",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 79,
+      "protocol": "25d",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 79,
+      "max_generation": 38,
+      "protocol": "25d",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 48,
+      "protocol": "25d",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 45,
+      "protocol": "25d",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 25,
+      "protocol": "25d",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 62,
+      "protocol": "25d",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 35,
+      "protocol": "25d",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 42,
+      "protocol": "25d",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 41,
+      "protocol": "25d",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 29,
+      "protocol": "25d",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 30,
+      "protocol": "25d",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 35,
+      "protocol": "25d",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 37,
+      "max_generation": 31,
+      "protocol": "25d",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 57,
+      "protocol": "25d",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 38,
+      "protocol": "25d",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 57,
+      "protocol": "25d",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 33,
+      "protocol": "25d",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 50,
+      "protocol": "25d",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 22,
+      "protocol": "25d",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 66,
+      "max_generation": 144,
+      "protocol": "25d",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 26,
+      "max_generation": 186,
+      "protocol": "25d",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 61,
+      "max_generation": 141,
+      "protocol": "25d",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 208,
+      "protocol": "25d",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 192,
+      "protocol": "25d",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 48,
+      "max_generation": 173,
+      "protocol": "25d",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 80,
+      "max_generation": 131,
+      "protocol": "25d",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 70,
+      "max_generation": 155,
+      "protocol": "25d",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 184,
+      "protocol": "25d",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 67,
+      "max_generation": 138,
+      "protocol": "25d",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 73,
+      "max_generation": 145,
+      "protocol": "25d",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 44,
+      "max_generation": 211,
+      "protocol": "25d",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 52,
+      "max_generation": 166,
+      "protocol": "25d",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 49,
+      "max_generation": 191,
+      "protocol": "25d",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 187,
+      "protocol": "25d",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 104,
+      "max_generation": 25,
+      "protocol": "25d",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 181,
+      "protocol": "25d",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 191,
+      "protocol": "25d",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 188,
+      "protocol": "25d",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 178,
+      "protocol": "25d",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 51,
+      "max_generation": 176,
+      "protocol": "25d",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 54,
+      "max_generation": 192,
+      "protocol": "25d",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 188,
+      "protocol": "25d",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 60,
+      "max_generation": 194,
+      "protocol": "25d",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 173,
+      "protocol": "25d",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 62,
+      "max_generation": 145,
+      "protocol": "25d",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 31,
+      "protocol": "25d",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 26,
+      "protocol": "25d",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 66,
+      "max_generation": 173,
+      "protocol": "25d",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable",
+      "error": null,
+      "final_agents": 37,
+      "max_generation": 186,
+      "protocol": "25d",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 114,
+      "max_generation": 31,
+      "protocol": "25d",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 42,
+      "protocol": "25d",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 8,
+      "max_generation": 114,
+      "protocol": "25d",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 55,
+      "max_generation": 39,
+      "protocol": "25d",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 27,
+      "protocol": "25d",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 50,
+      "protocol": "25d",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 38,
+      "protocol": "25d",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 105,
+      "max_generation": 31,
+      "protocol": "25d",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 66,
+      "protocol": "25d",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 39,
+      "max_generation": 71,
+      "protocol": "25d",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 39,
+      "protocol": "25d",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 41,
+      "protocol": "25d",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 160,
+      "max_generation": 27,
+      "protocol": "25d",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 63,
+      "max_generation": 80,
+      "protocol": "25d",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 72,
+      "max_generation": 80,
+      "protocol": "25d",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 41,
+      "protocol": "25d",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 44,
+      "protocol": "25d",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 29,
+      "protocol": "25d",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 59,
+      "max_generation": 82,
+      "protocol": "25d",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 25,
+      "protocol": "25d",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 142,
+      "max_generation": 24,
+      "protocol": "25d",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 98,
+      "max_generation": 22,
+      "protocol": "25d",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 50,
+      "protocol": "25d",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 56,
+      "max_generation": 45,
+      "protocol": "25d",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 48,
+      "protocol": "25d",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 69,
+      "max_generation": 63,
+      "protocol": "25d",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 45,
+      "protocol": "25d",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 79,
+      "max_generation": 94,
+      "protocol": "25d",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 157,
+      "max_generation": 20,
+      "protocol": "25d",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "stable_drift",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 14,
+      "protocol": "25d",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 63,
+      "protocol": "25d",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 158,
+      "protocol": "25d",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 15,
+      "max_generation": 149,
+      "protocol": "25d",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 13,
+      "max_generation": 195,
+      "protocol": "25d",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 51,
+      "max_generation": 160,
+      "protocol": "25d",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 64,
+      "protocol": "25d",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 24,
+      "max_generation": 127,
+      "protocol": "25d",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 100,
+      "protocol": "25d",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 3,
+      "max_generation": 194,
+      "protocol": "25d",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 46,
+      "max_generation": 175,
+      "protocol": "25d",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 41,
+      "max_generation": 189,
+      "protocol": "25d",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 22,
+      "max_generation": 213,
+      "protocol": "25d",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 34,
+      "max_generation": 60,
+      "protocol": "25d",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 32,
+      "max_generation": 176,
+      "protocol": "25d",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 130,
+      "protocol": "25d",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 15,
+      "max_generation": 113,
+      "protocol": "25d",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 18,
+      "max_generation": 145,
+      "protocol": "25d",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 64,
+      "max_generation": 185,
+      "protocol": "25d",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 27,
+      "max_generation": 171,
+      "protocol": "25d",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 98,
+      "max_generation": 129,
+      "protocol": "25d",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 59,
+      "max_generation": 124,
+      "protocol": "25d",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 142,
+      "protocol": "25d",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 94,
+      "protocol": "25d",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 127,
+      "protocol": "25d",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 112,
+      "protocol": "25d",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 26,
+      "max_generation": 157,
+      "protocol": "25d",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 43,
+      "protocol": "25d",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 106,
+      "max_generation": 51,
+      "protocol": "25d",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 35,
+      "max_generation": 172,
+      "protocol": "25d",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "no_learning",
+      "error": null,
+      "final_agents": 24,
+      "max_generation": 181,
+      "protocol": "25d",
+      "seed": 71,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 12,
+      "max_generation": 60,
+      "protocol": "25d",
+      "seed": 42,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 62,
+      "max_generation": 145,
+      "protocol": "25d",
+      "seed": 43,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 29,
+      "protocol": "25d",
+      "seed": 44,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 14,
+      "max_generation": 56,
+      "protocol": "25d",
+      "seed": 45,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 26,
+      "protocol": "25d",
+      "seed": 46,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 43,
+      "protocol": "25d",
+      "seed": 47,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 10,
+      "max_generation": 54,
+      "protocol": "25d",
+      "seed": 48,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 68,
+      "max_generation": 53,
+      "protocol": "25d",
+      "seed": 49,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 67,
+      "protocol": "25d",
+      "seed": 50,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 78,
+      "max_generation": 47,
+      "protocol": "25d",
+      "seed": 51,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 66,
+      "protocol": "25d",
+      "seed": 52,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 96,
+      "protocol": "25d",
+      "seed": 53,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 89,
+      "protocol": "25d",
+      "seed": 54,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 39,
+      "protocol": "25d",
+      "seed": 55,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 64,
+      "protocol": "25d",
+      "seed": 56,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 54,
+      "protocol": "25d",
+      "seed": 57,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 24,
+      "protocol": "25d",
+      "seed": 58,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 53,
+      "max_generation": 52,
+      "protocol": "25d",
+      "seed": 59,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 84,
+      "max_generation": 76,
+      "protocol": "25d",
+      "seed": 60,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 27,
+      "max_generation": 117,
+      "protocol": "25d",
+      "seed": 61,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 47,
+      "max_generation": 72,
+      "protocol": "25d",
+      "seed": 62,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 25,
+      "max_generation": 50,
+      "protocol": "25d",
+      "seed": 63,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 32,
+      "max_generation": 42,
+      "protocol": "25d",
+      "seed": 64,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 20,
+      "max_generation": 95,
+      "protocol": "25d",
+      "seed": 65,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 10,
+      "max_generation": 80,
+      "protocol": "25d",
+      "seed": 66,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 99,
+      "protocol": "25d",
+      "seed": 67,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 52,
+      "protocol": "25d",
+      "seed": 68,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 0,
+      "max_generation": 41,
+      "protocol": "25d",
+      "seed": 69,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 43,
+      "max_generation": 57,
+      "protocol": "25d",
+      "seed": 70,
+      "termination": "finished"
+    },
+    {
+      "condition": "null_content",
+      "error": null,
+      "final_agents": 40,
+      "max_generation": 103,
+      "protocol": "25d",
+      "seed": 71,
+      "termination": "finished"
+    }
+  ],
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71
+  ],
+  "total_ticks": 5000
+}

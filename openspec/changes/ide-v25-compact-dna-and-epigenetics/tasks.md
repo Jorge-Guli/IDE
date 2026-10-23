@@ -394,7 +394,7 @@
 >
 > Punto de control: prueba de humo, antes de los runners. Mostrar, por protocolo, condición y semilla, sólo la terminación, la generación máxima y la población final.
 
-- [ ] 24.1 Correr la prueba de humo de D56 sobre `PHASE25_PROTOCOL_CONFIGS` y `PHASE25_SEEDS`, **sin** calcular ni mirar las métricas de las afirmaciones. Registrar su salida en `registros/` y en `docs/RESULTADOS.md`.
+- [x] 24.1 Correr la prueba de humo de D56 sobre `PHASE25_PROTOCOL_CONFIGS` y `PHASE25_SEEDS`, **sin** calcular ni mirar las métricas de las afirmaciones. Registrar su salida en `registros/` y en `docs/RESULTADOS.md`.
 
 ## 25. Runners de los protocolos (`experimental-suite`)
 

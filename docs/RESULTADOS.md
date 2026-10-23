@@ -249,6 +249,32 @@ Observaciones demográficas (exploratorias, no son afirmaciones):
 - Lo que limita la viabilidad es siempre la reproducción neutral (`drift`, 2 a 7 de 10) y el entorno cambiante de `25d`; con selección y entorno estable, la población sobrevive en 10 de 10.
 - Con abundancia alta y reposición rápida (retardo 10), muchas corridas terminan con hojas vivas pero menos de 20 generaciones (por ejemplo, `25a` no_predation con (80, 10): 10/10 vivas y 0/10 viables): sin escasez casi no hay recambio generacional, el mismo "Tapón de Matusalén" que diagnosticó la tarea 0.1 en la Fase II.
 
+## Fase II-B: prueba de humo (D56, tarea 24.1)
+
+Corrida el 2026-10-23 con `python -m ide.experiments.exp25_runner --smoke --cache --out registros` sobre la configuración fijada por la compuerta, (80, 20) (commit `536c845`), el perfil `phase25` (5000 ticks) y `PHASE25_SEEDS` (42 a 71): 510 corridas, todas terminaron sin error. Salida completa en `registros/exp25_phase25_smoke.json` y `registros/exp25_phase25_smoke_consola.txt`. Sólo terminación, generación máxima y población final; los motores corrieron sin telemetría, así que no se calculó ninguna métrica de afirmación.
+
+| Protocolo | Condición | Con población final | Generación máxima (mediana) | Población final (mediana) |
+| :--- | :--- | ---: | ---: | ---: |
+| `25a` | drift | 16/30 | 41.5 | 23.5 |
+| `25a` | full | 30/30 | 177 | 52.5 |
+| `25a` | no_predation | 30/30 | 26 | 103 |
+| `25a` | no_predation_drift | 30/30 | 28 | 127 |
+| `25a` | null_content | 29/30 | 69 | 49 |
+| `25b` | drift | 19/30 | 80.5 | 39.5 |
+| `25b` | full | 29/30 | 177 | 48.5 |
+| `25b` | null_content | 30/30 | 66 | 40 |
+| `25c` | drift | 9/30 | 20.5 | 0 |
+| `25c` | full | 30/30 | 33.5 | 55.5 |
+| `25c` | null_content | 30/30 | 33.5 | 55.5 |
+| `25d` | drift | 7/30 | 41.5 | 0 |
+| `25d` | full | 19/30 | 142 | 16.5 |
+| `25d` | no_learning | 20/30 | 143.5 | 20 |
+| `25d` | null_content | 18/30 | 56.5 | 13 |
+| `25d` | stable | 30/30 | 177 | 52.5 |
+| `25d` | stable_drift | 16/30 | 41.5 | 23.5 |
+
+Observaciones demográficas (no son afirmaciones): con 30 semillas se repite el patrón de la compuerta. Con selección y entorno estable la población sobrevive (30 de 30). Con reproducción neutral (`drift`) sobreviven entre 7 y 19 de 30, menos que los 20 pares válidos que exige la precisión 45, y lo mismo pasa con `25d` full (19 de 30).
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.
