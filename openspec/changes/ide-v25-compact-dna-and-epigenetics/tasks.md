@@ -425,7 +425,7 @@
 >
 > Punto de control: resultados. Presentarlos tal cual, incluidos los negativos, antes de archivar.
 
-- [ ] 26.1 Correr los cuatro protocolos con sus condiciones y `PHASE25_SEEDS`, y los `rule_effects` exploratorios con las semillas 42–51. Registrar todos los resultados, incluidos los negativos y las métricas descriptivas de evolución abierta, en `docs/RESULTADOS.md`, sin tocar el pre-registro.
+- [x] 26.1 Correr los cuatro protocolos con sus condiciones y `PHASE25_SEEDS`, y los `rule_effects` exploratorios con las semillas 42–51. Registrar todos los resultados, incluidos los negativos y las métricas descriptivas de evolución abierta, en `docs/RESULTADOS.md`, sin tocar el pre-registro. Hecha: corrida en el equipo del responsable y registrada en el commit e8db059 (`registros/exp25_phase25_attribution.json`); C13–C20 no evaluables.
 > Las tareas 26.2 y 26.3 se posponen hasta después del bloque 32 (etapa S), para cerrar la fase con los resultados del control de sombra.
 
 - [ ] 26.2 Actualizar `CLAUDE.md` (estado), `README.md` y los documentos de `docs/`, incluida la hoja de ruta de la Fase III con lo aprendido.
