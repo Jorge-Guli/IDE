@@ -16,7 +16,7 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 from pathlib import Path
 from statistics import median
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from ide.config import SimulationConfig
 from ide.experiments.exp001_runner import (
@@ -30,7 +30,7 @@ from ide.experiments.exp001_runner import (
     validate_seeds,
 )
 from ide.experiments.metrics import windowed_accuracy
-from ide.experiments.run_cache import RunCache, map_with_cache, run_key
+from ide.experiments.run_cache import map_with_cache, run_key
 from ide.simulation.engine import SimulationEngine
 
 
@@ -1281,16 +1281,41 @@ def _encode_phase25_record(job: _Phase25Job, record: Phase25RunRecord) -> dict[s
     return report_to_dict(record)
 
 
-def _decode_phase25_record(job: _Phase25Job, stored: Any) -> Phase25RunRecord:
-    """Reconstruye el registro guardado; `ValueError` o `TypeError` si no corresponde a `job`.
+_PHASE25_RECORD_INTS = (
+    "final_agents",
+    "final_active_agents",
+    "max_generation",
+    "cumulative_births",
+    "cumulative_deaths",
+)
+_PHASE25_RECORD_FLOATS = ("mean_age_at_death", "effective_parents")
 
-    JSON conserva la distinción entre `int` y `float`, así que el registro es idéntico al
-    original y la evaluación desde el caché da el mismo `Phase25Report`.
+
+def _decode_phase25_record(job: _Phase25Job, stored: Any) -> Phase25RunRecord:
+    """Reconstruye el registro guardado; `ValueError` si no corresponde a `job`.
+
+    Exige los campos exactos con sus tipos estrictos (`int`, sin `bool`, y `float`) y las
+    métricas pedidas, todas `float`: JSON conserva la distinción entre `int` y `float`, así que
+    el registro es idéntico al original y la evaluación desde el caché da el mismo
+    `Phase25Report`. Lo que no cumple se recalcula.
     """
-    record = Phase25RunRecord(**stored)
-    if not isinstance(record.metrics, Mapping) or sorted(record.metrics) != sorted(job[2]):  # pyright: ignore[reportUnnecessaryIsInstance]
+    if not isinstance(stored, dict):
+        raise ValueError("registro de la atribución inválido")
+    data = cast(dict[str, Any], stored)
+    expected = {*_PHASE25_RECORD_INTS, *_PHASE25_RECORD_FLOATS, "metrics"}
+    if set(data) != expected:
+        raise ValueError("registro de la atribución con otros campos")
+    metrics = data["metrics"]
+    if (
+        not all(type(data[name]) is int for name in _PHASE25_RECORD_INTS)
+        or not all(type(data[name]) is float for name in _PHASE25_RECORD_FLOATS)
+        or not isinstance(metrics, dict)
+    ):
+        raise ValueError("registro de la atribución con tipos inválidos")
+    values = cast(dict[Any, Any], metrics)
+    if sorted(values) != sorted(job[2]) or not all(type(v) is float for v in values.values()):
         raise ValueError("el registro guardado no tiene las métricas pedidas")
-    return record
+    return Phase25RunRecord(**data)
 
 
 # --- Fase II-B: prueba, corrección y estado (design D56, precisiones 45, 47, 48 y 53) ----------
@@ -1643,19 +1668,15 @@ def run_phase25_attribution(
     jobs_list: list[_Phase25Job] = [
         (config, total_ticks, tuple(sorted(names))) for config, names in metrics_of.items()
     ]
-    if cache_dir is None:
-        outcomes = map_in_order(_execute_phase25_run, jobs_list, jobs)
-    else:
-        outcomes = map_with_cache(
-            _execute_phase25_run,
-            jobs_list,
-            [_phase25_cache_key(job) for job in jobs_list],
-            jobs,
-            RunCache(cache_dir),
-            _encode_phase25_record,
-            _decode_phase25_record,
-            mapper=map_in_order,
-        )
+    outcomes = map_with_cache(
+        _execute_phase25_run,
+        jobs_list,
+        _phase25_cache_key,
+        jobs,
+        cache_dir,
+        _encode_phase25_record,
+        _decode_phase25_record,
+    )
     results = {job[0]: outcome for job, outcome in zip(jobs_list, outcomes, strict=True)}
     records: dict[str, dict[str, dict[int, Phase25RunRecord]]] = {}
     for (protocol, variant, seed), config in plan.items():

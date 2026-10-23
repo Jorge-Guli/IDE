@@ -60,12 +60,11 @@ from ide.experiments.attribution import (
 from ide.experiments.exp001_runner import (
     PROFILES,
     default_jobs,
-    map_in_order,
     positive_int,
     validate_seeds,
     write_json,
 )
-from ide.experiments.run_cache import RunCache, map_with_cache, run_key
+from ide.experiments.run_cache import map_with_cache, resolve_cache_dir, run_key
 from ide.simulation.engine import SimulationEngine
 
 __all__ = [
@@ -230,7 +229,12 @@ def demography(task: tuple[SimulationConfig, int]) -> tuple[int, int, int]:
 
 
 _CACHE_KIND = "phase25_viability"  # modo de la clave del caché persistente (precisión 140)
-DEFAULT_CACHE_NAME = ".cache_viability"  # junto a `--out` cuando `--cache` no da directorio
+VIABILITY_CACHE_NAME = ".cache_viability"  # junto a `--out` cuando `--cache` no da directorio
+
+
+def _demography_key(task: tuple[SimulationConfig, int]) -> str:
+    config, ticks = task
+    return run_key(_CACHE_KIND, config, ticks)
 
 
 def _encode_demography(task: tuple[SimulationConfig, int], result: tuple[int, int, int]) -> Any:
@@ -243,24 +247,6 @@ def _decode_demography(task: tuple[SimulationConfig, int], stored: Any) -> tuple
         raise ValueError("demografía guardada inválida")
     final_agents, active_agents, max_generation = values
     return final_agents, active_agents, max_generation
-
-
-def _demographies(
-    tasks: Sequence[tuple[SimulationConfig, int]], jobs: int, cache_dir: Path | None
-) -> list[tuple[int, int, int]]:
-    """Corre `demography` sobre `tasks`; con `cache_dir`, reanudable (precisión 140)."""
-    if cache_dir is None:
-        return map_in_order(demography, tasks, jobs)
-    return map_with_cache(
-        demography,
-        tasks,
-        [run_key(_CACHE_KIND, config, ticks) for config, ticks in tasks],
-        jobs,
-        RunCache(cache_dir),
-        _encode_demography,
-        _decode_demography,
-        mapper=map_in_order,
-    )
 
 
 def run_viability(
@@ -291,7 +277,16 @@ def run_viability(
         }
         # Configuraciones idénticas (p. ej., `stable` de 25d y `full` de 25a) corren una vez.
         tasks = list(dict.fromkeys((config, ticks) for config in planned.values()))
-        results = dict(zip(tasks, _demographies(tasks, jobs, cache_dir), strict=True))
+        demographies = map_with_cache(
+            demography,
+            tasks,
+            _demography_key,
+            jobs,
+            cache_dir,
+            _encode_demography,
+            _decode_demography,
+        )
+        results = dict(zip(tasks, demographies, strict=True))
         runs = tuple(
             ViabilityRun(protocol, name, seed, *results[(config, ticks)])
             for (protocol, name, seed), config in planned.items()
@@ -592,7 +587,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help=(
             "caché persistente de corridas (precisión 140): al relanzar el mismo comando, las "
-            f"corridas guardadas no se repiten; sin DIR, {DEFAULT_CACHE_NAME} junto a --out"
+            f"corridas guardadas no se repiten; sin DIR, {VIABILITY_CACHE_NAME} junto a --out"
         ),
     )
     return parser
@@ -669,9 +664,7 @@ def main(argv: list[str] | None = None) -> int:
         out.parent.mkdir(parents=True, exist_ok=True)
     except OSError as error:
         parser.error(f"--out no es una ruta utilizable ({out}): {error}")
-    cache: Path | None = None
-    if args.cache is not None:
-        cache = out.parent / DEFAULT_CACHE_NAME if args.cache == "" else Path(args.cache)
+    cache = resolve_cache_dir(args.cache, out.parent, VIABILITY_CACHE_NAME)
     if not preregistered:
         print(f"Aviso: --ticks {ticks}; {NOT_PREREGISTERED} ({PREREGISTERED_TICKS} ticks).")
     if original is not None:

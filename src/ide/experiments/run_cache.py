@@ -7,25 +7,31 @@ guardadas se cargan del disco en lugar de correrse. El caché no cambia ningún 
 generadores: una corrida es una función pura de su configuración, sus ticks y lo que se mide.
 
 - **Clave.** `run_key` es el sha256 del JSON canónico (claves ordenadas, sin espacios) de la versión
-  del formato, la huella del código del paquete `ide` y de NumPy, el modo (qué se mide), la
-  configuración completa (`SimulationConfig.to_dict()`, que incluye la semilla), los ticks y un
-  extra del modo (p. ej., las métricas pedidas). No depende de `PYTHONHASHSEED`. Cambiar el código
-  invalida el caché entero.
-- **Archivo.** `{clave}.json` con `format`, `key` y `result`; se escribe en un temporal del mismo
-  directorio y se publica con `os.replace` (atómico). Un archivo ilegible, de otra versión, de otra
-  clave o que no se decodifica se ignora y la corrida se recalcula y se reescribe.
+  del formato, la huella del código del paquete `ide`, la versión de NumPy, el intérprete
+  (`sys.version`, `sys.implementation.name`) y la plataforma (`platform.machine()`,
+  `platform.system()`), el modo (qué se mide), la configuración completa
+  (`SimulationConfig.to_dict()`, que incluye la semilla), los ticks y un extra del modo (p. ej.,
+  las métricas pedidas). No depende de `PYTHONHASHSEED`. Cambiar el código, el intérprete o la
+  plataforma invalida el caché entero.
+- **Archivo.** `{clave}.json` con `format`, `key` y `result`; se escribe en un temporal
+  `.{clave}.*.tmp` del mismo directorio, con permisos `0o644 & ~umask`, y se publica con
+  `os.replace` (atómico). Un archivo ilegible, de otra versión, de otra clave o que no se
+  decodifica se ignora y la corrida se recalcula y se reescribe. Los temporales huérfanos que deja
+  un corte se borran al empezar cada lote.
 - **Fallas.** Una corrida que termina en error no se guarda (su codificador devuelve `None`): al
-  relanzar se reintenta. Un `OSError` al guardar no aborta el lote: avisa por `stderr` y la
-  corrida se recalculará al relanzar.
+  relanzar se reintenta. Cualquier falla al codificar o guardar no aborta el lote: avisa por
+  `stderr` y la corrida se recalculará al relanzar.
 
 La reunión de resultados es en el orden de las corridas, así que la salida no depende de `--jobs`
 ni de qué corridas vinieron del caché.
 """
 
+import contextlib
 import functools
 import hashlib
 import json
 import os
+import platform
 import sys
 import tempfile
 from collections.abc import Callable, Sequence
@@ -41,20 +47,21 @@ from ide.experiments.exp001_runner import map_in_order
 
 __all__ = [
     "CACHE_FORMAT_VERSION",
-    "DEFAULT_CACHE_NAME",
     "CachingCall",
     "RunCache",
     "code_fingerprint",
     "map_with_cache",
+    "resolve_cache_dir",
     "run_key",
     "sha256_file",
 ]
 
 CACHE_FORMAT_VERSION = 1
-DEFAULT_CACHE_NAME = ".cache_exp25"  # subdirectorio de `--out` cuando `--cache` no da directorio
 
 # Errores con los que un resultado guardado no se puede decodificar: se recalcula.
 _DECODE_ERRORS = (KeyError, TypeError, ValueError, AttributeError)
+_TEMPORARY_PATTERN = ".*.tmp"  # temporales de `RunCache.store`
+_FILE_MODE = 0o644  # antes de aplicar la umask del proceso
 
 
 @functools.cache
@@ -69,11 +76,19 @@ def code_fingerprint() -> str:
 
 
 def run_key(kind: str, config: SimulationConfig, total_ticks: int, extra: Any = None) -> str:
-    """Clave determinista de una corrida: sha256 del JSON canónico de todo lo que la define."""
+    """Clave determinista de una corrida: sha256 del JSON canónico de todo lo que la define.
+
+    Incluye el intérprete y la plataforma: otra versión de Python o de la biblioteca matemática
+    de otra arquitectura puede dar otros floats, y lo guardado no debe pasar por lo recalculado.
+    """
     payload = {
         "format": CACHE_FORMAT_VERSION,
         "code": code_fingerprint(),
         "numpy": np.__version__,
+        "python": sys.version,
+        "implementation": sys.implementation.name,
+        "machine": platform.machine(),
+        "system": platform.system(),
         "kind": kind,
         "config": config.to_dict(),
         "total_ticks": total_ticks,
@@ -85,6 +100,20 @@ def run_key(kind: str, config: SimulationConfig, total_ticks: int, extra: Any = 
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def resolve_cache_dir(argument: str | None, base: Path, default_name: str) -> Path | None:
+    """Directorio de `--cache [DIR]`: ausente, ninguno; sin DIR, `base/default_name`; si no, DIR."""
+    if argument is None:
+        return None
+    return base / default_name if argument == "" else Path(argument)
+
+
+def _current_umask() -> int:
+    """La umask del proceso (sólo se puede leer cambiándola y restaurándola)."""
+    mask = os.umask(0)
+    os.umask(mask)
+    return mask
 
 
 @dataclass(frozen=True)
@@ -127,10 +156,20 @@ class RunCache:
                 handle.write(text)
                 handle.flush()
                 os.fsync(handle.fileno())
+            os.chmod(temporary, _FILE_MODE & ~_current_umask())  # `mkstemp` crea con 0o600
             os.replace(temporary, self.path(key))
         except BaseException:
             Path(temporary).unlink(missing_ok=True)
             raise
+
+    def remove_orphans(self) -> None:
+        """Borra los temporales `.*.tmp` que dejó un corte entre `mkstemp` y `os.replace`."""
+        if not self.directory.is_dir():
+            return
+        for orphan in sorted(self.directory.glob(_TEMPORARY_PATTERN)):
+            # El caché es una ayuda: un temporal que no se puede borrar no estorba.
+            with contextlib.suppress(OSError):
+                orphan.unlink(missing_ok=True)
 
 
 @dataclass(frozen=True)
@@ -153,8 +192,8 @@ class CachingCall:
             encoded = self.encode(item, result)
             if encoded is not None:
                 RunCache(self.directory).store(key, encoded)
-        except OSError as error:  # el caché es una ayuda: su falla no aborta el lote
-            message = f"Aviso: no se pudo guardar la corrida {key} en el caché: {error}"
+        except Exception as error:  # el caché es una ayuda: su falla no aborta el lote
+            message = f"Aviso: no se pudo guardar la corrida {key} en el caché: {error!r}"
             print(message, file=sys.stderr)
         return result
 
@@ -162,25 +201,29 @@ class CachingCall:
 def map_with_cache(
     function: Callable[[Any], Any],
     items: Sequence[Any],
-    keys: Sequence[str],
+    key: Callable[[Any], str],
     jobs: int,
-    cache: RunCache,
+    cache_dir: Path | None,
     encode: Callable[[Any, Any], Any],
     decode: Callable[[Any, Any], Any],
     mapper: Callable[[Callable[[Any], Any], Sequence[Any], int], list[Any]] = map_in_order,
 ) -> list[Any]:
-    """`mapper(function, items, jobs)` que carga del caché las corridas ya guardadas.
+    """`mapper(function, items, jobs)` que, con `cache_dir`, carga las corridas ya guardadas.
 
-    `decode(item, stored)` reconstruye el resultado; si lanza `KeyError`, `TypeError`,
-    `ValueError` o `AttributeError`, lo guardado no sirve y la corrida se recalcula. Las demás
-    corridas se reparten con `mapper` y cada una se guarda al terminar. Devuelve los resultados en
-    el orden de `items`.
+    Sin `cache_dir` delega en `mapper` sin calcular claves. Con él, borra los temporales
+    huérfanos e identifica cada corrida con `key(item)`; `decode(item, stored)` reconstruye lo
+    guardado y, si lanza `KeyError`, `TypeError`, `ValueError` o `AttributeError`, no sirve y la
+    corrida se recalcula. Las demás corridas se reparten con `mapper` y cada una se guarda al
+    terminar con `encode(item, result)`. Devuelve los resultados en el orden de `items`.
     """
-    if len(keys) != len(items):
-        raise ValueError("cada corrida necesita su clave")
+    if cache_dir is None:
+        return mapper(function, items, jobs)
+    cache = RunCache(cache_dir)
+    cache.remove_orphans()
+    keys = [key(item) for item in items]
     results: dict[int, Any] = {}
-    for index, (item, key) in enumerate(zip(items, keys, strict=True)):
-        stored = cache.load(key)
+    for index, (item, item_key) in enumerate(zip(items, keys, strict=True)):
+        stored = cache.load(item_key)
         if stored is None:
             continue
         try:
@@ -188,7 +231,7 @@ def map_with_cache(
         except _DECODE_ERRORS:
             continue
     pending = [index for index in range(len(items)) if index not in results]
-    call = CachingCall(function, encode, cache.directory)
+    call = CachingCall(function, encode, cache_dir)
     fresh = mapper(call, [(keys[index], items[index]) for index in pending], jobs)
     results.update(zip(pending, fresh, strict=True))
     return [results[index] for index in range(len(items))]

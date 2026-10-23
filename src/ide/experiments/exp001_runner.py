@@ -424,8 +424,13 @@ def run_tasks(
     return {args[2]: result for args, result in zip(jobs_args, results, strict=True)}
 
 
+def json_text(data: Any) -> str:
+    """El texto que escribe `write_json`: indentado, con claves ordenadas y salto final."""
+    return json.dumps(data, indent=2, sort_keys=True) + "\n"
+
+
 def write_json(path: Path, data: Any) -> None:
-    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(json_text(data), encoding="utf-8")
 
 
 def _write_timeseries(

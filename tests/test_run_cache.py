@@ -522,3 +522,194 @@ def test_modulo_sin_generadores() -> None:
     """El caché no importa NumPy aleatorio ni crea generadores: no cambia ningún valor."""
     source = Path(run_cache.__file__).read_text(encoding="utf-8")
     assert "random" not in source
+
+
+# --- Revisión del caché: entorno, fallas, temporales, permisos y decodificación ----------------
+
+
+@pytest.mark.parametrize(
+    ("target", "name", "value"),
+    [
+        ("sys", "version", "0.0.0 (otro intérprete)"),
+        ("implementation", "name", "otra_implementacion"),
+        ("platform", "machine", "otra_maquina"),
+        ("platform", "system", "OtroSistema"),
+    ],
+)
+def test_clave_incluye_el_interprete_y_la_plataforma(
+    monkeypatch: pytest.MonkeyPatch, target: str, name: str, value: str
+) -> None:
+    """Otro intérprete o plataforma puede dar otros floats: la clave cambia y se recalcula."""
+    import platform
+    import sys
+
+    config = dataclasses.replace(PHASE25_PROTOCOL_CONFIGS["25a"], **SMALL)
+    before = run_key("exp25_smoke", config, 10)
+    if target == "sys":
+        monkeypatch.setattr(sys, name, value)
+    elif target == "implementation":
+        monkeypatch.setattr(sys.implementation, name, value)
+    else:
+        monkeypatch.setattr(platform, name, lambda: value)
+    assert run_key("exp25_smoke", config, 10) != before
+
+
+def _identity(item: Any) -> Any:
+    return item
+
+
+def _keep(item: Any, result: Any) -> Any:
+    return result
+
+
+def _restore(item: Any, stored: Any) -> Any:
+    return stored
+
+
+def _unserializable(item: Any, result: Any) -> Any:
+    return {"valor": object()}
+
+
+def _raising_encoder(item: Any, result: Any) -> Any:
+    raise RuntimeError("codificador roto")
+
+
+@pytest.mark.parametrize("encode", [_unserializable, _raising_encoder])
+def test_falla_al_codificar_no_aborta_el_lote(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], encode: Callable[[Any, Any], Any]
+) -> None:
+    call = run_cache.CachingCall(_identity, encode, tmp_path)
+    assert call(("c" * 64, 5)) == 5
+    assert "Aviso" in capsys.readouterr().err
+    assert list(tmp_path.iterdir()) == []  # ni el archivo ni un temporal
+
+
+def test_temporales_huerfanos_se_limpian(tmp_path: Path) -> None:
+    """Un corte entre `mkstemp` y `os.replace` deja un `.*.tmp`: se borra al usar el caché."""
+    keep = tmp_path / f"{'d' * 64}.json"
+    keep.write_text("{}")
+    orphans = [tmp_path / f".{'e' * 64}.abc.tmp", tmp_path / ".x.tmp"]
+    for orphan in orphans:
+        orphan.write_text("parcial")
+    other = tmp_path / "notas.tmp"  # no es un temporal del caché
+    other.write_text("x")
+    result = run_cache.map_with_cache(
+        _identity, [1], lambda item: "f" * 64, 1, tmp_path, _keep, _restore
+    )
+    assert result == [1]
+    assert RunCache(tmp_path).load("f" * 64) == 1
+    assert not any(orphan.exists() for orphan in orphans)
+    assert keep.exists() and other.exists()
+
+
+@pytest.mark.parametrize("umask", [0o022, 0o027, 0o077])
+def test_permisos_de_los_archivos_del_cache(tmp_path: Path, umask: int) -> None:
+    import os
+    import stat
+
+    previous = os.umask(umask)
+    try:
+        RunCache(tmp_path).store("a" * 64, {"x": 1})
+    finally:
+        os.umask(previous)
+    mode = stat.S_IMODE(RunCache(tmp_path).path("a" * 64).stat().st_mode)
+    assert mode == 0o644 & ~umask
+
+
+def test_sin_cache_delega_en_el_mapper() -> None:
+    calls: list[tuple[Any, ...]] = []
+
+    def mapper(function: Callable[[Any], Any], items: Any, jobs: int) -> list[Any]:
+        calls.append((function, list(items), jobs))
+        return [function(item) for item in items]
+
+    def key(item: Any) -> str:
+        raise AssertionError("sin caché no se calculan claves")
+
+    result = run_cache.map_with_cache(_identity, [3, 1], key, 4, None, _keep, _restore, mapper)
+    assert result == [3, 1]
+    assert calls == [(_identity, [3, 1], 4)]
+
+
+@pytest.mark.parametrize(
+    ("argument", "expected"),
+    [(None, None), ("", "BASE/.nombre"), ("otro/dir", "otro/dir")],
+)
+def test_resolve_cache_dir(tmp_path: Path, argument: str | None, expected: str | None) -> None:
+    resolved = run_cache.resolve_cache_dir(argument, tmp_path, ".nombre")
+    want = None if expected is None else Path(expected.replace("BASE", str(tmp_path)))
+    assert resolved == want
+
+
+def test_nombres_por_defecto_distintos() -> None:
+    assert exp25_runner.EXP25_CACHE_NAME == ".cache_exp25"
+    assert phase25_viability.VIABILITY_CACHE_NAME == ".cache_viability"
+    assert not hasattr(run_cache, "DEFAULT_CACHE_NAME")
+
+
+def _valid_phase25_record(metrics: tuple[str, ...]) -> dict[str, Any]:
+    return {
+        "final_agents": 3,
+        "final_active_agents": 2,
+        "max_generation": 4,
+        "cumulative_births": 5,
+        "cumulative_deaths": 1,
+        "mean_age_at_death": 7.5,
+        "effective_parents": 1.0,
+        "metrics": dict.fromkeys(metrics, 0.25),
+    }
+
+
+_CORRUPTIONS: list[Callable[[dict[str, Any]], Any]] = [
+    lambda r: {**r, "final_agents": "3"},
+    lambda r: {**r, "final_agents": 3.0},
+    lambda r: {**r, "max_generation": True},
+    lambda r: {**r, "mean_age_at_death": 7},
+    lambda r: {**r, "effective_parents": None},
+    lambda r: {**r, "extra": 1},
+    lambda r: {k: v for k, v in r.items() if k != "cumulative_births"},
+    lambda r: {**r, "metrics": [0.25]},
+    lambda r: {**r, "metrics": dict.fromkeys(r["metrics"], "0.25")},
+    lambda r: {**r, "metrics": dict.fromkeys(r["metrics"], 1)},
+    lambda r: {**r, "metrics": {"m1": 0.25}},
+    lambda r: [r],
+]
+
+
+@pytest.mark.parametrize("corrupt", _CORRUPTIONS)
+def test_registro_de_atribucion_invalido_se_rechaza(
+    corrupt: Callable[[dict[str, Any]], Any],
+) -> None:
+    config = dataclasses.replace(PHASE25_PROTOCOL_CONFIGS["25d"], **SMALL)
+    item = (config, TINY_TICKS, ("m1", "m2"))
+    valid = _valid_phase25_record(item[2])
+    assert attribution._decode_phase25_record(item, valid) == Phase25RunRecord(**valid)
+    with pytest.raises((KeyError, TypeError, ValueError)):
+        attribution._decode_phase25_record(item, corrupt(valid))
+
+
+def test_historiales_sin_relecturas_al_escribir(
+    tmp_path: Path,
+    tiny: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """El sha256 se calcula del texto antes de escribir; al reanudar sí se verifica en disco."""
+    reads: list[Path] = []
+    original = exp25_runner.sha256_file
+
+    def counting(path: Path) -> str:
+        reads.append(path)
+        return original(path)
+
+    monkeypatch.setattr(exp25_runner, "sha256_file", counting)
+    out, cache = tmp_path / "out", tmp_path / "cache"
+    argv = protocol_argv(tiny, out, "1", "--histories", "--cache", str(cache))
+    expected = run_cli(argv, capsys)
+    assert reads == []
+    written = sorted(out.glob("*_histories.json"))
+    stored = [json.loads(p.read_text())["result"]["histories"] for p in cache_files(cache)]
+    digests = {digest for entry in stored for digest in entry.values()}
+    assert {original(path) for path in written} == digests
+    assert run_cli(argv, capsys) == expected
+    assert sorted(reads) == written

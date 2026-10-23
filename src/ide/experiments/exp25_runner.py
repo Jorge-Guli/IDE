@@ -45,6 +45,7 @@ Uso: `python -m ide.experiments.exp25_runner [--profile P] [--seeds 42 43 ...] [
 """
 
 import argparse
+import hashlib
 import re
 import sys
 from collections.abc import Mapping
@@ -70,7 +71,7 @@ from ide.experiments.attribution import (
 from ide.experiments.exp001_runner import (
     PROFILES,
     default_jobs,
-    map_in_order,
+    json_text,
     non_negative_int,
     positive_int,
     report_to_dict,
@@ -80,9 +81,8 @@ from ide.experiments.exp001_runner import (
 from ide.experiments.metrics import EcologyTickMetrics, GeneticTickMetrics
 from ide.experiments.phase2_cli import ProtocolSpec, require_positive_ticks, run_protocol
 from ide.experiments.run_cache import (
-    DEFAULT_CACHE_NAME,
-    RunCache,
     map_with_cache,
+    resolve_cache_dir,
     run_key,
     sha256_file,
 )
@@ -103,6 +103,7 @@ __all__ = [
 
 _PROTOCOLS = ("25a", "25b", "25c", "25d")
 _NAME = "exp25"
+EXP25_CACHE_NAME = ".cache_exp25"  # subdirectorio de `--out` cuando `--cache` no da directorio
 
 
 @dataclass(frozen=True)
@@ -212,22 +213,32 @@ def _error_record(error: BaseException) -> dict[str, str]:
     return {"type": type(error).__name__, "message": _ADDRESS.sub("0x?", str(error))}
 
 
-def _run_task(task: _Task) -> tuple[Phase25ConditionSummary, dict[str, str] | None]:
+# (resumen, error al escribir los historiales o `None`, sha256 de cada historial escrito por ruta
+# absoluta). Los sha256 sólo los usa el caché persistente (precisión 140).
+_Outcome = tuple[Phase25ConditionSummary, dict[str, str] | None, dict[str, str]]
+
+
+def _run_task(task: _Task) -> _Outcome:
     """Corre una configuración y escribe sus historiales al terminar: no viajan ni se acumulan.
 
-    Un `OSError` al escribirlos no aborta el lote: se devuelve como error de la corrida, junto
-    con su resumen.
+    El sha256 de cada historial se calcula de su texto serializado (`json_text`, el mismo que
+    escribe `write_json`) antes de escribirlo, sin releer el archivo. Un `OSError` al escribirlos
+    no aborta el lote: se devuelve como error de la corrida, junto con su resumen.
     """
     config, total_ticks, targets = task
     summary, histories = run_phase25_condition_histories(config, total_ticks)
+    digests: dict[str, str] = {}
     if targets:
         data = report_to_dict(histories)
         try:
             for path, header in targets:
-                write_json(Path(path), {**header, **data})
+                payload = {**header, **data}
+                digest = hashlib.sha256(json_text(payload).encode("utf-8")).hexdigest()
+                write_json(Path(path), payload)
+                digests[_history_path(path)] = digest
         except OSError as error:
-            return summary, _error_record(error)
-    return summary, None
+            return summary, _error_record(error), digests
+    return summary, None, digests
 
 
 # --- Caché persistente de corridas (precisión 140) ---------------------------------------------
@@ -263,21 +274,15 @@ def _history_path(path: str) -> str:
     return str(Path(path).resolve())
 
 
-def _encode_protocol(
-    task: _Task, outcome: tuple[Phase25ConditionSummary, dict[str, str] | None]
-) -> dict[str, Any] | None:
+def _encode_protocol(task: _Task, outcome: _Outcome) -> dict[str, Any] | None:
     """Resumen e historiales escritos (sha256 por ruta); nada si la corrida tuvo un error."""
-    summary, error = outcome
+    summary, error, digests = outcome
     if error is not None:
         return None
-    _, _, targets = task
-    histories = {_history_path(path): sha256_file(Path(path)) for path, _ in targets}
-    return {"summary": report_to_dict(summary), "histories": histories}
+    return {"summary": report_to_dict(summary), "histories": digests}
 
 
-def _decode_protocol(
-    task: _Task, stored: Mapping[str, Any]
-) -> tuple[Phase25ConditionSummary, dict[str, str] | None]:
+def _decode_protocol(task: _Task, stored: Mapping[str, Any]) -> _Outcome:
     """El resumen guardado sirve si cada historial pedido existe con el contenido registrado."""
     _, _, targets = task
     histories: Mapping[str, str] = stored["histories"]
@@ -288,7 +293,7 @@ def _decode_protocol(
                 raise ValueError(f"historial ausente o distinto: {path}")
         except OSError as error:
             raise ValueError(f"historial ilegible: {path}") from error
-    return _summary_from_json(stored["summary"]), None
+    return _summary_from_json(stored["summary"]), None, dict(histories)
 
 
 def _encode_smoke(task: tuple[SimulationConfig, int], result: dict[str, Any]) -> Any:
@@ -310,11 +315,15 @@ def _decode_smoke(task: tuple[SimulationConfig, int], stored: Any) -> dict[str, 
     return dict(record)
 
 
-def _cache_dir(argument: str | None, out: Path) -> Path | None:
-    """`--cache` ausente: sin caché; sin directorio: `--out/.cache_exp25`; si no, el dado."""
-    if argument is None:
-        return None
-    return out / DEFAULT_CACHE_NAME if argument == "" else Path(argument)
+def _smoke_key(task: tuple[SimulationConfig, int]) -> str:
+    config, ticks = task
+    return run_key(_SMOKE_KIND, config, ticks)
+
+
+def _protocol_key(task: _Task) -> str:
+    """Los historiales pedidos no entran en la clave: se verifican al decodificar."""
+    config, ticks, _ = task
+    return run_key(_PROTOCOL_KIND, config, ticks)
 
 
 class _BirthInvariant:
@@ -418,7 +427,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help=(
             "caché persistente de corridas (precisión 140): cada corrida guarda su resultado al "
             "terminar y, al relanzar el mismo comando, las guardadas no se repiten; sin DIR, "
-            f"--out/{DEFAULT_CACHE_NAME}. La salida es idéntica con caché y sin él"
+            f"--out/{EXP25_CACHE_NAME}. La salida es idéntica con caché y sin él"
         ),
     )
     mode = parser.add_mutually_exclusive_group()
@@ -503,7 +512,7 @@ def main(argv: list[str] | None = None) -> int:
         out.mkdir(parents=True, exist_ok=True)
     except OSError as error:
         parser.error(f"--out no es un directorio utilizable ({out}): {error}")
-    cache = _cache_dir(args.cache, out)
+    cache = resolve_cache_dir(args.cache, out, EXP25_CACHE_NAME)
     if args.attribution:
         return _main_attribution(seeds, rule_effect_seeds, out, jobs, run_configs, cache)
     total_ticks = PROFILES[profile].total_ticks
@@ -549,23 +558,12 @@ def _main_protocols(
             }
             group.append((str(path), header))
     tasks: list[_Task] = [(config, total_ticks, tuple(group)) for config, group in targets.items()]
-    if cache is None:
-        results = map_in_order(_run_task, tasks, jobs)
-    else:
-        keys = [run_key(_PROTOCOL_KIND, config, total_ticks) for config, _, _ in tasks]
-        results = map_with_cache(
-            _run_task,
-            tasks,
-            keys,
-            jobs,
-            RunCache(cache),
-            _encode_protocol,
-            _decode_protocol,
-            mapper=map_in_order,
-        )
+    results = map_with_cache(
+        _run_task, tasks, _protocol_key, jobs, cache, _encode_protocol, _decode_protocol
+    )
     outcomes = dict(zip(targets, results, strict=True))
-    summaries = {config: summary for config, (summary, _) in outcomes.items()}
-    failures = sum(error is not None for _, error in outcomes.values())
+    summaries = {config: summary for config, (summary, _, _) in outcomes.items()}
+    failures = sum(error is not None for _, error, _ in outcomes.values())
 
     for protocol, name in _labels(planned):
         runs = [
@@ -621,20 +619,9 @@ def _main_smoke(
     Devuelve 1 si alguna corrida falló (su tipo y mensaje quedan en el registro) y 0 si no.
     """
     tasks = list(dict.fromkeys((config, total_ticks) for config in planned.values()))
-    if cache is None:
-        outcomes = map_in_order(_smoke_task, tasks, jobs)
-    else:
-        keys = [run_key(_SMOKE_KIND, config, ticks) for config, ticks in tasks]
-        outcomes = map_with_cache(
-            _smoke_task,
-            tasks,
-            keys,
-            jobs,
-            RunCache(cache),
-            _encode_smoke,
-            _decode_smoke,
-            mapper=map_in_order,
-        )
+    outcomes = map_with_cache(
+        _smoke_task, tasks, _smoke_key, jobs, cache, _encode_smoke, _decode_smoke
+    )
     results = dict(zip(tasks, outcomes, strict=True))
     runs: list[dict[str, Any]] = []
     failures = 0
@@ -698,7 +685,8 @@ def _main_attribution(
             f"Aviso: con menos de {PHASE25_MIN_VALID_PAIRS} semillas ninguna afirmación es "
             "evaluable; todos los estados serán NOT_OBSERVED."
         )
-    # El caché sólo se pasa si se pidió: sin él, la llamada es la de siempre.
+    # El caché sólo se pasa si se pidió: sin él, la llamada es la de siempre (los dobles de
+    # `run_phase25_attribution` de `tests/test_exp25.py` no aceptan `cache_dir`).
     cached: dict[str, Path] = {} if cache is None else {"cache_dir": cache}
     report: Phase25Report = run_phase25_attribution(
         seeds=seeds,
