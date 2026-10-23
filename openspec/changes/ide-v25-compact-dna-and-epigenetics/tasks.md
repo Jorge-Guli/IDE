@@ -14,7 +14,8 @@
 > | L | 13 a 15 | memoria, aprendizaje y señales construidos por la evolución ($R_{39}$–$R_{41}$, ampliación D57–D63) | ablaciones, fundador neutro y determinismo |
 > | M | 16 a 20 | mecanismos del ADN ($R_{25}$–$R_{31}$, $R_{38}$) | ablaciones y determinismo de los mecanismos |
 > | C | 21 a 25 | telemetría, atribución, compuerta de viabilidad, prueba de humo y runners | compuerta de viabilidad (bloque 23) y prueba de humo (bloque 24) |
-> | D | 26 | corridas y registro | resultados |
+> | D | 26 | corridas de D56 y registro | resultados (2026-10-23: C13–C20 no evaluables) |
+> | S | 27 a 32 | control de sombra neutral (reformulación del control, design D64–D74): instrumento, telemetría, atribución con sombra, prueba de humo y corridas con semillas nuevas | inercia e identidad del instrumento (bloque 28), prueba de humo (bloque 31) y resultados (bloque 32) |
 >
 > **Ejecución automática.** La skill `ejecutar-bloque` (`.claude/skills/ejecutar-bloque/`) ejecuta cada bloque con el ciclo de `CLAUDE.md`:
 > - lo delega en el subagente que indica su línea `> Ejecuta:`;
@@ -32,7 +33,7 @@
 >
 > **Pre-registro.** Es design D56, **aprobado** el 2026-10-21 en la tarea 0.5, **antes** del bloque 6. Las constantes de `attribution.py` del bloque 22 deben coincidir **exactamente** con él. Se reabrió el 2026-10-21 con la ampliación D57–D63.
 >
-> **Etapa actual:** las etapas A, R, B, L y M están completas y el bloque 22 implementado; el pre-registro D56 está aprobado. Sigue la etapa C: bloques 23 a 25.
+> **Etapa actual:** las etapas A a C están completas, y la atribución de D56 (tarea 26.1) se corrió y se registró: C13–C20 quedaron no evaluables porque el control de reproducción neutral se extingue (`docs/RESULTADOS.md`). El 2026-10-23 el responsable del proyecto decidió reformular el control con una sombra neutral (design D64–D74, **borrador**). Sigue la revisión cruzada y la aprobación del pre-registro D72 (tareas 0.7 y 0.8); después, la etapa S (bloques 27 a 32). Las tareas 26.2 y 26.3 (documentos y cierre) se hacen después del bloque 32.
 
 ## 0. Decisiones y pre-registro
 
@@ -65,6 +66,15 @@
   - las correcciones de la revisión cruzada del 2026-10-21 (diferencia de diferencias de C17 y C19, `effective_parents`, ventana final de 1000 ticks y precisiones 66–69);
   - los valores por defecto de D52.
   - Registrar las decisiones con fecha en `proposal.md` y commitear.
+
+- [ ] 0.7 **Reformular el control con una sombra neutral** (2026-10-23, decisión del responsable del proyecto): design D64–D74, specs delta (`simulation-engine`, `evolutionary-dynamics`, `micro-agent`, `domain-contracts`, `experimental-suite` y `emergence-attribution`), `proposal.md`, este `tasks.md` y los documentos raíz, con `openspec validate --all --strict` y **revisión cruzada independiente** (cambio grande). Declarar `shadow_rng` (`spawn_key=(6,)`) en `CLAUDE.md`, sección Determinismo. Hecho como borrador; falta la revisión cruzada.
+- [ ] 0.8 **Aprobar el pre-registro con sombra D72** con el responsable del proyecto, **antes** del bloque 27 y sin correr ninguna corrida con sombra:
+  - las afirmaciones C21–C27 (genuinas) y C28 (funcional), sus métricas real y de sombra, comparaciones, $R_C$, canales y $\delta_{\min}$ (iguales a los de D56);
+  - la regla de pares válidos sin condiciones neutrales, la prueba de signo, Holm sobre C21–C27 ($m = 7$), E4 sobre el exceso de la sombra y los efectos de regla exploratorios;
+  - las semillas nuevas 72–101 (`PHASE25_SHADOW_SEEDS`) y 72–81 para los efectos de regla, el perfil `phase25` y la abundancia (80, 20), sin compuerta nueva (D72.10);
+  - los puntos abiertos P-S1 (potencia de `25d`) y P-S2 (E4 y efectos de regla);
+  - los sesgos declarados de D71.
+  - Registrar la decisión con fecha en `proposal.md` y commitear antes del bloque 27.
 
 ## 1. Contratos de dominio y configuración (`domain-contracts`)
 
@@ -416,5 +426,86 @@
 > Punto de control: resultados. Presentarlos tal cual, incluidos los negativos, antes de archivar.
 
 - [ ] 26.1 Correr los cuatro protocolos con sus condiciones y `PHASE25_SEEDS`, y los `rule_effects` exploratorios con las semillas 42–51. Registrar todos los resultados, incluidos los negativos y las métricas descriptivas de evolución abierta, en `docs/RESULTADOS.md`, sin tocar el pre-registro.
+> Las tareas 26.2 y 26.3 se posponen hasta después del bloque 32 (etapa S), para cerrar la fase con los resultados del control de sombra.
+
 - [ ] 26.2 Actualizar `CLAUDE.md` (estado), `README.md` y los documentos de `docs/`, incluida la hoja de ruta de la Fase III con lo aprendido.
 - [ ] 26.3 Completar la Definition of Done de `design.md` con su evidencia y archivar el cambio.
+
+## 27. Contratos y generador de la sombra (`domain-contracts`, `micro-agent`, `simulation-engine`)
+
+> Ejecuta: implementador-mecanico
+
+- [ ] 27.1 **[RED]** Tests para:
+  - `enable_neutral_shadow: bool = False` como último campo de `SimulationConfig`, y el escenario de los campos de la ampliación actualizado (D65.1);
+  - `MicroAgent.shadow_dna`, `shadow_internal_state`, `set_shadow_dna` y `set_shadow_internal_state` (con `ValueError` fuera de $[0, 255]$), y que `create_offspring`, `express` y `decide_action` no los usan (D65.2);
+  - `shadow_rng` con `spawn_key=(6,)`, sin consumo con la sombra apagada o inerte, y los escenarios de generadores del motor con `shadow_rng` (D66, D73.6);
+  - la sombra inerte sin `enable_compact_dna` o sin `enable_evolution`, sin error (D65.1);
+  - los fundadores con `shadow_dna == dna` y estado de sombra 0 (D65.3).
+- [ ] 27.2 **[GREEN]** Implementar la bandera, el estado del agente, el generador y la sombra de los fundadores.
+- [ ] 27.3 **[REFACTOR]** Verificación del bloque, con los hashes dorados, las huellas de la Fase II y los historiales de la Fase II-B intactos con la sombra apagada.
+
+## 28. Herencia, mutación y conjugación de la sombra (`evolutionary-dynamics`, `simulation-engine`, `experimental-suite`)
+
+> Ejecuta: implementador-delicado
+>
+> Punto de control: compuerta del instrumento. Mostrar las pruebas de inercia (D73.2) y de identidad sin mutación (D73.3) en los cuatro protocolos, con `drift` y $R_{17}$, y el test AST de accesos (D73.4). Sin ellas no se corre ninguna corrida con sombra.
+
+- [ ] 28.1 **[RED]** Tests para:
+  - la herencia por la fuente genética, con selección, en la reproducción neutral y en $R_{17}$ (D67.1, D67.4);
+  - la mutación de la sombra con `shadow_rng`, los mismos operadores y la misma escala SOS, sin consumo con $R_{13}$ ablacionada (D67.3);
+  - la recombinación de la sombra con la misma pareja y los cortes acotados, sin generadores (D67.2);
+  - la conjugación espejo, también cuando CRISPR bloquea la transferencia real, y sin extracción si la sombra del donante no tiene plásmidos (D67.5); la sombra sin ensayos ni purgas CRISPR (D67.6);
+  - `Birth.shadow_dna` (D67.7);
+  - la inercia: historiales reales y estado de todos los generadores salvo `shadow_rng` idénticos con la sombra activa y apagada, y con la sombra reemplazada a mitad de corrida (D73.2);
+  - la identidad sin mutación en `25a` y `25b`, con $R_{26}$, $R_{27}$, $R_{38}$ y $R_{17}$ activas (D73.3);
+  - el test AST de accesos (D73.4) y la igualdad entre procesos con distinto `PYTHONHASHSEED` (D73.5).
+- [ ] 28.2 **[GREEN]** Implementar la herencia en `_give_birth` (con la pareja del cruce), la conjugación espejo y la sombra sin CRISPR.
+- [ ] 28.3 **[REFACTOR]** Verificación del bloque.
+
+## 29. Evaluación y telemetría de la sombra (`simulation-engine`, `experimental-suite`)
+
+> Ejecuta: implementador-delicado
+
+- [ ] 29.1 **[RED]** Tests para:
+  - `ShadowEvaluationSystem` (último del núcleo de la Fase 3, con la marca `notifies_decisions`), la elección innata real y de la sombra sin generadores y sin pesos plásticos, y `ShadowStateSystem` con $R_{39}$ (D68);
+  - `ShadowTickMetrics` con sus campos en orden, `engine.shadow_history`, la población vacía y los nombres únicos (D69);
+  - cada campo de sombra, incluidas `shadow_communicating_fraction` con el fenotipo de la sombra en `last_context`, `innate_share_choice` frente a `share_rate` y la actividad de la sombra con el mismo denominador (D69.2, D70);
+  - que la caché de la transcripción y de la evaluación de la sombra coincide con el cálculo directo;
+  - que `GeneticTickMetrics`, `EcologyTickMetrics`, `TickMetrics` y `EvolutionaryTickMetrics` no cambian.
+  - Exploratorio, marcado `empirical` (no bloquea): con `dna_codon_cost` alto, `mean_chromosome_length` real queda por debajo de `shadow_mean_chromosome_length` (control positivo del instrumento).
+- [ ] 29.2 **[GREEN]** Implementar los sistemas, el observador y el colector de la sombra.
+- [ ] 29.3 **[REFACTOR]** Verificación del bloque, con la inercia de D73.2 todavía en verde.
+
+## 30. Atribución con sombra (`emergence-attribution`)
+
+> Ejecuta: implementador-delicado
+
+- [ ] 30.1 **[RED]** Ampliar `tests/test_attribution.py` con tests para:
+  - `Phase25ShadowClaim` y su validación, `PHASE25_SHADOW_CLAIMS` (C21–C28) con métricas, `shadow_metric`, comparaciones, $R_C$, canales, $\delta_{\min}$ y enunciados (D72.2, D72.3);
+  - las tres formas de diferencia, `values` y `comparison_values`, los pares válidos sin condiciones neutrales, la prueba de signo, Holm sobre C21–C27, C28 fuera de Holm y el umbral relativo de C24 (D72.2, D72.5);
+  - E4 sobre el exceso de la sombra y los efectos de regla con las semillas 72–81 (D72.7, D72.8);
+  - `PHASE25_SHADOW_PROTOCOL_CONFIGS`, sus condiciones y `PHASE25_SHADOW_SEEDS` disjuntas de las anteriores (D72.6);
+  - `run_phase25_shadow_attribution`, su validación de configuraciones y la salida idéntica para cualquier `jobs` (D72.11);
+  - que `PHASE25_CLAIMS` y la atribución de D56 no cambian.
+- [ ] 30.2 **[GREEN]** Implementar en `attribution.py` el pre-registro aprobado en 0.8. Las constantes deben coincidir exactamente con design D72.
+- [ ] 30.3 **[REFACTOR]** Verificación del bloque.
+
+## 31. Runner, rendimiento y prueba de humo con semillas nuevas (`experimental-suite`)
+
+> Ejecuta: implementador-delicado
+>
+> Punto de control: prueba de humo con sombra. Mostrar el costo por tick con sombra y, por protocolo, condición y semilla de 72–101, sólo la terminación, la generación máxima y la población final, con los pares válidos que anticipan.
+
+- [ ] 31.1 **[RED]** Tests de `exp25_runner --shadow` con `--smoke` y `--attribution`: semillas por defecto, condiciones sin reproducción neutral, archivos de salida y salida idéntica para cualquier `--jobs`.
+- [ ] 31.2 **[GREEN]** Implementar `--shadow` en `exp25_runner.py`, con el caché persistente (precisión 140).
+- [ ] 31.3 Medir el costo por tick de `25b` con la sombra (D74.5). Si una corrida de `phase25` supera los 5 minutos, optimizar con historiales y `shadow_history` idénticos.
+- [ ] 31.4 Correr la prueba de humo con sombra (D72.10) sobre `PHASE25_SHADOW_SEEDS`, **sin** calcular ni mirar ninguna métrica de C21–C28, y registrarla en `registros/` y en `docs/RESULTADOS.md`.
+- [ ] 31.5 Actualizar `CLAUDE.md` (comandos y estado) y `README.md` con los comandos nuevos.
+
+## 32. Corridas con sombra y registro
+
+> Ejecuta: agente principal. Sin subagente: las corridas largas se hacen en el equipo del responsable del proyecto, y el agente principal registra e interpreta.
+>
+> Punto de control: resultados. Presentarlos tal cual, incluidos los negativos y las afirmaciones no evaluables, antes de cerrar la fase con 26.2 y 26.3.
+
+- [ ] 32.1 Correr `python -m ide.experiments.exp25_runner --shadow --attribution` con `PHASE25_SHADOW_SEEDS` y los efectos de regla exploratorios con las semillas 72–81. Registrar todos los resultados en `registros/` y en `docs/RESULTADOS.md`, junto a los de D56 y sin tocar ninguno de los dos pre-registros.

@@ -161,6 +161,38 @@ Con `reproduction_mode="neutral"` y `enable_compact_dna=True`, la reproducción 
 - **WHEN** con `enable_compact_dna=False` y `reproduction_mode="neutral"` se reproduce un holón
 - **THEN** cada hoja hija deriva su genoma del de su hoja progenitora, `donor_rng` no extrae para el holón y los historiales son idénticos a los de la Fase II.
 
+### Requirement: Herencia de la Sombra por la Fuente Genética
+Con la sombra efectiva, la sombra de cada hijo SHALL partir de la sombra de su fuente genética (precisión 68): el progenitor con selección, el donante en la reproducción neutral y, en $R_{17}$, la hoja de la que proviene el ADN, en el orden de `leaf_agents` (design D67.1 y D67.4).
+
+#### Scenario: Hijo de un progenitor
+- **WHEN** nace un hijo con selección en `25a`
+- **THEN** su sombra antes de mutar es la sombra de su progenitor, y `Birth.shadow_dna` registra la sombra con que nació.
+
+#### Scenario: Reproducción holónica
+- **WHEN** un holón de `25b` se reproduce por $R_{17}$
+- **THEN** la sombra de cada hoja hija parte de la sombra de su hoja progenitora.
+
+### Requirement: Mutación de la Sombra con los Mismos Operadores y Escala
+La sombra del hijo SHALL mutarse con `mutate_dna(base, parent.base_config, shadow_rng, scale)`, con la misma `scale` de $R_{30}$ que el ADN real del hijo, inmediatamente después de crear al hijo real; con $R_{13}$ ablacionada SHALL NOT consumir `shadow_rng` (design D67.3, D35).
+
+#### Scenario: Escala SOS compartida
+- **WHEN** un progenitor estresado se reproduce con $R_{30}$ activa
+- **THEN** la sombra del hijo se muta con `sos_hypermutation_factor`, como su ADN real.
+
+### Requirement: Recombinación de la Sombra con la Misma Pareja y los Mismos Cortes
+Si el ADN real del hijo se recombina con cortes `a` y `b`, su sombra SHALL ser `recombine_dna(sombra_fuente, sombra_pareja, min(a, len_fuente), min(b, len_pareja - 1), config)`, con los largos de los cromosomas de las sombras y la misma pareja, sin extraer de ningún generador; sin cruce real, SHALL NOT recombinarse (design D67.2).
+
+#### Scenario: Corte acotado
+- **WHEN** el cruce real usa `a = 10` y la sombra de la fuente tiene 7 codones
+- **THEN** la sombra usa `a_s = 7`.
+
+### Requirement: Identidad de la Sombra sin Mutación
+Con $R_{13}$ ablacionada y la sombra efectiva, `shadow_dna` SHALL ser igual a `dna` en todo agente y todo tick, y cada campo de sombra de `ShadowTickMetrics` SHALL igualar a su homólogo real, también con $R_{26}$, $R_{27}$, $R_{38}$ y $R_{17}$ activas (design D73.3).
+
+#### Scenario: Identidad en 25a y 25b
+- **WHEN** se corren 300 ticks de `25a` y de `25b` con `mutation_rate = 0.0`, `discrete_mutation_prob = 0.0` y la sombra activa
+- **THEN** en cada tick `shadow_dna == dna` en todo agente, `shadow_mean_conditional_codons == mean_conditional_codons` y `shadow_innate_policy_divergence == innate_policy_divergence`.
+
 ## MODIFIED Requirements
 
 ### Requirement: Metabolismo Energético con Penalización Cuadrática de Capacidad y Radios

@@ -222,3 +222,31 @@ Una revisión cruzada independiente del borrador D56 encontró problemas antes d
   - una salida de respaldo fijada de antemano: si tampoco hay una viable, la configuración de las diez con más semillas viables sumadas sobre las condiciones que deciden (empate: la de menos abundancia), declarada de respaldo en `docs/RESULTADOS.md`; las afirmaciones con menos de 20 pares válidos quedan `NOT_OBSERVED` con `evaluable=False` (precisión 45) y E4 sigue su regla.
 - **Qué no cambia:** ninguna afirmación, métrica ni umbral de C13–C20 (D56), ni el criterio de viabilidad de D55.3.
 - **Cuándo.** Antes de correr la grilla extendida y sin mirar ninguna métrica de afirmación; la prueba de humo y los protocolos todavía no se corrieron.
+
+## Reformulación del control (2026-10-23, design D64–D74, BORRADOR)
+
+### Decisión del responsable del proyecto
+- **Quién y cuándo:** el responsable del proyecto, el 2026-10-23, después de ver la atribución pre-registrada de D56 (tarea 26.1).
+- **Qué decidió:** reemplazar el control que colapsa (la reproducción neutral, `drift`) por uno que no dependa de la supervivencia de una población sin selección. El agente principal propuso una **sombra neutral** al estilo Bedau–Packard (Bedau, Snyder y Packard 1998; Channon 2003), y este borrador la desarrolla.
+
+### Por qué
+- **Resultado de D56.** Las ocho afirmaciones C13–C20 quedaron `NOT_OBSERVED` y **no evaluables** (`registros/exp25_phase25_attribution.json`, `docs/RESULTADOS.md`): la condición `drift` se extingue en la mayoría de las semillas (7 a 19 de 30, según el protocolo) y `25d` `full` también (19 de 30). Sin selección la población no se sostiene, probablemente por acumulación de mutaciones dañinas.
+- **Dos defectos de base del control.** Sin una población neutral viva no hay comparación (potencia), y los pares que quedan son las semillas en que la población neutral sobrevivió, que no son una muestra al azar (sesgo de supervivencia).
+- **Un tercer defecto ya declarado.** La precisión 44 reconocía que la reproducción neutral con donante "no es una sombra neutral de Bedau–Packard" y que en C16 su sesgo era anticonservador por el autostop de contenido neutro en los linajes exitosos.
+
+### Qué cambia (borrador)
+- **Instrumento de medición, no regla del agente.** Bandera `enable_neutral_shadow` (por defecto `False`); cada hoja con ADN porta un `shadow_dna` que se hereda por la misma genealogía (misma fuente genética, misma pareja y cortes de recombinación, conjugación espejo) y muta con los mismos operadores, tasas y escala SOS, con un generador propio `shadow_rng` (`spawn_key=(6,)`), pero nunca se expresa ni afecta nada (D64–D67).
+- **Evaluación y telemetría.** La sombra se evalúa en la situación real del agente, sin actuar ni aprender (D68), y `ShadowTickMetrics` registra sus métricas en `engine.shadow_history` (D69).
+- **Pre-registro nuevo D72 (`PHASE25_SHADOW_CLAIMS`).** C21–C27 (genuinas) y C28 (funcional) hacen las mismas preguntas que C13–C20, comparando el ADN real con su sombra dentro de la misma corrida. C22 y C26 usan versiones innatas de la divergencia de la conducta y de la elección de `SHARE`, porque la sombra no actúa ni aprende (D70). Los umbrales $\delta_{\min}$ son los de D56, sin cambio. Semillas nuevas 72–101, nunca usadas. Las condiciones neutrales no se corren.
+- **Sesgos declarados** (D71), **compatibilidad y aceptación del instrumento** (D73: inercia sobre la dinámica real e identidad sin mutación) y **costo** (D74).
+- **Etapa S en `tasks.md`:** bloques 27 a 32.
+
+### Qué no cambia
+- El pre-registro D56 y su resultado, que quedan registrados tal cual y reproducibles.
+- Las reglas $R_{24}$–$R_{41}$, los protocolos, las condiciones con selección y la abundancia (80, 20) de la Enmienda 2 de D55. No hay compuerta nueva: la sombra no cambia la dinámica (D72.10).
+
+### Riesgo declarado de antemano
+- `25d` probablemente siga sin potencia: C27 espera unos 19 pares válidos y C28 unos 13 (D72.10). Queda como punto abierto P-S1 para el responsable del proyecto.
+
+### Estado
+- **Borrador para revisión cruzada.** Se aprueba en la tarea 0.8, antes de implementar la etapa S y sin correr ninguna corrida con sombra.

@@ -251,6 +251,21 @@ Con $R_{40}$ efectivamente activa, tras ejecutar su acción en la Fase 4, cada c
 - **WHEN** se construye un agente con `GeneticPolicy` y `comm_propensity_base = 0.5`, y otro con `HandwrittenPolicy` y `comm_propensity_base = 0.0`
 - **THEN** los dos tienen `communicates is True`.
 
+### Requirement: Estado de la Sombra en el Agente
+`MicroAgent` SHALL incorporar `shadow_dna: CompactDNA | None` (`None` por defecto) y `shadow_internal_state: int` (0 por defecto, en $[0, 255]$), con `set_shadow_dna(dna)` y `set_shadow_internal_state(state)`; `create_offspring`, `express`, `decide_action` y la política SHALL NOT leerlos ni modificarlos (design D65.2 y D65.4).
+
+#### Scenario: Hijo sin sombra propia
+- **WHEN** un agente con `shadow_dna` asignado llama a `create_offspring`
+- **THEN** el hijo tiene `shadow_dna is None` y `shadow_internal_state == 0` hasta que el motor los asigne.
+
+#### Scenario: Decisión indiferente a la sombra
+- **WHEN** dos agentes idénticos salvo su `shadow_dna` deciden con la misma observación y el mismo generador
+- **THEN** devuelven la misma acción y el generador queda en el mismo estado.
+
+#### Scenario: Estado fuera de rango
+- **WHEN** se llama a `set_shadow_internal_state(256)`
+- **THEN** se lanza `ValueError`.
+
 ## MODIFIED Requirements
 
 ### Requirement: Firmas Públicas Canónicas

@@ -110,7 +110,7 @@
 
 #### Scenario: Valores por defecto de la ampliación
 - **WHEN** se construye `SimulationConfig()`
-- **THEN** `enable_internal_state`, `enable_plasticity` y `enable_signals` valen `False`, `plasticity_rate_base == 0.0`, `signal_cost == 0.002`, `world_shift_period == 0`, `world_shift_fraction == 0.5` y `dna_max_length == 32`, y esos siete campos son los últimos de `dataclasses.fields(SimulationConfig)`, en ese orden.
+- **THEN** `enable_internal_state`, `enable_plasticity` y `enable_signals` valen `False`, `plasticity_rate_base == 0.0`, `signal_cost == 0.002`, `world_shift_period == 0`, `world_shift_fraction == 0.5` y `dna_max_length == 32`, y esos siete campos van, en ese orden, inmediatamente antes de `enable_neutral_shadow` (design D65.1), el último campo de `dataclasses.fields(SimulationConfig)`.
 
 ### Requirement: Validación Siempre Activa de la Ampliación
 `SimulationConfig.__post_init__` SHALL lanzar `ValueError` nombrando el campo, aunque las banderas estén apagadas, si `plasticity_rate_base` o `world_shift_fraction` están fuera de $[0, 1]$, o si `signal_cost` o `world_shift_period` son negativos (design D63.1).
@@ -253,3 +253,10 @@ Con `enable_compact_dna=True`, `SimulationConfig.__post_init__` SHALL lanzar un 
 #### Scenario: Orden de los agentes visibles
 - **WHEN** un observador tiene dentro de su radio de percepción a los agentes 9 y 3 a distancia 1 y al agente 2 a distancia 2
 - **THEN** `get_visible_agents` devuelve sus entradas en el orden 3, 9 y 2, y ninguna es la del observador.
+
+### Requirement: Bandera de la Sombra Neutral
+`SimulationConfig` SHALL incorporar al final, después de `world_shift_fraction`, `enable_neutral_shadow: bool = False`, sin validación propia: es un instrumento de medición, no una regla de diseño, y SHALL NOT figurar en `PHASE25_DESIGN_RULES` (design D65.1 y D64.5).
+
+#### Scenario: Último campo
+- **WHEN** se inspecciona `dataclasses.fields(SimulationConfig)`
+- **THEN** el último campo es `enable_neutral_shadow`, con valor por defecto `False`.

@@ -417,3 +417,124 @@ La atribución de la Fase II-B SHALL no alterar la de las fases anteriores: los 
 #### Scenario: Reportes previos idénticos
 - **WHEN** se corren la atribución 001-D y `run_phase2_attribution` con el mismo perfil corto y las mismas semillas antes y después del cambio
 - **THEN** las evaluaciones de `C1`..`C8` son idénticas.
+
+### Requirement: Pre-Registro D56 Conservado ante la Sombra
+La reformulación del control (design D64) SHALL NOT modificar `PHASE25_CLAIMS`, `PHASE25_SEEDS`, `PHASE25_PROTOCOL_CONFIGS`, sus condiciones con reproducción neutral ni `run_phase25_attribution`: la atribución de D56 SHALL reproducirse igual, y sus configuraciones SHALL tener `enable_neutral_shadow == False`.
+
+#### Scenario: D56 reproducible
+- **WHEN** se corre `run_phase25_attribution` con un perfil corto y dos semillas antes y después de la etapa S
+- **THEN** las evaluaciones y los `rule_effects` son idénticos, y ninguna configuración de `PHASE25_PROTOCOL_CONFIGS` activa la sombra.
+
+### Requirement: Tipo Phase25ShadowClaim
+`Phase25ShadowClaim` SHALL ser `frozen` con `claim_id`, `statement`, `protocol`, `metric`, `shadow_metric: str | None`, `comparison: str | None`, `rule_ids`, `channel`, `delta_min` y `delta_relative: float = 0.0`. `shadow_metric is None` SHALL implicar `comparison == "no_learning"` (afirmación funcional), y `comparison` SHALL valer `None`, `"no_predation"`, `"stable"` o `"no_learning"` (design D72.2).
+
+#### Scenario: Funcional sin sombra
+- **WHEN** se construye un `Phase25ShadowClaim` con `shadow_metric=None` y `comparison="no_predation"`
+- **THEN** se lanza `ValueError`.
+
+### Requirement: Diferencia contra la Sombra
+La diferencia de la semilla $s$ SHALL ser $\text{real}_{full}(s) - \text{sombra}_{full}(s)$ con `comparison is None`; $[\text{real} - \text{sombra}]_{full}(s) - [\text{real} - \text{sombra}]_{comp}(s)$ con `shadow_metric` y `comparison` definidos; y $\text{full}(s) - \text{no\_learning}(s)$ en la métrica real con `shadow_metric is None`. Real y sombra SHALL leerse de la misma corrida (design D72.2).
+
+#### Scenario: Sombra simple
+- **WHEN** en una semilla `full` tiene `mean_conditional_codons` 5.0 y `shadow_mean_conditional_codons` 3.5
+- **THEN** la diferencia de `C21` en esa semilla es `pytest.approx(1.5, abs=1e-9)`.
+
+#### Scenario: Diferencia de diferencias con sombra
+- **WHEN** en una semilla real y sombra valen 9.0 y 6.0 en `full` y 7.0 y 5.5 en `no_predation`
+- **THEN** la diferencia de `C25` es `pytest.approx(1.5, abs=1e-9)`.
+
+### Requirement: Valores Informados con Sombra
+La evaluación SHALL reutilizar `Phase25ClaimEvaluation` con `values` igual a $\text{real}_{full}$, $[\text{real} - \text{sombra}]_{full}$ o `full`, y `comparison_values` igual a $\text{sombra}_{full}$, $[\text{real} - \text{sombra}]_{comp}$ o `no_learning`, según sea sombra simple, diferencia de diferencias o funcional, de modo que la diferencia sea siempre `values[s] - comparison_values[s]` (design D72.2).
+
+#### Scenario: Valores de C27
+- **WHEN** en una semilla real y sombra valen 4.0 y 1.0 en `25d` `full` y 2.0 y 1.0 en `stable`
+- **THEN** `values` vale 3.0, `comparison_values` vale 1.0 y la diferencia es 2.0.
+
+### Requirement: Afirmaciones con Sombra C21 a C24
+`PHASE25_SHADOW_CLAIMS` SHALL contener, crecientes, con canal `()`, $R_C$ `("R12",)` y `comparison=None`: `C21` (`25a`, `mean_conditional_codons`, $\delta_{\min} = 1.0$), `C22` (`25a`, `innate_policy_divergence`, $0.05$), `C23` (`25c`, `communicating_fraction`, $0.10$) y `C24` (`25a`, `new_activity_per_birth`, $0.001$, `delta_relative = 0.25`), cada una con su métrica `shadow_` homóloga (design D72.3).
+
+#### Scenario: Registro de C21 a C24
+- **WHEN** se inspeccionan `C21`..`C24`
+- **THEN** tienen esos protocolos, métricas, `shadow_metric` igual a `"shadow_" + metric`, $R_C$, canales, $\delta_{\min}$ y `delta_relative` (0.0 salvo en `C24`).
+
+### Requirement: Afirmaciones con Sombra C25 a C27
+`PHASE25_SHADOW_CLAIMS` SHALL contener, crecientes y con canal `()`: `C25` (`25a`, `mean_expressible_nonattack_codons`, `comparison="no_predation"`, $R_C$ `("R37",)`, $1.0$), `C26` (`25b`, `innate_share_choice`, `comparison=None`, `("R12",)`, $0.01$) y `C27` (`25d`, `mean_learning_codons`, `comparison="stable"`, `()`, $1.0$), con su métrica `shadow_` homóloga y `delta_relative = 0.0` (design D72.3).
+
+#### Scenario: Registro de C25 a C27
+- **WHEN** se inspeccionan `C25`, `C26` y `C27`
+- **THEN** tienen esos protocolos, métricas, `shadow_metric`, comparaciones, $R_C$, canales y $\delta_{\min}$.
+
+#### Scenario: Enunciados iguales a los de D56
+- **WHEN** se comparan los `statement` de `C21`..`C23` y `C25`..`C28` con los de `C13`..`C15` y `C17`..`C20`
+- **THEN** son iguales, y el de `C24` es "Actividad evolutiva por encima de la sombra neutral".
+
+### Requirement: Afirmación Funcional C28
+`PHASE25_SHADOW_CLAIMS` SHALL contener `C28` (`25d`, `post_shift_accuracy`, `shadow_metric=None`, `comparison="no_learning"`, $R_C$ y canal `("R39", "R40")`, $\delta_{\min} = 0.02$): programada por construcción, fuera de Holm y con estado por el p-valor crudo (design D72.3, precisión 53); `PHASE25_SHADOW_CLAIMS` SHALL contener exactamente `C21`..`C28`.
+
+#### Scenario: Registro de C28
+- **WHEN** se inspecciona `PHASE25_SHADOW_CLAIMS`
+- **THEN** contiene exactamente `C21`..`C28`, y `C28` es programada por construcción, sin `p_adjusted` (`None`).
+
+### Requirement: Pares Válidos con Sombra
+Una semilla SHALL ser válida si terminan con al menos una hoja activa todas las corridas de su diferencia: `full` en la sombra simple, `full` y `comp` en la diferencia de diferencias y `full` y `no_learning` en `C28`. Con menos de 20 pares válidos la afirmación SHALL ser `NOT_OBSERVED` con `evaluable = False` y SHALL seguir contando en Holm (design D72.5).
+
+#### Scenario: Sombra simple con full viva
+- **WHEN** `full` de `25a` termina con hojas activas en 25 de 30 semillas
+- **THEN** `C21` tiene 25 pares válidos, 5 `excluded_seeds` y `evaluable == True`, sin ninguna corrida neutral.
+
+#### Scenario: Diferencia de diferencias con comp extinta
+- **WHEN** en una semilla `full` de `25d` sobrevive y `stable` termina sin hojas activas
+- **THEN** esa semilla no es par válido de `C27`.
+
+### Requirement: Prueba, Holm y Estado con Sombra
+Las afirmaciones con sombra SHALL usar la prueba de signo unilateral sobre los pares válidos (empates con $|d| \le 10^{-9}$ descartados, p-valor 1.0 sin diferencias distintas de cero), Holm–Bonferroni sobre `C21`..`C27` con $m = \max(7, \text{genuinas evaluadas})$ y $\alpha = 0.05$, y el estado de la precisión 112 sobre la mediana de todas las diferencias (design D72.5).
+
+#### Scenario: Familia de Holm propia
+- **WHEN** se evalúa `PHASE25_SHADOW_CLAIMS`
+- **THEN** la corrección usa sólo `C21`..`C27`, con $m = 7$, y no incluye ninguna afirmación de `PHASE25_CLAIMS`.
+
+### Requirement: Umbral Relativo de C24
+El umbral de efecto de `C24` SHALL ser $\max(0.001,\ 0.25 \cdot M)$, con $M$ la mediana de `comparison_values` (la sombra) sobre los pares válidos; los demás umbrales SHALL ser su $\delta_{\min}$ (design D72.4, precisión 119).
+
+#### Scenario: Umbral de C24
+- **WHEN** la mediana de `shadow_new_activity_per_birth` sobre los pares válidos es 0.02
+- **THEN** el umbral de `C24` es `pytest.approx(0.005, abs=1e-9)`.
+
+### Requirement: E4 con Sombra
+E4 SHALL compararse contra `null_content`: en `C21`..`C27`, $[\text{real} - \text{sombra}]_{full}(s) - [\text{real} - \text{sombra}]_{null\_content}(s)$ en la métrica simple, también en `C25` y `C27`; en `C28`, $\text{full}(s) - \text{null\_content}(s)$. SHALL usar pares con las dos corridas con hojas activas y la interpretabilidad de la precisión 113 (design D72.7).
+
+#### Scenario: E4 sobre el exceso de la sombra
+- **WHEN** en una semilla real y sombra valen 5.0 y 3.0 en `full` y 4.0 y 3.5 en `null_content`
+- **THEN** la diferencia de E4 de `C21` en esa semilla es `pytest.approx(1.5, abs=1e-9)`.
+
+### Requirement: Efectos de Regla con Sombra
+Los `rule_effects` de la atribución con sombra SHALL ser exploratorios, con `PHASE25_SHADOW_RULE_EFFECT_SEEDS = tuple(range(72, 82))`: la mediana, sobre las semillas con `full` y la variante con hojas activas, de $D_{full}(s) - D_{variante}(s)$ con $D = \text{real} - \text{sombra}$ en la métrica simple (la real en `C28`), o `None` sin semillas válidas (design D72.8).
+
+#### Scenario: Efecto de regla sobre el exceso
+- **WHEN** con una regla ablacionada $D$ vale 1.0 en `full` y 0.25 en la variante en las únicas dos semillas válidas
+- **THEN** el efecto de esa regla es `pytest.approx(0.75, abs=1e-9)`.
+
+### Requirement: Protocolos y Condiciones con Sombra
+`PHASE25_SHADOW_PROTOCOL_CONFIGS` SHALL ser `PHASE25_PROTOCOL_CONFIGS` con `enable_neutral_shadow=True`, y sus condiciones SHALL ser `full`, `no_predation` (`25a`), `stable` y `no_learning` (`25d`) y `null_content`, todas con la sombra activa; las condiciones con reproducción neutral SHALL NOT correrse (design D72.6).
+
+#### Scenario: Sin condiciones neutrales
+- **WHEN** se enumeran las corridas de la atribución con sombra
+- **THEN** ninguna tiene `reproduction_mode == "neutral"`, todas tienen `enable_neutral_shadow == True` y la abundancia es (80, 20).
+
+### Requirement: Semillas y Perfil con Sombra
+La atribución con sombra SHALL usar `PHASE25_SHADOW_SEEDS = tuple(range(72, 102))`, disjuntas de `PHASE25_VIABILITY_SEEDS`, `PHASE2_SEEDS` y `PHASE25_SEEDS`, el perfil `phase25` y la ventana final de la precisión 4 (último tick en `C24`; `post_shift_accuracy` en `C28`) (design D72.3 y D72.6).
+
+#### Scenario: Semillas nuevas
+- **WHEN** se inspecciona `PHASE25_SHADOW_SEEDS`
+- **THEN** tiene 30 semillas, de 72 a 101, y su intersección con `PHASE25_SEEDS`, `PHASE2_SEEDS` y `PHASE25_VIABILITY_SEEDS` es vacía.
+
+### Requirement: Ejecución de la Atribución con Sombra
+`run_phase25_shadow_attribution(seeds=PHASE25_SHADOW_SEEDS, claims=PHASE25_SHADOW_CLAIMS, jobs=1, configs=None, rule_effect_seeds=PHASE25_SHADOW_RULE_EFFECT_SEEDS)` SHALL devolver un `Phase25Report` con `profile == "phase25"`, y SHALL rechazar con `ValueError` un `configs[protocolo]` sin la sombra efectiva o que no respete su protocolo (precisión 121) (design D72.11).
+
+#### Scenario: Configuración sin sombra
+- **WHEN** se llama con `configs["25a"]` igual a `PHASE25_PROTOCOL_CONFIGS["25a"]`
+- **THEN** se lanza `ValueError`.
+
+#### Scenario: Salida idéntica para cualquier jobs
+- **WHEN** se corre con un perfil corto, dos semillas y `jobs` 1 y 3
+- **THEN** los dos reportes son idénticos.

@@ -2,6 +2,8 @@
 
 > **Reformulación del 2026-10-20 (D43–D56).** Con la etapa A completa (bloques 1 a 5, D30–D35 implementadas), el responsable del proyecto decidió que la Fase II-B corrija las cuestiones de base que hacían de la Fase II un experimento sin salida, en lugar de agregar mecanismos sobre la misma arquitectura. Las decisiones D43–D56, al final de la sección de decisiones, **prevalecen** sobre D30–D42 donde las contradicen, y cada decisión afectada lo indica en su encabezado. El pre-registro D42 queda **sustituido** por D56, aprobado el 2026-10-21 en la tarea 0.5, antes de seguir con el bloque 6. Ninguna afirmación de D42 se midió.
 
+> **Reformulación del control del 2026-10-23 (D64–D74, BORRADOR).** La atribución de D56 dejó C13–C20 no evaluables porque el control de reproducción neutral (`drift`) se extingue. El responsable del proyecto decidió reemplazarlo por una **sombra neutral** dentro de la misma corrida (Bedau–Packard): un `shadow_dna` que se hereda y muta como el ADN real pero nunca se expresa. El pre-registro nuevo es D72 (`PHASE25_SHADOW_CLAIMS`, C21–C28, semillas 72–101), pendiente de aprobación en la tarea 0.8. D56 y su resultado se conservan sin cambios.
+
 ## Context
 
 La Fase II quedó implementada, corrida y archivada (`openspec/changes/archive/2026-10-20-ide-v2-evolutionary-holonic-intelligence/`, decisiones D19–D29). Sus requisitos vigentes están en `openspec/specs/`. Sus resultados, en `docs/RESULTADOS.md`, son negativos para C5–C8 y dejan cuatro preguntas exploratorias abiertas:
@@ -74,6 +76,7 @@ Esta fase implementa, como cambio opcional y ablacionable, la propuesta de [`doc
    - Su único uso es el sorteo de la conjugación de plásmidos (D37). Sólo se consume con `enable_compact_dna=True` y `enable_plasmid_hgt=True`.
    - Va aparte para que activar $R_{26}$ no desplace la secuencia de `evo_rng`.
    - Se declara también en `CLAUDE.md`.
+   - **Ampliado por D66 (borrador del 2026-10-23):** el instrumento de la sombra neutral agrega `shadow_rng` (`spawn_key=(6,)`), con sus usos declarados allí.
 5. **Uso de `evo_rng`.** La mutación del ADN (D35) usa `evo_rng`, igual que `mutate_genome`. Con `enable_compact_dna=True`, la secuencia de `evo_rng` difiere de la de la Fase II: es esperable, porque el operador es otro.
 6. **Telemetría separada.** La telemetría de esta fase vive en `engine.genetic_history: list[GeneticTickMetrics]` (D41). No se agregan campos a `TickMetrics` ni a `EvolutionaryTickMetrics`.
 
@@ -1323,6 +1326,210 @@ No cambia ningún valor ni consume generadores: una corrida es una función pura
 
 ---
 
+## Reformulación del control (2026-10-23): sombra neutral (D64–D74)
+
+> **Estado: BORRADOR para revisión cruzada, no aprobado.** Ninguna decisión de esta sección rige hasta que el responsable del proyecto apruebe el pre-registro D72 en la tarea 0.8. D64–D74 no modifican D30–D63 ni el pre-registro D56, salvo donde lo dicen expresamente: el generador nuevo (D66, que amplía D30.4 y acota D43.6 y D57.4) y el orden de los campos de `SimulationConfig` (D65.1).
+
+### Decisión 64: Motivo, Alcance y Estado de D56
+1. **Motivo (decisión del responsable del proyecto, 2026-10-23).** La atribución de D56 (tarea 26.1, `registros/exp25_phase25_attribution.json`, `docs/RESULTADOS.md`) dejó las ocho afirmaciones `NOT_OBSERVED` y **no evaluables**. La condición `drift` (reproducción neutral con donante, ablación de $R_{12}$) se extingue en la mayoría de las semillas (sobrevive en 7 a 19 de 30 según el protocolo, en la prueba de humo), y `25d` `full` también (19 de 30). Sin selección la población no se sostiene, probablemente por acumulación de mutaciones dañinas (hipótesis no verificada). Hay dos defectos de base:
+   - **Potencia.** El control sólo existe si sobrevive una población sin selección, y en esta ecología casi nunca sobrevive.
+   - **Sesgo de supervivencia.** Los pares válidos eran las semillas en que sobrevivía la condición neutral, que no son una muestra al azar.
+   El responsable decidió reemplazar el control que colapsa por uno que no dependa de la supervivencia de una población sin selección.
+2. **Solución: sombra neutral dentro de la misma corrida.** Sigue la idea de los modelos de sombra de Bedau, Snyder y Packard (1998), que separan la actividad adaptativa de la que produce la sola dinámica de la población, en la variante en que la sombra viaja con los organismos de la corrida real sin expresarse (Channon 2003). Cada hoja con ADN porta, además de su ADN, un `shadow_dna` que se hereda por la **misma genealogía** y muta con los **mismos operadores y tasas**, pero que nunca se expresa ni afecta nada. Lo que la selección construye se mide como el exceso del ADN real sobre su sombra, en la misma corrida y la misma semilla: mientras la corrida `full` sobreviva, el par existe.
+3. **Estado de D56.** D56 sigue aprobado y corrido, y su resultado (no evaluable) queda registrado tal cual. No se modifica ni se reinterpreta. Sus constantes (`PHASE25_CLAIMS`, `PHASE25_SEEDS`, `PHASE25_PROTOCOL_CONFIGS` y las condiciones con reproducción neutral) se conservan en el código, para que su atribución siga siendo reproducible. El pre-registro nuevo (D72) es **otro**: tiene afirmaciones nuevas (C21–C28) y semillas nuevas.
+4. **Diseñado conociendo el resultado anterior.** Esta reformulación se hace después de ver la atribución de D56, incluidos sus p-valores y sus medianas. Por eso:
+   - se evalúa con semillas que ninguna corrida usó (72 a 101, D72.6);
+   - las preguntas, las direcciones de las pruebas y los umbrales $\delta_{\min}$ son los de D56, sin cambio (D72.4). Las únicas métricas nuevas (las de C22 y C26) cambian porque la sombra no puede actuar ni aprender (D70), no por ningún valor observado;
+   - el pre-registro se aprueba antes de implementar y de correr ninguna corrida con sombra.
+5. **Qué no cambia.** Ninguna regla $R_{24}$–$R_{41}$, ningún protocolo, ninguna condición con selección, ni la abundancia (80, 20) fijada por la Enmienda 2 de D55. La sombra es un **instrumento de medición**, no una regla del agente: no entra en `PHASE25_DESIGN_RULES` y no tiene ablación de atribución.
+
+### Decisión 65: La Sombra Neutral (`shadow_dna`)
+1. **Bandera.** `SimulationConfig` agrega al final, después de `world_shift_fraction`, `enable_neutral_shadow: bool = False`, sin validación propia. La sombra es **efectiva** si además `enable_evolution` y `enable_compact_dna` valen `True`. Si no, la bandera es inerte y no lanza error (D30.3).
+2. **Estado del agente.** `MicroAgent` incorpora `shadow_dna: CompactDNA | None` (`None` sin sombra efectiva) y `shadow_internal_state: int` (8 bits, 0 al nacer, no se hereda), con `set_shadow_dna(dna)` y `set_shadow_internal_state(state)`. `create_offspring` no los toca: los asigna el motor (D67). Ninguna firma pública existente cambia.
+3. **Fundadores.** Con la sombra efectiva, el motor asigna a cada fundador `shadow_dna` igual a su ADN inicial (`founder_dna(config)` en los protocolos) y `shadow_internal_state = 0`. Al empezar, sombra y ADN real son idénticos.
+4. **La sombra nunca se expresa.** Ningún cálculo que afecte la dinámica lee `shadow_dna` ni `shadow_internal_state`:
+   - no la transcriben `express` ni la Fase 0, y no cambia el fenotipo;
+   - no entra en `compute_dna_cost`, en el metabolismo ni en la senescencia;
+   - no la ven la política, la puerta de comunicación, las señales, la recombinación real, la conjugación real, CRISPR, la elección de pareja ni la reproducción;
+   - no ocupa celdas ni memoria del agente, y no transporta creencias.
+   Sólo la leen su herencia (D67), su evaluación (D68) y su telemetría (D69).
+5. **Endosporas y muerte.** Una endospora conserva su sombra y su estado de sombra. Al morir el agente, su sombra desaparece con él.
+
+### Decisión 66: Generador `shadow_rng`
+1. **Declaración.** `self.shadow_rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(6,))))`. Se construye siempre, como `hgt_rng`; construirlo no consume nada.
+2. **Usos declarados, y únicos:**
+   - la mutación de la sombra de cada hijo (D67.3);
+   - el sorteo del codón de la conjugación espejo (D67.5).
+   Sólo se consume con la sombra efectiva.
+3. **Por qué va aparte.** Para que activar la sombra no desplace la secuencia de ningún generador existente: `rng`, `null_rng`, `evo_rng`, `donor_rng`, `hgt_rng` y los dos generadores del entorno (el principal compartido y el de compuestos, `spawn_key=(3,)`) siguen exactamente la misma secuencia con la sombra activa o apagada (D73.2).
+4. **Orden.** Dentro de un tick, las extracciones de `shadow_rng` siguen el orden en que el motor crea los hijos (el de las llamadas a `_give_birth`) y, después, el orden de aplicación de las transferencias reales de la conjugación (D37.3).
+5. **Alcance de las declaraciones anteriores.** "La reformulación no agrega generadores" (D43.6) y "la ampliación no agrega generadores" (D57.4) siguen valiendo para $R_{32}$–$R_{41}$: el generador nuevo es del instrumento de medición, no de una regla. Se declara también en `CLAUDE.md` (sección Determinismo).
+
+### Decisión 67: Herencia y Mutación de la Sombra
+La sombra sigue la **misma genealogía** que el ADN real: los mismos nacimientos, de la misma fuente genética, con los mismos cortes de recombinación, las mismas transferencias horizontales y el mismo régimen de mutación. Sólo difiere el contenido, porque sobre la sombra no actúa la selección.
+1. **Fuente.** La sombra de un hijo parte de la sombra de su **fuente genética** (precisión 68): el progenitor con selección; el donante sorteado con `donor_rng` en la reproducción neutral; en $R_{17}$, la hoja de la que proviene el ADN (o su donante, precisión 41).
+2. **Recombinación ($R_{38}$).** Si el ADN real del hijo se recombina con una pareja, la sombra se recombina con la sombra de **la misma pareja** y con los mismos cortes `a` y `b` de D51.2, acotados al largo de las sombras:
+   - `a_s = min(a, len(cromosoma de la sombra de la fuente))` y `b_s = min(b, len(cromosoma de la sombra de la pareja) - 1)`;
+   - la sombra recombinada es `recombine_dna(sombra_fuente, sombra_pareja, a_s, b_s, config)`, con su truncado y su mínimo (precisión 28);
+   - no extrae de ningún generador; los plásmidos y la memoria CRISPR son los de la sombra de la fuente.
+   - Cuándo hay cruce y con quién lo decide el ADN real (D51.1): es parte de la genealogía.
+   - **Por qué los mismos cortes.** El corte es un hecho genealógico: qué tramo viene de qué progenitor. Con los mismos cortes, sin mutación la sombra es idéntica al ADN real en todo momento (D73.3), que es la prueba más fuerte de que la herencia es la misma. Acotar los cortes los corre hacia el final cuando la sombra es más corta: es un sesgo menor y se declara (D71.4).
+3. **Mutación.** La sombra del hijo es `mutate_dna(base, parent.base_config, shadow_rng, scale)`, con `base` la sombra de la fuente (o la recombinada) y la **misma** `scale` de $R_{30}$ que el hijo real (D39), decidida con el estado del progenitor antes de partir la energía. Rigen los mismos operadores y tasas de D35, incluida la puerta de $R_{13}$ y la escisión a plásmido. La mutación de la sombra se hace inmediatamente después de crear al hijo real.
+   - **Por qué la misma escala.** La escala SOS depende del estado del progenitor, no del contenido de su ADN. Si la sombra mutara siempre a escala 1, el ADN real recibiría más variación que su control sin que la selección intervenga.
+4. **Reproducción holónica ($R_{17}$).** Cada hoja hija recibe la sombra de su fuente, en el orden de `leaf_agents`. La reproducción neutral no se usa en D72, pero queda definida por el punto 1.
+5. **Conjugación espejo ($R_{26}$).** Por cada transferencia real **sorteada** en D37.2 (el par donante–receptor), en el orden de aplicación de D37.3 y cualquiera sea su resultado real (aplicada, sin cambio o bloqueada por CRISPR):
+   - si la sombra del donante, tal como estaba al empezar el paso, tiene plásmidos, se sortea `codón = plásmidos[int(shadow_rng.integers(len(plásmidos)))]` sobre ellos y se aplica `receive_plasmid` a la sombra del receptor;
+   - si no tiene, no ocurre nada ni se extrae.
+   - **Por qué espejo.** Quién transfiere a quién es genealogía horizontal: depende de la energía y la vecindad, como la reproducción. Qué codón llega y si lo bloquea la inmunidad dependen del contenido real, así que no se copian.
+6. **Sin CRISPR en la sombra ($R_{27}$).** La purga es selección sobre el contenido (el balance energético de un plásmido real), así que no se refleja: la sombra no abre ensayos ni purga, y su `crispr_memory` queda vacía, como la del fundador. Sus plásmidos sólo se pierden por FIFO.
+7. **`Birth`.** El registro de nacimiento de la telemetría (`Birth`, precisión 131) agrega al final `shadow_dna: CompactDNA | None = None`: la sombra con que nació el hijo.
+
+### Decisión 68: Evaluación de la Sombra en la Situación Real
+Dos métricas (las de C22 y C26) preguntan qué **haría** un ADN. La sombra nunca actúa, así que se evalúa **en la misma situación** que vivió el agente real.
+1. **Situación compartida.** Es lo que no produce el propio ADN:
+   - el `DecisionTrace` registrado en la decisión del tick (señales sensoriales, eventos del tick anterior, clasificación de recursos y factibilidad; precisión 137);
+   - el `last_context` del agente (nivel holónico, rol y banda de energía; precisión 23);
+   - su máscara de símbolos percibidos (`perceived_symbols`).
+2. **Lo propio de cada ADN:** su evaluación y su estado interno. La sombra usa `shadow_internal_state`; el ADN real, `internal_state`, los dos con el valor anterior a la actualización del tick.
+3. **Evaluación innata.** Para comparar real y sombra con la misma función, las dos evaluaciones son **innatas**: `evaluate_behavior` con la misma configuración con que la política evalúa el ADN real, `state` y `perceived` del punto 2 y `plastic_weights=None`, sin los pesos aprendidos de $R_{40}$. La sombra no puede aprender, porque nunca actúa y no tiene recompensa. Usar los pesos sólo en el ADN real mezclaría lo aprendido en vida con lo evolucionado. Lo que aporta el aprendizaje lo miden C27 (codones de aprendizaje) y C28 (funcional).
+4. **Elección innata.** La conducta que elegiría un ADN es `trace.first_feasible(behavior_order(drives))` sobre sus impulsos innatos, o ninguna (`IDLE`). No extrae de ningún generador: `EXPLORE` es factible si hay recursos desconocidos alcanzables, como en D53.2.
+5. **`ShadowEvaluationSystem`.** Corre en la Fase 3 como último sistema del núcleo (después de la decisión y de la emisión de señales; `on_decisions` llega después de él). Para cada agente que decidió con la política genética, en orden de `agent_id`, registra en `frame.shadow_decisions` la elección innata del ADN real, la de la sombra y las máscaras `set_mask` y `clear_mask` de la sombra. No consume generadores ni cambia ningún estado real.
+6. **Estado interno de la sombra.** Con $R_{39}$ efectiva, `ShadowStateSystem`, inmediatamente después de `InternalStateSystem`, aplica `(shadow_internal_state | set_mask) & ~clear_mask` (D58.3). Sin $R_{39}$, queda en 0, como el real. Una endospora no decide, así que conserva su estado de sombra.
+7. **Fenotipo de la sombra.** Cuando una métrica lo necesita (C23 y C27), la telemetría transcribe la sombra con `transcribe_phenotype(shadow_dna, last_context, base_config)`. Es pura; puede memoizarse por (sombra, clave de contexto de D34.2), con un test de igualdad contra la transcripción directa. No se guarda en el agente.
+8. **Señales.** La sombra no emite: sus codones `SIGNAL` no producen nada.
+
+### Decisión 69: Telemetría de la Sombra (`ShadowTickMetrics`)
+1. **Tipo e historial.** `ShadowTickMetrics` (`@dataclass(frozen=True)`, en `metrics.py`) se registra en cada tick en `engine.shadow_history`, sólo con la sombra efectiva; sin ella, la lista queda vacía. `TickMetrics`, `EvolutionaryTickMetrics`, `GeneticTickMetrics` y `EcologyTickMetrics` no cambian. La produce `ShadowMetricsObserver`, en `engine.telemetry_observers` después de los existentes, sin estado propio (precisión 73). Lo que cruza ticks (la actividad) vive en `engine.shadow_collector`.
+2. **Campos**, en este orden:
+   - `tick`;
+   - descriptivos: `shadow_mean_chromosome_length`, `shadow_mean_plasmids`, `shadow_distinct_genotypes` y `shadow_mean_expressible_codons`;
+   - `shadow_mean_conditional_codons`, `shadow_mean_expressible_nonattack_codons` y `shadow_mean_learning_codons`: las de las precisiones 42 y 52 calculadas sobre `shadow_dna` (`codon_census` y `learning_codons`), con la `plasticity_rate` del fenotipo de la sombra (D68.7);
+   - `shadow_communicating_fraction`: la fracción de las hojas vivas no endosporas cuya sombra expresa `comm_propensity >= 0.5` en su `last_context`;
+   - `innate_policy_divergence` y `shadow_innate_policy_divergence`: entre las decisiones del tick con la política genética (precisión 137), la fracción en que la elección innata (D68.4) del ADN real, o de la sombra, difiere de la del ADN fundador (`founder_order`); 0.0 sin decisiones;
+   - `innate_share_choice` y `shadow_innate_share_choice`: entre las mismas decisiones, la fracción en que la elección innata del ADN real, o de la sombra, es `SHARE`; 0.0 sin decisiones;
+   - `shadow_new_activity`, `shadow_cumulative_new_activity` y `shadow_new_activity_per_birth`: la actividad de la precisión 43 sobre las sombras de los nacimientos (`Birth.shadow_dna`) más las recepciones de la conjugación espejo en que la sombra receptora pasó a portar el codón, con los mismos codones fundadores excluidos, el mismo `activity_threshold` y el mismo denominador `cumulative_births` que el ADN real.
+3. **Nombres únicos.** Ningún campo de `ShadowTickMetrics`, salvo `tick`, se llama igual que uno de `GeneticTickMetrics` o `EcologyTickMetrics`: la métrica de una afirmación se busca por su nombre, sin ambigüedad.
+4. **Población vacía.** Todos los campos valen 0.0 (o 0), como en la precisión 10.
+5. **Métricas reales de D56.** `policy_divergence` (con los pesos aprendidos) y `share_rate` (cesiones ejecutadas) siguen en sus historiales y son descriptivas en D72.
+
+### Decisión 70: Análogo de Sombra de Cada Afirmación
+No toda métrica tiene un análogo de sombra. La regla es: **real y sombra se miden con la misma función, sobre la misma población, en las mismas situaciones**; si la métrica depende de algo que sólo el ADN real puede producir (actuar o aprender), se sustituye por su versión innata, que sí tiene análogo.
+
+| D56 | Métrica de D56 | Análogo de sombra | ¿Bien definido? | Afirmación nueva |
+| :--- | :--- | :--- | :--- | :--- |
+| C13 | `mean_conditional_codons` | `shadow_mean_conditional_codons` | Sí: depende sólo del genotipo y del protocolo (precisión 42). | C21, real frente a sombra |
+| C14 | `policy_divergence` | ninguno | No: incluye los pesos aprendidos, y la sombra no aprende. | C22, con `innate_policy_divergence` (real y sombra, D68.3) |
+| C15 | `communicating_fraction` | `shadow_communicating_fraction` | Sí: es un rasgo del fenotipo, transcripto en el mismo contexto (D68.7). | C23, real frente a sombra |
+| C16 | `new_activity_per_birth` | `shadow_new_activity_per_birth` | Sí: es el uso original de Bedau–Packard, con los mismos nacimientos y el mismo denominador. | C24, real frente a sombra |
+| C17 | `mean_expressible_nonattack_codons` | `shadow_mean_expressible_nonattack_codons` | Sí: genotipo. | C25, diferencia de diferencias con `no_predation` |
+| C18 | `share_rate` | ninguno | No: cuenta cesiones **ejecutadas**, y la sombra no actúa. | C26, con `innate_share_choice` (real y sombra) |
+| C19 | `mean_learning_codons` | `shadow_mean_learning_codons` | Sí, con la `plasticity_rate` expresada por la sombra en el mismo contexto. | C27, diferencia de diferencias con `stable` |
+| C20 | `post_shift_accuracy` | no hace falta | Es funcional: compara `full` con `no_learning`, no con la evolución neutral. | C28, sin sombra |
+
+- **C18 → C26, cooperación.** "Lo que la sombra haría" se mide con la factibilidad y los impulsos evaluados sobre la sombra en la situación real (D68): la fracción de decisiones en que el ADN elegiría `SHARE`. No se puede medir el resultado de la ejecución (que el objetivo siga vivo y adyacente, y que la cesión transfiera energía) para un ADN que no actúa. La elección innata mide la **propensión genética** a cooperar, que es lo que la selección puede construir; si la cooperación se ejecuta o no depende además de la ecología, y queda descriptiva en `share_rate`.
+- **C14 → C22, conducta.** La divergencia de D53.2 se calcula con la evaluación registrada, que incluye los pesos de $R_{40}$. La versión innata quita esa parte en los dos ADN.
+- **C17 → C25 y C19 → C27, diferencia de diferencias.** En D56 se usaba para descontar el mayor recambio generacional de `full` frente a `no_predation` o `stable`. Con sombra, el recambio ya se descuenta dentro de cada condición, porque la sombra vive el mismo recambio. La diferencia de diferencias pasa a preguntar lo que la afirmación enuncia: **¿la selección construye más complejidad en presencia del mecanismo que sin él?** Por semilla: $d(s) = [\text{real} - \text{sombra}]_{\text{full}}(s) - [\text{real} - \text{sombra}]_{\text{comp}}(s)$, con `comp` igual a `no_predation` o `stable`. Exige dos corridas viables por semilla, no cuatro.
+- **C20 → C28.** Es funcional y programada por construcción: no compara contra la evolución neutral, así que no usa sombra. Se replica con las semillas nuevas.
+
+### Decisión 71: Sesgos del Control de Sombra
+1. **Autostop: lo que la sombra controla a propósito.** La sombra hereda la genealogía **seleccionada**: los linajes que dejan más descendencia propagan su sombra igual que su ADN. Por eso todo lo que la genealogía produce por sí sola afecta por igual a los dos:
+   - la deriva, los cuellos de botella y los efectos fundadores;
+   - la concentración de la descendencia en los progenitores con más energía (`effective_parents`, precisión 44);
+   - el **autostop** de contenido neutro que viaja con un linaje exitoso;
+   - el recambio generacional, la escala SOS, los cruces y las transferencias horizontales;
+   - la supervivencia de la corrida.
+   Un codón que se difunde sólo porque viaja con un linaje afortunado se difunde igual en la sombra de ese linaje. Lo que queda en la diferencia es la **selección sobre el contenido**: codones retenidos, perdidos o difundidos por lo que expresan. Esto corrige el sesgo anticonservador de C16 que declaraba la precisión 44: con `drift`, el autostop favorecía a `full`; con sombra, actúa en los dos términos.
+2. **Lo que la sombra no controla, por diseño.** Que la genealogía esté correlacionada con el contenido real (por ejemplo, que mueran más los linajes con ADN largo, por el costo de $R_{24}$) es selección sobre el contenido: es lo que se quiere medir, no un sesgo.
+3. **Sesgos residuales conservadores** (acercan el ADN real a la sombra o la ponen por encima):
+   - **Selección purificadora y costo del ADN.** La sombra acumula codones y mutaciones que la selección y el costo por codón eliminan del ADN real. En los conteos (C21, C25 y C27) y en la actividad (C24), el ADN real debe superar a una sombra que crece libre.
+   - **C22.** La sombra se aleja del fundador al ritmo de la mutación, mientras la selección purificadora mantiene la conducta real cerca del fundador. C22 sólo detecta un cambio conductual por encima de la caminata neutral: tiene poca potencia por construcción, y se declara.
+   - **Sin purga CRISPR en la sombra (D67.6).** La sombra acumula más plásmidos, y con ellos más codones y más actividad.
+4. **Sesgos residuales de dirección desconocida:**
+   - **Conjugación disparada por el ADN real.** Las transferencias ocurren cuando el donante real tiene plásmidos y energía; la sombra del donante puede tener más o menos plásmidos. Se informan `mean_plasmids` y `shadow_mean_plasmids` como descriptivas.
+   - **Cortes acotados (D67.2).** Cuando la sombra es más corta, los cortes se corren hacia el final.
+5. **Estimando condicional, no sesgo entre los términos.**
+   - **Supervivencia.** Real y sombra salen de la misma corrida, así que los dos están condicionados a la misma supervivencia: no hay selección diferencial de corridas entre los términos comparados, como la había con `drift`. Lo que se estima es el efecto de la selección **en las corridas que sobreviven**; en `25d`, en las que sobreviven al entorno cambiante.
+   - **Situaciones (C22 y C26).** Las situaciones las genera la conducta real (por ejemplo, agentes que se agrupan hacen factible `SHARE` más a menudo). Las dos evaluaciones usan las mismas, así que la comparación es válida, pero condicional a la ecología de la población real.
+   - **Política innata.** C22 y C26 miden la política genética, sin lo aprendido en vida (D68.3).
+6. **Ventaja estadística.** Como real y sombra comparten la genealogía y el azar de la corrida, la diferencia pareada dentro de la corrida elimina la variación entre corridas que tenía la comparación con `drift`.
+
+### Decisión 72: Pre-Registro con Sombra (BORRADOR, `PHASE25_SHADOW_CLAIMS`)
+Esta decisión es un **borrador de pre-registro**. Se aprueba en la tarea 0.8, antes de implementar los bloques de la etapa S y sin correr ninguna corrida con sombra. Cambiarla después de aprobada exige un commit que lo justifique.
+1. **Afirmaciones nuevas, no C13–C19 modificadas.** C13–C20 ya se corrieron y figuran con esos nombres en `registros/exp25_phase25_attribution.json` y en `docs/RESULTADOS.md`. Reescribirlas ocultaría que hubo un primer análisis y borraría la trazabilidad entre el registro y el código. Las afirmaciones nuevas, C21–C28, hacen las mismas preguntas que C13–C20 (con la misma numeración más 8) con el control nuevo, en una constante nueva, `PHASE25_SHADOW_CLAIMS`. `PHASE25_CLAIMS` no cambia. El nombre evita `PHASE25B_*`, que se confundiría con el protocolo `25b`.
+2. **Tipo.** `Phase25ShadowClaim` (`frozen`): `claim_id`, `statement`, `protocol`, `metric`, `shadow_metric: str | None`, `comparison: str | None`, `rule_ids`, `channel`, `delta_min` y `delta_relative: float = 0.0`. `comparison` vale `None`, `"no_predation"`, `"stable"` o `"no_learning"`, y `__post_init__` lanza `ValueError` si `shadow_metric is None` y `comparison != "no_learning"`. La diferencia de la semilla $s$ es:
+   - con `shadow_metric` definido y `comparison is None` (sombra simple): $d(s) = \text{real}_{\text{full}}(s) - \text{sombra}_{\text{full}}(s)$;
+   - con `shadow_metric` y `comparison` definidos (diferencia de diferencias): $d(s) = [\text{real} - \text{sombra}]_{\text{full}}(s) - [\text{real} - \text{sombra}]_{\text{comp}}(s)$;
+   - con `shadow_metric is None` (funcional, sólo C28, `comparison == "no_learning"`): $d(s) = \text{full}(s) - \text{no\_learning}(s)$ en la métrica real.
+   La evaluación reutiliza `Phase25ClaimEvaluation`: `values` guarda $\text{real}_{\text{full}}$ (sombra simple), $[\text{real} - \text{sombra}]_{\text{full}}$ (diferencia de diferencias) o `full` (funcional), y `comparison_values` guarda $\text{sombra}_{\text{full}}$, $[\text{real} - \text{sombra}]_{\text{comp}}$ o `no_learning`, de modo que $d(s)$ es siempre `values[s] - comparison_values[s]`, como en la precisión 69.
+3. **Afirmaciones.** Cada métrica es la media de la ventana final (precisión 4, `PHASE25_FINAL_WINDOW = 1000`) de su campo en `genetic_history`, `ecology_history` o `shadow_history`, salvo C24 (último tick, precisión 43) y C28 (`post_shift_accuracy`). Todas son crecientes (prueba unilateral: real mayor que sombra).
+
+| Afirmación | Enunciado | Protocolo | Métrica real | Métrica de sombra | Comparación | $R_C$ | Canal | $\delta_{\min}$ |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | ---: |
+| `C21` | La regulación génica evoluciona | `25a` | `mean_conditional_codons` | `shadow_mean_conditional_codons` | sombra simple | `("R12",)` | `()` | 1.0 |
+| `C22` | La conducta evoluciona | `25a` | `innate_policy_divergence` | `shadow_innate_policy_divergence` | sombra simple | `("R12",)` | `()` | 0.05 |
+| `C23` | La comunicación evoluciona desde cero | `25c` | `communicating_fraction` | `shadow_communicating_fraction` | sombra simple | `("R12",)` | `()` | 0.10 |
+| `C24` | Actividad evolutiva por encima de la sombra neutral | `25a` | `new_activity_per_birth` | `shadow_new_activity_per_birth` | sombra simple | `("R12",)` | `()` | relativo: $\max(0.001,\ 0.25 \cdot M)$ |
+| `C25` | La depredación aumenta la complejidad genética | `25a` | `mean_expressible_nonattack_codons` | `shadow_mean_expressible_nonattack_codons` | diferencia de diferencias con `no_predation` | `("R37",)` | `()` | 1.0 |
+| `C26` | La cooperación material evoluciona en la ecología holónica | `25b` | `innate_share_choice` | `shadow_innate_share_choice` | sombra simple | `("R12",)` | `()` | 0.01 |
+| `C27` | La memoria y el aprendizaje evolucionan cuando el entorno cambia | `25d` | `mean_learning_codons` | `shadow_mean_learning_codons` | diferencia de diferencias con `stable` | `()` | `()` | 1.0 |
+| `C28` | La memoria y la plasticidad aceleran la recuperación tras un cambio del entorno | `25d` | `post_shift_accuracy` | — | `full` frente a `no_learning` | `("R39", "R40")` | `("R39", "R40")` | 0.02 |
+
+   - $R_C$ de C21–C24 y C26 sigue siendo `("R12",)`: lo que se atribuye es la selección por reproducción diferencial, aunque el control ya no sea su ablación sino la sombra. Sólo C24 usa `delta_relative = 0.25`; $M$ es la mediana de `comparison_values` sobre los pares válidos (precisión 119), es decir, la de la sombra.
+   - **Clasificación.** C21–C27 tienen canal vacío: son genuinas, por el argumento de la precisión 33. C28 tiene canal igual a $R_C$: es programada por construcción (`_phase25_by_construction`) y no entra en Holm.
+4. **Umbrales $\delta_{\min}$, fijados antes de correr y justificados por la escala de la métrica.** Son exactamente los de D56: se conservan sin cambio para que no puedan estar informados por los resultados de D56, que ya se vieron. Cada uno se justifica por la unidad de su métrica, no por un valor observado:
+   - **C21, C25 y C27 (conteos de valores canónicos por hoja, o su diferencia de diferencias): 1.0.** La unidad mínima de estructura genética es un codón distinto. Una mediana menor que 1 significa que, en promedio, ni siquiera un codón por hoja separa al ADN de su sombra: no hay una estructura nueva que porte cada individuo.
+   - **C22 (fracción de decisiones): 0.05.** Que la conducta elegida difiera de la del fundador en menos de 1 de cada 20 decisiones, por encima de la sombra, es un cambio marginal de la política. Con decenas de agentes y una ventana de 1000 ticks hay decenas de miles de decisiones, así que el umbral no lo fija el error de muestreo sino la relevancia.
+   - **C23 (fracción de hojas): 0.10.** Con poblaciones de decenas de hojas, menos de una décima es una diferencia de unos pocos individuos, del orden de la fluctuación demográfica.
+   - **C24 (actividad por nacimiento): relativo.** La escala del cociente no se conoce antes de correr; el umbral es un cuarto de la mediana de la sombra, con un mínimo de 0.001 (un componente que cruza el umbral de actividad cada 1000 nacimientos).
+   - **C26 (fracción de decisiones con `SHARE`): 0.01.** `SHARE` sólo es factible con un vecino adyacente, en una parte de las decisiones, así que la fracción sobre todas las decisiones es chica por construcción; 1 de cada 100 decisiones es el mínimo relevante en esa escala.
+   - **C28 (exactitud de M2 tras un cambio): 0.02,** dos puntos porcentuales de decisiones correctas en los 200 ticks posteriores a cada cambio.
+   Las métricas nuevas de C22 y C26 tienen la misma unidad (fracción de decisiones) que las de C14 y C18, así que el argumento de escala es el mismo.
+5. **Pares válidos, prueba, Holm y estado.**
+   - **Par válido.** Una semilla es válida si todas las corridas que usa su diferencia terminan con al menos una hoja activa: `full` en la sombra simple; `full` y `comp` en la diferencia de diferencias; `full` y `no_learning` en C28. Real y sombra salen de la misma corrida, así que nunca hace falta que sobreviva una población sin selección.
+   - **Mínimo.** Con menos de 20 pares válidos (precisión 45), la afirmación es `NOT_OBSERVED` con `evaluable = False` y sigue contando en Holm con el p-valor de sus pares válidos (precisión 48).
+   - **Prueba.** Prueba de signo unilateral sobre las diferencias de los pares válidos, con los empates descartados ($|d| \le 10^{-9}$, precisión 112); p-valor 1.0 sin diferencias distintas de cero (precisión 48).
+   - **Holm.** Holm–Bonferroni sobre las genuinas C21–C27 ($m = \max(7, \text{cantidad de genuinas evaluadas})$, precisión 114) con $\alpha = 0.05$. Es una familia nueva: D56 no se combina con ella, porque se corrió con otras semillas y su resultado ya está informado.
+   - **Estado.** `OBSERVED` si el p-valor ajustado es menor que $\alpha$ y la mediana de **todas** las diferencias de los pares válidos alcanza el umbral de efecto (con la tolerancia de la precisión 112); `NOT_OBSERVED` en otro caso. C28 usa el p-valor crudo (precisión 53).
+6. **Semillas, perfil y configuraciones.**
+   - `PHASE25_SHADOW_SEEDS = tuple(range(72, 102))`: 30 semillas que ninguna corrida registrada usó (las de viabilidad son 0–9, las de la Fase II 42–51 y las de D56 42–71). `PHASE25_SHADOW_RULE_EFFECT_SEEDS = tuple(range(72, 82))`.
+   - Perfil `phase25` (5000 ticks), ventana final de 1000 ticks.
+   - `PHASE25_SHADOW_PROTOCOL_CONFIGS = {p: dataclasses.replace(c, enable_neutral_shadow=True) for p, c in PHASE25_PROTOCOL_CONFIGS.items()}`, con la abundancia (80, 20).
+   - **Condiciones** (todas con la sombra activa, porque es el instrumento y no la condición): `full`; `no_predation` (sólo `25a`); `stable` (sólo `25d`, `dataclasses.replace(full, world_shift_period=0)`, que sigue siendo idéntica a `full` de `25a`); `no_learning` (sólo `25d`); y `null_content`. Las condiciones con reproducción neutral **no se corren**.
+   - **Caché** por (protocolo, variante, semilla), como las precisiones 67, 121 y 140.
+7. **E4.** Se informa contra `null_content`, sin decidir el estado:
+   - en C21–C27, sobre el exceso de la sombra simple: $e(s) = [\text{real} - \text{sombra}]_{\text{full}}(s) - [\text{real} - \text{sombra}]_{\text{null\_content}}(s)$, también en C25 y C27 (sin diferencia de diferencias). La métrica cruda mezcla selección y genealogía; lo que la afirmación atribuye es el exceso sobre la sombra;
+   - en C28, en la métrica real, como la precisión 38.
+   - Pares válidos: `full` y `null_content` con hojas activas. Interpretable con la regla de la precisión 113, que con (80, 20) se cumple en los cuatro protocolos (`null_content` viable en 10 de 10).
+8. **Efectos de regla (exploratorios).** Con las semillas 72–81, por afirmación y regla activa del protocolo, la mediana sobre las semillas válidas de $D_{\text{full}}(s) - D_{\text{variante}}(s)$, con $D = \text{real} - \text{sombra}$ en la métrica simple (también en C25 y C27) y la métrica real en C28 (precisión 66). Con $R_{24}$ o $R_{32}$ ablacionadas la sombra, o su evaluación, es inerte y sus campos valen 0.0 (precisión 121): el efecto se informa igual, como exploratorio. No entran en Holm.
+9. **Demografía.** `demography` conserva los campos de las precisiones 44, 45 y 49, para las condiciones de la afirmación. `effective_parents` pasa a ser descriptiva: el sesgo que vigilaba queda controlado por la sombra (D71.1).
+10. **Compuerta.** No se define una compuerta nueva:
+    - **La sombra no cambia la dinámica** (D73.2): la demografía de cada condición con sombra es la que ya midieron la Enmienda 2 de D55 y la prueba de humo, y (80, 20) sigue rigiendo sin recalibrar nada a la vista de D56.
+    - **Las condiciones que deciden ahora son sólo las que tienen selección.** Con (80, 20), en la Enmienda 2: `25a` `full` 10 de 10, `no_predation` 10, `25b` `full` 10, `25c` `full` 10, `25d` `stable` 10, `25d` `full` 6 y `no_learning` 5.
+    - **Prueba de humo con las semillas nuevas.** Antes de la atribución se corre, sólo con demografía (terminación, generación máxima y población final), sobre `PHASE25_SHADOW_PROTOCOL_CONFIGS`, sus condiciones y `PHASE25_SHADOW_SEEDS`, y se registra. No decide nada: anticipa los pares válidos.
+    - **Potencia de `25d`, declarada de antemano.** Con la supervivencia de la prueba de humo de D56 (`25d` `full` 19 de 30, `no_learning` 20 de 30, `stable` 30 de 30), C27 espera unos 19 pares válidos, en el borde de los 20, y C28, si las dos supervivencias fueran independientes, unos $30 \cdot 0.63 \cdot 0.67 \approx 13$: lo más probable es que **C28 no sea evaluable** y que C27 tampoco lo sea. Se informa como resultado. Las demás afirmaciones esperan 29 o 30 pares válidos.
+11. **Ejecución.** `run_phase25_shadow_attribution(seeds=PHASE25_SHADOW_SEEDS, claims=PHASE25_SHADOW_CLAIMS, jobs=1, configs=None, rule_effect_seeds=PHASE25_SHADOW_RULE_EFFECT_SEEDS) -> Phase25Report`, con `profile = "phase25"`. Rechaza un `configs[protocolo]` sin la sombra efectiva o que no respete su protocolo (precisión 121). La CLI es `python -m ide.experiments.exp25_runner --shadow` con `--smoke` o `--attribution`, y escribe `registros/exp25_shadow_smoke.json` y `registros/exp25_shadow_attribution.json`.
+12. **Puntos abiertos para el responsable del proyecto** (el borrador adopta la primera opción de cada uno):
+    - **P-S1, potencia de `25d`.** (a) Aceptar que C27 y C28 probablemente no sean evaluables. (b) Ampliar las semillas de `25d` con una regla sólo demográfica fijada de antemano (por ejemplo, correr semillas desde la 102 hasta reunir 30 pares válidos o llegar a 90 semillas), legítima porque decide la supervivencia y no la métrica. (c) Una compuerta propia de `25d` sobre `world_shift_fraction`, que cambiaría la pregunta de C27 y C28.
+    - **P-S2, alcance.** (a) Conservar E4 y los efectos de regla como exploratorios. (b) Omitirlos para ahorrar cómputo.
+
+### Decisión 73: Compatibilidad, Aceptación del Instrumento y Accesos
+1. **Sombra apagada (por defecto).** Ningún sistema de la sombra está en `build_systems`; `shadow_dna` vale `None`, `shadow_internal_state` vale 0, `Birth.shadow_dna` vale `None`, `shadow_history` queda vacía y `shadow_rng` no se consume. Los hashes dorados de la Fase I, las huellas de la Fase II y todos los historiales de la Fase II-B son idénticos, y la atribución de D56 se reproduce igual (`PHASE25_PROTOCOL_CONFIGS` no activa la sombra).
+2. **Inercia (compuerta del instrumento).** Para cada protocolo `25a`–`25d` (con `drift` y $R_{17}$ incluidos), con la misma semilla y la sombra activa o apagada, son idénticos `history`, `evolutionary_history`, `genetic_history` y `ecology_history`, y el estado final de `rng`, `null_rng`, `evo_rng`, `donor_rng`, `hgt_rng` y de los generadores del entorno. Reemplazar a mitad de corrida la sombra de todos los agentes por un ADN arbitrario tampoco cambia nada de eso.
+3. **Identidad sin mutación.** Con $R_{13}$ ablacionada (`mutation_rate = 0.0` y `discrete_mutation_prob = 0.0`) y todas las demás reglas de `25a` y `25b` activas, incluida $R_{38}$, `shadow_dna == dna` en todo agente y todo tick, y cada campo de sombra de `ShadowTickMetrics` coincide con su homólogo real. Esta prueba y la de inercia deciden si el instrumento sirve: sin ellas no se corre ninguna corrida con sombra.
+4. **Accesos (test AST).** En `src/ide/agent/`, sólo `micro_agent.py` referencia `shadow_dna` y `shadow_internal_state`, y sólo para guardarlos y devolverlos. En `src/ide/simulation/` sólo los referencian los sistemas de la sombra, el armado de los fundadores, `_give_birth`, la conjugación espejo y la telemetría. La lista se fija en el test, para que no crezca.
+5. **Determinismo.** Los historiales y `shadow_history` son iguales entre procesos con distinto `PYTHONHASHSEED` y para cualquier `--jobs`.
+6. **Escenarios de generadores.** Los escenarios que enumeran los generadores del motor (`rng`, `null_rng`, `evo_rng`, `donor_rng`, `hgt_rng`) agregan `shadow_rng`.
+
+### Decisión 74: Costo Computacional
+1. **Memoria.** Un ADN de hasta 64 codones y un entero más por hoja: despreciable.
+2. **Mutación.** Una llamada más a `mutate_dna` por nacimiento, $O(L)$ con $L \le 64$; los nacimientos son pocos por tick.
+3. **Evaluación.** Por decisión genética, una evaluación de la sombra y una innata del ADN real. La innata real reutiliza el caché de la precisión 57, que ya guarda los impulsos sin los pesos; la de la sombra se memoiza con la misma clave sobre la sombra y `shadow_internal_state`.
+4. **Telemetría.** El censo de codones y la transcripción de la sombra se memoizan por contenido, como los reales (precisión 139).
+5. **Estimación y criterio.** Se espera entre un 15 % y un 50 % más de tiempo por tick; la cifra se mide antes de correr (bloque 31). Rige el criterio de D54.3: si una corrida de `phase25` con sombra supera los 5 minutos (la más lenta sin sombra tardó 58,5 s), se optimiza con historiales idénticos.
+6. **Cómputo total.** Sin las condiciones neutrales, cada semilla necesita 10 corridas distintas (`25a`: `full`, `no_predation` y `null_content`; `25b` y `25c`: `full` y `null_content`; `25d`: `full`, `no_learning` y `null_content`, con `stable` reutilizada de `25a`) en lugar de 15. El costo total es parecido o menor que el de D56, aun con la sombra.
+
+---
+
 ## Arquitectura de Módulos y Árbol de Archivos
 
 ```text
@@ -1348,7 +1555,9 @@ src/ide/
 │   └── engine.py           # MODIFICADO: pipeline, Fase 0, hgt_rng, percepción social, interacciones, endosporas
 └── experiments/
     ├── metrics.py          # MODIFICADO: +GeneticTickMetrics, +EcologyTickMetrics, observadores (D53)
+    │                       #   +ShadowTickMetrics, Birth.shadow_dna (D69, borrador)
     ├── attribution.py      # MODIFICADO: +PHASE25_DESIGN_RULES, +PHASE25_CLAIMS, Holm y δ_min (D56)
+    │                       #   +Phase25ShadowClaim, +PHASE25_SHADOW_CLAIMS, run_phase25_shadow_attribution (D72, borrador)
     ├── phase25_viability.py # NUEVO: compuerta de viabilidad (D55)
     ├── run_cache.py        # NUEVO: caché persistente de corridas (precisión 140)
     └── exp25_runner.py     # NUEVO: protocolos 25a, 25b, 25c y 25d + CLI
@@ -1371,6 +1580,7 @@ src/ide/
 - **Atribución con muchas reglas.** Dieciocho reglas nuevas ($R_{24}$–$R_{41}$) hacen costosos los `rule_effects`. *Mitigación:* son exploratorios, se miden con 10 semillas y cada corrida se cachea por (protocolo, variante, semilla) (D56, precisiones 66 y 67).
 - **Pares válidos en la diferencia de diferencias.** C17 y C19 exigen cuatro condiciones viables por semilla; con el mínimo de la compuerta (9 de 10 por condición) la estimación puntual queda cerca de los 20 pares válidos (D55.3). *Mitigación:* ninguna; si quedan no evaluables, se informa como resultado.
 - **Solapamiento con el Experimento 004 (decisión P7).** Con $R_{25}$ como señal, la especialización que aparezca es evolucionada sobre una señal diseñada. El Exp 004 se sigue midiendo con $R_{25}$ ablacionada.
+- **Control de sombra (D64–D74).** *Riesgos:* que la sombra afecte por error la dinámica real; que su herencia no sea la misma que la del ADN real; y que `25d` siga sin potencia. *Mitigación:* las pruebas de inercia e identidad sin mutación de D73 como compuerta del instrumento, el generador propio `shadow_rng` y el test AST de accesos; la falta de potencia de `25d` se declara de antemano (D72.10) y queda como punto abierto P-S1.
 - **JSON de la Fase II.** `config.to_dict()` incluye los campos nuevos, así que los JSON que regeneren los runners de la Fase II ya no son idénticos byte a byte a los de `registros/`. Lo que se garantiza es que los **historiales** y los valores medidos son idénticos. Para comparar un JSON regenerado con uno registrado, se comparan sin los campos de D31 y D52.
 
 ---
@@ -1382,5 +1592,6 @@ src/ide/
 - [ ] El refactor por sistemas y el puerto de política cumplen la aceptación de D44.4, y el ADN fundador con la política genética reproduce la política escrita a mano (D46.5).
 - [ ] `python -m pytest -m slow` en verde.
 - [ ] `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@latest validate --all --strict` sin advertencias.
+- [ ] El pre-registro con sombra D72, aprobado en la tarea 0.8, está commiteado antes de implementar la etapa S, y las pruebas de inercia e identidad de D73 pasan antes de la primera corrida con sombra.
 - [ ] El pre-registro D56, aprobado en la tarea 0.5, está commiteado antes del primer commit de `exp25_runner.py`, y la compuerta de viabilidad (D55) está registrada antes de la prueba de humo.
 - [ ] `/code-review` sin hallazgos accionables pendientes en cada bloque, según CLAUDE.md.

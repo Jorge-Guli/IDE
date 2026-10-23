@@ -450,3 +450,102 @@ Todos los runners y CLI de calibración del proyecto (Fases I, II y II-B, inclui
 #### Scenario: Sin afinidad ni conteo de núcleos
 - **WHEN** se interpreta la CLI sin `--jobs` sin `os.sched_getaffinity` y con `os.cpu_count()` simulado en `None`
 - **THEN** `jobs == 1`.
+
+### Requirement: Telemetría de la Sombra ShadowTickMetrics
+`ShadowTickMetrics` SHALL ser `frozen` con, en orden: `tick`, `shadow_mean_chromosome_length`, `shadow_mean_plasmids`, `shadow_distinct_genotypes`, `shadow_mean_expressible_codons`, `shadow_mean_conditional_codons`, `shadow_mean_expressible_nonattack_codons`, `shadow_mean_learning_codons`, `shadow_communicating_fraction`, `innate_policy_divergence`, `shadow_innate_policy_divergence`, `innate_share_choice`, `shadow_innate_share_choice` y la actividad de la sombra (design D69.2).
+
+#### Scenario: Campos y orden
+- **WHEN** se inspeccionan `dataclasses.fields(ShadowTickMetrics)`
+- **THEN** son esos campos en ese orden, seguidos de `shadow_new_activity`, `shadow_cumulative_new_activity` y `shadow_new_activity_per_birth`.
+
+### Requirement: Historial de la Sombra Separado
+Con la sombra efectiva, el motor SHALL registrar un `ShadowTickMetrics` por tick en `engine.shadow_history`, producido por `ShadowMetricsObserver` en `engine.telemetry_observers`; sin ella, `shadow_history` SHALL quedar vacía, y `TickMetrics`, `EvolutionaryTickMetrics`, `GeneticTickMetrics` y `EcologyTickMetrics` SHALL NOT cambiar (design D69.1).
+
+#### Scenario: Un registro por tick
+- **WHEN** se ejecutan 30 ticks de `25a` con la sombra activa
+- **THEN** `len(engine.shadow_history) == 30`, con `tick` de 0 a 29.
+
+#### Scenario: Sin sombra
+- **WHEN** se ejecutan 30 ticks de `25a` sin la sombra
+- **THEN** `engine.shadow_history == []`.
+
+### Requirement: Complejidad Genética de la Sombra
+`shadow_mean_expressible_codons`, `shadow_mean_conditional_codons`, `shadow_mean_expressible_nonattack_codons` y `shadow_mean_learning_codons` SHALL calcularse con las funciones de las precisiones 42 y 52 sobre `shadow_dna` de las hojas con ADN; la condición plástica SHALL usar la `plasticity_rate` del fenotipo de la sombra transcripto con el `last_context` de la hoja (design D69.2, D68.7).
+
+#### Scenario: Sombra con un codón condicional más
+- **WHEN** dos hojas tienen ADN fundador y sus sombras agregan un codón funcional distinto con promotor `0x18` cada una
+- **THEN** `shadow_mean_conditional_codons == pytest.approx(1.0, abs=1e-9)` y `mean_conditional_codons == 0.0`.
+
+### Requirement: Fracción Comunicante de la Sombra
+`shadow_communicating_fraction` SHALL ser la fracción de hojas vivas no endosporas cuya sombra, transcripta con su `last_context` y la `base_config`, expresa `comm_propensity >= 0.5`; SHALL valer 0.0 sin hojas (design D69.2).
+
+#### Scenario: Comunicación desde cero en la sombra
+- **WHEN** en `25c` una de cuatro hojas activas tiene en su sombra un codón `ALWAYS_BASAL` aditivo sobre `0x0C` con `payload = 127`
+- **THEN** `shadow_communicating_fraction == pytest.approx(0.25, abs=1e-9)`.
+
+### Requirement: Divergencia Innata de Real y Sombra
+`innate_policy_divergence` y `shadow_innate_policy_divergence` SHALL ser, entre las decisiones del tick con la política genética, la fracción en que la elección innata del ADN real, o de la sombra, difiere de la del fundador; la elección innata SHALL ser `trace.first_feasible(behavior_order(drives))` con `plastic_weights=None`, sin generadores; 0.0 sin decisiones (design D68.4, D69.2).
+
+#### Scenario: Pesos aprendidos ignorados
+- **WHEN** un agente con ADN fundador tiene pesos plásticos que en su decisión real cambian la conducta elegida
+- **THEN** su `policy_divergence` cuenta la diferencia, y `innate_policy_divergence` no.
+
+#### Scenario: Población fundadora
+- **WHEN** se registra el tick 0 de `25a` con la sombra activa
+- **THEN** `innate_policy_divergence == shadow_innate_policy_divergence == 0.0`.
+
+### Requirement: Elección Innata de SHARE
+`innate_share_choice` y `shadow_innate_share_choice` SHALL ser, entre las decisiones del tick con la política genética, la fracción en que la elección innata del ADN real, o de la sombra, evaluada sobre el mismo `DecisionTrace`, es `SHARE`; 0.0 sin decisiones. `share_rate` SHALL seguir contando las cesiones ejecutadas (design D69.2, D70).
+
+#### Scenario: Sombra que cedería
+- **WHEN** en un tick con 10 decisiones genéticas la sombra de un agente con vecino adyacente y energía positiva tiene `SHARE` como mayor impulso, y el ADN real no
+- **THEN** `shadow_innate_share_choice == pytest.approx(0.1, abs=1e-9)` y `innate_share_choice == 0.0`.
+
+### Requirement: Actividad Evolutiva de la Sombra
+`shadow_new_activity`, `shadow_cumulative_new_activity` y `shadow_new_activity_per_birth` SHALL seguir la precisión 43 sobre las sombras de los nacimientos más las recepciones de la conjugación espejo que agregan el codón, con los mismos codones fundadores excluidos, el mismo `activity_threshold` y el mismo denominador `cumulative_births` que el ADN real (design D69.2).
+
+#### Scenario: Mismos nacimientos, distinto contenido
+- **WHEN** 10 hijos nacen con un codón funcional no fundador en la sombra y sin él en el ADN real, con `activity_threshold = 10`
+- **THEN** ese codón cruza el umbral en `shadow_new_activity` y no en `new_activity`, y los dos cocientes usan el mismo `cumulative_births`.
+
+### Requirement: Nacimientos con su Sombra
+`Birth` SHALL agregar al final `shadow_dna: CompactDNA | None = None`, la sombra con que nació el hijo; SHALL valer `None` sin la sombra efectiva (design D67.7).
+
+#### Scenario: Nacimiento sin sombra
+- **WHEN** nace un hijo en `25a` sin la sombra
+- **THEN** su `Birth.shadow_dna is None`.
+
+### Requirement: Nombres Únicos de las Métricas de Sombra
+Ningún campo de `ShadowTickMetrics` salvo `tick` SHALL llamarse igual que un campo de `GeneticTickMetrics` o de `EcologyTickMetrics`, y la atribución SHALL buscar cada métrica por su nombre en el historial que la contiene (design D69.3).
+
+#### Scenario: Intersección vacía
+- **WHEN** se intersecan los nombres de los campos de `ShadowTickMetrics` con los de `GeneticTickMetrics` y `EcologyTickMetrics`
+- **THEN** la intersección es `{"tick"}`.
+
+### Requirement: Telemetría de la Sombra con la Población Vacía
+Con la sombra efectiva y sin hojas vivas, todos los campos de `ShadowTickMetrics` salvo `tick` SHALL valer 0.0 o 0, y la actividad acumulada SHALL conservarse (design D69.4).
+
+#### Scenario: Extinción
+- **WHEN** se registra un tick posterior a la extinción de `25d`
+- **THEN** los campos de sombra por hoja valen 0.0 y `shadow_cumulative_new_activity` conserva su valor anterior.
+
+### Requirement: Runner con Sombra
+`exp25_runner` SHALL aceptar `--shadow`, que usa `PHASE25_SHADOW_PROTOCOL_CONFIGS`, sus condiciones y `PHASE25_SHADOW_SEEDS` por defecto, con `--smoke` y `--attribution`, y SHALL escribir `exp25_shadow_smoke.json` y `exp25_shadow_attribution.json` en `--out`, con la misma salida para cualquier `--jobs` (design D72.11).
+
+#### Scenario: Semillas por defecto con sombra
+- **WHEN** se interpreta `--shadow --smoke` sin `--seeds`
+- **THEN** las semillas son `PHASE25_SHADOW_SEEDS` y ninguna condición tiene reproducción neutral.
+
+### Requirement: Prueba de Humo con Sombra y Semillas Nuevas
+Antes de la atribución con sombra, la prueba de humo SHALL registrar, por protocolo, condición de `PHASE25_SHADOW_PROTOCOL_CONFIGS` y semilla de `PHASE25_SHADOW_SEEDS`, sólo la terminación, la generación máxima y la población final, sin calcular ninguna métrica de `C21`..`C28` (design D72.10).
+
+#### Scenario: Sólo demografía
+- **WHEN** se corre `exp25_runner --shadow --smoke`
+- **THEN** su registro no contiene ningún valor de `shadow_history` ni de las métricas de `C21`..`C28`.
+
+### Requirement: Rendimiento con la Sombra
+Antes de la prueba de humo con sombra SHALL medirse el costo por tick de `25b` con la sombra activa; si una corrida de `phase25` supera los 5 minutos, SHALL optimizarse con historiales y `shadow_history` idénticos antes de seguir (design D74.5, D54.3).
+
+#### Scenario: Optimización sin cambio de valores
+- **WHEN** se optimiza la evaluación o la telemetría de la sombra
+- **THEN** los historiales reales y `shadow_history` son idénticos a los de la versión anterior con la misma semilla.

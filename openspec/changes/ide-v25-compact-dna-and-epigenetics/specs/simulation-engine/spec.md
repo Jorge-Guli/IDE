@@ -159,7 +159,7 @@ Las reglas $R_{32}$–$R_{38}$ SHALL NOT agregar generadores: la conducta de la 
 
 #### Scenario: Generadores del motor con todas las reglas nuevas
 - **WHEN** se construye el motor con todas las banderas de design D52 activas
-- **THEN** sus generadores son `rng`, `null_rng`, `evo_rng`, `donor_rng` y `hgt_rng`, con las `spawn_key` declaradas en `CLAUDE.md`, y ninguno más.
+- **THEN** sus generadores son `rng`, `null_rng`, `evo_rng`, `donor_rng`, `hgt_rng` y `shadow_rng` (este último, del instrumento de la sombra, design D66), con las `spawn_key` declaradas en `CLAUDE.md`, y ninguno más.
 
 ### Requirement: Eventos del Tick Calculados por el Motor
 Con $R_{32}$ efectivamente activa, el motor SHALL calcular al final de cada tick un `EventSignals` por agente vivo y guardarlo en `agent.last_events`: `attacked` si fue objetivo de un ataque con éxito con `stolen > 0`, `ate` si consumió un recurso con valor experimentado positivo, `lost_energy` si su energía al final del tick es menor que al principio y `received_energy` si fue objetivo de un `SHARE` que lo alcanzó (design D58.5).
@@ -246,7 +246,7 @@ Las reglas $R_{39}$–$R_{41}$ y los cambios del entorno SHALL NOT agregar gener
 
 #### Scenario: Generadores con la ampliación activa
 - **WHEN** se construye el motor con todas las banderas de design D52 y D63.1 activas y `world_shift_period > 0`
-- **THEN** sus generadores son `rng`, `null_rng`, `evo_rng`, `donor_rng` y `hgt_rng`, y ninguno más.
+- **THEN** sus generadores son `rng`, `null_rng`, `evo_rng`, `donor_rng`, `hgt_rng` y `shadow_rng` (design D66), y ninguno más.
 
 #### Scenario: Ampliación sin consumo con el ADN fundador
 - **WHEN** se corren con la misma semilla `002a` con la política genética y el ADN fundador, con `enable_internal_state`, `enable_plasticity` y `enable_signals` en `True` y en `False`, sin mutación y con `dna_codon_cost = 0.0`
@@ -423,6 +423,84 @@ Con `enable_compact_dna=True` y las reglas de la Fase II-B activas, los historia
 #### Scenario: Igualdad entre procesos
 - **WHEN** se ejecuta la misma configuración de `25b` con la misma semilla en dos procesos con `PYTHONHASHSEED=0` y `PYTHONHASHSEED=123`
 - **THEN** `history`, `evolutionary_history`, `genetic_history` y `ecology_history` son idénticos.
+
+### Requirement: Generador shadow_rng de la Sombra Neutral
+El motor SHALL declarar `self.shadow_rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence(config.seed, spawn_key=(6,))))`, cuyos únicos usos son la mutación de la sombra de cada hijo y el sorteo del codón de la conjugación espejo, consumido sólo con la sombra efectiva y en el orden de los nacimientos y luego de las transferencias (design D66).
+
+#### Scenario: Sin consumo con la sombra apagada
+- **WHEN** se ejecutan 50 ticks de `25a` con `enable_neutral_shadow=False`
+- **THEN** el estado de `shadow_rng` es igual al de un generador recién construido con `SeedSequence(config.seed, spawn_key=(6,))`.
+
+### Requirement: Sombra Neutral Efectiva
+La sombra SHALL ser efectiva sólo con `enable_neutral_shadow`, `enable_evolution` y `enable_compact_dna` en `True`; si no, SHALL ser inerte y SHALL NOT lanzar `ValueError`: los agentes tienen `shadow_dna is None`, ningún sistema de la sombra está en `build_systems` y `shadow_history` queda vacía (design D65.1, D30.3).
+
+#### Scenario: Sombra sin ADN
+- **WHEN** se construye el motor con `enable_neutral_shadow=True` y `enable_compact_dna=False`
+- **THEN** no se lanza error, ningún agente tiene sombra y los historiales son los de la misma configuración sin la bandera.
+
+### Requirement: Sombra de los Fundadores
+Con la sombra efectiva, el motor SHALL asignar a cada fundador `shadow_dna` igual a su ADN inicial y `shadow_internal_state = 0`, sin consumir generadores (design D65.3).
+
+#### Scenario: Sombra fundadora
+- **WHEN** se construye el motor de `25a` con la sombra activa
+- **THEN** cada fundador tiene `shadow_dna == dna == founder_dna(config)` y `shadow_internal_state == 0`.
+
+### Requirement: La Sombra no se Expresa
+Ningún sistema que afecte la dinámica SHALL leer `shadow_dna` ni `shadow_internal_state`: ni la expresión, el costo, la política, la comunicación, las señales, la recombinación, la conjugación real, CRISPR ni la reproducción. Sólo SHALL leerlos la herencia, la evaluación y la telemetría de la sombra (design D65.4).
+
+#### Scenario: Sombra arbitraria sin efecto
+- **WHEN** a mitad de una corrida de `25a` se reemplaza la sombra de todos los agentes por un ADN arbitrario válido
+- **THEN** `history`, `evolutionary_history`, `genetic_history`, `ecology_history` y el estado de los generadores distintos de `shadow_rng` son idénticos a los de la corrida sin reemplazo.
+
+### Requirement: Inercia de la Sombra sobre la Dinámica Real
+Con la misma semilla, activar la sombra SHALL NOT cambiar `history`, `evolutionary_history`, `genetic_history` ni `ecology_history`, ni el estado final de `rng`, `null_rng`, `evo_rng`, `donor_rng`, `hgt_rng` y de los generadores del entorno, en `25a`–`25d`, también con reproducción neutral y con $R_{17}$ (design D73.2).
+
+#### Scenario: Inercia en los cuatro protocolos
+- **WHEN** se corren 300 ticks de cada protocolo y de su `drift` con la sombra activa y apagada
+- **THEN** los cuatro historiales y el estado final de esos generadores son idénticos.
+
+### Requirement: Conjugación Espejo de la Sombra
+Por cada transferencia real sorteada (par donante–receptor), en el orden de aplicación y cualquiera sea su resultado real, si la sombra del donante al empezar el paso tiene plásmidos, el motor SHALL sortear uno con `shadow_rng.integers(len(plásmidos))` y aplicarlo con `receive_plasmid` a la sombra del receptor; si no tiene, SHALL NOT extraer (design D67.5).
+
+#### Scenario: Transferencia bloqueada en el ADN real
+- **WHEN** CRISPR bloquea una transferencia real y la sombra del donante tiene un plásmido que la sombra del receptor no porta
+- **THEN** la sombra del receptor lo recibe y el ADN real del receptor no cambia.
+
+#### Scenario: Donante sin plásmidos en la sombra
+- **WHEN** hay una transferencia real y la sombra del donante no tiene plásmidos
+- **THEN** la sombra del receptor no cambia y `shadow_rng` no se consume en esa transferencia.
+
+### Requirement: Sombra sin Inmunidad CRISPR
+La sombra SHALL NOT abrir ensayos ni purgar plásmidos: su `crispr_memory` SHALL quedar igual a la del fundador, y sus plásmidos SHALL perderse sólo por FIFO (design D67.6).
+
+#### Scenario: Purga real sin purga de la sombra
+- **WHEN** el ensayo CRISPR purga un plásmido del ADN real de un agente cuya sombra porta el mismo codón
+- **THEN** la sombra conserva ese plásmido y su `crispr_memory` sigue vacía.
+
+### Requirement: Evaluación Innata de la Sombra en la Situación Real
+Con la sombra efectiva y $R_{32}$ efectiva, `ShadowEvaluationSystem` SHALL correr como último sistema del núcleo de la Fase 3 y, por agente que decidió con la política genética y en orden de `agent_id`, registrar en el marco la elección innata real, la de la sombra y las máscaras de estado de la sombra, con el `DecisionTrace`, el `last_context` y los símbolos percibidos del agente, sin consumir generadores (design D68).
+
+#### Scenario: Antes de on_decisions
+- **WHEN** se arma `build_systems` de `25a` con la sombra activa
+- **THEN** `ShadowEvaluationSystem` va después de la decisión y de la emisión de señales, lleva la marca `notifies_decisions` y va antes de `InternalStateSystem`.
+
+#### Scenario: Endospora sin evaluación
+- **WHEN** un agente está en endospora en la Fase 3
+- **THEN** no tiene registro en `frame.shadow_decisions` y su `shadow_internal_state` no cambia.
+
+### Requirement: Estado Interno de la Sombra
+Con la sombra y $R_{39}$ efectivas, `ShadowStateSystem`, inmediatamente después de `InternalStateSystem`, SHALL aplicar a cada agente evaluado `(shadow_internal_state | set_mask) & ~clear_mask` con las máscaras de su sombra; sin $R_{39}$, `shadow_internal_state` SHALL quedar en 0 (design D68.6, D58.3).
+
+#### Scenario: Estado de la sombra independiente del real
+- **WHEN** la sombra de un agente tiene un `SET_STATE` activo sobre el bit 2 y su ADN real no
+- **THEN** al terminar la Fase 3 `shadow_internal_state == 4` y `internal_state` no cambia.
+
+### Requirement: Accesos a la Sombra
+Un test AST SHALL fijar que, en `src/ide/agent/`, sólo `micro_agent.py` referencia `shadow_dna` y `shadow_internal_state`, y que en `src/ide/simulation/` sólo los referencian los sistemas de la sombra, el armado de los fundadores, `_give_birth`, la conjugación espejo y la telemetría, con una lista cerrada que no puede crecer sin cambiar el test (design D73.4).
+
+#### Scenario: Política sin sombra
+- **WHEN** se recorre el AST de `policy.py`, `protocol.py` y `dna.py`
+- **THEN** ninguno contiene los identificadores `shadow_dna` ni `shadow_internal_state`.
 
 ## MODIFIED Requirements
 
