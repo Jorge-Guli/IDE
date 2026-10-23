@@ -275,6 +275,32 @@ Corrida el 2026-10-23 con `python -m ide.experiments.exp25_runner --smoke --cach
 
 Observaciones demográficas (no son afirmaciones): con 30 semillas se repite el patrón de la compuerta. Con selección y entorno estable la población sobrevive (30 de 30). Con reproducción neutral (`drift`) sobreviven entre 7 y 19 de 30, menos que los 20 pares válidos que exige la precisión 45, y lo mismo pasa con `25d` full (19 de 30).
 
+## Fase II-B: atribución pre-registrada C13–C20 (D56, tarea 26.1)
+
+Corrida por el responsable del proyecto en su equipo el 2026-10-23 con `python -m ide.experiments.exp25_runner --attribution`, sobre la configuración fijada por la compuerta (80, 20), el perfil `phase25` (5000 ticks), `PHASE25_SEEDS` (42–71) y `rule_effects` exploratorios con las semillas 42–51. La salida completa está en `registros/exp25_phase25_attribution.json`. Las configuraciones registradas coinciden campo a campo con `PHASE25_PROTOCOL_CONFIGS`. Las compuertas y la prueba de humo del mismo equipo son idénticas a las de este contenedor (510 corridas), lo que confirma el determinismo entre máquinas.
+
+**Resultado (tal cual): las ocho afirmaciones son `NOT_OBSERVED` y ninguna es evaluable.** Todas quedaron por debajo de los 20 pares válidos de la precisión 45, porque la condición de comparación con reproducción neutral, o el entorno cambiante de `25d`, se extingue en muchas semillas. Lo había anticipado la prueba de humo.
+
+| Afirmación | Pares válidos (de 30) | p crudo | p ajustado (Holm) | Mediana de las diferencias | Umbral | E4 interpretable | Estado |
+| :--- | ---: | ---: | ---: | ---: | ---: | :---: | :--- |
+| C13 | 16 | 0.0002594 | 0.001816 | 0.6663 | 1 | sí | NOT_OBSERVED |
+| C14 | 16 | 0.7728 | 1 | -0.09579 | 0.05 | sí | NOT_OBSERVED |
+| C15 | 9 | 1 | 1 | 0 | 0.1 | sí | NOT_OBSERVED |
+| C16 | 16 | 0.9616 | 1 | -0.006603 | 0.01935 | sí | NOT_OBSERVED |
+| C17 | 16 | 0.9997 | 1 | -6.323 | 1 | sí | NOT_OBSERVED |
+| C18 | 18 | 0.5927 | 1 | 1.938e-05 | 0.01 | sí | NOT_OBSERVED |
+| C19 | 3 | 0.5 | 1 | 0.06334 | 1 | sí | NOT_OBSERVED |
+| C20 | 17 | 0.7095 | — | 0 | 0.02 | sí | NOT_OBSERVED |
+
+Lectura (exploratoria, sin valor confirmatorio porque ninguna afirmación es evaluable):
+- **Sesgo de supervivencia.** Los pares válidos son sólo las semillas en que sobrevivió la condición neutral, que no son una muestra al azar. Por eso estos números no deben leerse como estimaciones de los efectos.
+- **C13 (regulación génica):** es el único contraste con p bajo (p = 0.00026; ajustado 0.0018). Su mediana, 0.67, no alcanza el umbral pre-registrado de 1.0, y la afirmación no es evaluable.
+- **C14 y C16:** la conducta diverge del fundador y la actividad evolutiva ocurre menos con selección que en las supervivientes neutrales (medianas negativas). Es lo que se espera de la deriva, que aleja el ADN del fundador.
+- **C17 (diferencia de diferencias):** la mediana es negativa y grande (−6.3). En los pares válidos, la depredación no aumenta la complejidad genética expresable: la reduce.
+- **C15, C19 y C20:** no hay señal. C19 tiene sólo 3 pares válidos.
+
+**Conclusión de la fase.** El diseño de la Fase II-B no puede responder sus preguntas tal como fue pre-registrado. El control de reproducción neutral se extingue en esta ecología: sin selección la población no se sostiene, probablemente por acumulación de mutaciones dañinas. El hallazgo es demográfico, no una afirmación. El responsable del proyecto decidió corregir la base del control antes de seguir (2026-10-23). El control nuevo se pre-registra antes de correrlo y se evalúa con semillas que ninguna corrida usó, porque se diseña conociendo este resultado.
+
 ## Rendimiento (línea base, `python -m ide.experiments.benchmark`)
 
 Configuración base del Exp 001, 300 ticks, 3 repeticiones; contenedor compartido, con ruido entre corridas.
